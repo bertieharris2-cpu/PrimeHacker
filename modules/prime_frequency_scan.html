@@ -439,6 +439,7 @@ button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [clas
   </div>
 
 <script src="../shared/primenet.js"></script>
+<script src="../shared/testtools.js"></script>
 <script src="../shared/sound.js"></script>
 <script>
 (() => {
@@ -997,6 +998,20 @@ button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [clas
   });
 
   // ====== Start ======
+  // Teacher test tools (only while unlocked)
+  if(window.PNTest){
+    const tagPrimes = () => {
+      if(state !== State.SCAN){ if(state !== State.VERIFIED) { bandIndex = 0; progress = new Array(CONFIG.bands.length).fill(false); } renderScan(); }
+      const b = CONFIG.bands[bandIndex], ps = new Set(primesInBand(b.start, b.end));
+      selected = new Set(ps);
+      main.querySelectorAll(".cell").forEach(c => { const on = ps.has(Number(c.textContent)); c.classList.toggle("selected", on); c.setAttribute("aria-pressed", on ? "true" : "false"); });
+      return b;
+    };
+    PNTest.add("Tag the primes in this band", () => { tagPrimes(); return "Tagged. Press Verify, or use Solve."; });
+    PNTest.add("Solve this band", () => { verifyBand(tagPrimes()); });
+    PNTest.add("Skip to Factor Vault", () => { if(PN) PN.log("scan-complete"); location.href = "factor_vault.html"; });
+  }
+
   renderBoot();
 
   // Keyboard convenience: Enter triggers primary button on BRIEF/COMPLETE

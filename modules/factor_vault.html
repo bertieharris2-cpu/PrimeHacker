@@ -865,6 +865,7 @@ body{ font-size: var(--font-size); }
   </div>
 
   <script src="../shared/primenet.js"></script>
+  <script src="../shared/testtools.js"></script>
   <script src="../shared/sound.js"></script>
   <script>
     const PN = window.Primenet;
@@ -1901,6 +1902,24 @@ body{ font-size: var(--font-size); }
     btnL1.addEventListener("click", () => { setDifficulty('L1'); init(); updateLevelButtons(); settingsDropdown.classList.remove('open'); });
     btnL2.addEventListener("click", () => { setDifficulty('L2'); init(); updateLevelButtons(); settingsDropdown.classList.remove('open'); });
     btnL3.addEventListener("click", () => { setDifficulty('L3'); init(); updateLevelButtons(); settingsDropdown.classList.remove('open'); });
+
+    // Teacher test tools (only while unlocked)
+    if(window.PNTest){
+      const fillPairs = count => {
+        const rows = [...pairsTable.querySelectorAll("tr")].filter(r => r.cells[0].contentEditable === "true");
+        const todo = allPairs.filter(([a, b]) => !found.has(keyOf(a, b))).slice(0, count);
+        todo.forEach(([a, b], i) => { rows[i].cells[0].textContent = a; rows[i].cells[1].textContent = b; });
+        validateAll();
+      };
+      PNTest.add("Fill one pair", () => fillPairs(1));
+      PNTest.add("Fill all pairs (finish this floor)", () => fillPairs(99));
+      PNTest.add("Skip to Blueprint (3 floors at this level)", () => {
+        const pool = VALID_N[currentDifficulty].slice().sort(() => Math.random() - .5).slice(0, 3);
+        localStorage.setItem("blueprintProgress", JSON.stringify(pool));
+        pool.forEach(n => PN && PN.log("vault-complete", { n, level: currentDifficulty }));
+        location.href = "vault_blueprint_viewer.html";
+      });
+    }
 
     // Start the game
     // Check URL parameters for N value from vault_grid_demo

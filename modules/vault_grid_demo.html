@@ -325,6 +325,7 @@ button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [clas
 </div>
 
 <script src="../shared/primenet.js"></script>
+<script src="../shared/testtools.js"></script>
 <script src="../shared/sound.js"></script>
 <script>
 const PN = window.Primenet;
@@ -414,7 +415,7 @@ function setCell(x,y,state){
   c.classList.toggle("on", state==="on");
   if(state==="off") c.classList.remove("flow","on");
 }
-const pause=(ms)=>new Promise(r=>setTimeout(r,ms));
+const pause=(ms)=>new Promise(r=>setTimeout(r, ms / (window.PNTest ? PNTest.speed() : 1)));   // test tools can speed this up
 
 /* ---------- Seeded RNG so reruns are stable per seed ---------- */
 function mulberry32(a){
@@ -522,6 +523,7 @@ function generatePlacements(seed, wanted){
 
 /* ---------- Visual engine ---------- */
 function drawLaser(rect, ms=920){
+  if(window.PNTest) ms = ms / PNTest.speed();
   SND("laser");
   const r=document.createElementNS("http://www.w3.org/2000/svg","rect");
   r.setAttribute("x",rect.x*STEP);
@@ -1078,6 +1080,12 @@ nextFloorBtn.addEventListener("click", ()=>{
 const urlParams = new URLSearchParams(window.location.search);
 const urlN = parseInt(urlParams.get('n'), 10);
 const initialN = (Number.isInteger(urlN) && urlN > 1) ? urlN : 18;
+
+// Teacher test tools (only while unlocked)
+if(window.PNTest){
+  PNTest.add("Show the next button now", () => { nextFloorBtn.style.visibility = "visible"; });
+  PNTest.add("Go to the next step", () => { window.location.href = blueprintReady() ? "vault_blueprint_viewer.html" : "factor_vault.html"; });
+}
 
 // Initialize with N from URL or default to 18.
 // Students: lasers build the floor plan, then it rises into 3D, then the next step appears.

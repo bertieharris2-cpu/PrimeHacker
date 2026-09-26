@@ -192,8 +192,9 @@
         <a class="pn-btn small" href="modules/vault_grid_demo.html?n=24">Vault Grid (N = 24)</a>
         <a class="pn-btn small" href="modules/vault_blueprint_viewer.html">Blueprint (sample numbers)</a>
         <a class="pn-btn small" href="modules/prime_hack.html">Prime Hack</a>
+        <button class="pn-btn small primary" type="button" id="testMission">Start a test mission (agent TEST)</button>
       </div>
-      <p class="msg">While unlocked, you also see Vault Grid's layout controls and can preview the Blueprint without finishing three floors. Unlocking lasts until you press Lock or close the browser tab.</p>
+      <p class="msg">While unlocked, every game shows a yellow <b>TEST</b> button (bottom left) with shortcuts to skip the maths, and you also see Vault Grid's layout controls and can preview the Blueprint without finishing three floors. Unlocking lasts until you press Lock or close the browser tab.</p>
     </section>
 
     <section>
@@ -347,6 +348,12 @@
     const easy = rows.filter(r => r.sessions >= 2 && r.levels.L1 === r.sessions).map(r => r.codename);
     $("#recordMsg").textContent = easy.length ? `Always chosen L1: ${easy.join(", ")}. These agents might be ready for more.` : `${rows.length} agent${rows.length === 1 ? "" : "s"} recorded.`;
   }
+
+  $("#testMission").addEventListener("click", () => {
+    const lvl = P.allowedLevels()[0];
+    P.startSession("TEST", lvl);
+    location.href = "modules/prime_frequency_scan.html";
+  });
 
   $("#downloadBtn").addEventListener("click", () => {
     const name = P.downloadRecord();

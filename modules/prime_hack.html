@@ -1238,6 +1238,7 @@ button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [clas
 
 <!-- Mission data (agent, level, record), then the banking system, which keeps a wallet per codename -->
 <script src="../shared/primenet.js"></script>
+<script src="../shared/testtools.js"></script>
 <script src="../shared/sound.js"></script>
 <script src="./bank.js"></script>
 
@@ -1931,7 +1932,7 @@ async function breachPrelude(seconds=10){
 // ===================== SUCCESS SCREENS =====================
 // Hold ENTER to fast-forward the cinematic parts (not the parts students play).
 const FF = { active:false, held:false, el:null };
-function speed(){ return FF.active && FF.held ? 6 : 1; }
+function speed(){ if(window.PNTest && PNTest.fast) return 8; return FF.active && FF.held ? 6 : 1; }
 function setCinematic(on){
   FF.active = on;
   if(on && !FF.el){ FF.el = document.createElement("div"); FF.el.className = "ffHint"; FF.el.textContent = "HOLD ENTER TO FAST-FORWARD"; document.body.appendChild(FF.el); }
@@ -2486,6 +2487,44 @@ function boot(){
   focusInput();
 }
 boot();
+
+// Teacher test tools (only while unlocked)
+if(window.PNTest){
+  const submit = async t => { addRich(["student@lifehouse:~$ ", [t, "pink"]], "sys"); await handleMath(t); };
+  const inFinale = () => Run.index >= Run.locksPerRun;
+  PNTest.add("Solve this lock", async () => {
+    if(inFinale()){ submit(`${Run.p} ${Run.q}`); return "Final lock: the finale is starting."; }
+    await submit(`${Run.p} ${Run.q}`);
+  });
+  PNTest.add("Make a wrong guess", () => submit(`${Run.p} ${Run.q + 2}`));
+  PNTest.add("Solve locks up to the final one", async () => {
+    while(!inFinale()) await submit(`${Run.p} ${Run.q}`);
+    return "Now on the final lock.";
+  });
+  PNTest.add("Jump to the finale", async () => {
+    while(!inFinale()) await submit(`${Run.p} ${Run.q}`);
+    submit(`${Run.p} ${Run.q}`);
+    return "Finale started. Use Auto-charge buffer next.";
+  });
+  PNTest.add("Auto-charge the buffer", async () => {
+    if(!Buffer.dock) return "The buffer isn't showing yet.";
+    const stages = Buffer.stages;
+    for(let i = 0; i < stages && Buffer.dock; i++){
+      await new Promise(r => { const t = setInterval(() => { if(Buffer.resolve || !Buffer.dock){ clearInterval(t); r(); } }, 50); });
+      if(!Buffer.dock) break;
+      for(let k = 0; k < Buffer.required; k++){ Buffer.typed++; typeBufferCode(); }
+      markBufferReady(); updateBufferUI();
+      await new Promise(r => setTimeout(r, 250));
+      commitBufferStage();
+    }
+    return "Buffer charged.";
+  });
+  PNTest.add("Pull every vault bolt", () => {
+    const bolts = [...document.querySelectorAll(".vbolt:not(.out)")];
+    if(!bolts.length) return "The vault door isn't showing yet.";
+    bolts.forEach((b, i) => setTimeout(() => b.click(), i * 300));
+  });
+}
 </script>
 
 <script>

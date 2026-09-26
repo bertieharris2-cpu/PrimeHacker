@@ -233,6 +233,7 @@ button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [clas
   <!-- Three.js is included with the game so the 3D view works without internet -->
   <script src="../shared/vendor/three.min.js"></script>
   <script src="../shared/primenet.js"></script>
+  <script src="../shared/testtools.js"></script>
   <script src="../shared/sound.js"></script>
   <script>
     const PN = window.Primenet;
@@ -313,6 +314,7 @@ function powerUpPrompt(title){
       });
       
       // Proceed button handler
+      if(window.PNTest) PNTest.add("Continue to Prime Hack", () => { window.location.href = "prime_hack.html"; });
       document.getElementById('proceedToHackBtn').addEventListener('click', () => {
         // Clear blueprint progress
         localStorage.removeItem('blueprintProgress');
