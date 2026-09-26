@@ -122,7 +122,14 @@ Ideas voted yes (from `IDEAS.md`), grouped into a build order:
   - Settings on the title screen, saved per codename: text size, easy-read font (Atkinson Hyperlegible), reduce motion and sound
   - The code flood is back between the buffer charge and the vault door, in the roleplay terminal's style, with the student's cracked primes, the bank and their codename; it ends on FIREWALL DOWN. Hold ENTER fast-forwards it
   - Fixed: Prime Hack's first message said "Target bank: unknown" because the bank loaded after the target was picked
-- [ ] Round 3 groups 2–6: see the build order under Round 3
+- [x] Round 3 group 2, Frequency Scan:
+  - Bands match the level and change each mission: three bands of ten from L1 1–40, L2 31–80, L3 71–150
+  - Mistakes: the first wrong verify says how many tags are noise and how many primes are missing; the second shows where (red = tagged noise, pulsing yellow = missed prime)
+  - Jammer (a sieve): buttons for the small primes up to √(band end) knock out every multiple of that prime. Two charges a band, so students still reason about the rest
+  - Live intercept (oscilloscope) after the three bands: numbers drift across a scope; click the primes before they escape
+  - Signal strength: starts at 100%, drops 10% per wrong verify, 4% per missed or wrongly clicked intercept signal, 5% for a band over a minute. 80%+ earns 2 decoder charges for Factor Vault, 60%+ earns 1. A decoder cracks one factor pair
+- [x] Sound: the stage-complete sound is now mechanical (motor, three latches, a thunk, air, a low power hum) instead of bells; the lock and identity sounds lost their high pings
+- [ ] Round 3 groups 3–6: see the build order under Round 3
 
 ## Success screens (first pass)
 

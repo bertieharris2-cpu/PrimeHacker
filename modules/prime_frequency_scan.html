@@ -393,6 +393,42 @@
 }
 
   
+/* ===== Round 3 group 2: signal meter, mistakes, jammer, live intercept ===== */
+.scanHead{ display:flex; align-items:center; justify-content:space-between; gap:14px; width:min(620px,100%); }
+.signal{ display:flex; align-items:center; gap:8px; font-size:.85rem; color:var(--muted); white-space:nowrap; }
+.signal .bars{ display:flex; gap:3px; align-items:flex-end; height:18px; }
+.signal .bars i{ width:6px; background:rgba(var(--accent-rgb),.18); border:1px solid rgba(var(--accent-rgb),.35); }
+.signal .bars i.on{ background:var(--accent); box-shadow:0 0 8px rgba(var(--accent-rgb),.6); }
+.signal .bars.weak i.on{ background:#f2c14e; border-color:#f2c14e; box-shadow:0 0 8px rgba(242,193,78,.5); }
+.signal .bars.poor i.on{ background:#ff6b6b; border-color:#ff6b6b; box-shadow:0 0 8px rgba(255,107,107,.5); }
+.signal b{ color:var(--text); min-width:3.2em; text-align:right; }
+.cell.wrongTag{ border-color:#ff6b6b !important; color:#ff9b9b; background:rgba(255,107,107,.16) !important; animation:tagFlash .5s ease-in-out 3; }
+.cell.missed{ border-color:#ffe14d !important; animation:missPulse 1s ease-in-out infinite; }
+@keyframes tagFlash{ 50%{ background:rgba(255,107,107,.45); } }
+@keyframes missPulse{ 50%{ box-shadow:0 0 0 3px rgba(255,225,77,.35), 0 0 18px rgba(255,225,77,.35); } }
+.cell.jammed{ opacity:.28; text-decoration:line-through; text-decoration-color:#ff6b6b; cursor:not-allowed; background:repeating-linear-gradient(135deg, rgba(255,107,107,.08) 0 4px, transparent 4px 9px) !important; }
+.cell.jamHit{ animation:jamHit .35s ease-out; }
+@keyframes jamHit{ 0%{ transform:scale(1.12); background:rgba(255,107,107,.5); } 100%{ transform:none; } }
+.jammer{ display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:8px; width:min(620px,100%); border:1px dashed rgba(var(--accent-rgb),.35); padding:8px 10px; font-size:.9rem; color:var(--muted); }
+.jammer .jl{ color:var(--text); font-weight:700; letter-spacing:.08em; }
+.jammer button{ min-width:0 !important; padding:5px 12px; font-weight:700; }
+.jammer button.used{ opacity:.35; }
+.jammer .charges{ color:#ffe14d; }
+.intercept{ width:min(760px,100%); display:grid; gap:10px; justify-items:center; }
+.scope{ position:relative; width:100%; height:270px; border:1px solid rgba(var(--accent-rgb),.45); background:#03110f; overflow:hidden; box-shadow:inset 0 0 40px rgba(0,0,0,.8); }
+.scope canvas{ position:absolute; inset:0; width:100%; height:100%; }
+.blip{ position:absolute; top:0; left:0; min-width:0 !important; padding:6px 10px !important; font-family:var(--font-mono) !important; font-size:1.15rem; font-weight:700; color:#d9fff0; background:rgba(3,20,16,.8) !important; border:1px solid rgba(var(--accent-rgb),.7) !important; box-shadow:0 0 14px rgba(var(--accent-rgb),.35); will-change:transform; }
+.blip:hover{ border-color:#ffe14d !important; }
+.blip.locked{ background:rgba(var(--accent-rgb),.35) !important; border-color:#fff !important; color:#fff; box-shadow:0 0 26px rgba(var(--accent-rgb),.9); pointer-events:none; }
+.blip.noise{ background:rgba(255,107,107,.35) !important; border-color:#ff6b6b !important; color:#fff; pointer-events:none; }
+.blip.escaped{ opacity:.35; pointer-events:none; }
+.scopeHud{ display:flex; gap:18px; flex-wrap:wrap; justify-content:center; font-size:.9rem; color:var(--muted); }
+.scopeHud b{ color:var(--text); }
+.bonusCard{ border:1px solid rgba(var(--accent-rgb),.45); padding:12px 16px; text-align:center; width:min(520px,100%); display:grid; gap:6px; }
+.bonusCard .big{ font-size:1.6rem; font-weight:700; color:var(--accent); letter-spacing:.06em; }
+.bonusCard .perk{ color:#ffe14d; }
+body{ overflow:auto !important; }
+
 /* ===== PRIMENET shared style (docs/STYLE.md). Keep this block last. ===== */
 html, body{ background: var(--bg-primary) !important; }
 body{ color: var(--text-primary); }
@@ -455,16 +491,41 @@ button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [clas
     versionLabel: "PRIME NET v1.3",
     // Bands for warm-up. Add/remove freely.
     // Example: { start: 40, end: 49 }
-    bands: [
-      { start: 40, end: 49 },
-      { start: 50, end: 59 },
-      { start: 60, end: 69 }
-    ],
+    // Three bands of ten, picked at random from the level's range each mission (see pickBands)
+    bands: [],
     // Grid columns (for 10-number decades, 5x2 feels clean)
     gridColumns: 5,
     bootDurationMs: 1600,
     verifiedPauseMs: 900
   };
+
+  // Each level scans its own range: L1 1–40, L2 31–80, L3 71–150
+  const LEVEL_RANGES = { L1:{ from:1, to:40 }, L2:{ from:31, to:80 }, L3:{ from:71, to:150 } };
+  const LEVEL_ID = PN ? PN.level() : "L1";
+  function pickBands(level){
+    const r = LEVEL_RANGES[level] || LEVEL_RANGES.L1, all = [];
+    for(let st = r.from; st + 9 <= r.to; st += 10) all.push({ start: st, end: st + 9 });
+    return all.sort(() => Math.random() - .5).slice(0, 3).sort((a, b) => a.start - b.start);
+  }
+  CONFIG.bands = pickBands(LEVEL_ID);
+
+  // Signal strength: starts at 100%, drops with each wrong verify, slow band or intercept slip.
+  // A strong signal earns decoder charges for the Factor Vault.
+  let signal = 100, bandStartedAt = 0;
+  const loseSignal = n => { signal = Math.max(20, signal - n); updateSignalMeters(); };
+  function signalMeter(){
+    const w = el("div", { class: "signal", title: "Signal strength: a fast, clean scan earns decoder charges for the vault" });
+    w.innerHTML = `SIGNAL <span class="bars">${[1,2,3,4,5].map(() => "<i></i>").join("")}</span> <b></b>`;
+    paintSignal(w); return w;
+  }
+  function paintSignal(w){
+    const bars = w.querySelector(".bars"), on = Math.ceil(signal / 20);
+    [...bars.children].forEach((b, i) => { b.classList.toggle("on", i < on); b.style.height = (6 + i * 3) + "px"; });
+    bars.classList.toggle("weak", signal < 80 && signal >= 60); bars.classList.toggle("poor", signal < 60);
+    w.querySelector("b").textContent = signal + "%";
+  }
+  function updateSignalMeters(){ document.querySelectorAll(".signal").forEach(paintSignal); }
+  const decodersFor = sig => sig >= 80 ? 2 : sig >= 60 ? 1 : 0;
 
   // ====== DOM ======
   const brandText = document.getElementById("brandText");
@@ -482,6 +543,7 @@ button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [clas
     SCAN: "SCAN",
     VERIFIED: "VERIFIED",
     COMPLETE: "COMPLETE",
+    INTERCEPT: "INTERCEPT",
   });
 
   let state = State.BOOT;
@@ -635,7 +697,8 @@ button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [clas
     setConsole("Scanning number band…", `Target range loaded: ${b.start}\u2013${b.end}`);
     clearMain();
 
-    const heading = el("div", { class: "gridTitle", text: `SCANNING ${b.start}\u2013${b.end}` });
+    const heading = el("div", { class: "scanHead" }, [el("div", { class: "gridTitle", text: `SCANNING ${b.start}\u2013${b.end}` }), signalMeter()]);
+    bandStartedAt = Date.now(); bandMisses = 0; slowNoted = false;
     const instruction = el("div", { class: "instruction", text: "Identify all stable signals in this band." });
 
     const grid = el("div", { class: "numGrid", role: "grid", "aria-label": `Number grid ${b.start} to ${b.end}` });
@@ -649,6 +712,8 @@ button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [clas
         "aria-pressed": "false",
         text: String(n),
         onClick: (e) => {
+          if(e.currentTarget.classList.contains("jammed")) return;
+          e.currentTarget.classList.remove("wrongTag", "missed");
           toggleSelected(n);
           const pressed = selected.has(n);
           e.currentTarget.classList.toggle("selected", pressed);
@@ -669,7 +734,7 @@ button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [clas
         selected.clear();
         // clear UI state
         [...grid.querySelectorAll(".cell")].forEach(btn => {
-          btn.classList.remove("selected");
+          btn.classList.remove("selected", "wrongTag", "missed");
           btn.setAttribute("aria-pressed", "false");
         });
         setConsole("TAGS CLEARED", "All signal tags removed.");
@@ -678,10 +743,44 @@ button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [clas
 
     const btnRow = el("div", { class: "btnRow" }, [verifyBtn, resetBtn]);
 
-    main.append(heading, instruction, grid, renderSegments(), btnRow);
+    main.append(heading, instruction, renderJammer(b, grid), grid, renderSegments(), btnRow);
   }
 
-  let bandMisses = 0;
+  // Jammer: knock out every multiple of a small prime, like the Sieve of Eratosthenes.
+  // Two charges a band, so students still have to reason about the rest.
+  const JAM_CHARGES = 2;
+  function renderJammer(b, grid){
+    const small = []; for(let p = 2; p * p <= b.end; p++) if(isPrime(p)) small.push(p);
+    let charges = JAM_CHARGES;
+    const wrap = el("div", { class: "jammer" });
+    const label = el("span", { class: "jl", text: "JAMMER" });
+    const info = el("span", { html: `knocks out every multiple of a prime · <span class="charges">${charges} charges</span>` });
+    wrap.append(label);
+    small.forEach(p => {
+      const btn = el("button", { type: "button", text: `×${p}`, title: `Knock out every multiple of ${p} (except ${p} itself)` });
+      btn.addEventListener("click", () => {
+        if(charges <= 0 || btn.classList.contains("used")) return;
+        charges--; btn.classList.add("used"); btn.disabled = true;
+        info.querySelector(".charges").textContent = `${charges} charge${charges === 1 ? "" : "s"}`;
+        if(charges === 0) wrap.querySelectorAll("button").forEach(x => x.disabled = true);
+        SND("laser");
+        const hit = [];
+        [...grid.querySelectorAll(".cell")].forEach(c => {
+          const n = Number(c.textContent);
+          if(n !== p && n % p === 0 && !c.classList.contains("jammed")){
+            hit.push(n);
+            setTimeout(() => { c.classList.add("jammed", "jamHit"); c.classList.remove("selected", "wrongTag", "missed"); c.setAttribute("aria-disabled", "true"); selected.delete(n); SND("pop", hit.indexOf(n)); }, 120 + hit.length * 70);
+          }
+        });
+        setConsole(`JAMMER ×${p}`, hit.length ? `Knocked out ${hit.join(", ")}: all multiples of ${p}, so none of them is prime.` : `No multiples of ${p} left in this band.`);
+      });
+      wrap.append(btn);
+    });
+    wrap.append(info);
+    return wrap;
+  }
+
+  let bandMisses = 0, slowNoted = false;
   function verifyBand(b){
     const primes = new Set(primesInBand(b.start, b.end));
     let ok = true;
@@ -696,6 +795,8 @@ button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [clas
 
     if (ok){
       if(window.PNHandler && bandIndex === 0) PNHandler.once("scan-band1", "Band one is clean. Keep going.");
+      // A slow band costs a little signal (the clock is generous: 60 seconds)
+      if(!slowNoted && Date.now() - bandStartedAt > 60000){ slowNoted = true; loseSignal(5); }
       bandMisses = 0;
       progress[bandIndex] = true;
       SND("correct", bandIndex * 2);
@@ -703,6 +804,19 @@ button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [clas
     } else {
       setConsole("NOISE DETECTED", "Rescan required.");
       bandMisses++;
+      loseSignal(10);
+      const wrongTags = [...selected].filter(n => !primes.has(n)), missedP = [...primes].filter(n => !selected.has(n));
+      if(bandMisses === 1){
+        setConsole("NOISE DETECTED", `${wrongTags.length} tag${wrongTags.length === 1 ? " is" : "s are"} noise and ${missedP.length} signal${missedP.length === 1 ? " is" : "s are"} missing. Rescan.`);
+      } else {
+        // Second miss: show exactly where. Red = tagged noise, pulsing = missed signal.
+        main.querySelectorAll(".cell").forEach(c => {
+          const n = Number(c.textContent);
+          c.classList.toggle("wrongTag", wrongTags.includes(n));
+          c.classList.toggle("missed", missedP.includes(n));
+        });
+        setConsole("NOISE MAPPED", "Red: noise you tagged. Pulsing yellow: primes you missed.");
+      }
       if(window.PNHandler && bandMisses === 2) PNHandler.once("scan-miss-" + bandIndex, "Check each number: does it split into a times-table fact, like 3 × 7? Then it's noise, not a prime. And 1 is never prime.");
       SND("wrong");
       // brief visual cue: flash border by toggling status text class
@@ -745,11 +859,99 @@ button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [clas
     setTimeout(() => {
       bandIndex += 1;
       if (bandIndex >= CONFIG.bands.length){
-        renderComplete();
+        renderIntercept();
       } else {
         renderScan();
       }
     }, CONFIG.verifiedPauseMs + 450);
+  }
+
+  // ====== LIVE INTERCEPT (oscilloscope) ======
+  // Numbers drift across a scope. Click the primes before they escape; leave the noise alone.
+  const INTERCEPT = {
+    L1: { from: 2, to: 40, count: 12, travel: 9000, gap: 1500 },
+    L2: { from: 20, to: 80, count: 14, travel: 8000, gap: 1300 },
+    L3: { from: 50, to: 150, count: 16, travel: 7000, gap: 1150 },
+  };
+  let interceptDone = null;
+  function renderIntercept(){
+    state = State.INTERCEPT;
+    const cfg = INTERCEPT[LEVEL_ID] || INTERCEPT.L1;
+    const slow = (PN && PN.reducedMotion && PN.reducedMotion()) ? 1.4 : 1;
+    setStatus("LIVE INTERCEPT");
+    setConsole("Live traffic detected.", "Click the prime signals before they leave the scope.");
+    clearMain();
+    if(window.PNHandler) PNHandler.once("scan-intercept", "Live traffic from {target}. Grab the primes as they pass. Leave the noise alone.", { delay: 300 });
+
+    // Half primes, half not, in a random order
+    const pool = []; for(let n = cfg.from; n <= cfg.to; n++) pool.push(n);
+    const pr = pool.filter(isPrime).sort(() => Math.random() - .5), co = pool.filter(n => !isPrime(n)).sort(() => Math.random() - .5);
+    const half = Math.ceil(cfg.count / 2);
+    const queue = [...pr.slice(0, half), ...co.slice(0, cfg.count - half)].sort(() => Math.random() - .5);
+
+    const heading = el("div", { class: "scanHead" }, [el("div", { class: "gridTitle", text: "LIVE INTERCEPT" }), signalMeter()]);
+    const scope = el("div", { class: "scope", role: "application", "aria-label": "Oscilloscope. Numbers drift from right to left; click the primes." });
+    const canvas = el("canvas");
+    scope.append(canvas);
+    const hud = el("div", { class: "scopeHud" });
+    const wrap = el("div", { class: "intercept" }, [heading, el("div", { class: "instruction", text: "Primes are stable signals. Click them before they escape. Leave the noise." }), scope, hud]);
+    main.append(wrap);
+
+    const stats = { locked: 0, missed: 0, noise: 0, left: queue.length };
+    const paintHud = () => { hud.innerHTML = `Locked <b>${stats.locked}</b> · Missed <b>${stats.missed}</b> · Noise clicked <b>${stats.noise}</b> · Incoming <b>${stats.left}</b>`; };
+    paintHud();
+
+    const blips = []; let spawned = 0, lastSpawn = -1e9, t0 = performance.now(), running = true, finishing = false;
+    const g = canvas.getContext("2d");
+    function drawScope(now){
+      const w = canvas.width = scope.clientWidth, h = canvas.height = scope.clientHeight;
+      g.strokeStyle = "rgba(47,191,138,.12)"; g.lineWidth = 1;
+      for(let x = 0; x < w; x += 40){ g.beginPath(); g.moveTo(x, 0); g.lineTo(x, h); g.stroke(); }
+      for(let y = 0; y < h; y += 30){ g.beginPath(); g.moveTo(0, y); g.lineTo(w, y); g.stroke(); }
+      g.strokeStyle = "rgba(47,191,138,.55)"; g.lineWidth = 2; g.shadowColor = "rgba(47,191,138,.8)"; g.shadowBlur = 8;
+      g.beginPath();
+      for(let x = 0; x <= w; x += 4){ const y = h / 2 + Math.sin(x / 38 + now / 380) * 22 + Math.sin(x / 11 + now / 150) * 4; x ? g.lineTo(x, y) : g.moveTo(x, y); }
+      g.stroke(); g.shadowBlur = 0;
+    }
+    function spawn(n){
+      const b = el("button", { class: "blip", type: "button", text: String(n), "aria-label": `Signal ${n}` });
+      const lane = 30 + Math.random() * (scope.clientHeight - 90);
+      const blip = { n, el: b, born: performance.now(), lane, phase: Math.random() * 6, done: false };
+      b.addEventListener("click", () => hitBlip(blip));
+      scope.append(b); blips.push(blip);
+    }
+    function retire(blip, cls, ms = 600){ blip.done = true; blip.el.classList.add(cls); setTimeout(() => blip.el.remove(), ms); }
+    function hitBlip(blip){
+      if(blip.done || !running) return;
+      if(isPrime(blip.n)){ stats.locked++; retire(blip, "locked"); SND("correct", Math.min(8, stats.locked - 1)); setConsole("SIGNAL LOCKED", `${blip.n} is prime: only 1 and ${blip.n} go into it.`); }
+      else { stats.noise++; retire(blip, "noise"); SND("wrong"); loseSignal(4); let f = ""; for(let i = 2; i * i <= blip.n; i++) if(blip.n % i === 0){ f = `${i} × ${blip.n / i}`; break; } setConsole("NOISE", blip.n === 1 ? "1 is not prime: it has only one factor." : `${blip.n} = ${f}, so it isn't prime.`); }
+      paintHud();
+    }
+    function frame(now){
+      if(!running) return;
+      drawScope(now);
+      const travel = cfg.travel * slow / (window.PNTest ? PNTest.speed() : 1), w = scope.clientWidth;
+      if(spawned < queue.length && now - lastSpawn > cfg.gap * slow / (window.PNTest ? PNTest.speed() : 1)){ spawn(queue[spawned++]); lastSpawn = now; stats.left = queue.length - spawned; paintHud(); }
+      blips.forEach(b => {
+        if(b.done && !b.el.classList.contains("locked") && !b.el.classList.contains("noise")) return;
+        const k = (now - b.born) / travel, x = w + 10 - k * (w + 90), y = b.lane + Math.sin(now / 420 + b.phase) * 10;
+        if(!b.el.classList.contains("locked") && !b.el.classList.contains("noise")) b.el.style.transform = `translate(${x}px, ${y}px)`;
+        if(!b.done && x < -70){
+          b.done = true; b.el.remove();
+          if(isPrime(b.n)){ stats.missed++; loseSignal(4); SND("untag"); setConsole("SIGNAL ESCAPED", `${b.n} was prime. It got away.`); paintHud(); }
+        }
+      });
+      if(spawned >= queue.length && blips.every(b => b.done) && !finishing){ finishing = true; setTimeout(finish, 700); }
+      requestAnimationFrame(frame);
+    }
+    function finish(){
+      running = false; interceptDone = null;
+      setConsole("INTERCEPT CLOSED", `Locked ${stats.locked} of ${half} primes.`);
+      renderComplete();
+    }
+    // Teacher test tool: close the intercept as if every prime was locked
+    interceptDone = () => { running = false; blips.forEach(b => b.el.remove()); stats.locked = half; stats.left = 0; finish(); };
+    requestAnimationFrame(frame);
   }
 
   function renderComplete(){
@@ -762,25 +964,29 @@ button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [clas
 
     const title = el("div", { class: "titleBig", text: "PRIME FREQUENCY CALIBRATION COMPLETE" });
     const segs = renderSegments();
+    const decoders = decodersFor(signal);
+    if(PN) PN.updateAgent({ signal, decoders });
+    const bonus = el("div", { class: "bonusCard", html: `<div>FINAL SIGNAL STRENGTH</div><div class="big">${signal}%</div>
+      <div class="perk">${decoders ? `Strong signal: ${decoders} decoder charge${decoders === 1 ? "" : "s"} for the Factor Vault. Each one cracks a factor pair for you.` : "Weak signal: no decoder charges this time. A cleaner scan earns them."}</div>` });
     const sub = el("div", { class: "sub", text: "All bands verified. Secure channels stabilised." });
 
     const proceed = el("button", {
       text: "PROCEED TO THE VAULT",
       onClick: () => {
         setConsole("ROUTE SET", "Next module: FACTOR VAULT.");
-        if(PN) PN.log("scan-complete");
+        if(PN) PN.log("scan-complete", { signal, bands: CONFIG.bands.map(b => `${b.start}-${b.end}`) });
         flashAccessGranted(() => (window.PNGlitch ? PNGlitch.go("factor_vault.html") : (location.href = "factor_vault.html")));
       }
     });
 
     const restart = el("button", {
       text: "RESTART SCAN",
-      onClick: () => renderBrief()
+      onClick: () => { signal = 100; renderBrief(); }
     });
 
     const btnRow = el("div", { class: "btnRow" }, [proceed, restart]);
 
-    main.append(title, segs, sub, btnRow);
+    main.append(title, segs, bonus, sub, btnRow);
   }
 
   function flashAccessGranted(onDone){
@@ -1016,8 +1222,17 @@ button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [clas
       main.querySelectorAll(".cell").forEach(c => { const on = ps.has(Number(c.textContent)); c.classList.toggle("selected", on); c.setAttribute("aria-pressed", on ? "true" : "false"); });
       return b;
     };
-    PNTest.add("Tag the primes in this band", () => { tagPrimes(); return "Tagged. Press Verify, or use Solve."; });
-    PNTest.add("Solve this band", () => { verifyBand(tagPrimes()); });
+    PNTest.add("Tag the primes in this band", () => { if(state === State.INTERCEPT) return "This is the live intercept: use Finish."; tagPrimes(); return "Tagged. Press Verify, or use Solve."; });
+    PNTest.add("Solve this band", () => { if(state === State.INTERCEPT) return "This is the live intercept: use Finish."; verifyBand(tagPrimes()); });
+    PNTest.add("Solve all bands (to the live intercept)", async () => {
+      for(let i = 0; i < 3 && state !== State.INTERCEPT && state !== State.COMPLETE; i++){
+        while(state === State.VERIFIED) await new Promise(r => setTimeout(r, 100));
+        if(state === State.INTERCEPT) break;
+        verifyBand(tagPrimes());
+        await new Promise(r => setTimeout(r, 200));
+      }
+    });
+    PNTest.add("Finish the live intercept", () => { if(interceptDone) interceptDone(); else return "The intercept isn't running."; });
     PNTest.add("Skip to Factor Vault", () => { if(PN) PN.log("scan-complete"); location.href = "factor_vault.html"; });
   }
 

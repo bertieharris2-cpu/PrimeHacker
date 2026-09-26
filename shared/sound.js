@@ -74,6 +74,15 @@
     tone({ f: f*3.01, at, dur: dur*0.35, vol: vol*0.15 });
   }
 
+  // Mechanical parts for the big moments: a metal latch, a motor, a burst of air
+  function latch(at=0, vol=0.3){
+    noise({ at, dur: 0.03, vol, freq: 2600, q: 5 });
+    tone({ f: 950, to: 520, type:"square", at, dur: 0.035, vol: vol * 0.18, lp: 2200, verb:false });
+  }
+  function servo(at=0, dur=0.35, vol=0.05){ tone({ f: 70, to: 150, type:"sawtooth", at, dur, vol, lp: 800, attack: 0.03 }); }
+  function thunk(at=0, vol=0.5){ tone({ f: 92, to: 44, at, dur: 0.32, vol }); noise({ at, dur: 0.1, vol: vol * 0.7, type:"lowpass", freq: 420 }); }
+  function hiss(at=0, dur=0.55, vol=0.05){ noise({ at, dur, vol, type:"highpass", freq: 2800, q: 0.5 }); }
+
   const LADDER = [523.3, 587.3, 659.3, 784.0, 880.0, 1046.5, 1174.7, 1318.5, 1568.0];   // pentatonic, rising
 
   const SOUNDS = {
@@ -96,16 +105,16 @@
 
     // Big moments
     lock(){   // the "checkmate": a heavy clunk, then a chord that blooms
-      tone({ f: 110, to: 52, dur: 0.28, vol: 0.5 });
-      noise({ dur: 0.09, vol: 0.4, type:"lowpass", freq: 700 });
-      [523.3, 659.3, 784.0, 1046.5].forEach((f, k) => tone({ f, type:"triangle", at: 0.06 + k*0.035, dur: 1.1, vol: 0.12 }));
-      tone({ f: 2093, at: 0.22, dur: 0.35, vol: 0.05 });
+      latch(0, 0.25);
+      thunk(0.05, 0.5);
+      [261.6, 329.6, 392.0].forEach((f, k) => tone({ f, type:"triangle", at: 0.12 + k*0.03, dur: 1.0, vol: 0.08, lp: 1200 }));
     },
-    success(){   // stage complete: clunk, rising arpeggio, held chord
-      tone({ f: 98, to: 49, dur: 0.35, vol: 0.5 });
-      noise({ dur: 0.1, vol: 0.35, type:"lowpass", freq: 600 });
-      [523.3, 659.3, 784.0, 1046.5, 1318.5].forEach((f, k) => bell(f, 0.05 + k*0.075, 0.15, 0.9));
-      [261.6, 329.6, 392.0].forEach(f => tone({ f, type:"triangle", at: 0.42, dur: 1.4, vol: 0.09 }));
+    success(){   // stage complete: a motor winds, three bolts latch, the door thunks, air vents, power hums up
+      servo(0, 0.4);
+      [0.32, 0.44, 0.56].forEach(at => latch(at));
+      thunk(0.7);
+      hiss(0.8);
+      [110, 164.8, 220].forEach(f => tone({ f, type:"sawtooth", at: 0.85, dur: 1.3, vol: 0.035, lp: 700, attack: 0.25 }));
     },
     start(){   // start mission
       tone({ f: 180, to: 720, type:"sawtooth", dur: 0.35, vol: 0.06, lp: 1800 });
@@ -148,7 +157,7 @@
       tone({ f: 2349, at: 0.16, dur: 0.08, vol: 0.07, verb:false });
     },
     hum(i=0){ tone({ f: 110 + i*6, type:"sawtooth", dur: 0.09, vol: 0.035, lp: 700, verb:false }); },   // fingerprint scanner
-    verified(){ tone({ f: 988, dur: 0.1, vol: 0.14 }); tone({ f: 1319, at: 0.1, dur: 0.1, vol: 0.14 }); tone({ f: 1976, at: 0.2, dur: 0.35, vol: 0.12 }); },
+    verified(){ latch(0, 0.22); latch(0.1, 0.22); tone({ f: 220, to: 330, type:"triangle", at: 0.14, dur: 0.4, vol: 0.1, lp: 1400 }); },
   };
 
   const THROTTLE = { hum: 60, key: 15, fill: 28, chatter: 45, laser: 120, pop: 40, seal: 50, click: 30 };

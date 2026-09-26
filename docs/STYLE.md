@@ -48,7 +48,7 @@ repeating-linear-gradient(120deg, rgba(var(--accent-rgb),.06) 0 1px, transparent
 
 ## Sound
 
-All sounds live in `shared/sound.js`, generated in code. One on/off switch (title screen) and one volume (teacher controls → Sound check) cover the whole game. Big moments share a family: a heavy clunk followed by a chord for a cracked lock or a finished stage, and a climbing bell for each correct answer in a row.
+All sounds live in `shared/sound.js`, generated in code. One on/off switch (title screen) and one volume (teacher controls → Sound check) cover the whole game. Big moments sound mechanical, like a real vault: motors, metal latches, a heavy thunk and a low power hum. No high pings (feedback: they didn't sound realistic). A climbing bell still marks each correct answer in a row.
 
 ## Handler messages (ORACLE)
 

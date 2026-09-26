@@ -179,6 +179,12 @@
   const setTextSize = (codename, size) => setPrefs(codename, { ...prefsFor(codename), text: size });
   const applyTextSize = size => applyPrefs({ ...prefsFor(), text: size || prefsFor().text });
 
+  // Add to this mission's agent data, e.g. the scan's signal strength and decoder charges
+  function updateAgent(patch){
+    const a = getAgent(); if(!a) return null;
+    const next = { ...a, ...patch }; write(KEYS.agent, next); return next;
+  }
+
   // The level for this mission. Games fall back to L1 when opened without the title screen.
   function level(){
     const a = getAgent();
@@ -321,7 +327,7 @@
     agentRank, rankFor, currentSession,
     TEXT_SIZES, TEXT_ORDER, textSizeFor, setTextSize, applyTextSize,
     prefsFor, setPrefs, applyPrefs, reducedMotion,
-    mission, agentNumber, TARGETS,
+    mission, agentNumber, TARGETS, updateAgent,
   };
   applyPrefs();   // every page opens with the current agent's settings
 })();

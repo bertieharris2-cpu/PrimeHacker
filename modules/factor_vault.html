@@ -290,6 +290,7 @@
       gap:4px;
     }
 
+    .decode-btn{ margin-top:8px; border-style:dashed !important; color:#ffe14d !important; border-color:rgba(255,225,77,.55) !important; background:rgba(255,225,77,.06) !important; }
     .submit-all-btn{
       width: 100%;
       padding: 10px 14px;
@@ -828,6 +829,7 @@ body{ font-size: var(--font-size); }
           <span id="msgSpan"></span>
         </div>
         <button id="submitAllBtn" class="submit-all-btn">Submit All Pairs</button>
+        <button id="decodeBtn" class="submit-all-btn decode-btn" type="button" hidden title="Earned in the Frequency Scan: cracks one factor pair for you">Decoder</button>
       </div>
 
       <!-- RIGHT VAULT -->
@@ -1913,6 +1915,28 @@ body{ font-size: var(--font-size); }
     btnL1.addEventListener("click", () => { setDifficulty('L1'); init(); updateLevelButtons(); settingsDropdown.classList.remove('open'); });
     btnL2.addEventListener("click", () => { setDifficulty('L2'); init(); updateLevelButtons(); settingsDropdown.classList.remove('open'); });
     btnL3.addEventListener("click", () => { setDifficulty('L3'); init(); updateLevelButtons(); settingsDropdown.classList.remove('open'); });
+
+    // Decoder charges, earned by a strong signal in the Frequency Scan. Each one cracks a pair.
+    const decodeBtn = document.getElementById("decodeBtn");
+    function syncDecoder(){
+      const a = PN && PN.getAgent(), left = a && a.decoders ? a.decoders : 0;
+      decodeBtn.hidden = left <= 0;
+      decodeBtn.textContent = `Decoder: crack one pair (${left} left)`;
+    }
+    decodeBtn.addEventListener("click", () => {
+      const a = PN && PN.getAgent(); if(!a || !a.decoders) return;
+      const todo = allPairs.filter(([x, y]) => !found.has(keyOf(x, y)));
+      if(!todo.length) return;
+      const [x, y] = todo[Math.floor(Math.random() * todo.length)];
+      PN.updateAgent({ decoders: a.decoders - 1 });
+      const rows = [...pairsTable.querySelectorAll("tr")].filter(r => r.cells[0].contentEditable === "true" && !r.cells[0].textContent.trim() && !r.cells[1].textContent.trim());
+      const row = rows[0]; if(!row) return;
+      row.cells[0].textContent = x; row.cells[1].textContent = y;
+      if(window.PNSound) PNSound.play("laser");
+      if(window.PNHandler) PNHandler.say(`Decoder cracked it: ${x} × ${y} = ${N}.`);
+      validateAll(); syncDecoder();
+    });
+    syncDecoder();
 
     // Teacher test tools (only while unlocked)
     if(window.PNTest){
