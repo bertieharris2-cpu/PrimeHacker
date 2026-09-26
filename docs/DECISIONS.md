@@ -148,7 +148,15 @@ Ideas voted yes (from `IDEAS.md`), grouped into a build order:
 - [x] Round 3 group 5, Prime Hack:
   - Combination dial beside the terminal: a correct pair spins the dial right to the first prime and left to the second, sets both tumblers with a click, and the shackle springs open. A wrong pair turns the dial, the tumblers show red and the lock jams
   - Trace meter: +15% (L1), +18% (L2) or +20% (L3) for a wrong product, two thirds of that for a non-prime, and +1% every 5 seconds on a lock. A cracked lock takes 15% off. At 50% ORACLE warns, at 75% the meter pulses with an alarm, and at 100% security swaps the lock for a new number and trace drops to 30%. No money or progress is lost. HINT and PRIME? never add trace
-- [ ] Round 3 group 6: see the build order under Round 3
+- [x] Round 3 group 6, finales and rewards:
+  - Target map (briefing, after the identity scan): a city map with three districts, one per level (Old Town L1, Harbour L2, Financial District L3). Students pick one of the four banks at their clearance; higher banks show which level they need. Banks this codename has already hit are marked
+  - Laser corridor (factor-half finale, after the third Vault Grid floor): tiles 1 to N, where N is the ground floor. Step on the factors of N in order; anything else is a laser hit with the division shown. No hits earns Laser Dancer
+  - Getaway (after the vault opens): three "prime or not?" calls against a timer (8, 7 or 6 seconds by level) while the police close in. Always escapes; 3 out of 3 adds 5% to the haul
+  - Server blackout: the prime-half finale on every second run. The lights go out; sweep a torch over 12 servers and shut down the primes (the student's own cracked primes are among them); composites are decoys
+  - Badges (13), saved as events in the session record so they travel in record files: First Breach, Clean Sweep, Interceptor, Square Hunter, Laser Dancer, Treasure Hunter, Intel Analyst, Prime Sniper, Ghost Protocol, Wheelman, Lights Out, Speed Demon, High Roller. Shown when earned, on the ID card, in the case file and on the poster
+  - Safehouse shop (title screen): terminal colours, vault door skins and ID card frames bought with the codename's wallet. Prices run from £10,000 to £1,000,000, so the best items need higher levels
+  - Most Wanted poster (teacher controls → Preview): the class's top agents from the records on that computer, ranked by bounty, vaults or badges, with a full-screen button for the board
+  - Ranks now count every vault breached, including extra runs in the same mission
 
 ## Success screens (first pass)
 

@@ -16,7 +16,8 @@
     teacher: "primenet_teacher_unlocked",   // sessionStorage: cleared when the browser tab closes
     floors: "blueprintProgress",            // numbers finished in Factor Vault this mission
     textSize: "primenet_textsize_v1",       // older text-size-only settings, read once and folded into `learner`
-    learner: "primenet_learner_v1",         // { CODENAME: { text, font, motion } }, each learner's settings on this computer
+    learner: "primenet_learner_v1",
+    loot: "primenet_loot_v1",               // { CODENAME: { owned:[ids], equip:{ term, door, frame } } }, bought in the safehouse shop         // { CODENAME: { text, font, motion } }, each learner's settings on this computer
   };
 
   const LEVELS = {
@@ -179,6 +180,72 @@
   const setTextSize = (codename, size) => setPrefs(codename, { ...prefsFor(codename), text: size });
   const applyTextSize = size => applyPrefs({ ...prefsFor(), text: size || prefsFor().text });
 
+  // The student picks the bank on the briefing's target map; the record keeps it too
+  function setMissionTarget(name){
+    const a = updateAgent({ target: name });
+    const list = getRecords(), s = a && list.find(x => x.id === a.sessionId);
+    if(s){ s.target = name; saveRecords(list); }
+    return a;
+  }
+
+  /* Safehouse shop: cosmetics bought with the wallet each codename earns in Prime Hack.
+     Prices climb steeply so the best items need higher levels (bigger vaults). */
+  const SHOP = {
+    term: { label: "Terminal colour", items: [
+      { id: "term-green",  name: "Classic green", price: 0,       rgb: "47,191,138" },
+      { id: "term-amber",  name: "Amber CRT",     price: 10000,   rgb: "255,176,64" },
+      { id: "term-ice",    name: "Ice blue",      price: 25000,   rgb: "110,200,255" },
+      { id: "term-pink",   name: "Hot pink",      price: 50000,   rgb: "255,79,216" },
+      { id: "term-gold",   name: "Gold",          price: 250000,  rgb: "255,201,77" },
+      { id: "term-cycle",  name: "Spectrum cycle",price: 1000000, rgb: "47,191,138", cycle: true },
+    ]},
+    door: { label: "Vault door", items: [
+      { id: "door-steel",   name: "Steel",   price: 0 },
+      { id: "door-brass",   name: "Brass",   price: 25000 },
+      { id: "door-carbon",  name: "Carbon",  price: 100000 },
+      { id: "door-neon",    name: "Neon",    price: 250000 },
+      { id: "door-diamond", name: "Diamond", price: 1000000 },
+    ]},
+    frame: { label: "ID card frame", items: [
+      { id: "frame-standard", name: "Standard",    price: 0 },
+      { id: "frame-bronze",   name: "Bronze",      price: 10000 },
+      { id: "frame-silver",   name: "Silver",      price: 50000 },
+      { id: "frame-gold",     name: "Gold",        price: 250000 },
+      { id: "frame-holo",     name: "Holographic", price: 1000000 },
+    ]},
+  };
+  const DEFAULT_EQUIP = { term: "term-green", door: "door-steel", frame: "frame-standard" };
+  const shopItem = id => Object.values(SHOP).flatMap(c => c.items).find(i => i.id === id) || null;
+  function lootFor(codename){
+    const name = cleanName(codename || (getAgent() || {}).codename || "");
+    const saved = read(KEYS.loot, {})[name] || {};
+    return { owned: saved.owned || [], equip: { ...DEFAULT_EQUIP, ...(saved.equip || {}) } };
+  }
+  function saveLoot(codename, loot){ const map = read(KEYS.loot, {}); map[cleanName(codename)] = loot; write(KEYS.loot, map); }
+  // The wallet lives in each codename's bank (modules/bank.js); the shop reads and spends it directly
+  const bankKey = codename => "PRIMENET_BANK_V1_" + cleanName(codename);
+  function walletOf(codename){ const b = read(bankKey(codename), null); return b && b.walletBalance ? b.walletBalance : 0; }
+  function buyItem(codename, id){
+    const item = shopItem(id), loot = lootFor(codename);
+    if(!item || !cleanName(codename || "")) return { ok: false, why: "No codename" };
+    if(item.price === 0 || loot.owned.includes(id)) return { ok: true, already: true };
+    const bank = read(bankKey(codename), null);
+    if(!bank || (bank.walletBalance || 0) < item.price) return { ok: false, why: "Not enough in the wallet" };
+    bank.walletBalance -= item.price;
+    (bank.ledger = bank.ledger || []).push({ ts: Date.now(), type: "spend", module: "shop", item: id, amount: item.price });
+    write(bankKey(codename), bank);
+    loot.owned.push(id); saveLoot(codename, loot);
+    return { ok: true };
+  }
+  function equipItem(codename, id){
+    const item = shopItem(id), loot = lootFor(codename);
+    if(!item) return false;
+    if(item.price > 0 && !loot.owned.includes(id)) return false;
+    const cat = Object.keys(SHOP).find(k => SHOP[k].items.includes(item));
+    loot.equip[cat] = id; saveLoot(codename, loot);
+    return true;
+  }
+
   // Add to this mission's agent data, e.g. the scan's signal strength and decoder charges
   function updateAgent(patch){
     const a = getAgent(); if(!a) return null;
@@ -299,7 +366,8 @@
   ];
   function vaultsBreached(codename){
     const name = String(codename || "").trim().toUpperCase();
-    return getRecords().filter(s => s.codename === name && s.events.some(e => e.stage === "complete")).length;
+    // Every run that ends in a breached vault counts, including extra runs in the same mission
+    return getRecords().filter(s => s.codename === name).reduce((t, s) => t + s.events.filter(e => e.stage === "complete").length, 0);
   }
   function rankFor(count){ return RANKS.filter(r => r.at <= count).pop().name; }
   function agentRank(codename){
@@ -327,7 +395,8 @@
     agentRank, rankFor, currentSession,
     TEXT_SIZES, TEXT_ORDER, textSizeFor, setTextSize, applyTextSize,
     prefsFor, setPrefs, applyPrefs, reducedMotion,
-    mission, agentNumber, TARGETS, updateAgent,
+    mission, agentNumber, TARGETS, updateAgent, setMissionTarget,
+    SHOP, shopItem, lootFor, buyItem, equipItem, walletOf,
   };
   applyPrefs();   // every page opens with the current agent's settings
 })();

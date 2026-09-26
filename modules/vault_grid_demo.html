@@ -340,6 +340,7 @@ button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [clas
 </div>
 
 <script src="../shared/primenet.js"></script>
+<script src="../shared/badges.js"></script>
 <script src="../shared/testtools.js"></script>
 <script src="../shared/handler.js"></script>
 <script src="../shared/glitch.js"></script>
@@ -1098,11 +1099,12 @@ if(tilt75Btn) tilt75Btn.addEventListener("click", () => applyTiltAngle(75));
 const nextFloorBtn = document.getElementById("nextFloorBtn");
 function blueprintReady(){ return floorsBuilt() >= FLOORS_NEEDED; }
 function setNextButton(){
-  nextFloorBtn.textContent = blueprintReady() ? "Assemble the blueprint" : `Next floor (${Math.min(floorsBuilt() + 1, FLOORS_NEEDED)} of ${FLOORS_NEEDED})`;
+  nextFloorBtn.textContent = blueprintReady() ? "Cross the laser corridor" : `Next floor (${Math.min(floorsBuilt() + 1, FLOORS_NEEDED)} of ${FLOORS_NEEDED})`;
 }
 nextFloorBtn.addEventListener("click", ()=>{
-  // After three floors, go to the Blueprint; otherwise back to Factor Vault for a new number at the mission level
-  (window.PNGlitch ? PNGlitch.go((blueprintReady() ? "vault_blueprint_viewer.html" : "factor_vault.html")) : (location.href = (blueprintReady() ? "vault_blueprint_viewer.html" : "factor_vault.html")));
+  // After three floors, the laser corridor (then the Blueprint); otherwise back to Factor Vault for a new number
+  const next = blueprintReady() ? "laser_corridor.html" : "factor_vault.html";
+  (window.PNGlitch ? PNGlitch.go(next) : (location.href = next));
 });
 
 // Check URL parameters for N value from factor_vault
@@ -1113,7 +1115,7 @@ const initialN = (Number.isInteger(urlN) && urlN > 1) ? urlN : 18;
 // Teacher test tools (only while unlocked)
 if(window.PNTest){
   PNTest.add("Show the next button now", () => { nextFloorBtn.style.visibility = "visible"; });
-  PNTest.add("Go to the next step", () => { window.location.href = blueprintReady() ? "vault_blueprint_viewer.html" : "factor_vault.html"; });
+  PNTest.add("Go to the next step", () => { window.location.href = blueprintReady() ? "laser_corridor.html" : "factor_vault.html"; });
 }
 
 // Initialize with N from URL or default to 18.
@@ -1133,7 +1135,7 @@ document.querySelector(".title div:first-child").insertAdjacentHTML("afterend",
   SND("success");
   if(window.PNHandler){
     const f = Math.max(1, Math.min(floorsBuilt(), FLOORS_NEEDED));
-    PNHandler.once(`grid-${f}-${initialN}`, f >= FLOORS_NEEDED ? "Three floors mapped. Let's put {target}'s building together." : `Floor ${f} is solid. Every room is one factor pair of ${initialN}.`, { delay: 400 });
+    PNHandler.once(`grid-${f}-${initialN}`, f >= FLOORS_NEEDED ? "Three floors mapped. One laser corridor between us and {target}'s blueprint." : `Floor ${f} is solid. Every room is one factor pair of ${initialN}.`, { delay: 400 });
   }
   nextFloorBtn.focus();
 });

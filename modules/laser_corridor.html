@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en" class="phase-build">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PRIMENET · Laser Corridor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Inter:wght@400;600;700;800&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../shared/primenet.css">
+<style>
+  /* The factor-half finale: cross the laser corridor by stepping only on the factors of N, in order.
+     Comes after the third Vault Grid floor, before the Blueprint. */
+  body{ min-height:100vh; display:flex; justify-content:center; padding:24px 16px; box-sizing:border-box; }
+  .stage{ position:relative; z-index:1; width:min(900px,100%); display:flex; flex-direction:column; gap:14px; }
+  .head{ display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; font-family:var(--font-ui); letter-spacing:.2em; font-size:13px; color:var(--accent); font-weight:700; }
+  .head span{ color:var(--text-faint); letter-spacing:.12em; }
+  h1{ margin:0; font-family:var(--font-ui); font-size:clamp(24px,3.6vw,34px); letter-spacing:.14em; }
+  .brief{ color:var(--text-muted); margin:0; line-height:1.55; }
+  .brief b{ color:#ffe14d; }
+  .corridor{ position:relative; padding:18px; border:1px solid rgba(255,79,109,.45); background:#050d10; overflow:hidden; }
+  .tiles{ position:relative; z-index:2; display:grid; grid-template-columns:repeat(10, 1fr); gap:6px; }
+  .tile{ position:relative; aspect-ratio:1.5; font:inherit; font-family:var(--font-mono); font-size:18px; font-weight:700; color:rgba(235,255,248,.8);
+    background:rgba(13,34,40,.9); border:1px solid rgba(74,163,255,.28); cursor:pointer; transition:background .2s, border-color .2s; }
+  .tile:hover{ border-color:var(--accent); }
+  .tile.safe{ background:rgba(47,191,138,.28); border-color:#2fbf8a; color:#eafff6; cursor:default; }
+  .tile.safe small{ position:absolute; left:0; right:0; bottom:2px; font-size:10px; font-weight:400; color:#b8f5dc; }
+  .tile.zap{ animation:zap .5s ease-in-out; }
+  @keyframes zap{ 30%{ background:#5a0d18; border-color:#ff4f6d; box-shadow:0 0 22px #ff4f6d; } }
+  .tile.past{ opacity:.45; cursor:default; }
+  .beam{ position:absolute; z-index:3; pointer-events:none; background:#ff2d55; box-shadow:0 0 10px 2px rgba(255,45,85,.8); opacity:.75; }
+  .beam.h{ left:0; right:0; height:2px; animation:sweepY var(--t) ease-in-out infinite alternate; }
+  .beam.v{ top:0; bottom:0; width:2px; animation:sweepX var(--t) ease-in-out infinite alternate; }
+  @keyframes sweepY{ from{ top:4%; } to{ top:96%; } }
+  @keyframes sweepX{ from{ left:3%; } to{ left:97%; } }
+  .agent{ position:absolute; z-index:4; width:22px; height:22px; margin:-11px 0 0 -11px; border-radius:50%; background:#ffe14d; box-shadow:0 0 16px #ffe14d, 0 0 0 4px rgba(255,225,77,.25);
+    transition:left .35s cubic-bezier(.3,1.3,.5,1), top .35s cubic-bezier(.3,1.3,.5,1); pointer-events:none; }
+  .entry{ font-family:var(--font-ui); font-size:12px; letter-spacing:.2em; color:#ffe14d; margin-bottom:8px; }
+  .status{ display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; font-size:15px; }
+  .status b{ color:var(--text-primary); }
+  .msg{ min-height:1.5em; font-size:16px; color:var(--text-muted); }
+  .msg.bad{ color:#ff6b6b; } .msg.ok{ color:#2fbf8a; }
+  .hitflash{ position:fixed; inset:0; z-index:20; pointer-events:none; animation:hf .4s ease-in-out; }
+  @keyframes hf{ 50%{ background:rgba(255,30,60,.22); } }
+  .done{ display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; border:1px solid #2fbf8a; padding:14px 16px; }
+  .done[hidden]{ display:none; }
+  .done b{ font-family:var(--font-ui); font-size:22px; letter-spacing:.14em; color:#2fbf8a; }
+  @media (max-width:640px){ .tile{ font-size:14px; } }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="head">PRIMENET // FACTOR FINALE <span id="tgt"></span></div>
+  <h1>LASER CORRIDOR</h1>
+  <p class="brief" id="brief"></p>
+  <div class="corridor" id="corridor">
+    <div class="entry">▶ ENTRY</div>
+    <div class="tiles" id="tiles"></div>
+    <div class="agent" id="agent"></div>
+  </div>
+  <div class="status"><span>Next safe tile: <b id="next">?</b></span><span>Safe tiles crossed: <b id="crossed">0</b></span><span>Laser hits: <b id="hits">0</b></span></div>
+  <div class="msg" id="msg" aria-live="polite">Click the first safe tile.</div>
+  <div class="done" id="done" hidden><div><b>CORRIDOR CLEARED</b><div class="brief" id="doneText"></div></div><button class="pn-btn primary" type="button" id="goBtn">Assemble the blueprint</button></div>
+</div>
+
+<script src="../shared/sound.js"></script>
+<script src="../shared/primenet.js"></script>
+<script src="../shared/badges.js"></script>
+<script src="../shared/testtools.js"></script>
+<script src="../shared/handler.js"></script>
+<script src="../shared/glitch.js"></script>
+<script>
+(() => {
+  "use strict";
+  const PN = window.Primenet;
+  const SND = (n, a) => { if(window.PNSound) PNSound.play(n, a); };
+  const $ = s => document.getElementById(s);
+  // N: the ground floor, the largest of the three numbers rebuilt this mission (or ?n= for a preview)
+  let floors = []; try{ floors = JSON.parse(localStorage.getItem("blueprintProgress") || "[]"); }catch(e){}
+  const urlN = parseInt(new URLSearchParams(location.search).get("n"), 10);
+  const N = Math.min(100, Number.isInteger(urlN) && urlN > 1 ? urlN : (floors.length ? Math.max(...floors) : 24));
+  const factors = []; for(let d = 1; d <= N; d++) if(N % d === 0) factors.push(d);
+  const target = PN ? PN.mission().target : "the bank";
+  $("tgt").textContent = `${target.toUpperCase()} · GROUND FLOOR · N = ${N}`;
+  $("brief").innerHTML = `Lasers cover every tile except the <b>factors of ${N}</b>. Step on the safe tiles in order, from 1 up to ${N}. Step on anything else and the lasers catch you.`;
+  if(PN) PN.log("corridor", { n: N });
+
+  // Tiles 1..N, ten to a row
+  const tiles = $("tiles"), agent = $("agent"), corridor = $("corridor");
+  for(let t = 1; t <= N; t++){
+    const b = document.createElement("button"); b.type = "button"; b.className = "tile"; b.textContent = t; b.dataset.t = t;
+    b.setAttribute("aria-label", `Tile ${t}`);
+    b.addEventListener("click", () => step(t, b));
+    tiles.appendChild(b);
+  }
+  // Sweeping beams: decoration, they never reveal which tiles are safe
+  [["h", "3.2s"], ["h", "4.6s"], ["v", "5.4s"], ["v", "3.9s"]].forEach(([d, t], i) => {
+    const beam = document.createElement("div"); beam.className = "beam " + d; beam.style.setProperty("--t", t); beam.style.animationDelay = `-${i * 1.3}s`;
+    corridor.appendChild(beam);
+  });
+
+  let idx = 0, hits = 0;   // idx: how many safe tiles crossed; factors[idx] is the next one
+  function place(el){
+    const r = corridor.getBoundingClientRect();
+    if(!el){ const e = corridor.querySelector(".entry").getBoundingClientRect(); agent.style.left = (e.left - r.left + 6) + "px"; agent.style.top = (e.top - r.top + e.height / 2) + "px"; return; }
+    const q = el.getBoundingClientRect(); agent.style.left = (q.left - r.left + q.width / 2) + "px"; agent.style.top = (q.top - r.top + q.height / 2) + "px";
+  }
+  function paint(){ $("next").textContent = idx < factors.length ? "?" : "none"; $("crossed").textContent = `${idx} of ${factors.length}`; $("hits").textContent = hits; }
+  function say(t, cls){ const m = $("msg"); m.textContent = t; m.className = "msg" + (cls ? " " + cls : ""); }
+  function step(t, el){
+    if(idx >= factors.length) return;
+    const expected = factors[idx];
+    if(t < expected){ return; }
+    if(t === expected){
+      el.classList.add("safe"); el.innerHTML = `${t}<small>${t} × ${N / t}</small>`;
+      [...tiles.children].forEach(x => { const v = +x.dataset.t; if(v < t && !x.classList.contains("safe")) x.classList.add("past"); });
+      idx++; place(el); SND("seal"); SND("correct", Math.min(8, idx - 1));
+      say(t === N ? `${N} × 1. You're through.` : `Safe: ${t} × ${N / t} = ${N}.`, "ok");
+      paint();
+      if(idx === factors.length) finish();
+      return;
+    }
+    if(N % t === 0){ SND("untag"); say(`${t} is safe, but there's a closer safe tile first.`); return; }
+    hits++; el.classList.remove("zap"); void el.offsetWidth; el.classList.add("zap");
+    const f = document.createElement("div"); f.className = "hitflash"; document.body.appendChild(f); setTimeout(() => f.remove(), 450);
+    SND("alarm");
+    say(`LASER HIT: ${N} ÷ ${t} = ${Math.floor(N / t)} remainder ${N % t}, so ${t} isn't a factor.`, "bad");
+    if(hits === 2 && window.PNHandler) PNHandler.once(`corridor-tip-${N}`, `Check each tile: does it go into ${N} with nothing left over? Factors come in pairs, so each one you find has a partner further down the corridor.`);
+    paint();
+  }
+  function finish(){
+    SND("success");
+    if(PN) PN.log("corridor-complete", { n: N, hits });
+    if(window.PNBadges && hits === 0) PNBadges.award("laser-dancer");
+    $("doneText").textContent = hits ? `${factors.length} safe tiles, ${hits} laser hit${hits > 1 ? "s" : ""}. The factors of ${N}: ${factors.join(", ")}.` : `Not a single hit. The factors of ${N}: ${factors.join(", ")}.`;
+    $("done").hidden = false; $("goBtn").focus();
+    if(window.PNHandler) PNHandler.say(hits ? "You're through the lasers. Now let's put the building together." : "Not a scratch. Ghost-like. Now let's put the building together.");
+  }
+  $("goBtn").addEventListener("click", () => {
+    const url = floors.length >= 3 || (PN && PN.isTeacher()) ? "vault_blueprint_viewer.html" : "factor_vault.html";
+    (window.PNGlitch ? PNGlitch.go(url) : (location.href = url));
+  });
+  window.addEventListener("resize", () => place(idx ? tiles.children[factors[idx - 1] - 1] : null));
+  requestAnimationFrame(() => place(null));
+  paint();
+  if(window.PNHandler) PNHandler.once(`corridor-${N}`, `Last obstacle before the blueprint, {agent}: a laser corridor. Only the factors of ${N} are safe.`, { delay: 700 });
+
+  if(window.PNTest){
+    PNTest.add("Cross the corridor", async () => {
+      while(idx < factors.length){ step(factors[idx], tiles.children[factors[idx] - 1]); await new Promise(r => setTimeout(r, 200)); }
+    });
+    PNTest.add("Skip to Blueprint", () => { location.href = "vault_blueprint_viewer.html"; });
+  }
+})();
+</script>
+</body>
+</html>

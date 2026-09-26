@@ -264,6 +264,7 @@ button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [clas
   <!-- Three.js is included with the game so the 3D view works without internet -->
   <script src="../shared/vendor/three.min.js"></script>
   <script src="../shared/primenet.js"></script>
+  <script src="../shared/badges.js"></script>
   <script src="../shared/testtools.js"></script>
   <script src="../shared/handler.js"></script>
   <script src="../shared/glitch.js"></script>
@@ -538,6 +539,7 @@ function powerUpPrompt(title){
           SND("rise");
           await tween(900, e => { vault.position.y = -30 + e * 20; });
           ring(-5, 0xffc94d); SND("dock");
+          if(window.PNBadges && !DEMO_MODE) PNBadges.award("treasure");
           card('i-hid', `<b>HIDDEN VAULT FOUND</b>${list} all divide by <strong>${h}</strong>. ${h} is their highest common factor: the key to the basement.`);
           if(window.PNHandler) PNHandler.say(`Wait. Every floor divides by ${h}. There's a hidden vault in the basement.`);
         } else {
@@ -794,6 +796,7 @@ function powerUpPrompt(title){
           SND(ok ? "correct" : "wrong", 4);
           why.innerHTML = ok ? `<b>Intel confirmed: +10% on this heist.</b> ${Q.why}` : `Not quite. ${Q.why} No bonus this time.`;
           if(PN) PN.updateAgent({ quizDone: true, intelBonus: ok ? 10 : 0 });
+          if(ok && window.PNBadges && !DEMO_MODE) PNBadges.award("analyst");
           go.hidden = false; go.focus();
         });
         box.appendChild(b);

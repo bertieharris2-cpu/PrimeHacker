@@ -62,6 +62,22 @@
   .route .ar{ color:var(--text-faint); }
   .actions{ display:flex; justify-content:space-between; align-items:center; gap:14px; margin-top:22px; flex-wrap:wrap; }
   .actions .note{ color:var(--text-faint); font-size:14px; }
+  /* Target map */
+  .map{ position:relative; width:100%; aspect-ratio: 860 / 400; border:1px solid var(--line-strong); background:#051215; overflow:hidden; }
+  .map svg{ position:absolute; inset:0; width:100%; height:100%; }
+  .pin{ position:absolute; transform:translate(-50%,-100%); font:inherit; font-family:var(--font-ui); font-size:11px; letter-spacing:.08em; font-weight:700; padding:3px 7px; white-space:nowrap;
+        background:rgba(4,14,17,.9); color:rgba(235,255,248,.45); border:1px solid rgba(255,255,255,.15); cursor:not-allowed; }
+  .pin::after{ content:""; position:absolute; left:50%; bottom:-7px; width:8px; height:8px; margin-left:-4px; border-radius:50%; background:rgba(255,255,255,.25); }
+  .pin.open{ color:#eafff6; border-color:var(--accent); cursor:pointer; box-shadow:0 0 14px rgba(var(--accent-rgb),.35); }
+  .pin.open::after{ background:var(--accent); animation:pinPulse 1.4s ease-out infinite; }
+  @keyframes pinPulse{ 0%{ box-shadow:0 0 0 0 rgba(var(--accent-rgb),.6); } 100%{ box-shadow:0 0 0 14px rgba(var(--accent-rgb),0); } }
+  .pin.sel{ background:var(--accent); color:#041012; }
+  .pin .lk{ margin-left:5px; color:#f2c14e; }
+  .pin .hit{ margin-left:5px; color:#ff6b6b; }
+  .tcard{ display:grid; grid-template-columns:1fr auto; gap:10px 18px; align-items:center; border:1px solid var(--line); padding:12px 14px; margin-top:12px; min-height:64px; }
+  .tcard .nm{ font-family:var(--font-ui); font-weight:700; font-size:20px; letter-spacing:.06em; }
+  .tcard .meta{ font-size:14px; color:var(--text-muted); line-height:1.5; }
+  .tcard .meta b{ color:var(--text-primary); }
   @media (max-width:700px){ .idscan{ grid-template-columns:1fr; justify-items:center; text-align:center; } .dossier{ grid-template-columns:1fr; } }
 </style>
 </head>
@@ -88,6 +104,14 @@
     </div>
   </section>
 
+  <section class="step" id="stepMap" hidden>
+    <div class="head">SELECT TARGET <span id="mapNote"></span></div>
+    <div class="pn-panel" style="padding:18px 20px">
+      <div class="map" id="map"><svg viewBox="0 0 860 400" aria-hidden="true" id="mapSvg"></svg></div>
+      <div class="tcard" id="tcard"><div class="meta">Pick a bank on the map. Your clearance decides which ones you can hit: harder banks sit deeper in the city.</div></div>
+    </div>
+  </section>
+
   <section class="step" id="stepBrief" hidden>
     <div class="head">INCOMING TRANSMISSION <span id="opName"></span></div>
     <div class="pn-panel brief">
@@ -103,7 +127,7 @@
       </div>
       <div class="route" id="route">
         <span class="st h">1 · Frequency Scan</span><span class="ar">→</span>
-        <span class="st b">2 · Factor Vault ×3 floors</span><span class="ar">→</span>
+        <span class="st b">2 · Factor Vault ×3 floors + laser corridor</span><span class="ar">→</span>
         <span class="st b">3 · Blueprint</span><span class="ar">→</span>
         <span class="st h">4 · Prime Hack</span>
       </div>
@@ -117,6 +141,7 @@
 
 <script src="../shared/sound.js"></script>
 <script src="../shared/primenet.js"></script>
+<script src="../shared/badges.js"></script>
 <script src="../shared/testtools.js"></script>
 <script src="../shared/glitch.js"></script>
 <script>
@@ -126,7 +151,7 @@
   const SND = (n, a) => { if(window.PNSound) PNSound.play(n, a); };
   const $ = s => document.querySelector(s);
   const sleep = ms => new Promise(r => setTimeout(r, ms));
-  const m = PN.mission();
+  let m = PN.mission();
   const agent = PN.getAgent();
   if(!agent){ location.href = "../index.html"; return; }
   const NEXT = "prime_frequency_scan.html";
@@ -187,11 +212,72 @@
       Agent <b>${m.codename}</b> · ${PN.agentNumber(m.codename)}<br>
       Rank: ${r.rank} · Clearance ${agent.level} (${PN.LEVELS[agent.level].rank})`;
     await sleep(1500);
+    await chooseTarget();
+    m = PN.mission();
     brief();
   }
 
+  // ---------- Target map: choose which bank to hit ----------
+  // Three districts, one per level. Only banks at the agent's clearance can be picked.
+  const DISTRICT = { L1: "Old Town", L2: "Harbour", L3: "Financial District" };
+  const SECURITY = { L1: "Low", L2: "Medium", L3: "High" };
+  const VAULT = { L1: "£200,000 to £900,000", L2: "£2m to £9m", L3: "£20m to £90m" };
+  const PINS = {   // map positions, as % of the map
+    "Rivercross Utilities": [12, 34], "Northwick Transit": [24, 22], "Sentinel Finance": [16, 62], "Haven Council": [30, 50],
+    "Ember Freight": [44, 78], "Crystal Holdings": [55, 64], "Vault Secure": [42, 58], "Pinnacle Corp": [60, 86],
+    "Helix Dynamics": [72, 30], "Nexus Global": [86, 22], "Kronos Finance": [80, 50], "Atlas Prime": [92, 42],
+  };
+  function drawCity(){
+    let g = `<defs><pattern id="st" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M40 0H0V40" fill="none" stroke="rgba(47,191,138,.07)"/></pattern></defs>
+      <rect width="860" height="400" fill="url(#st)"/>
+      <path d="M300 0 C330 120 250 200 330 260 S 520 330 560 400" fill="none" stroke="#0c3550" stroke-width="34"/>
+      <path d="M300 0 C330 120 250 200 330 260 S 520 330 560 400" fill="none" stroke="#12496b" stroke-width="3" stroke-dasharray="10 12"/>
+      <rect x="0" y="0" width="290" height="400" fill="rgba(47,191,138,.03)"/><rect x="330" y="200" width="250" height="200" fill="rgba(74,163,255,.04)"/><rect x="580" y="0" width="280" height="400" fill="rgba(255,201,77,.035)"/>
+      <text x="16" y="386" fill="rgba(47,191,138,.5)" font-size="13" letter-spacing="3" font-family="Chakra Petch, sans-serif">OLD TOWN · L1</text>
+      <text x="344" y="386" fill="rgba(74,163,255,.55)" font-size="13" letter-spacing="3" font-family="Chakra Petch, sans-serif">HARBOUR · L2</text>
+      <text x="596" y="386" fill="rgba(255,201,77,.55)" font-size="13" letter-spacing="3" font-family="Chakra Petch, sans-serif">FINANCIAL DISTRICT · L3</text>`;
+    // Buildings: low blocks in Old Town, sheds in the Harbour, towers in the Financial District
+    let seed = 7; const rnd = () => (seed = (seed * 9301 + 49297) % 233280) / 233280;
+    for(let i = 0; i < 70; i++){
+      const x = rnd() * 840, y = 20 + rnd() * 340;
+      if(x > 280 && x < 360 && y < 250) continue;
+      const tall = x > 590, w = tall ? 14 + rnd() * 16 : 16 + rnd() * 22, h = tall ? 24 + rnd() * 40 : 10 + rnd() * 14;
+      g += `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="rgba(13,42,48,.9)" stroke="rgba(47,191,138,.18)"/>`;
+      if(tall) for(let k = 4; k < h - 3; k += 6) g += `<line x1="${x + 3}" y1="${y + k}" x2="${x + w - 3}" y2="${y + k}" stroke="rgba(255,214,120,.18)"/>`;
+    }
+    $("#mapSvg").innerHTML = g;
+  }
+  function timesHit(name){ return PN.getRecords().filter(s => s.codename === m.codename && s.target === name && s.furthest === "complete").length; }
+  function chooseTarget(){
+    return new Promise(resolve => {
+      $("#stepId").hidden = true; $("#stepMap").hidden = false;
+      $("#mapNote").textContent = `CLEARANCE ${agent.level} · ${DISTRICT[agent.level].toUpperCase()}`;
+      drawCity();
+      if(window.PNHandler) PNHandler.say("Pick your target, {agent}. Banks in your clearance are lit up on the map.");
+      const map = $("#map"), card = $("#tcard");
+      let chosen = null;
+      Object.entries(PN.TARGETS).forEach(([lvl, names]) => names.forEach(name => {
+        const [x, y] = PINS[name] || [50, 50], open = lvl === agent.level, hits = timesHit(name);
+        const b = document.createElement("button"); b.type = "button"; b.className = "pin" + (open ? " open" : "");
+        b.style.left = x + "%"; b.style.top = y + "%";
+        b.innerHTML = `${name}${open ? "" : `<span class="lk">${lvl}</span>`}${hits ? `<span class="hit">HIT ×${hits}</span>` : ""}`;
+        b.setAttribute("aria-label", open ? `${name}, ${DISTRICT[lvl]}, security ${SECURITY[lvl]}` : `${name}: needs clearance ${lvl}`);
+        b.addEventListener("click", () => {
+          if(!open){ SND("denied"); card.innerHTML = `<div class="meta"><b>${name}</b> is in the ${DISTRICT[lvl]}. It needs clearance ${lvl}. Pick a higher level on the title screen to hit it.</div>`; return; }
+          map.querySelectorAll(".pin").forEach(p => p.classList.remove("sel")); b.classList.add("sel"); chosen = name; SND("tag");
+          card.innerHTML = `<div><div class="nm">${name}</div><div class="meta">${DISTRICT[lvl]} · security <b>${SECURITY[lvl]}</b> · vault holds <b>${VAULT[lvl]}</b>${hits ? ` · you've hit it <b>${hits}</b> time${hits > 1 ? "s" : ""}` : ""}</div></div>
+            <button class="pn-btn primary" type="button" id="lockTarget">Lock target</button>`;
+          $("#lockTarget").addEventListener("click", () => { PN.setMissionTarget(chosen); SND("lock"); $("#stepMap").hidden = true; resolve(); });
+          $("#lockTarget").focus();
+        });
+        map.appendChild(b);
+      }));
+      chooseTarget.pickRandom = () => { const open = [...map.querySelectorAll(".pin.open")]; open[Math.floor(Math.random() * open.length)].click(); $("#lockTarget").click(); };
+    });
+  }
+
   // ---------- Briefing ----------
-  const LINES = [
+  const LINES = () => [
     `*${m.codename}*, ORACLE here. Channel's secure.`,
     `Tonight's target: *${m.target}*. Operation ${m.operation}.`,
     `Their network hides its keys among prime signals. Scan the bands and tag every prime.`,
@@ -200,7 +286,7 @@
   ];
   let skipTyping = false;
   async function brief(){
-    $("#stepId").hidden = true; $("#stepBrief").hidden = false;
+    $("#stepId").hidden = true; $("#stepMap").hidden = true; $("#stepBrief").hidden = false;
     $("#opName").textContent = "OPERATION " + m.operation;
     $("#dTarget").textContent = m.target; $("#dOp").textContent = m.operation;
     $("#dAgent").textContent = `${m.codename} · ${agent.level}`;
@@ -208,7 +294,7 @@
     await sleep(350);
     const box = $("#lines");
     box.addEventListener("click", () => { skipTyping = true; });
-    for(const text of LINES){
+    for(const text of LINES()){
       const p = document.createElement("p"); box.appendChild(p);
       const parts = text.split(/(\*[^*]+\*)/); let html = "";
       for(const part of parts){
@@ -233,6 +319,7 @@
 
   if(window.PNTest){
     PNTest.add("Pass the identity scan", () => { if(!done) verified(); });
+    PNTest.add("Pick a random target", () => { if(chooseTarget.pickRandom) chooseTarget.pickRandom(); else return "The map isn't showing yet."; });
     PNTest.add("Skip to Frequency Scan", () => { location.href = NEXT; });
   }
 })();

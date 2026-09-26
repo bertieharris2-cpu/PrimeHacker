@@ -108,6 +108,11 @@ const Bank = (() => {
     } else {
       state.accounts = seedDefaultAccounts();
     }
+    // A wallet saved without any bank accounts (e.g. only a shop purchase) gets fresh ones
+    if (!Array.isArray(state.accounts) || !state.accounts.length) state.accounts = seedDefaultAccounts();
+    if (!Array.isArray(state.ledger)) state.ledger = [];
+    if (typeof state.runEarnings !== 'number') state.runEarnings = 0;
+    if (typeof state.walletBalance !== 'number') state.walletBalance = 0;
     save();
   }
 

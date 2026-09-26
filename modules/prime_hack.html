@@ -313,6 +313,55 @@
   }
 
 
+/* ===== Round 3 group 6: getaway, server blackout, shop skins ===== */
+.fxOverlay.gaOverlay{ background:rgba(2,8,10,.97) !important; }
+.getaway{ width:min(760px, 94vw); display:flex; flex-direction:column; gap:14px; align-items:stretch; }
+.ga-title{ font-family:var(--font-ui); font-weight:800; letter-spacing:.2em; color:var(--warning); text-align:center; font-size:18px; }
+.road{ position:relative; height:110px; background:linear-gradient(#0a1417, #121c1f 40%, #121c1f 60%, #0a1417); border-top:2px solid #2a3a3e; border-bottom:2px solid #2a3a3e; overflow:hidden; }
+.road .lane{ position:absolute; left:0; right:0; top:52px; height:4px; background:repeating-linear-gradient(90deg, #d8c16a 0 40px, transparent 40px 80px); animation:lane .5s linear infinite; }
+@keyframes lane{ from{ background-position:0 0; } to{ background-position:-80px 0; } }
+.road .veh{ position:absolute; top:26px; width:92px; height:56px; transition:left .8s cubic-bezier(.3,1,.4,1); }
+.road .van{ left:30%; } .road .cops{ left:4%; }
+.road .cops .bar{ animation:copLights .4s steps(2) infinite; }
+@keyframes copLights{ 0%{ fill:#ff2d55; } 100%{ fill:#3a8dff; } }
+.road .safe{ position:absolute; right:8px; top:8px; bottom:8px; width:70px; border:2px dashed rgba(47,191,138,.6); color:#2fbf8a; font-size:11px; letter-spacing:.14em; display:flex; align-items:center; justify-content:center; text-align:center; font-family:var(--font-ui); font-weight:700; }
+.ga-q{ border:1px solid var(--line); background:rgba(0,0,0,.35); padding:16px; display:flex; flex-direction:column; align-items:center; gap:10px; }
+.ga-q small{ letter-spacing:.2em; color:var(--text-faint, rgba(235,255,248,.5)); font-size:12px; }
+.ga-n{ font-family:var(--font-mono); font-size:64px; font-weight:700; color:#ffe14d; line-height:1; text-shadow:0 0 24px rgba(255,225,77,.35); }
+.ga-ask{ font-size:18px; color:rgba(235,255,248,.85); }
+.ga-btns{ display:flex; gap:12px; }
+.ga-btns button{ font:inherit; font-family:var(--font-ui); font-weight:700; letter-spacing:.1em; font-size:18px; padding:12px 22px; min-width:170px; background:rgba(0,0,0,.4); color:#eafff6; border:2px solid var(--line); cursor:pointer; }
+.ga-btns button[data-a="p"]{ border-color:rgba(255,79,216,.7); } .ga-btns button[data-a="n"]{ border-color:rgba(110,200,255,.6); }
+.ga-btns button:hover{ background:rgba(255,255,255,.06); }
+.ga-btns kbd{ font-size:12px; opacity:.6; margin-left:6px; border:1px solid currentColor; padding:0 5px; }
+.ga-timer{ align-self:stretch; height:8px; background:rgba(0,0,0,.4); border:1px solid rgba(255,107,107,.5); }
+.ga-timer i{ display:block; height:100%; width:100%; background:linear-gradient(90deg, #ff6b6b, #f2c14e); }
+.ga-fb{ min-height:1.5em; font-size:16px; text-align:center; }
+.ga-fb.ok{ color:#2fbf8a; } .ga-fb.bad{ color:#ff6b6b; }
+.ga-result{ font-family:var(--font-ui); font-weight:800; font-size:30px; letter-spacing:.16em; text-align:center; color:var(--accent); }
+.ga-result small{ display:block; font-size:15px; letter-spacing:.06em; font-weight:600; color:rgba(235,255,248,.75); margin-top:6px; }
+.bo-room{ position:relative; width:min(760px, 94vw); padding:22px; background:#050b0d; border:1px solid #1d2c30; }
+.racks{ display:grid; grid-template-columns:repeat(6, 1fr); gap:12px; }
+.rack{ position:relative; height:120px; font:inherit; font-family:var(--font-mono); font-size:22px; font-weight:700; color:#d9fff0; cursor:pointer;
+  background:repeating-linear-gradient(#10191c 0 12px, #0b1214 12px 16px); border:2px solid #2a3a3e; display:flex; align-items:flex-end; justify-content:center; padding-bottom:8px; }
+.rack::before{ content:""; position:absolute; top:10px; left:12px; right:12px; height:40px; background:radial-gradient(circle, #2fbf8a 0 2px, transparent 3px) 0 0/10px 10px, radial-gradient(circle, #ff9f43 0 2px, transparent 3px) 5px 5px/10px 10px; animation:leds .6s steps(3) infinite; }
+@keyframes leds{ 50%{ opacity:.35; } }
+.rack.off{ border-color:#2fbf8a; color:#2fbf8a; cursor:default; } .rack.off::before{ background:none; animation:none; }
+.rack.off::after{ content:"OFF"; position:absolute; top:20px; left:0; right:0; text-align:center; font-size:12px; letter-spacing:.2em; }
+.rack.spark{ animation:spark .45s ease-in-out; border-color:#ff6b6b; }
+@keyframes spark{ 25%{ box-shadow:0 0 30px #ff6b6b; background:#3a0d12; } 50%{ transform:translateX(-4px); } 75%{ transform:translateX(4px); } }
+.bo-dark{ position:absolute; inset:0; pointer-events:none; background:radial-gradient(circle 130px at var(--x, 50%) var(--y, 50%), transparent 0, transparent 55%, rgba(0,0,0,.95) 100%); transition:opacity .8s ease; }
+.bo-room.lit .bo-dark{ opacity:0; }
+.vdoor.skin-brass{ border-color:#d6a756; background:radial-gradient(circle, #6b4f1f 0 22%, #4d3812 23% 58%, #2f220b 59%); }
+.vdoor.skin-carbon{ border-color:#8a9aa0; background:repeating-linear-gradient(45deg, #1a1d1f 0 6px, #0e1011 6px 12px); }
+.vdoor.skin-neon{ border-color:#ff4fd8; box-shadow:0 0 40px rgba(255,79,216,.55), inset 0 0 40px rgba(110,200,255,.35); background:radial-gradient(circle, #1b0f2a 0 58%, #0b0616 59%); }
+.vdoor.skin-diamond{ border-color:#e8fbff; box-shadow:0 0 50px rgba(200,240,255,.6), inset 0 0 50px rgba(255,255,255,.25); background:conic-gradient(from 0deg, #bfe9ff, #ffffff, #9fd8ff, #e6f7ff, #bfe9ff); }
+.vdoor.skin-diamond .hub{ color:#0b2a36; border-color:#0b2a36; }
+html.term-cycle .terminal{ animation:termCycle 8s linear infinite; }
+@keyframes termCycle{ to{ filter:hue-rotate(360deg); } }
+.cf-badges{ display:flex; flex-wrap:wrap; gap:10px; }
+.cf-badges span.bn{ display:inline-flex; align-items:center; gap:8px; font-size:14px; }
+
 /* ===== Round 3 group 5: combination dial and trace meter ===== */
 .lockRig{ position:absolute; top:18px; right:18px; width:210px; z-index:4; display:flex; flex-direction:column; gap:10px; align-items:center;
   background:rgba(3,12,14,.82); border:1px solid rgba(var(--accent-rgb),.35); padding:12px 12px 14px; font-family:var(--font-ui); }
@@ -1287,6 +1336,7 @@ button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [clas
 
 <!-- Mission data (agent, level, record), then the banking system, which keeps a wallet per codename -->
 <script src="../shared/primenet.js"></script>
+<script src="../shared/badges.js"></script>
 <script src="../shared/testtools.js"></script>
 <script src="../shared/handler.js"></script>
 <script src="../shared/glitch.js"></script>
@@ -1526,7 +1576,8 @@ function newRunSameDifficulty(){
   if(!Run.missionBankUsed && PN && PN.getAgent() && PN.getAgent().target){ Run.missionBankUsed = true; Bank.selectAccountByName(DIFF, PN.mission().target); }
   else Bank.selectAccountForRun(DIFF);
   updateRunUI();
-  if(typeof Rig !== "undefined"){ Rig.reset(); Rig.trace = 0; Rig.paintTrace(); Rig.startClock(); }
+  Run.runNo = (Run.runNo || 0) + 1;
+  if(typeof Rig !== "undefined"){ Rig.reset(); Rig.trace = 0; Rig.peak = 0; Rig.paintTrace(); Rig.startClock(); }
 }
 
 function newTargetNextLock(){
@@ -2052,6 +2103,109 @@ async function breachPrelude(seconds=10){
 }
 
 
+// ===================== GETAWAY =====================
+// After the vault opens: three quick "prime or not?" calls while the police close in.
+// Always escapes. 3 out of 3 is a clean getaway (+5% and the Wheelman badge).
+const GETAWAY = { L1: { from: 2, to: 50, secs: 8 }, L2: { from: 20, to: 100, secs: 7 }, L3: { from: 50, to: 200, secs: 6 } };
+const Getaway = { answer: null };
+function vanSVG(){ return `<svg viewBox="0 0 92 56"><rect x="4" y="10" width="62" height="30" rx="3" fill="#1d3a34" stroke="#2fbf8a" stroke-width="2"/><path d="M66 18 h14 l8 10 v12 h-22z" fill="#1d3a34" stroke="#2fbf8a" stroke-width="2"/><rect x="70" y="21" width="9" height="7" fill="#6ec8ff" opacity=".7"/><circle cx="20" cy="44" r="7" fill="#0b1214" stroke="#9fb7bb" stroke-width="2"/><circle cx="72" cy="44" r="7" fill="#0b1214" stroke="#9fb7bb" stroke-width="2"/><text x="35" y="30" font-size="9" fill="#2fbf8a" text-anchor="middle" font-family="monospace">PRIMENET</text></svg>`; }
+function copSVG(){ return `<svg viewBox="0 0 92 56"><rect class="bar" x="34" y="4" width="22" height="7" rx="2" fill="#ff2d55"/><path d="M8 26 l12 -12 h44 l14 12 h8 v14 h-80z" fill="#e8eef0" stroke="#223" stroke-width="2"/><rect x="8" y="30" width="80" height="5" fill="#3a8dff"/><circle cx="24" cy="44" r="7" fill="#0b1214" stroke="#9fb7bb" stroke-width="2"/><circle cx="72" cy="44" r="7" fill="#0b1214" stroke="#9fb7bb" stroke-width="2"/></svg>`; }
+async function getaway(){
+  const cfg = GETAWAY[DIFF] || GETAWAY.L1;
+  const primes = [], tricky = [], other = [];
+  for(let n = cfg.from; n <= cfg.to; n++){ if(isPrime(n)) primes.push(n); else if(n % 2 && n % 5) tricky.push(n); else other.push(n); }
+  const pickOne = a => a[randInt(a.length)];
+  const nums = [pickOne(primes), pickOne(tricky.length ? tricky : other), Math.random() < .5 ? pickOne(primes) : pickOne(tricky.length ? tricky : other)].sort(() => Math.random() - .5);
+  const o = overlay("gaOverlay");
+  o.innerHTML = `<div class="getaway" role="dialog" aria-label="Getaway">
+    <div class="ga-title">GETAWAY // LOSE THE TRACE</div>
+    <div class="road"><div class="lane"></div><div class="safe">SAFE<br>HOUSE</div><div class="veh cops">${copSVG()}</div><div class="veh van">${vanSVG()}</div></div>
+    <div class="ga-q"><small class="ga-count">SIGNAL 1 OF 3</small><div class="ga-n">?</div><div class="ga-ask">Prime or not? Answer fast to stay ahead.</div>
+      <div class="ga-btns"><button type="button" data-a="p">PRIME<kbd>P</kbd></button><button type="button" data-a="n">NOT PRIME<kbd>N</kbd></button></div>
+      <div class="ga-timer"><i></i></div><div class="ga-fb"></div></div></div>`;
+  const van = o.querySelector(".van"), cops = o.querySelector(".cops"), bar = o.querySelector(".ga-timer i"), fb = o.querySelector(".ga-fb");
+  SFX("engine"); SFX("siren");
+  let score = 0, vanX = 30, copX = 4;
+  const move = () => { van.style.left = vanX + "%"; cops.style.left = copX + "%"; };
+  for(let i = 0; i < nums.length; i++){
+    const n = nums[i], prime = isPrime(n);
+    o.querySelector(".ga-count").textContent = `SIGNAL ${i + 1} OF 3`;
+    o.querySelector(".ga-n").textContent = n;
+    fb.textContent = ""; fb.className = "ga-fb";
+    Getaway.answer = prime ? "p" : "n";
+    const ans = await new Promise(resolve => {
+      const ms = cfg.secs * 1000, t0 = performance.now(); let done = false;
+      const finish = a => { if(done) return; done = true; document.removeEventListener("keydown", onKey, true); o.querySelectorAll(".ga-btns button").forEach(b => b.onclick = null); resolve(a); };
+      const onKey = e => { const k = e.key.toLowerCase(); if(k === "p" || k === "n"){ e.preventDefault(); e.stopPropagation(); finish(k); } };
+      document.addEventListener("keydown", onKey, true);
+      o.querySelectorAll(".ga-btns button").forEach(b => b.onclick = () => finish(b.dataset.a));
+      (function tick(now){ if(done) return; const k = Math.min(1, (now - t0) / ms); bar.style.width = (100 - k * 100) + "%"; if(k >= 1) finish(null); else requestAnimationFrame(tick); })(t0);
+    });
+    let f = ""; for(let d = 2; d * d <= n; d++) if(n % d === 0){ f = `${d} × ${n / d}`; break; }
+    const right = ans === Getaway.answer;
+    if(right){ score++; vanX = Math.min(72, vanX + 14); copX = Math.min(vanX - 20, copX + 6); SFX("correct", score); fb.className = "ga-fb ok"; fb.textContent = prime ? `✓ ${n} is prime. Foot down!` : `✓ ${n} = ${f}. Not prime. Foot down!`; }
+    else { copX = Math.min(vanX - 6, copX + 16); SFX("siren"); fb.className = "ga-fb bad"; fb.textContent = `${ans ? "✗" : "Too slow!"} ${prime ? `${n} is prime: only 1 and ${n} go into it.` : `${n} = ${f}, so it isn't prime.`}`; }
+    move();
+    await sleep(1400);
+  }
+  Getaway.answer = null;
+  vanX = 88; move(); SFX("engine");
+  const q = o.querySelector(".ga-q");
+  q.innerHTML = score === 3 ? `<div class="ga-result">CLEAN GETAWAY<small>3 out of 3. Not a siren in sight. +5% on the haul.</small></div>`
+    : score === 2 ? `<div class="ga-result" style="color:var(--warning)">CLOSE CALL<small>2 out of 3. You lost them at the last junction.</small></div>`
+    : `<div class="ga-result" style="color:#ff6b6b">SIRENS ALL THE WAY<small>${score} out of 3. You ditched the van in the tunnels and walked home.</small></div>`;
+  SFX(score === 3 ? "success" : "commit");
+  await sleep(2200);
+  o.remove();
+  return { score };
+}
+
+// ===================== SERVER BLACKOUT (alternate prime-half finale) =====================
+// The lights go out in the server farm. Sweep the torch and shut down every prime server;
+// the decoys are composite. Uses the student's own cracked primes and lock numbers.
+async function serverBlackout(cracked){
+  const acct = Bank.getCurrentAccount() || { name: "TARGET" };
+  const cfg = GETAWAY[DIFF] || GETAWAY.L1;
+  const primes = [...new Set(cracked.flatMap(c => [c.p, c.q]))].slice(0, 6);
+  const composites = [...new Set(cracked.map(c => c.n))];
+  for(let n = cfg.to; primes.length < 5 && n >= cfg.from; n--) if(isPrime(n) && !primes.includes(n)) primes.push(n);
+  while(composites.length < 12 - primes.length){ const n = cfg.from + randInt(cfg.to - cfg.from); if(!isPrime(n) && n > 3 && !composites.includes(n)) composites.push(n); }
+  const racks = [...primes, ...composites.slice(0, 12 - primes.length)].sort(() => Math.random() - .5);
+  const o = overlay();
+  o.innerHTML = `<div class="doorStage">
+      <div class="doorTitle">SERVER FARM // ${acct.name.toUpperCase()}</div>
+      <div class="bo-room"><div class="racks">${racks.map(n => `<button type="button" class="rack" data-n="${n}" aria-label="Server ${n}">${n}</button>`).join("")}</div><div class="bo-dark"></div></div>
+      <div class="doorPrompt">BLACKOUT. SHUT DOWN EVERY PRIME SERVER: ${primes.length} LEFT</div>
+    </div>`;
+  const room = o.querySelector(".bo-room"), dark = o.querySelector(".bo-dark"), prompt = o.querySelector(".doorPrompt");
+  SFX("rise");
+  const aim = (x, y) => { dark.style.setProperty("--x", x + "px"); dark.style.setProperty("--y", y + "px"); };
+  room.addEventListener("pointermove", e => { const r = room.getBoundingClientRect(); aim(e.clientX - r.left, e.clientY - r.top); });
+  room.querySelectorAll(".rack").forEach(b => b.addEventListener("focus", () => { const r = room.getBoundingClientRect(), q = b.getBoundingClientRect(); aim(q.left - r.left + q.width / 2, q.top - r.top + q.height / 2); }));
+  await new Promise(resolve => {
+    let left = primes.length;
+    const hit = b => {
+      if(!b || b.classList.contains("off")) return;
+      const n = +b.dataset.n;
+      if(isPrime(n)){
+        b.classList.add("off"); b.disabled = true; SFX("commit"); left--;
+        prompt.textContent = left ? `${n} DOWN. ${left} PRIME SERVER${left > 1 ? "S" : ""} LEFT` : "SERVER FARM DOWN // VAULT UNLOCKED";
+        if(!left) resolve();
+      } else {
+        let f = ""; for(let d = 2; d * d <= n; d++) if(n % d === 0){ f = `${d} × ${n / d}`; break; }
+        b.classList.remove("spark"); void b.offsetWidth; b.classList.add("spark"); SFX("alarm");
+        prompt.textContent = `DECOY: ${n} = ${f}, NOT PRIME. ${left} LEFT`;
+      }
+    };
+    room.querySelectorAll(".rack").forEach(b => b.addEventListener("click", () => hit(b)));
+    Getaway.blackoutHit = hit;
+  });
+  Getaway.blackoutHit = null;
+  room.classList.add("lit"); SFX("lock");
+  await sleep(1400);
+  return o;
+}
+
 // ===================== COMBINATION DIAL + TRACE METER =====================
 // The lock on screen: each correct prime turns the dial and sets a tumbler with a click.
 // Trace rises with wrong answers (and slowly with time). At 100% security swaps the lock
@@ -2137,7 +2291,7 @@ const Rig = (() => {
     raise(n){
       if(Run.index > Run.locksPerRun || FF.active || api.busy) return;
       const before = api.trace;
-      api.trace = Math.min(100, api.trace + n); api.paintTrace();
+      api.trace = Math.min(100, api.trace + n); api.peak = Math.max(api.peak || 0, api.trace); api.paintTrace();
       if(before < 50 && api.trace >= 50 && window.PNHandler) PNHandler.say("Careful, {agent}. They're starting to trace the signal.");
       if(before < 75 && api.trace >= 75 && window.PNSound) PNSound.play("alarm");
       if(api.trace >= 100) api.traced();
@@ -2259,7 +2413,7 @@ async function vaultDoor(cracked){
   const o = overlay();
   o.innerHTML = `<div class="doorStage">
       <div class="doorTitle">VAULT DOOR // ${acct.name.toUpperCase()}</div>
-      <div class="doorWrap"><div class="doorLight"></div><div class="vdoor"><div class="hub">VAULT</div></div></div>
+      <div class="doorWrap"><div class="doorLight"></div><div class="vdoor ${PN ? "skin-" + PN.lootFor().equip.door.replace("door-", "") : ""}"><div class="hub">VAULT</div></div></div>
       <div class="doorPrompt">PRESS SPACE TO RETRACT EACH BOLT</div>
     </div>`;
   const door = o.querySelector(".vdoor"), prompt = o.querySelector(".doorPrompt");
@@ -2362,6 +2516,7 @@ function caseFile({ codename, levelId, cracked, wrong, banked, walletAfter, afte
         <div><small>TAKEN THIS RUN</small><b>${gbp(banked)}</b></div>
         <div><small>WALLET</small><b>${gbp(walletAfter)}</b></div>
       </div>
+      ${window.PNBadges && PNBadges.thisMission().length ? `<div class="cf-sec"><small>BADGES THIS MISSION</small><div class="cf-badges">${PNBadges.thisMission().map(id => `<span class="bn">${PNBadges.hex(id, true)}${PNBadges.byId(id).name}</span>`).join("")}</div></div>` : ""}
       ${after && after.next ? `<div class="cf-sec"><small>NEXT RANK</small><span>${after.toNext} more vault${after.toNext === 1 ? "" : "s"} to become <b>${after.next}</b>.</span></div>` : ""}
       <div class="cf-actions"><a class="pnBtn" href="../index.html" style="text-decoration:none">Return to base</a><button type="button" class="pnBtn primary" id="cfAgain">Start a new run</button></div>
     </div>`;
@@ -2406,7 +2561,12 @@ async function onLockSolved(){
 
   const acct = Bank.getCurrentAccount() || { name:"TARGET", balance:0 };
   const acctSnapshot = { name: acct.name, balance: acct.balance };
-  const doorOverlay = await vaultDoor(Run.cracked);
+  // The prime-half finale changes between runs: the vault door first, then a server blackout, and so on
+  const blackout = Run.forceFinale ? Run.forceFinale === "blackout" : (Run.runNo || 1) % 2 === 0;
+  Run.forceFinale = null;
+  const doorOverlay = blackout ? await serverBlackout(Run.cracked) : await vaultDoor(Run.cracked);
+  // The getaway: three quick "prime or not?" calls to lose the trace. 3 out of 3 adds 5%.
+  const escape = await getaway();
 
   const agent = PN ? PN.getAgent() : null;
   const codename = agent ? agent.codename : "AGENT";
@@ -2419,8 +2579,23 @@ async function onLockSolved(){
     PN.updateAgent({ intelBonus: 0 });
     if(extra) addLine(`INTEL BONUS +${Bank.formatGBP(extra)} (blueprint quiz)`, "ok");
   }
+  if(escape.score === 3){
+    const extra = Bank.addRunBonus(Bank.getRunEarnings() * 0.05, "clean getaway");
+    if(extra) addLine(`CLEAN GETAWAY +${Bank.formatGBP(extra)}`, "ok");
+  }
   const banked = Bank.bankRun(DIFF);
-  if(PN) PN.log("complete", { level: DIFF, banked, locks: Run.cracked, wrong: Run.wrongTotal || 0 });
+  if(PN) PN.log("complete", { level: DIFF, banked, locks: Run.cracked, wrong: Run.wrongTotal || 0, finale: blackout ? "blackout" : "door", getaway: escape.score, target: acctSnapshot.name });
+  // Badges for this run
+  if(window.PNBadges){
+    PNBadges.award("first-breach");
+    if(Run.cracked.length && Run.cracked.every(c => c.tries === 0)) PNBadges.award("prime-sniper");
+    if((Rig.peak || 0) <= 50) PNBadges.award("ghost");
+    if(escape.score === 3) PNBadges.award("wheelman");
+    if(blackout) PNBadges.award("lights-out");
+    const sess = PN && PN.currentSession();
+    if(sess && Date.now() - new Date(sess.startedAt).getTime() < 15 * 60000) PNBadges.award("speed-demon");
+    if(Bank.getWalletBalance() >= 1000000) PNBadges.award("high-roller");
+  }
   const after = PN ? PN.agentRank(codename) : null;
   updateRunUI();
 
@@ -2739,6 +2914,16 @@ function boot(){
   newRunSameDifficulty();
   updateRunUI();
 
+  // Terminal colour bought in the safehouse shop
+  if(PN){
+    const t = PN.shopItem(PN.lootFor().equip.term);
+    if(t && t.id !== "term-green"){
+      const [r, g, b] = t.rgb.split(",").map(Number);
+      document.documentElement.style.setProperty("--accent-rgb", t.rgb);
+      document.documentElement.style.setProperty("--accent", `rgb(${r},${g},${b})`);
+    }
+    document.documentElement.classList.toggle("term-cycle", !!(t && t.cycle));
+  }
   const target = Bank.getCurrentAccount();
   addLine("PRIME HACK // TERMINAL ONLINE", "ok");
   addLine(`Target bank: ${target ? target.name : "unknown"}. Four locks stand between you and its vault.`, "sys");
@@ -2782,6 +2967,18 @@ if(window.PNTest){
       commitBufferStage();
     }
     return "Buffer charged.";
+  });
+  PNTest.add("Next finale: server blackout", () => { Run.forceFinale = "blackout"; return "The next final lock ends in the blackout."; });
+  PNTest.add("Shut down every prime server", () => {
+    if(!Getaway.blackoutHit) return "The blackout isn't showing yet.";
+    [...document.querySelectorAll(".rack:not(.off)")].filter(b => isPrime(+b.dataset.n)).forEach((b, i) => setTimeout(() => Getaway.blackoutHit && Getaway.blackoutHit(b), i * 250));
+  });
+  PNTest.add("Win the getaway", async () => {
+    for(let i = 0; i < 3; i++){
+      await new Promise(r => { const t = setInterval(() => { if(Getaway.answer){ clearInterval(t); r(); } }, 50); });
+      document.querySelector(`.ga-btns button[data-a="${Getaway.answer}"]`).click();
+      await new Promise(r => setTimeout(r, 1500));
+    }
   });
   PNTest.add("Pull every vault bolt", () => {
     const bolts = [...document.querySelectorAll(".vbolt:not(.out)")];

@@ -934,6 +934,7 @@ body{ font-size: var(--font-size); }
   </div>
 
   <script src="../shared/primenet.js"></script>
+  <script src="../shared/badges.js"></script>
   <script src="../shared/testtools.js"></script>
   <script src="../shared/handler.js"></script>
   <script src="../shared/glitch.js"></script>
@@ -1490,6 +1491,7 @@ body{ font-size: var(--font-size); }
         if(found.size === allPairs.length){
           saveCompletedLevel(); // Save progress
           if(PN) PN.log("vault-complete", { n: N, level: currentDifficulty });
+          if(window.PNBadges && Number.isInteger(Math.sqrt(N))) PNBadges.award("square-hunter");
           setTimeout(() => { if(window.PNSound) PNSound.play("success"); }, 350);
           setMode("Blueprint Decryption");
           setHint(`All pairs verified. Reconstructing floor plan for N=${N}…`);

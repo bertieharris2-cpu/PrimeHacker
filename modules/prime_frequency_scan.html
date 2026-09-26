@@ -475,6 +475,7 @@ button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [clas
   </div>
 
 <script src="../shared/primenet.js"></script>
+<script src="../shared/badges.js"></script>
 <script src="../shared/testtools.js"></script>
 <script src="../shared/handler.js"></script>
 <script src="../shared/glitch.js"></script>
@@ -873,7 +874,7 @@ button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [clas
     L2: { from: 20, to: 80, count: 14, travel: 8000, gap: 1300 },
     L3: { from: 50, to: 150, count: 16, travel: 7000, gap: 1150 },
   };
-  let interceptDone = null;
+  let interceptDone = null, interceptPerfect = false;
   function renderIntercept(){
     state = State.INTERCEPT;
     const cfg = INTERCEPT[LEVEL_ID] || INTERCEPT.L1;
@@ -946,6 +947,7 @@ button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [clas
     }
     function finish(){
       running = false; interceptDone = null;
+      interceptPerfect = stats.missed === 0 && stats.noise === 0 && stats.locked > 0;
       setConsole("INTERCEPT CLOSED", `Locked ${stats.locked} of ${half} primes.`);
       renderComplete();
     }
@@ -966,6 +968,7 @@ button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [clas
     const segs = renderSegments();
     const decoders = decodersFor(signal);
     if(PN) PN.updateAgent({ signal, decoders });
+    if(window.PNBadges){ if(signal === 100) PNBadges.award("clean-sweep"); if(interceptPerfect) PNBadges.award("interceptor"); }
     const bonus = el("div", { class: "bonusCard", html: `<div>FINAL SIGNAL STRENGTH</div><div class="big">${signal}%</div>
       <div class="perk">${decoders ? `Strong signal: ${decoders} decoder charge${decoders === 1 ? "" : "s"} for the Factor Vault. Each one cracks a factor pair for you.` : "Weak signal: no decoder charges this time. A cleaner scan earns them."}</div>` });
     const sub = el("div", { class: "sub", text: "All bands verified. Secure channels stabilised." });
