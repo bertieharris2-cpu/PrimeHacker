@@ -25,4 +25,39 @@
 
 ## Round 2
 
-Still to decide: the start screen, the old start screens, which Prime Hack layout, the terminal tools, the old finale, and a list of smaller features that could be cut.
+| Question | Decision |
+|---|---|
+| How the game starts | A simple title screen: game name, codename, Start |
+| Old start screens | Cut. Moved to `archive/start-screens/` |
+| Prime Hack layout | Current. The other two are in `archive/prime-hack-layouts/` |
+| Always-visible hint box in Prime Hack | Add |
+| Old Factor Vault finale | Don't port it as it is. Reuse its beeps and cell-by-cell fill in the Vault Grid (see below) |
+| Tool `PRIME? n` | Add |
+| Tool `PRIMES n` | Leave out |
+| Tool `HINT` | Add, merged with `RANGE` |
+| Tool `FACTOR n` | Leave out (gives the answer away) |
+
+**Smaller features**
+
+| Feature | Decision |
+|---|---|
+| Roleplay mode in Prime Hack | Keep |
+| NEW TARGET button | Cut |
+| Quick pair toggle and UNLOCK command | Cut. Students just type two numbers |
+| "Show flipped" tick box in Factor Vault | Cut the tick box. Flipped arrays always show |
+| Vault Grid 3D VIEW button | Cut. The 3D rise plays automatically |
+| Frequency Scan DEV button | Cut from student view |
+| Level buttons on student screens | Proposed: pick the level once on the title screen (to confirm) |
+| Vault Grid testing controls | Proposed: hide behind a teacher key (to confirm) |
+| Blueprint demo numbers | Proposed: teacher preview only, behind the teacher key (to confirm) |
+
+**The old finale.** The Vault Grid is already Factor Vault's ending: it draws the floor plan of the number that becomes a floor of the Blueprint. The old square-vault finale would be a second, competing picture of the same number. Instead, the parts that worked (the rising beeps and cells filling one by one) go into the Vault Grid's power fill. The corner pop-up in Factor Vault is replaced by moving straight into the Vault Grid.
+
+**Teacher key.** One hidden key combination gives the teacher the tools students don't need: jumping between screens, Vault Grid's layout controls, and previewing the Blueprint with sample numbers.
+
+## Success screens (first pass)
+
+Every idea is a "maybe until I see it". Build these as prototypes to look at before deciding:
+
+- Yes, if it looks right: vault door that opens, bank balance draining, tension before the release (alarm), rank-up stamp and codename, case file at the end, fast-forward on repeat plays
+- Maybe: different finales each run (they must still match the stage the student is at), more doing and less watching, a proper sound sting, a real ending for Factor Vault
