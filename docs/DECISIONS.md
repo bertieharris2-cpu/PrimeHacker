@@ -47,13 +47,25 @@
 | "Show flipped" tick box in Factor Vault | Cut the tick box. Flipped arrays always show |
 | Vault Grid 3D VIEW button | Cut. The 3D rise plays automatically |
 | Frequency Scan DEV button | Cut from student view |
-| Level buttons on student screens | Proposed: pick the level once on the title screen (to confirm) |
+| Level buttons on student screens | Cut mid-game. Level is chosen once, on the title screen (see Levels below) |
 | Vault Grid testing controls | Proposed: hide behind a teacher key (to confirm) |
 | Blueprint demo numbers | Proposed: teacher preview only, behind the teacher key (to confirm) |
 
 **The old finale.** The Vault Grid is already Factor Vault's ending: it draws the floor plan of the number that becomes a floor of the Blueprint. The old square-vault finale would be a second, competing picture of the same number. Instead, the parts that worked (the rising beeps and cells filling one by one) go into the Vault Grid's power fill. The corner pop-up in Factor Vault is replaced by moving straight into the Vault Grid.
 
 **Teacher key.** One hidden key combination gives the teacher the tools students don't need: jumping between screens, Vault Grid's layout controls, and previewing the Blueprint with sample numbers.
+
+## Levels
+
+- **Students choose** their level on the title screen, before they start.
+- **The teacher can restrict it** with one of three settings:
+  - *Student choice*: any level.
+  - *Minimum level*: for example L2 or above, so easy can't always be chosen.
+  - *Fixed level*: everyone plays the same level.
+- **The teacher can see a record** of each codename: which levels they chose, how far they got and when. This lets the teacher encourage a harder level.
+- The game can also nudge students itself. Higher levels already pay far more in the bank, and the game could suggest moving up after a strong run.
+
+Open question: does each student use the same computer every lesson? Records and settings are saved in the browser, so they belong to one computer.
 
 ## Success screens (first pass)
 
