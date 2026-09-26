@@ -70,6 +70,14 @@
 - If the class plays again, the teacher can upload earlier records (teacher key → Load record). Several files can be loaded at once and are combined into one class list.
 - No online saving is needed.
 
+## Build progress
+
+- [x] Title screen (`index.html`): codename, level choice, teacher level rule, mission record, download and load records
+- [ ] Join the route: title → Frequency Scan → Factor Vault and Vault Grid ×3 → Blueprint → Prime Hack
+- [ ] Include the 3D code locally so the Blueprint works offline
+- [ ] Apply the agreed style and changes inside each game
+- [ ] Success screen prototypes
+
 ## Success screens (first pass)
 
 Every idea is a "maybe until I see it". Build these as prototypes to look at before deciding:

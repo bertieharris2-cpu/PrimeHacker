@@ -1,0 +1,313 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>PRIMENET</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared/primenet.css">
+<style>
+  .shell{ position:relative; z-index:1; min-height:100%; display:flex; flex-direction:column; align-items:center; padding:24px 16px 20px; gap:22px; }
+  .topline{ width:min(980px,100%); display:flex; justify-content:space-between; align-items:center; gap:12px; font-size:13px; color:var(--text-faint); }
+  .topline .dot{ display:inline-block; width:9px; height:9px; border-radius:50%; background:var(--ok); box-shadow:0 0 10px rgba(var(--accent-hack-rgb),.6); margin-right:8px; vertical-align:1px; }
+
+  .hero{ text-align:center; display:flex; flex-direction:column; gap:10px; align-items:center; }
+  .logo{ font-family:var(--font-ui); font-weight:800; font-size:clamp(44px,9vw,92px); letter-spacing:.14em; line-height:1; margin:0; padding-left:.14em; }
+  .logo .p{ color:var(--accent-hack); text-shadow:0 0 28px rgba(var(--accent-hack-rgb),.28); }
+  .logo .n{ color:var(--accent-build); text-shadow:0 0 28px rgba(var(--accent-build-rgb),.28); }
+  .tagline{ margin:0; color:var(--text-muted); max-width:46ch; }
+  .tagline b{ font-weight:400; }
+  .tagline .b{ color:var(--accent-build); }
+  .tagline .h{ color:var(--accent-hack); }
+  .boot{ font-size:14px; color:var(--text-faint); min-height:1.5em; }
+
+  .console{ width:min(980px,100%); padding:22px; display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.6fr); gap:22px 28px; }
+  .field{ display:flex; flex-direction:column; gap:10px; }
+  .codename-row{ display:flex; gap:8px; }
+  .codename-row .pn-input{ text-transform:uppercase; letter-spacing:.08em; }
+  .hint{ font-size:14px; color:var(--text-faint); margin:0; }
+
+  .levels{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; }
+  .level{ position:relative; text-align:left; font:inherit; color:inherit; cursor:pointer; background:rgba(0,0,0,.22); border:1px solid var(--line); border-radius:var(--radius); padding:12px 12px 14px; display:flex; flex-direction:column; gap:4px; transition:border-color var(--transition-fast), box-shadow var(--transition-fast); }
+  .level:hover:not(:disabled){ border-color:var(--line-strong); }
+  .level[aria-checked="true"]{ border-color:rgba(var(--accent-hack-rgb),.85); box-shadow:0 0 18px rgba(var(--accent-hack-rgb),var(--glow-strength)), inset 0 0 0 1px rgba(var(--accent-hack-rgb),.35); }
+  .level:disabled{ cursor:not-allowed; opacity:.42; }
+  .level .lv{ font-family:var(--font-ui); font-weight:800; font-size:13px; letter-spacing:.14em; color:var(--text-faint); }
+  .level[aria-checked="true"] .lv{ color:var(--accent-hack); }
+  .level .rank{ font-family:var(--font-ui); font-weight:700; font-size:18px; letter-spacing:.04em; }
+  .level .spec{ font-size:13px; line-height:1.45; color:var(--text-muted); }
+  .level .reward{ font-size:13px; color:var(--warning); margin-top:4px; }
+  .level .lock{ font-family:var(--font-ui); font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--text-faint); margin-top:4px; }
+  .suggest{ font-size:14px; color:var(--warning); margin:0; min-height:1.4em; }
+  .rulenote{ font-size:13px; color:var(--text-faint); margin:0; }
+
+  .route{ grid-column:1/-1; display:flex; flex-wrap:wrap; align-items:center; gap:8px; border-top:1px solid var(--line); padding-top:16px; font-size:13px; color:var(--text-muted); }
+  .route .st{ border:1px solid var(--line); padding:4px 9px; }
+  .route .st.b{ color:var(--accent-build); border-color:rgba(var(--accent-build-rgb),.4); }
+  .route .st.h{ color:var(--accent-hack); border-color:rgba(var(--accent-hack-rgb),.4); }
+  .route .arrow{ color:var(--text-faint); }
+
+  .go{ grid-column:1/-1; display:flex; flex-wrap:wrap; gap:14px; align-items:center; justify-content:space-between; }
+  .go .pn-btn.primary{ font-size:16px; padding:14px 28px; }
+  .go .status{ font-size:14px; color:var(--text-muted); }
+
+  .foot{ width:min(980px,100%); display:flex; justify-content:space-between; font-size:12px; color:var(--text-faint); }
+  .ver{ background:none; border:0; color:inherit; font:inherit; cursor:default; padding:2px 4px; }
+
+  /* Teacher panel */
+  .overlay{ position:fixed; inset:0; z-index:50; background:rgba(0,0,0,.72); display:flex; align-items:flex-start; justify-content:center; padding:24px 16px; overflow:auto; }
+  .overlay[hidden]{ display:none; }
+  .teacher{ width:min(980px,100%); background:var(--bg-panel-solid); border:1px solid rgba(var(--accent-rgb),.5); padding:22px; display:flex; flex-direction:column; gap:22px; }
+  .teacher header{ display:flex; justify-content:space-between; align-items:center; gap:12px; }
+  .teacher h2{ margin:0; font-family:var(--font-ui); font-size:20px; letter-spacing:.1em; text-transform:uppercase; color:var(--warning); }
+  .teacher section{ display:flex; flex-direction:column; gap:10px; }
+  .rules{ display:flex; flex-wrap:wrap; gap:8px; }
+  .rules label{ display:flex; gap:8px; align-items:center; border:1px solid var(--line); padding:8px 12px; cursor:pointer; font-size:15px; }
+  .rules label:has(input:checked){ border-color:var(--warning); }
+  .rules input{ accent-color:var(--warning); }
+  select.pn-input{ width:auto; font-size:16px; padding:8px 10px; }
+  .tablewrap{ overflow-x:auto; border:1px solid var(--line); }
+  table{ border-collapse:collapse; width:100%; min-width:640px; font-size:15px; }
+  th, td{ text-align:left; padding:9px 12px; border-top:1px solid var(--line); white-space:nowrap; }
+  th{ font-family:var(--font-ui); font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--text-faint); border-top:0; }
+  td.num{ font-variant-numeric:tabular-nums; text-align:center; }
+  td.hi{ color:var(--accent-hack); }
+  td.low{ color:var(--warning); }
+  .empty{ padding:14px; color:var(--text-faint); font-size:15px; }
+  .row{ display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
+  .msg{ font-size:14px; color:var(--text-muted); }
+
+  @media (max-width:820px){
+    .console{ grid-template-columns:1fr; }
+    .levels{ grid-template-columns:1fr; }
+  }
+</style>
+</head>
+<body class="phase-hack">
+<div class="shell">
+  <div class="topline"><span><span class="dot"></span>SECURE UPLINK</span><span id="clock"></span></div>
+
+  <div class="hero">
+    <h1 class="logo"><span class="p">PRIME</span><span class="n">NET</span></h1>
+    <p class="tagline">Crack the bank. <b class="b">Factors</b> rebuild its blueprint. <b class="h">Primes</b> break the vault.</p>
+    <div class="boot" id="boot" aria-live="polite"></div>
+  </div>
+
+  <form class="console pn-panel" id="startForm" autocomplete="off">
+    <div class="field">
+      <label class="pn-label" for="codename">Agent codename</label>
+      <div class="codename-row">
+        <input class="pn-input" id="codename" name="codename" maxlength="20" placeholder="e.g. NIGHTJAR" required>
+        <button class="pn-btn small" type="button" id="randomName" title="Pick a random codename">Random</button>
+      </div>
+      <p class="hint">Use a made-up name, not your real one. Your teacher sees it in the mission record.</p>
+    </div>
+
+    <div class="field">
+      <span class="pn-label" id="levelLabel">Clearance level</span>
+      <div class="levels" role="radiogroup" aria-labelledby="levelLabel" id="levels"></div>
+      <p class="suggest" id="suggest"></p>
+      <p class="rulenote" id="rulenote"></p>
+    </div>
+
+    <div class="route" aria-label="Mission route">
+      <span class="st h">Frequency Scan</span><span class="arrow">→</span>
+      <span class="st b">Factor Vault ×3 floors</span><span class="arrow">→</span>
+      <span class="st b">Blueprint</span><span class="arrow">→</span>
+      <span class="st h">Prime Hack</span><span class="arrow">→</span>
+      <span class="st h">Vault breach</span>
+    </div>
+
+    <div class="go">
+      <span class="status" id="status">Enter a codename and choose a level.</span>
+      <button class="pn-btn primary" type="submit" id="startBtn" disabled>Start mission</button>
+    </div>
+  </form>
+
+  <div class="foot"><span>Maths training simulation. No real systems are harmed.</span><button class="ver" type="button" id="ver" aria-label="Version 1">v1</button></div>
+</div>
+
+<!-- Teacher panel: hold Shift and click "v1", or press Ctrl + Shift + Y -->
+<div class="overlay" id="teacherOverlay" hidden role="dialog" aria-modal="true" aria-labelledby="teacherTitle">
+  <div class="teacher">
+    <header>
+      <h2 id="teacherTitle">Teacher controls</h2>
+      <button class="pn-btn small" type="button" id="closeTeacher">Close</button>
+    </header>
+
+    <section>
+      <span class="pn-label">Level rule for this computer</span>
+      <div class="rules" id="rules">
+        <label><input type="radio" name="rule" value="choice"> Student choice</label>
+        <label><input type="radio" name="rule" value="min"> Minimum level</label>
+        <label><input type="radio" name="rule" value="fixed"> Fixed level</label>
+        <select class="pn-input" id="ruleLevel" aria-label="Level for the rule">
+          <option value="L1">L1 · Recruit</option>
+          <option value="L2">L2 · Operative</option>
+          <option value="L3">L3 · Specialist</option>
+        </select>
+      </div>
+      <p class="msg" id="ruleMsg"></p>
+    </section>
+
+    <section>
+      <span class="pn-label">Mission record</span>
+      <div class="tablewrap" id="recordTable"></div>
+      <p class="msg" id="recordMsg"></p>
+    </section>
+
+    <section>
+      <span class="pn-label">Move records between computers</span>
+      <div class="row">
+        <button class="pn-btn small primary" type="button" id="downloadBtn">Download record</button>
+        <label class="pn-btn small" for="loadFiles" style="display:inline-block">Load record files</label>
+        <input type="file" id="loadFiles" accept=".json,application/json" multiple hidden>
+        <button class="pn-btn small" type="button" id="clearBtn">Clear this computer's record</button>
+      </div>
+      <p class="msg" id="fileMsg">At the end of a session, download the record from each computer. Next time, load any earlier files here to see the whole class together.</p>
+    </section>
+  </div>
+</div>
+
+<script src="shared/primenet.js"></script>
+<script>
+(() => {
+  "use strict";
+  const P = window.Primenet;
+  const $ = s => document.querySelector(s);
+  const form = $("#startForm"), codename = $("#codename"), levelsEl = $("#levels"), startBtn = $("#startBtn");
+  let chosen = null;
+
+  /* Clock and boot line */
+  const clock = $("#clock");
+  const tick = () => { clock.textContent = new Date().toLocaleTimeString("en-GB", {hour:"2-digit", minute:"2-digit", second:"2-digit"}); };
+  tick(); setInterval(tick, 1000);
+  (function typeBoot(){
+    const text = "> UPLINK ESTABLISHED. AWAITING AGENT IDENTIFICATION_";
+    const el = $("#boot"); let i = 0;
+    if(matchMedia("(prefers-reduced-motion: reduce)").matches){ el.textContent = text; return; }
+    const t = setInterval(() => { el.textContent = text.slice(0, ++i); if(i >= text.length) clearInterval(t); }, 32);
+  })();
+
+  /* Levels */
+  function renderLevels(){
+    const allowed = P.allowedLevels();
+    if(chosen && !allowed.includes(chosen)) chosen = null;
+    if(!chosen && allowed.length === 1) chosen = allowed[0];
+    levelsEl.innerHTML = "";
+    P.LEVEL_ORDER.forEach(id => {
+      const L = P.LEVELS[id], ok = allowed.includes(id);
+      const b = document.createElement("button");
+      b.type = "button"; b.className = "level"; b.setAttribute("role", "radio");
+      b.setAttribute("aria-checked", chosen === id ? "true" : "false");
+      b.disabled = !ok;
+      b.innerHTML = `<span class="lv">${id}</span><span class="rank">${L.rank}</span>
+        <span class="spec">Factors: ${L.factors}<br>Primes: ${L.primes}</span>
+        <span class="reward">${L.reward}</span>${ok ? "" : '<span class="lock">Locked by your teacher</span>'}`;
+      b.addEventListener("click", () => { chosen = id; renderLevels(); update(); });
+      levelsEl.appendChild(b);
+    });
+    const s = P.getSettings();
+    $("#rulenote").textContent = s.rule === "fixed" ? `Your teacher has set everyone to ${s.level}.`
+      : s.rule === "min" ? `Your teacher has set the minimum to ${s.level}.` : "";
+  }
+
+  function update(){
+    const name = codename.value.trim();
+    const sug = P.suggestedLevel(name);
+    $("#suggest").textContent = sug && sug !== chosen ? `${name.toUpperCase()} has cracked a vault before. Ready for ${sug}? Bigger vaults, bigger rewards.` : "";
+    startBtn.disabled = !(name && chosen);
+    $("#status").textContent = !name ? "Enter a codename and choose a level." : !chosen ? "Choose a level." : `Agent ${name.toUpperCase()} · ${chosen} ${P.LEVELS[chosen].rank}. Ready.`;
+  }
+
+  codename.addEventListener("input", update);
+  $("#randomName").addEventListener("click", () => { codename.value = P.randomCodename(); update(); codename.focus(); });
+
+  form.addEventListener("submit", e => {
+    e.preventDefault();
+    const name = codename.value.trim();
+    if(!name || !chosen || !P.allowedLevels().includes(chosen)) return;
+    P.startSession(name, chosen);
+    startBtn.disabled = true;
+    $("#status").textContent = "Mission starting…";
+    // The rest of the route isn't linked yet. For now the mission opens the first stage.
+    setTimeout(() => { location.href = "modules/prime_frequency_scan.html"; }, 500);
+  });
+
+  /* Teacher panel */
+  const overlay = $("#teacherOverlay");
+  function openTeacher(){ renderTeacher(); overlay.hidden = false; $("#closeTeacher").focus(); }
+  function closeTeacher(){ overlay.hidden = true; renderLevels(); update(); }
+  $("#ver").addEventListener("click", e => { if(e.shiftKey) openTeacher(); });
+  document.addEventListener("keydown", e => {
+    if(e.ctrlKey && e.shiftKey && (e.key === "Y" || e.key === "y")){ e.preventDefault(); openTeacher(); }
+    if(e.key === "Escape" && !overlay.hidden) closeTeacher();
+  });
+  $("#closeTeacher").addEventListener("click", closeTeacher);
+  overlay.addEventListener("click", e => { if(e.target === overlay) closeTeacher(); });
+
+  function renderTeacher(){
+    const s = P.getSettings();
+    document.querySelectorAll('#rules input[name="rule"]').forEach(r => r.checked = r.value === s.rule);
+    $("#ruleLevel").value = s.level;
+    $("#ruleLevel").disabled = s.rule === "choice";
+    $("#ruleMsg").textContent = s.rule === "choice" ? "Students can pick any level."
+      : s.rule === "min" ? `Students pick ${s.level} or higher.` : `Every student plays ${s.level}.`;
+    renderRecord();
+  }
+  function saveRule(){
+    const rule = document.querySelector('#rules input[name="rule"]:checked').value;
+    P.setSettings({ rule, level: $("#ruleLevel").value });
+    renderTeacher();
+  }
+  document.querySelectorAll('#rules input[name="rule"]').forEach(r => r.addEventListener("change", saveRule));
+  $("#ruleLevel").addEventListener("change", saveRule);
+
+  const stageLabel = id => (P.STAGES.find(s => s.id === id) || {}).label || id;
+  function fmtDate(iso){ if(!iso) return ""; const d = new Date(iso); return d.toLocaleDateString("en-GB", {day:"numeric", month:"short"}) + " " + d.toLocaleTimeString("en-GB", {hour:"2-digit", minute:"2-digit"}); }
+  function esc(t){ return String(t).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c])); }
+
+  function renderRecord(){
+    const rows = P.summary();
+    const wrap = $("#recordTable");
+    if(!rows.length){ wrap.innerHTML = '<div class="empty">No missions recorded on this computer yet.</div>'; $("#recordMsg").textContent = ""; return; }
+    wrap.innerHTML = `<table><thead><tr><th>Codename</th><th>Missions</th><th>L1</th><th>L2</th><th>L3</th><th>Last level</th><th>Furthest stage</th><th>Last played</th></tr></thead><tbody>${
+      rows.map(r => {
+        const mostlyEasy = r.sessions >= 2 && r.levels.L1 === r.sessions;
+        return `<tr><td>${esc(r.codename)}</td><td class="num">${r.sessions}</td>
+          <td class="num ${mostlyEasy ? "low" : ""}">${r.levels.L1 || ""}</td><td class="num">${r.levels.L2 || ""}</td><td class="num ${r.levels.L3 ? "hi" : ""}">${r.levels.L3 || ""}</td>
+          <td>${esc(r.lastLevel)}</td><td>${esc(stageLabel(r.furthest))}</td><td>${esc(fmtDate(r.lastAt))}</td></tr>`;
+      }).join("")
+    }</tbody></table>`;
+    const easy = rows.filter(r => r.sessions >= 2 && r.levels.L1 === r.sessions).map(r => r.codename);
+    $("#recordMsg").textContent = easy.length ? `Always chosen L1: ${easy.join(", ")}. These agents might be ready for more.` : `${rows.length} agent${rows.length === 1 ? "" : "s"} recorded.`;
+  }
+
+  $("#downloadBtn").addEventListener("click", () => {
+    const name = P.downloadRecord();
+    $("#fileMsg").textContent = `Downloaded ${name}. Check your Downloads folder.`;
+  });
+  $("#loadFiles").addEventListener("change", async e => {
+    const files = [...e.target.files];
+    const objs = [];
+    for(const f of files){ try{ objs.push(JSON.parse(await f.text())); }catch(err){ objs.push(null); } }
+    const r = P.importRecords(objs);
+    $("#fileMsg").textContent = `Loaded ${r.files} file${r.files === 1 ? "" : "s"}, added ${r.added} mission${r.added === 1 ? "" : "s"}` + (r.rejected ? `. ${r.rejected} file${r.rejected === 1 ? " wasn't" : "s weren't"} a PRIMENET record.` : ".");
+    e.target.value = "";
+    renderRecord();
+  });
+  let clearArmed = false;
+  $("#clearBtn").addEventListener("click", e => {
+    if(!clearArmed){ clearArmed = true; e.currentTarget.textContent = "Click again to clear"; setTimeout(() => { clearArmed = false; $("#clearBtn").textContent = "Clear this computer's record"; }, 4000); return; }
+    P.clearRecords(); clearArmed = false; e.currentTarget.textContent = "Clear this computer's record";
+    $("#fileMsg").textContent = "This computer's record is cleared. Downloaded files are not affected.";
+    renderRecord();
+  });
+
+  renderLevels(); update();
+})();
+</script>
+</body>
+</html>
