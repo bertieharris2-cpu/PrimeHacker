@@ -12,9 +12,11 @@ The game files are still the originals. Review decisions are in `docs/DECISIONS.
 | `shared/` | `primenet.css` (the agreed style) and `primenet.js` (agent, level rules and the mission record), used by every screen |
 | `modules/` | The games being kept: Prime Frequency Scan, Factor Vault → Vault Grid → Blueprint → Prime Hack, plus `bank.js` (wallet) and the sound notes |
 | `archive/` | Pieces cut in review. See `archive/README.md` |
-| `docs/` | `DECISIONS.md` (what's been decided), `STYLE.md` (the chosen look), `Style_Root.txt` and `Segment_Instructions.docx` (your original design notes) |
+| `docs/` | `DECISIONS.md` (what's been decided), `IDEAS.md` (suggested improvements), `STYLE.md` (the chosen look), `Style_Root.txt` and `Segment_Instructions.docx` (your original design notes) |
 
 Open `index.html` in a browser to start. The whole mission is linked: title screen → Frequency Scan → Factor Vault and Vault Grid for three floors → Blueprint → Prime Hack. Everything works offline, including the Blueprint's 3D view (Three.js is included in `shared/vendor/`). Only the fonts need internet, and without it they fall back to similar standard fonts.
+
+**Roleplay terminal:** a free-play hacker terminal with no maths and nothing saved, opened from the title screen. Useful for drama and warm-ups.
 
 **Sound:** switch it on or off from the title screen. Browsers only allow sound after a key press, so the Vault Grid and Blueprint may ask students to press a key before they start.
 

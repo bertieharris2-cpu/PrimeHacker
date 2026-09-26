@@ -53,6 +53,11 @@
   .go .pn-btn.primary{ font-size:16px; padding:14px 28px; }
   .go .status{ font-size:14px; color:var(--text-muted); }
 
+  .side-door{ width:min(980px,100%); display:flex; flex-wrap:wrap; gap:6px 16px; align-items:center; padding:12px 18px; border:1px dashed var(--line-strong); color:var(--text-muted); text-decoration:none; font-size:15px; transition:border-color var(--transition-fast); }
+  .side-door:hover{ border-color:rgba(var(--accent-rgb),.7); }
+  .side-door .sd-k{ font-family:var(--font-ui); font-weight:700; letter-spacing:.12em; text-transform:uppercase; font-size:13px; color:var(--accent); }
+  .side-door .sd-d{ flex:1; min-width:240px; }
+  .side-door .sd-go{ font-family:var(--font-ui); font-weight:700; color:var(--accent); }
   .foot{ width:min(980px,100%); display:flex; justify-content:space-between; font-size:12px; color:var(--text-faint); }
   .ver{ background:none; border:0; color:inherit; font:inherit; cursor:default; padding:2px 4px; }
 
@@ -131,6 +136,12 @@
       <button class="pn-btn primary" type="submit" id="startBtn" disabled>Start mission</button>
     </div>
   </form>
+
+  <a class="side-door" href="modules/roleplay_terminal.html">
+    <span class="sd-k">Roleplay terminal</span>
+    <span class="sd-d">Free play. No maths, no mission, nothing saved. Type anything and the terminal answers like a hacker film.</span>
+    <span class="sd-go">Open →</span>
+  </a>
 
   <div class="foot"><span>Maths training simulation. No real systems are harmed.</span><button class="ver" type="button" id="ver" aria-label="Version 1">v1</button></div>
 </div>
@@ -257,7 +268,9 @@
     const sug = P.suggestedLevel(name);
     $("#suggest").textContent = sug && sug !== chosen ? `${name.toUpperCase()} has cracked a vault before. Ready for ${sug}? Bigger vaults, bigger rewards.` : "";
     startBtn.disabled = !(name && chosen);
-    $("#status").textContent = !name ? "Enter a codename and choose a level." : !chosen ? "Choose a level." : `Agent ${name.toUpperCase()} · ${chosen} ${P.LEVELS[chosen].rank}. Ready.`;
+    const r = name ? P.agentRank(name) : null;
+    const rankNote = r && r.count ? ` · ${r.rank}, ${r.count} vault${r.count === 1 ? "" : "s"} breached` : "";
+    $("#status").textContent = !name ? "Enter a codename and choose a level." : !chosen ? `Agent ${name.toUpperCase()}${rankNote}. Choose a level.` : `Agent ${name.toUpperCase()}${rankNote} · ${chosen} ${P.LEVELS[chosen].rank}. Ready.`;
   }
 
   codename.addEventListener("input", update);

@@ -82,7 +82,10 @@
 - [x] Prime Hack: always-visible hint strip, `PRIME? n`, `HINT` (merged with `RANGE`), answers are just two numbers, NEW TARGET and the Assist toggle removed for students
 - [x] Factor Vault: flipped arrays always shown, tick box removed
 - [x] Play-test feedback 1: teal lifted; Vault Grid and Blueprint back to the green-and-blue mix (Factor Vault arrays green too); Prime Hack hint shows only on the first lock and after mistakes; HINT and HELP formatted as boxes; a banner for each new lock; sounds throughout (`shared/sound.js`) with a sound check in the teacher controls
-- [ ] Success screen prototypes
+- [x] Success screens in Prime Hack: a card for each cracked lock (the student's primes, the bank draining, bigger each lock); for the final lock an alarm, the buffer charge, a vault door with one bolt per lock labelled with the student's primes, the bank draining into the wallet, an ACCESS GRANTED stamp with rank, and a case file. Hold ENTER to fast-forward the cinematic parts. The old code flood is kept but switched off (`finalFloodSeconds: 0`)
+- [x] Agent ranks by vaults breached per codename: Rookie, Field Agent, Senior Agent, Handler, Mastermind, Ghost
+- [x] Prime Hack starts in Math mode. Roleplay is its own screen (`modules/roleplay_terminal.html`), opened from the title screen
+- [ ] Next round of improvements: see `IDEAS.md`
 
 ## Success screens (first pass)
 

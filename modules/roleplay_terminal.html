@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en" class="phase-hack">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>PRIMENET – Open Terminal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../shared/primenet.css">
+<style>
+  /* Roleplay terminal: free play, no maths, nothing recorded. Opened from the title screen. */
+  .shell{ position:relative; z-index:1; height:100%; display:flex; flex-direction:column; padding:18px 22px 14px; gap:12px; box-sizing:border-box; }
+  .bar{ display:flex; flex-wrap:wrap; gap:10px 18px; align-items:center; justify-content:space-between; }
+  .bar .name{ font-family:var(--font-ui); font-weight:800; letter-spacing:.16em; font-size:14px; color:var(--accent); }
+  .bar .name span{ color:var(--text-muted); font-weight:600; }
+  .bar .row{ display:flex; gap:8px; flex-wrap:wrap; }
+  .screen{ flex:1; min-height:0; display:flex; flex-direction:column; padding:18px 22px; }
+  .term{ flex:1; overflow-y:auto; font-size:19px; line-height:1.6; white-space:pre-wrap; word-break:break-word; padding-right:8px; }
+  .term .sys{ color:rgba(var(--accent-rgb),.85); }
+  .term .me{ color:var(--text-muted); }
+  .term .warn{ color:var(--warning); }
+  .term .bad{ color:var(--danger); }
+  .term .hot{ color:#ff6ec7; }
+  .term .big{ font-family:var(--font-ui); font-weight:800; font-size:30px; letter-spacing:.18em; color:var(--accent); text-shadow:0 0 22px rgba(var(--accent-rgb),.45); margin:10px 0; }
+  .term .big.red{ color:var(--danger); text-shadow:0 0 22px rgba(255,107,107,.45); }
+  .prompt{ display:flex; gap:10px; border-top:1px solid var(--line); padding-top:10px; margin-top:8px; font-size:19px; }
+  .prompt .p{ color:var(--accent); white-space:nowrap; }
+  .prompt input{ flex:1; background:transparent; border:0; outline:none; color:var(--text-primary); font:inherit; caret-color:var(--accent); }
+  .tip{ font-family:var(--font-ui); font-size:13px; color:var(--text-faint); }
+  .flash{ position:fixed; inset:0; pointer-events:none; z-index:20; background:rgba(255,40,40,0); }
+  .flash.on{ animation:redFlash .45s ease-in-out 4; }
+  @keyframes redFlash{ 50%{ background:rgba(255,40,40,.22); } }
+</style>
+</head>
+<body>
+<div class="shell">
+  <div class="bar">
+    <div class="name">PRIME NET <span>// OPEN TERMINAL · ROLEPLAY</span></div>
+    <div class="row">
+      <button class="pn-btn small" type="button" id="keysBtn">Key sounds: on</button>
+      <button class="pn-btn small" type="button" id="clearBtn">Clear</button>
+      <a class="pn-btn small" href="../index.html" style="text-decoration:none">Exit to base</a>
+    </div>
+  </div>
+  <div class="screen pn-panel">
+    <div class="term" id="term" role="log" aria-live="polite"></div>
+    <label class="prompt"><span class="p">agent@primenet:~$</span><input id="input" autocomplete="off" spellcheck="false" aria-label="Type a command"></label>
+  </div>
+  <div class="tip">Free play: type anything and press Enter. Try <b>SCAN</b>, <b>TRACE</b>, <b>DECRYPT</b>, <b>BREACH</b> or <b>HELP</b>. Nothing here is saved.</div>
+</div>
+<div class="flash" id="flash"></div>
+
+<script src="../shared/sound.js"></script>
+<script>
+(() => {
+  "use strict";
+  const term = document.getElementById("term"), input = document.getElementById("input");
+  const SND = (n, a) => { if(window.PNSound) PNSound.play(n, a); };
+  let keySounds = true, busy = false;
+
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const rnd = n => Math.floor(Math.random() * n);
+  const pick = a => a[rnd(a.length)];
+  const hex = n => Array.from({length:n}, () => "0123456789ABCDEF"[rnd(16)]).join("");
+  const PRIMES = [2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61,67,71,73,79,83,89,97];
+
+  function line(text, cls = "sys"){
+    const d = document.createElement("div"); d.className = cls; d.textContent = text;
+    term.appendChild(d); term.scrollTop = term.scrollHeight; return d;
+  }
+  async function type(text, cls = "sys", cps = 55){
+    const d = line("", cls);
+    for(const ch of text){ d.textContent += ch; term.scrollTop = term.scrollHeight; if(keySounds && ch !== " ") SND("key"); await sleep(1000 / cps); }
+  }
+  async function chatter(ms){
+    const tags = ["[NET]","[AUTH]","[VAULT]","[MUX]","[PROC]","[TRACE]","[LEDGER]"];
+    const verbs = ["probe_gate()","sync_ledger()","mask_account()","open_channel()","shuffle_route()","checksum_ok()","bounce_proxy()","spoof_signal()"];
+    const end = performance.now() + ms;
+    while(performance.now() < end){
+      const r = Math.random();
+      line(`${pick(tags)} ${hex(8)} :: ${pick(verbs)}${r < .3 ? "  primes " + Array.from({length:5}, () => pick(PRIMES)).join(" ") : ""}`, r < .06 ? "hot" : r < .12 ? "warn" : "sys");
+      SND("chatter");
+      await sleep(55);
+    }
+  }
+
+  // Replies to anything typed, matched loosely on keywords
+  const REPLIES = [
+    { k:/bank|money|cash|vault|safe/, r:() => [`Locating vault ${hex(4)}…`, `Signature: ${pick(["Rivercross Utilities","Atlas Prime","Kronos Finance","Helix Dynamics"])} // balance hidden`, "Recommendation: crack the prime locks first."] },
+    { k:/password|pass|login|pin/, r:() => ["Brute forcing credential store…", `Tried ${1000 + rnd(9000)} combinations. Hash still holding.`, "Hint: real locks here use prime numbers, not passwords."] },
+    { k:/firewall|wall|shield/, r:() => ["Mapping firewall rules…", `${3 + rnd(9)} ports open. ${rnd(3)} guarded.`, "Firewall integrity: " + (60 + rnd(39)) + "%"] },
+    { k:/virus|worm|malware|bug/, r:() => ["Deploying training payload (harmless)…", "Payload replicated across 0 real systems. This is a simulation.", "Sandbox: stable."] },
+    { k:/who|name|identity|agent/, r:() => ["Identity check…", `Agent profile: ${pick(["NIGHTJAR","KESTREL","OSPREY","RAVEN","COBALT"])} // clearance pending`, "Trust level: provisional."] },
+    { k:/prime|factor|number|math/, r:() => ["Prime noise detected in the channel…", `Candidate keys: ${Array.from({length:6}, () => pick(PRIMES)).join(" · ")}`, "Only numbers with exactly two factors can hold a PRIMENET lock."] },
+    { k:/download|steal|copy|take/, r:() => [`Downloading ledger page ${rnd(900) + 100}…`, `[${"█".repeat(12 + rnd(8))}] ${80 + rnd(20)}%`, "Transfer paused: vault still locked."] },
+    { k:/hello|hi|hey/, r:() => ["Connection accepted.", "Welcome to the open terminal, agent.", "Type HELP to see what this terminal can do."] },
+  ];
+  const GENERIC = [
+    () => [`Enumerating ports… (${12 + rnd(86)}%)`, `Signature: OK  |  Hash: ${hex(8)}`, "Result: request accepted. Queueing next step…"],
+    () => ["Parsing packet stream…", `Latency: ${40 + rnd(220)}ms  |  Trace: clean`, "Awaiting further instruction."],
+    () => ["Compiling exploit…", `Build ${hex(6)} complete.`, "Exploit is theoretical. No real systems touched."],
+    () => [`Rerouting through node ${rnd(255)}.${rnd(255)}.${rnd(255)}.${rnd(255)}…`, "Proxy chain: 4 hops.", "Signal masked."],
+  ];
+
+  const COMMANDS = {
+    async HELP(){
+      line("OPEN TERMINAL COMMANDS", "warn");
+      ["SCAN      sweep the network for targets","TRACE     check whether anyone is watching","DECRYPT   crack a message","BREACH    run a full vault breach (loud)","CLEAR     wipe the screen","EXIT      return to base","Anything else gets a reply. Nothing is saved."].forEach(t => line("  " + t));
+    },
+    async SCAN(){
+      await type("Initiating network sweep…");
+      SND("laser");
+      await chatter(1400);
+      const targets = ["RIVERCROSS UTILITIES","NORTHWICK TRANSIT","SENTINEL FINANCE","EMBER FREIGHT","ATLAS PRIME","KRONOS FINANCE"];
+      for(let i = 0; i < 3; i++){ line(`TARGET ${i+1}: ${pick(targets)} // ACCT-${hex(6)} // security ${pick(["LOW","MEDIUM","HIGH"])}`, "warn"); SND("tag"); await sleep(250); }
+    },
+    async TRACE(){
+      await type("Checking for counter-trace…");
+      await chatter(900);
+      if(Math.random() < .5){ line("No trace detected. You are invisible.", "sys"); SND("correct", 3); }
+      else { line("⚠ Counter-trace found. Bouncing signal…", "bad"); SND("alarm"); await chatter(1200); line("Trace lost. Close call.", "sys"); SND("correct", 1); }
+    },
+    async DECRYPT(){
+      const secret = pick(["MEET AT THE VAULT AT MIDNIGHT","THE KEY IS PRIME","NEVER TRUST AN EVEN LOCK","ATLAS PRIME IS WATCHING","THE LEDGER IS IN FLOOR TWO"]);
+      const d = line("", "warn");
+      for(let pass = 0; pass < 14; pass++){
+        d.textContent = secret.split("").map((c, i) => c === " " ? " " : (i < pass * secret.length / 13 ? c : "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789#%&"[rnd(39)])).join("");
+        SND("fill", pass * 2); await sleep(90);
+      }
+      d.textContent = secret; SND("lock");
+    },
+    async BREACH(){
+      document.getElementById("flash").classList.add("on"); SND("alarm");
+      line("INTRUSION DETECTED", "big red");
+      await sleep(1800); document.getElementById("flash").classList.remove("on");
+      await type("Evading counter-trace…");
+      await chatter(2600);
+      SND("rise");
+      await type("Vault door responding…", "warn");
+      await chatter(1200);
+      line("ACCESS GRANTED", "big"); SND("success");
+    },
+    async CLEAR(){ term.innerHTML = ""; },
+    async EXIT(){ location.href = "../index.html"; },
+  };
+
+  async function handle(raw){
+    const text = raw.trim(); if(!text) return;
+    line("agent@primenet:~$ " + text, "me");
+    const cmd = text.toUpperCase().split(/\s+/)[0];
+    if(COMMANDS[cmd]) return COMMANDS[cmd]();
+    const hit = REPLIES.find(r => r.k.test(text.toLowerCase()));
+    const lines = (hit ? hit.r : pick(GENERIC))();
+    for(const l of lines) await type(l);
+  }
+
+  input.addEventListener("keydown", async e => {
+    if(e.key === "Enter"){
+      e.preventDefault();
+      if(busy) return;
+      const v = input.value; input.value = "";
+      busy = true; await handle(v); busy = false;
+      return;
+    }
+    if(keySounds && e.key.length === 1) SND("key");
+  });
+  document.addEventListener("click", e => { if(!e.target.closest("button, a")) input.focus(); });
+  document.getElementById("keysBtn").addEventListener("click", e => { keySounds = !keySounds; e.currentTarget.textContent = `Key sounds: ${keySounds ? "on" : "off"}`; input.focus(); });
+  document.getElementById("clearBtn").addEventListener("click", () => { term.innerHTML = ""; input.focus(); });
+
+  (async () => {
+    line("PRIME NET OPEN TERMINAL", "warn");
+    line("Roleplay mode: no maths, no mission, nothing saved.");
+    line("Type anything and press Enter. The terminal will answer like a hacker film.");
+    line(" ");
+    input.focus();
+  })();
+})();
+</script>
+</body>
+</html>

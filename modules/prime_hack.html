@@ -1020,6 +1020,85 @@ html,body{ font-family: var(--font-ui); }
 .hintStrip .hintTag{ font-weight:700; font-size:11px; letter-spacing:.14em; color:var(--warning); flex-shrink:0; }
 .hintStrip b{ font-family:var(--font-mono); color:var(--warning); font-weight:700; }
 
+
+/* ===================== SUCCESS SCREENS ===================== */
+.fxOverlay{ position:fixed; inset:0; z-index:8000; display:flex; align-items:center; justify-content:center; padding:20px; background:rgba(3,12,14,.78); font-family:var(--font-ui); }
+.ffHint{ position:fixed; left:50%; bottom:86px; transform:translateX(-50%); z-index:9500; font-family:var(--font-ui); font-size:12px; font-weight:700; letter-spacing:.16em; color:var(--text-muted); border:1px solid var(--line); background:rgba(3,12,14,.85); padding:6px 12px; }
+.ffHint.on{ color:var(--warning); border-color:rgba(242,193,78,.6); }
+
+/* Lock card (locks 1-3) */
+.breachCard{ width:min(640px,100%); border:1px solid rgba(var(--accent-rgb),.6); background:rgba(6,24,28,.96); padding:20px 24px; display:flex; flex-direction:column; gap:12px; box-shadow:0 0 40px rgba(var(--accent-rgb),.18); animation:cardIn .35s cubic-bezier(.2,1.3,.4,1); }
+.breachCard.lvl-2{ animation:cardIn .35s cubic-bezier(.2,1.3,.4,1), shake .35s .1s; }
+.breachCard.lvl-3{ animation:cardIn .35s cubic-bezier(.2,1.3,.4,1), shakeBig .45s .1s; border-color:rgba(242,193,78,.7); box-shadow:0 0 60px rgba(242,193,78,.2); }
+.bc-head{ display:flex; justify-content:space-between; align-items:center; gap:12px; font-weight:800; font-size:13px; letter-spacing:.18em; color:var(--accent); }
+.bc-pips{ display:flex; gap:5px; } .bc-pips i{ width:13px; height:13px; border:1px solid rgba(var(--accent-rgb),.6); } .bc-pips i.done{ background:var(--accent); }
+.bc-eq{ font-family:var(--font-mono); font-size:44px; font-weight:700; text-align:center; color:var(--text-primary); letter-spacing:.04em; text-shadow:0 0 24px rgba(var(--accent-rgb),.35); }
+.bc-title{ text-align:center; font-weight:800; letter-spacing:.14em; font-size:18px; color:var(--accent); }
+.bc-sub{ text-align:center; font-size:14px; color:var(--text-muted); margin-top:-6px; }
+.money{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.money div{ border:1px solid var(--line); background:rgba(0,0,0,.25); padding:10px 12px; }
+.money small{ display:block; font-size:11px; font-weight:700; letter-spacing:.1em; color:var(--text-faint); }
+.money b{ font-family:var(--font-mono); font-size:24px; font-variant-numeric:tabular-nums; }
+.money .drain b{ color:#ff8a8a; } .money .take b{ color:var(--accent); }
+.bc-next{ text-align:center; font-weight:700; letter-spacing:.14em; font-size:13px; color:var(--warning); }
+@keyframes cardIn{ from{ opacity:0; transform:scale(.86); } }
+@keyframes shake{ 20%{ transform:translate(-5px,2px); } 40%{ transform:translate(4px,-3px); } 60%{ transform:translate(-3px,1px); } 80%{ transform:translate(2px,-1px); } }
+@keyframes shakeBig{ 15%{ transform:translate(-9px,4px) rotate(-.5deg); } 35%{ transform:translate(8px,-5px) rotate(.5deg); } 55%{ transform:translate(-6px,2px); } 75%{ transform:translate(4px,-2px); } }
+
+/* Alarm */
+.alarmOverlay{ background:rgba(40,4,6,.55); animation:alarmPulse .6s ease-in-out infinite; flex-direction:column; gap:14px; text-align:center; }
+.alarmOverlay .a-big{ font-weight:800; font-size:clamp(28px,5vw,52px); letter-spacing:.14em; color:#ff6b6b; text-shadow:0 0 30px rgba(255,80,80,.6); }
+.alarmOverlay .a-sub{ font-family:var(--font-mono); font-size:22px; color:#ffd0d0; letter-spacing:.08em; }
+.alarmOverlay.clear{ animation:none; background:rgba(3,12,14,.78); }
+.alarmOverlay.clear .a-big{ color:var(--accent); text-shadow:0 0 30px rgba(var(--accent-rgb),.6); }
+@keyframes alarmPulse{ 50%{ background:rgba(90,6,10,.62); } }
+
+/* Vault door */
+.doorStage{ display:flex; flex-direction:column; align-items:center; gap:16px; width:min(760px,100%); position:relative; }
+.doorTitle{ font-weight:800; letter-spacing:.18em; font-size:15px; color:var(--accent); text-align:center; }
+.doorPrompt{ font-weight:700; letter-spacing:.14em; font-size:14px; color:var(--warning); min-height:1.4em; text-align:center; }
+.doorWrap{ perspective:1100px; position:relative; }
+.doorLight{ position:absolute; inset:-40px; background:radial-gradient(circle, rgba(var(--accent-rgb),.55), transparent 60%); opacity:0; transition:opacity 1.2s; }
+.doorLight.on{ opacity:1; }
+.vdoor{ position:relative; width:300px; height:300px; border-radius:50%; border:4px solid rgba(var(--accent-rgb),.7); background:radial-gradient(circle, #16403a 0 22%, #0f2c2a 23% 58%, #0a1e1d 59%); box-shadow:0 0 40px rgba(var(--accent-rgb),.2), inset 0 0 50px rgba(0,0,0,.7); transform-origin:left center; transition:transform 1.5s cubic-bezier(.3,.7,.2,1); }
+.vdoor.open{ transform:rotateY(-80deg); }
+.vdoor.jolt{ animation:shake .25s; }
+.vdoor .hub{ position:absolute; inset:36%; border-radius:50%; border:3px solid rgba(var(--accent-rgb),.7); display:flex; align-items:center; justify-content:center; font-weight:800; font-size:12px; letter-spacing:.14em; color:var(--accent); transition:transform 1s cubic-bezier(.3,.7,.2,1); }
+.vdoor .hub::before, .vdoor .hub::after{ content:""; position:absolute; background:rgba(var(--accent-rgb),.6); }
+.vdoor .hub::before{ width:130%; height:3px; } .vdoor .hub::after{ width:3px; height:130%; }
+.vdoor.spin .hub{ transform:rotate(300deg); }
+.vbolt{ position:absolute; left:50%; top:50%; width:84px; height:36px; margin:-18px 0 0 -42px; border:2px solid rgba(var(--accent-rgb),.8); background:#0c2622; color:var(--text-primary); font-family:var(--font-mono); font-weight:700; font-size:16px; display:flex; align-items:center; justify-content:center; cursor:pointer; transition:transform .45s cubic-bezier(.3,1.5,.5,1), background .2s, opacity .3s; }
+.vbolt:hover{ background:#15413a; }
+.vbolt.out{ background:rgba(var(--accent-rgb),.25); opacity:.5; cursor:default; }
+.vaultReveal{ display:flex; flex-direction:column; gap:12px; width:min(620px,100%); }
+.stamp{ position:relative; z-index:5; align-self:center; margin-top:6px; border:4px solid var(--warning); color:var(--warning); background:rgba(20,14,0,.85); padding:10px 18px; text-align:center; font-weight:800; letter-spacing:.14em; font-size:22px; transform:rotate(-8deg) scale(2.4); opacity:0; transition:transform .38s cubic-bezier(.2,1.6,.4,1), opacity .2s; pointer-events:none; }
+.stamp small{ display:block; font-size:12px; letter-spacing:.08em; margin-top:4px; }
+.stamp.on{ opacity:1; transform:rotate(-8deg) scale(1); }
+.fxBtn{ align-self:center; }
+
+/* Case file */
+.caseFile{ width:min(860px,100%); max-height:92vh; overflow:auto; background:#0d2a30; border:1px solid rgba(242,193,78,.55); padding:22px 26px; display:flex; flex-direction:column; gap:16px; position:relative; animation:cardIn .3s ease-out; }
+.cf-head{ display:flex; justify-content:space-between; align-items:flex-start; gap:12px; border-bottom:1px solid rgba(242,193,78,.3); padding-bottom:12px; }
+.cf-head h2{ margin:0; font-size:22px; letter-spacing:.14em; color:var(--warning); }
+.cf-head .op{ font-size:13px; color:var(--text-muted); letter-spacing:.1em; margin-top:4px; }
+.cf-classified{ border:3px solid #ff6b6b; color:#ff6b6b; font-weight:800; letter-spacing:.2em; padding:4px 10px; transform:rotate(6deg); font-size:14px; }
+.cf-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; }
+.cf-grid div{ border:1px solid var(--line); padding:8px 10px; background:rgba(0,0,0,.2); }
+.cf-grid small, .cf-sec > small{ display:block; font-size:11px; font-weight:700; letter-spacing:.12em; color:var(--text-faint); }
+.cf-grid b{ font-family:var(--font-mono); font-size:18px; }
+.cf-sec{ display:flex; flex-direction:column; gap:6px; }
+.cf-chips{ display:flex; flex-wrap:wrap; gap:6px; }
+.cf-chips span{ font-family:var(--font-mono); border:1px solid rgba(var(--accent-build-rgb),.6); color:var(--accent-build); padding:2px 8px; }
+.cf-table{ border-collapse:collapse; width:100%; font-size:15px; }
+.cf-table th, .cf-table td{ text-align:left; padding:6px 10px; border-top:1px solid var(--line); }
+.cf-table th{ font-size:11px; letter-spacing:.12em; color:var(--text-faint); border-top:0; }
+.cf-table td.mono{ font-family:var(--font-mono); }
+.cf-table td.first{ color:var(--accent); }
+.cf-actions{ display:flex; flex-wrap:wrap; gap:10px; justify-content:flex-end; }
+.pnBtn{ font-family:var(--font-ui); font-weight:700; letter-spacing:.12em; text-transform:uppercase; font-size:14px; padding:12px 18px; border:1px solid var(--line-strong); background:rgba(0,0,0,.3); color:var(--text-primary); cursor:pointer; }
+.pnBtn.primary{ border-color:rgba(var(--accent-rgb),.8); color:var(--accent); box-shadow:0 0 18px rgba(var(--accent-rgb),.2); }
+@media (max-width:640px){ .money{ grid-template-columns:1fr; } .vdoor{ width:230px; height:230px; } .bc-eq{ font-size:32px; } }
+
 /* ===== PRIMENET shared style (docs/STYLE.md). Keep this block last. ===== */
 html, body{ background: var(--bg-primary) !important; }
 body{ color: var(--text-primary); }
@@ -1160,8 +1239,8 @@ const PRIME_NET_EFFECTS = {
   preludeSeconds: 8,
   bufferStages: 4,
   keysPerStage: 16,
-  interStageScrollSeconds: 3,
-  finalFloodSeconds: 10,
+  interStageScrollSeconds: 2,
+  finalFloodSeconds: 0,      // 0 = skip the code flood; the vault door is the finale now
   miniRewardSeconds: 2.2,
 };
 
@@ -1355,6 +1434,9 @@ function generatePairForLock(lockIndex){
 
 function newRunSameDifficulty(){
   Run.tries = 0;
+  Run.cracked = [];
+  Run.wrongTotal = 0;
+  Run.startedAt = Date.now();
   Run.index = 1;
   Run.usedPairs.clear();
   const lock = generatePairForLock(1);
@@ -1382,7 +1464,7 @@ function newTargetManual(){
 }
 
 // --- Typewriter helpers
-async function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
+async function sleep(ms){ return new Promise(r=>setTimeout(r, ms / (typeof speed === 'function' ? speed() : 1))); }
 
 async function typeOut(lines, cls="sys", cps=28){
   for(const line of lines){
@@ -1763,38 +1845,254 @@ async function breachPrelude(seconds=10){
   addBlank();
 }
 
+
+// ===================== SUCCESS SCREENS =====================
+// Hold ENTER to fast-forward the cinematic parts (not the parts students play).
+const FF = { active:false, held:false, el:null };
+function speed(){ return FF.active && FF.held ? 6 : 1; }
+function setCinematic(on){
+  FF.active = on;
+  if(on && !FF.el){ FF.el = document.createElement("div"); FF.el.className = "ffHint"; FF.el.textContent = "HOLD ENTER TO FAST-FORWARD"; document.body.appendChild(FF.el); }
+  if(!on && FF.el){ FF.el.remove(); FF.el = null; FF.held = false; }
+}
+document.addEventListener("keydown", e => {
+  if(e.key === "Enter" && FF.active){ FF.held = true; if(FF.el) FF.el.classList.add("on"); e.preventDefault(); e.stopPropagation(); }
+}, true);
+document.addEventListener("keyup", e => { if(e.key === "Enter"){ FF.held = false; if(FF.el) FF.el.classList.remove("on"); } }, true);
+
+// Runs onFrame(0..1) over ms of game time (faster while fast-forwarding)
+function animate(ms, onFrame){
+  return new Promise(resolve => {
+    let t = 0, last = performance.now();
+    function step(now){
+      t += (now - last) * speed(); last = now;
+      const p = Math.min(1, t / ms);
+      onFrame(p);
+      if(p < 1) requestAnimationFrame(step); else resolve();
+    }
+    requestAnimationFrame(step);
+  });
+}
+const gbp = n => Bank.formatGBP(Math.max(0, Math.round(n)));
+const ease = p => 1 - Math.pow(1 - p, 3);
+const SFX = (n, a) => { if(window.PNSound) PNSound.play(n, a); };
+function overlay(cls){ const o = document.createElement("div"); o.className = "fxOverlay " + (cls || ""); document.body.appendChild(o); return o; }
+function waitForKeyOrClick(el, keys){
+  return new Promise(resolve => {
+    const done = () => { document.removeEventListener("keydown", onKey, true); resolve(); };
+    const onKey = e => { if(keys.includes(e.key)){ e.preventDefault(); e.stopPropagation(); done(); } };
+    document.addEventListener("keydown", onKey, true);
+    el.addEventListener("click", done, { once:true });
+  });
+}
+
+// Locks 1-3: the student's primes, the bank draining, and a bigger card each time
+async function lockCard(lockIdx, withdrawn, p, q){
+  const msg = MINI_REWARDS[Math.min(lockIdx-1, MINI_REWARDS.length-1)];
+  const acct = Bank.getCurrentAccount() || { name:"TARGET ACCOUNT", id:"", balance:0 };
+  const take = Bank.getRunEarnings();
+  const pips = Array.from({length: Run.locksPerRun}, (_, i) => `<i class="${i < lockIdx ? "done" : ""}"></i>`).join("");
+  const o = overlay();
+  o.innerHTML = `<div class="breachCard lvl-${lockIdx}">
+    <div class="bc-head"><span>LOCK ${lockIdx} OF ${Run.locksPerRun} CRACKED</span><span class="bc-pips">${pips}</span></div>
+    <div class="bc-eq">${p} × ${q} = ${p*q}</div>
+    <div class="bc-title">${msg.title}</div><div class="bc-sub">${msg.sub}</div>
+    <div class="money"><div class="drain"><small>${acct.name.toUpperCase()} · BALANCE</small><b class="bal"></b></div><div class="take"><small>TAKEN THIS RUN</small><b class="tk"></b></div></div>
+    ${lockIdx === Run.locksPerRun - 1 ? '<div class="bc-next">NEXT: THE FINAL LOCK</div>' : ""}
+  </div>`;
+  const bal = o.querySelector(".bal"), tk = o.querySelector(".tk");
+  setCinematic(true);
+  let ticks = 0;
+  await animate(1500, pr => {
+    const e = ease(pr);
+    bal.textContent = gbp(acct.balance + withdrawn * (1 - e));
+    tk.textContent = gbp(take - withdrawn + withdrawn * e);
+    if(++ticks % 3 === 0 && pr < 1) SFX("chatter");
+  });
+  SFX("cash");
+  await animate(900, () => {});
+  setCinematic(false);
+  o.remove();
+}
+
+// The final lock: a counter-trace alarm before the breach
+async function alarmSequence(){
+  const o = overlay("alarmOverlay");
+  o.innerHTML = `<div class="a-big">⚠ INTRUSION DETECTED</div><div class="a-sub">COUNTER-TRACE IN <span class="c">3</span></div>`;
+  setCinematic(true);
+  for(let c = 3; c >= 1; c--){ o.querySelector(".c").textContent = c; SFX("alarm"); await animate(750, () => {}); }
+  o.classList.add("clear");
+  o.innerHTML = `<div class="a-big">TRACE EVADED</div><div class="a-sub">The vault is exposed. Break through.</div>`;
+  SFX("correct", 5);
+  await animate(1100, () => {});
+  setCinematic(false);
+  o.remove();
+}
+
+// The vault door: one bolt for each lock, labelled with the primes the student found
+async function vaultDoor(cracked){
+  const acct = Bank.getCurrentAccount() || { name:"TARGET" };
+  const o = overlay();
+  o.innerHTML = `<div class="doorStage">
+      <div class="doorTitle">VAULT DOOR // ${acct.name.toUpperCase()}</div>
+      <div class="doorWrap"><div class="doorLight"></div><div class="vdoor"><div class="hub">VAULT</div></div></div>
+      <div class="doorPrompt">PRESS SPACE TO RETRACT EACH BOLT</div>
+    </div>`;
+  const door = o.querySelector(".vdoor"), prompt = o.querySelector(".doorPrompt");
+  const angles = [0, 90, 180, 270];
+  const bolts = cracked.slice(0, 4).map((c, i) => {
+    const b = document.createElement("button"); b.type = "button"; b.className = "vbolt";
+    b.textContent = `${c.p}·${c.q}`; b.setAttribute("aria-label", `Bolt ${i+1}: ${c.p} times ${c.q}`);
+    const r = angles[i] * Math.PI / 180; b.dataset.x = Math.cos(r); b.dataset.y = Math.sin(r);
+    b.style.transform = `translate(${Math.cos(r)*104}px,${Math.sin(r)*104}px)`;
+    door.appendChild(b); return b;
+  });
+  await new Promise(resolve => {
+    let left = bolts.length;
+    const pull = b => {
+      if(!b || b.classList.contains("out")) return;
+      b.classList.add("out"); b.style.transform = `translate(${b.dataset.x*170}px,${b.dataset.y*170}px)`;
+      SFX("commit"); SFX("seal");
+      door.classList.remove("jolt"); void door.offsetWidth; door.classList.add("jolt");
+      left--; prompt.textContent = left ? `${left} BOLT${left > 1 ? "S" : ""} LEFT` : "DOOR UNLOCKED";
+      if(!left){ document.removeEventListener("keydown", onKey, true); resolve(); }
+    };
+    const onKey = e => { if(e.key === " " || e.code === "Space"){ e.preventDefault(); e.stopPropagation(); pull(bolts.find(b => !b.classList.contains("out"))); } };
+    document.addEventListener("keydown", onKey, true);
+    bolts.forEach(b => b.addEventListener("click", () => pull(b)));
+  });
+  await sleep(250);
+  door.classList.add("spin"); SFX("rise");
+  await sleep(1000);
+  door.classList.add("open"); o.querySelector(".doorLight").classList.add("on"); SFX("lock");
+  await sleep(1300);
+  return o;
+}
+
+// Inside the vault: the bank drains, the wallet fills, then the rank stamp
+async function drainAndStamp(o, { acct, banked, walletBefore, walletAfter, codename, before, after }){
+  const stage = o.querySelector(".doorStage");
+  stage.innerHTML = `<div class="doorTitle">TRANSFERRING FUNDS</div>
+    <div class="vaultReveal">
+      <div class="money"><div class="drain"><small>${acct.name.toUpperCase()} · BALANCE</small><b class="bal"></b></div><div class="take"><small>YOUR WALLET</small><b class="wal"></b></div></div>
+      <div class="money"><div><small>THIS RUN</small><b class="run" style="color:var(--warning)"></b></div><div><small>AGENT</small><b style="font-size:18px">${codename}</b></div></div>
+    </div>
+    <div class="stamp">ACCESS GRANTED<small></small></div>`;
+  const bal = stage.querySelector(".bal"), wal = stage.querySelector(".wal"), run = stage.querySelector(".run");
+  setCinematic(true);
+  let ticks = 0;
+  await animate(2600, pr => {
+    const e = ease(pr);
+    bal.textContent = gbp(acct.balance + banked * (1 - e));
+    wal.textContent = gbp(walletBefore + banked * e);
+    run.textContent = gbp(banked * e);
+    if(++ticks % 2 === 0 && pr < 1) SFX("fill", Math.floor(pr * 40));
+  });
+  wal.textContent = gbp(walletAfter);
+  SFX("cash");
+  await animate(400, () => {});
+  const stamp = stage.querySelector(".stamp");
+  const promoted = before && after && after.rank !== before.rank;
+  stamp.querySelector("small").textContent = promoted ? `${codename} · PROMOTED TO ${after.rank.toUpperCase()}`
+    : `${codename} · ${after ? after.rank.toUpperCase() : "AGENT"}${after && after.next ? ` · ${after.toNext} MORE TO ${after.next.toUpperCase()}` : ""}`;
+  stamp.classList.add("on"); SFX("success");
+  if(promoted) setTimeout(() => SFX("lock"), 700);
+  await animate(1300, () => {});
+  setCinematic(false);
+  const btn = document.createElement("button"); btn.type = "button"; btn.className = "pnBtn primary fxBtn"; btn.textContent = "Open case file";
+  stage.appendChild(btn); btn.focus();
+  await waitForKeyOrClick(btn, ["Enter", " "]);
+  SFX("click");
+  o.remove();
+}
+
+// The case file: a record of the mission for the student (and the teacher looking over their shoulder)
+const OP_A = ["SILENT","GLASS","IRON","HOLLOW","NEON","MIDNIGHT","COBALT","PAPER","STATIC","VELVET"];
+const OP_B = ["HERON","PRISM","LEDGER","HARBOUR","CIPHER","LANTERN","ORBIT","FALCON","VAULT","ECHO"];
+function caseFile({ codename, levelId, cracked, wrong, banked, walletAfter, after, startedAt }){
+  return new Promise(resolve => {
+    const session = PN ? PN.currentSession() : null;
+    const floors = session ? session.events.filter(e => e.stage === "vault-complete" && e.detail).map(e => e.detail.n) : [];
+    const pairsOf = n => { let c = 0; for(let a = 1; a*a <= n; a++) if(n % a === 0) c++; return c; };
+    const start = session ? new Date(session.startedAt).getTime() : startedAt;
+    const mins = Math.max(1, Math.round((Date.now() - start) / 60000));
+    const firstTry = cracked.filter(c => c.tries === 0).length;
+    const L = (PN && PN.LEVELS[levelId]) || { rank: levelId };
+    const o = overlay();
+    o.innerHTML = `<div class="caseFile" role="dialog" aria-label="Case file">
+      <div class="cf-head"><div><h2>CASE FILE</h2><div class="op">OPERATION ${pick(OP_A)} ${pick(OP_B)} · ${new Date().toLocaleDateString("en-GB", {day:"numeric", month:"long", year:"numeric"})}</div></div><div class="cf-classified">CLASSIFIED</div></div>
+      <div class="cf-grid">
+        <div><small>AGENT</small><b>${codename}</b></div>
+        <div><small>RANK</small><b>${after ? after.rank : "Agent"}</b></div>
+        <div><small>CLEARANCE</small><b>${levelId} ${L.rank}</b></div>
+        <div><small>MISSION TIME</small><b>${mins} min</b></div>
+      </div>
+      ${floors.length ? `<div class="cf-sec"><small>BLUEPRINT FLOORS RECONSTRUCTED</small><div class="cf-chips">${floors.map(n => `<span>N = ${n} · ${pairsOf(n)} factor pairs</span>`).join("")}</div></div>` : ""}
+      <div class="cf-sec"><small>LOCKS CRACKED</small>
+        <table class="cf-table"><thead><tr><th>Lock</th><th>Number</th><th>Primes</th><th>Wrong tries</th></tr></thead><tbody>
+        ${cracked.map(c => `<tr><td>${c.lock}</td><td class="mono">${c.n}</td><td class="mono">${c.p} × ${c.q}</td><td class="${c.tries === 0 ? "first" : ""}">${c.tries === 0 ? "First try" : c.tries}</td></tr>`).join("")}
+        </tbody></table></div>
+      <div class="cf-grid">
+        <div><small>FIRST-TRY LOCKS</small><b>${firstTry} / ${cracked.length}</b></div>
+        <div><small>WRONG ANSWERS</small><b>${wrong}</b></div>
+        <div><small>TAKEN THIS RUN</small><b>${gbp(banked)}</b></div>
+        <div><small>WALLET</small><b>${gbp(walletAfter)}</b></div>
+      </div>
+      ${after && after.next ? `<div class="cf-sec"><small>NEXT RANK</small><span>${after.toNext} more vault${after.toNext === 1 ? "" : "s"} to become <b>${after.next}</b>.</span></div>` : ""}
+      <div class="cf-actions"><a class="pnBtn" href="../index.html" style="text-decoration:none">Return to base</a><button type="button" class="pnBtn primary" id="cfAgain">Start a new run</button></div>
+    </div>`;
+    SFX("pop", 2);
+    const again = o.querySelector("#cfAgain"); again.focus();
+    again.addEventListener("click", () => { SFX("click"); o.remove(); resolve(); });
+  });
+}
+
 // --- Success pipeline per lock
 async function onLockSolved(){
+  const last = Run.cracked[Run.cracked.length - 1] || { p: Run.p, q: Run.q };
   if(Run.index < Run.locksPerRun){
-    // Withdraw funds from target account
     const withdrawn = Bank.withdrawForLock(DIFF, Run.index);
     Sound.ok();
-    setTimeout(() => { if(window.PNSound) PNSound.play("cash"); }, 700);
-    await miniReward(Run.index, withdrawn);
+    await lockCard(Run.index, withdrawn, last.p, last.q);
     Run.index += 1;
     newTargetNextLock();
     lockBanner(Run.index === Run.locksPerRun ? "Final lock: crack it to breach the vault" : "");
     return;
   }
 
-  // Final lock: full finale
+  // Final lock: alarm, breach chatter, buffer charge, vault door, drain, stamp, case file
+  Bank.withdrawForLock(DIFF, Run.index);
   Sound.ok();
+  await sleep(500);
+  await alarmSequence();
+  setCinematic(true);
   await breachPrelude(PRIME_NET_EFFECTS.preludeSeconds);
+  setCinematic(false);
   await runBufferSequence();
-  await codeFlood("ENCRYPTION HANDSHAKE", PRIME_NET_EFFECTS.finalFloodSeconds);
-  addLine("VAULT BREACH COMPLETE // SESSION SAVED", "ok");
-  addBlank();
+  if(PRIME_NET_EFFECTS.finalFloodSeconds > 0) await codeFlood("ENCRYPTION HANDSHAKE", PRIME_NET_EFFECTS.finalFloodSeconds);
 
-  // Bank the run earnings
+  const acct = Bank.getCurrentAccount() || { name:"TARGET", balance:0 };
+  const acctSnapshot = { name: acct.name, balance: acct.balance };
+  const doorOverlay = await vaultDoor(Run.cracked);
+
+  const agent = PN ? PN.getAgent() : null;
+  const codename = agent ? agent.codename : "AGENT";
+  const before = PN ? PN.agentRank(codename) : null;
+  const walletBefore = Bank.getWalletBalance();
   const banked = Bank.bankRun(DIFF);
-  if(PN) PN.log("complete", { level: DIFF, banked });
-  if(window.PNSound) PNSound.play("cash");
-  await showBankingOverlay(banked);
+  if(PN) PN.log("complete", { level: DIFF, banked, locks: Run.cracked, wrong: Run.wrongTotal || 0 });
+  const after = PN ? PN.agentRank(codename) : null;
+  updateRunUI();
 
-  // start fresh run same difficulty
+  await drainAndStamp(doorOverlay, { acct: acctSnapshot, banked, walletBefore, walletAfter: Bank.getWalletBalance(), codename, before, after });
+  addLine("VAULT BREACH COMPLETE // SESSION SAVED", "ok");
+  await caseFile({ codename, levelId: DIFF, cracked: Run.cracked.slice(), wrong: Run.wrongTotal || 0, banked, walletAfter: Bank.getWalletBalance(), after, startedAt: Run.startedAt });
+
+  // A new run at the same clearance
   newRunSameDifficulty();
   addBlank();
-  lockBanner("New run. Bigger withdrawals await.");
+  lockBanner("New run. A new bank, bigger stakes.");
+  focusInput();
 }
 
 // --- Prime checking
@@ -1815,7 +2113,7 @@ function printHelp(){
   addBlock(`<div class="ib-head">PRIME HACK HELP</div>
     <div class="ib-row"><span class="ib-k">GOAL</span><span>Find two primes that multiply to make N.</span></div>
     <div class="ib-row"><span class="ib-k">TO ANSWER</span><span>Type both numbers with a space between them, then press Enter.</span></div>
-    <div class="ib-row"><span class="ib-k">COMMANDS</span><span><code>HINT</code> clues about this lock<br><code>PRIME? 91</code> test whether a number is prime<br><code>MODE MATH</code> / <code>MODE ROLEPLAY</code> switch mode</span></div>`, "infoBlock");
+    <div class="ib-row"><span class="ib-k">COMMANDS</span><span><code>HINT</code> clues about this lock<br><code>PRIME? 91</code> test whether a number is prime</span></div>`, "infoBlock");
 }
 
 // PRIME? n: tests a number and, if it isn't prime, shows why
@@ -1875,7 +2173,7 @@ async function handleMath(text){
     addLine(`DIFFICULTY SET: ${next} // NEW RUN // N=${Run.n}`, "sys");
     return;
   }
-  if(u==="MODE ROLEPLAY"){ setMode("roleplay"); addLine("ROLEPLAY MODE ENABLED", "sys"); return; }
+  if(u==="MODE ROLEPLAY" || u==="ROLEPLAY"){ addLine("The roleplay terminal is its own screen now. Find it on the title screen.", "warn"); return; }
   if(u==="MODE MATH"){ setMode("math"); addLine("MATH MODE ENABLED", "sys"); return; }
 
   const pair = parsePair(t);
@@ -1893,6 +2191,7 @@ async function handleMath(text){
     // Tiny pattern nudge (last digit) without giving the answer away
     addLine(`Pattern check: ${p} ends ${String(p).slice(-1)}, ${q} ends ${String(q).slice(-1)} ⇒ product ends ${String(prod).slice(-1)}`, "sys");
     Run.tries = (Run.tries || 0) + 1;
+    Run.wrongTotal = (Run.wrongTotal || 0) + 1;
     if(window.PNSound) PNSound.play("wrong");
     setHint(Run.tries >= 3
       ? `Stuck? Type <b>HINT</b> for clues, or test a number with <b>PRIME? 91</b>.`
@@ -1904,6 +2203,7 @@ async function handleMath(text){
     if(!isPrime(p)) addLine(`${p} is not prime.`, "bad");
     if(!isPrime(q)) addLine(`${q} is not prime.`, "bad");
     Run.tries = (Run.tries || 0) + 1;
+    Run.wrongTotal = (Run.wrongTotal || 0) + 1;
     if(window.PNSound) PNSound.play("denied");
     const bad = !isPrime(p) ? p : q;
     let split = ""; for(let i=2;i*i<=bad;i++){ if(bad%i===0){ split = ` It's ${i} × ${bad/i}.`; break; } }
@@ -1913,6 +2213,7 @@ async function handleMath(text){
 
   addLine(`UNLOCK_OK // primes verified: ${p}, ${q}`, "ok");
   setHint(`Lock cracked: <b>${p} × ${q} = ${Run.n}</b>.`);
+  Run.cracked.push({ lock: Run.index, n: Run.n, p: Math.min(p,q), q: Math.max(p,q), tries: Run.tries || 0 });
   Run.solved = true;
   await onLockSolved();
 }
@@ -2076,7 +2377,8 @@ hiddenInput.addEventListener("keydown", async (e)=>{
 
 // --- Boot
 function boot(){
-  setMode("roleplay");
+  MODE = "math";   // roleplay is its own terminal now (title screen → Roleplay terminal). The first-lock hint appears via updateRunUI.
+  btnMode.style.display = "none";
   setDiff(PN ? PN.level() : "L1");   // the level chosen on the title screen
   document.getElementById("hudBtnPair").style.display = "none";   // cut in review: answers are always two numbers
   if(!TEACHER){
@@ -2090,10 +2392,11 @@ function boot(){
   newRunSameDifficulty();
   updateRunUI();
 
-  addLine("PRIME HACK TRAINING TERMINAL v2.2", "ok");
-  addLine("Status: sandboxed, safe, classroom ready.", "sys");
-  addLine("Warm up: bash the keyboard. Press Enter. Watch it “work”.", "sys");
-  addLine("Then switch to MATH mode. Crack the prime lock to breach the vault.", "sys");
+  const target = Bank.getCurrentAccount();
+  addLine("PRIME HACK // TERMINAL ONLINE", "ok");
+  addLine(`Target bank: ${target ? target.name : "unknown"}. Four locks stand between you and its vault.`, "sys");
+  addLine("Each lock is a number made by multiplying two primes. Type the two primes to crack it.", "sys");
+  addLine("Type HELP for commands.", "sys");
   addBlank();
   lockBanner(`Clearance ${DIFF}`);
   addBlank();

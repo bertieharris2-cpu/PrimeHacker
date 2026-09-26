@@ -213,6 +213,27 @@
 
   function clearRecords(){ saveRecords([]); }
 
+  /* ---------- Ranks: earned by breaching vaults with the same codename on this computer ---------- */
+  const RANKS = [
+    // Separate from the level names (Recruit, Operative, Specialist) so the two don't get confused
+    { at:0, name:"Rookie" }, { at:1, name:"Field Agent" }, { at:2, name:"Senior Agent" },
+    { at:3, name:"Handler" }, { at:5, name:"Mastermind" }, { at:8, name:"Ghost" },
+  ];
+  function vaultsBreached(codename){
+    const name = String(codename || "").trim().toUpperCase();
+    return getRecords().filter(s => s.codename === name && s.events.some(e => e.stage === "complete")).length;
+  }
+  function rankFor(count){ return RANKS.filter(r => r.at <= count).pop().name; }
+  function agentRank(codename){
+    const count = vaultsBreached(codename);
+    const next = RANKS.find(r => r.at > count);
+    return { count, rank: rankFor(count), next: next ? next.name : null, toNext: next ? next.at - count : 0 };
+  }
+  function currentSession(){
+    const a = getAgent();
+    return a ? getRecords().find(s => s.id === a.sessionId) || null : null;
+  }
+
   function randomCodename(){
     return CODENAMES[Math.floor(Math.random() * CODENAMES.length)];
   }
@@ -225,5 +246,6 @@
     getRecords, summary, suggestedLevel,
     exportData, downloadRecord, importRecords, clearRecords,
     randomCodename,
+    agentRank, rankFor, currentSession,
   };
 })();
