@@ -129,7 +129,15 @@ Ideas voted yes (from `IDEAS.md`), grouped into a build order:
   - Live intercept (oscilloscope) after the three bands: numbers drift across a scope; click the primes before they escape
   - Signal strength: starts at 100%, drops 10% per wrong verify, 4% per missed or wrongly clicked intercept signal, 5% for a band over a minute. 80%+ earns 2 decoder charges for Factor Vault, 60%+ earns 1. A decoder cracks one factor pair
 - [x] Sound: the stage-complete sound is now mechanical (motor, three latches, a thunk, air, a low power hum) instead of bells; the lock and identity sounds lost their high pings
-- [ ] Round 3 groups 3–6: see the build order under Round 3
+- [x] Blueprint assembly: the three floors appear as an exploded view (hovering apart), fill with their rooms, then drop and lock together, ground floor first, with a docking sound and a ring flash. The outer shell rises last and the camera swings round. Reduced motion shows the finished building straight away. Square floors have gold plates and a gold strongroom
+- [x] Round 3 group 3, Factor Vault and Vault Grid:
+  - Pairs scanner: one dot per pair (gold for the square pair), how many are left, and whether a square pair exists
+  - Reinforced floors: square numbers get a gold note ("one pair is a number times itself") and gold vault edges; the square pair's room is the gold STRONGROOM in Vault Grid and the Blueprint
+  - Security camera: sweeps over the terminal every 7 seconds. Submitting while it watches raises the alert; three alerts lock the terminal for 5 seconds. Nothing is lost
+  - Drag to build (numbers up to 40): a tray of N columns × √N rows; drag out a rectangle of exactly N squares to enter that pair
+  - Named rooms in Vault Grid: CORRIDOR (1 × N), SERVICE TUNNEL (long), OFFICE, SERVER ROOM (near square), STRONGROOM (square)
+  - Drone flythrough after the 3D rise: a drone camera sweeps the floor and logs each room
+- [ ] Round 3 groups 4–6: see the build order under Round 3
 
 ## Success screens (first pass)
 

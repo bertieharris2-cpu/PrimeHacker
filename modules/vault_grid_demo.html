@@ -218,6 +218,21 @@
 .pn-powerup small{ display:block; margin-top:8px; letter-spacing:.06em; font-weight:400; color:var(--text-muted); }
 @keyframes pnPulse{ 50%{ box-shadow:0 0 24px rgba(var(--accent-rgb),.35); } }
 
+/* ===== Round 3 group 3: drone flythrough ===== */
+.droneHud{ position:fixed; z-index:60; pointer-events:none; font-family:var(--font-mono); color:#d9fff0; }
+.droneHud .corner{ position:absolute; width:26px; height:26px; border:2px solid rgba(255,255,255,.75); }
+.droneHud .tl{ left:10px; top:10px; border-right:0; border-bottom:0; } .droneHud .tr{ right:10px; top:10px; border-left:0; border-bottom:0; }
+.droneHud .bl{ left:10px; bottom:10px; border-right:0; border-top:0; } .droneHud .br{ right:10px; bottom:10px; border-left:0; border-top:0; }
+.droneHud .cross{ position:absolute; left:50%; top:50%; width:44px; height:44px; margin:-22px 0 0 -22px; border:1px solid rgba(255,255,255,.6); border-radius:50%; }
+.droneHud .cross::before, .droneHud .cross::after{ content:""; position:absolute; background:rgba(255,255,255,.6); }
+.droneHud .cross::before{ left:50%; top:-10px; bottom:-10px; width:1px; } .droneHud .cross::after{ top:50%; left:-10px; right:-10px; height:1px; }
+.droneHud .top{ position:absolute; left:46px; top:18px; font-size:13px; letter-spacing:.12em; }
+.droneHud .top .rec{ color:#ff4f6d; }
+.droneHud .alt{ position:absolute; right:46px; top:18px; font-size:13px; letter-spacing:.1em; text-align:right; }
+.droneHud .log{ position:absolute; left:46px; bottom:18px; font-size:14px; line-height:1.5; text-shadow:0 0 6px #000; }
+.droneHud .log .strong{ color:#ffc94d; }
+.droneHud .vign{ position:absolute; inset:0; box-shadow:inset 0 0 120px rgba(0,0,0,.75); }
+
 /* ===== PRIMENET shared style (docs/STYLE.md). Keep this block last. ===== */
 html, body{ background: var(--bg-primary) !important; }
 body{ color: var(--text-primary); }
@@ -557,7 +572,7 @@ function lockBorder(rect){
   r.setAttribute("width",rect.w*STEP);
   r.setAttribute("height",rect.h*STEP);
   r.setAttribute("fill","none");
-  r.setAttribute("stroke","var(--lock)");
+  r.setAttribute("stroke", isStrong(rect) ? "#ffc94d" : "var(--lock)");
   r.setAttribute("stroke-width","0.5");
   r.setAttribute("opacity","0");
   overlay.appendChild(r);
@@ -589,6 +604,18 @@ async function fillOutsideInPower(rect){
     await pause(38);
   }
 }
+
+/* Rooms get names from their shape, so the floor plan reads like a building.
+   Square pairs are the reinforced strongroom (gold). */
+function roomName(rect){
+  const a = Math.min(rect.w, rect.h), b = Math.max(rect.w, rect.h);
+  if(a === b) return "STRONGROOM";
+  if(a === 1) return "CORRIDOR";
+  if(b / a >= 4) return "SERVICE TUNNEL";
+  if(b / a >= 2) return "OFFICE";
+  return "SERVER ROOM";
+}
+const isStrong = rect => rect.w === rect.h;
 
 /* External label: based on position, with leader */
 function sectorLabelFor(rect){
@@ -699,8 +726,8 @@ function addExternalLabel(rect){
     lx = vaultBox.right + 26; ly = ay; anchor="start"; side="right";
   }
 
-  const text1 = sectorLabelFor(rect);
-  const text2 = rect.label;
+  const text1 = roomName(rect);
+  const text2 = `${rect.label} · ${sectorLabelFor(rect)}`;
   
   // Find non-overlapping position
   const positioned = findNonOverlappingPosition(lx, ly, anchor, text1, text2, side);
@@ -735,7 +762,7 @@ function addExternalLabel(rect){
 
   const t1=document.createElementNS("http://www.w3.org/2000/svg","text");
   t1.textContent=text1;
-  t1.setAttribute("fill","rgba(74,163,255, 0.80)");
+  t1.setAttribute("fill", isStrong(rect) ? "rgba(255,201,77,0.95)" : "rgba(74,163,255, 0.80)");
   t1.setAttribute("font-size","12");
   t1.setAttribute("letter-spacing","1.6");
   t1.setAttribute("dominant-baseline","middle");
@@ -1101,6 +1128,7 @@ document.querySelector(".title div:first-child").insertAdjacentHTML("afterend",
   await pause(700);
   if(window.lastPlacements && window.lastPlacements.length) await triggerIsometricMorph(window.lastPlacements);
   await pause(1900);
+  await droneFlythrough(window.lastPlacements || []);
   nextFloorBtn.style.visibility = "visible";
   SND("success");
   if(window.PNHandler){
@@ -1109,6 +1137,41 @@ document.querySelector(".title div:first-child").insertAdjacentHTML("afterend",
   }
   nextFloorBtn.focus();
 });
+
+// ====== DRONE FLYTHROUGH ======
+// Once the floor has risen, a drone camera sweeps low over it and logs each room.
+async function droneFlythrough(placements){
+  if(!placements.length || (PN && PN.reducedMotion && PN.reducedMotion())) return;
+  const seen = new Set(), rooms = placements.filter(r => { const k = [Math.min(r.w, r.h), Math.max(r.w, r.h)].join("x"); if(seen.has(k)) return false; seen.add(k); return true; });
+  const box = stageEl.getBoundingClientRect();
+  const hud = document.createElement("div"); hud.className = "droneHud";
+  Object.assign(hud.style, { left: box.left + "px", top: box.top + "px", width: box.width + "px", height: box.height + "px" });
+  hud.innerHTML = `<div class="vign"></div><div class="corner tl"></div><div class="corner tr"></div><div class="corner bl"></div><div class="corner br"></div><div class="cross"></div>
+    <div class="top"><span class="rec">● REC</span> DRONE CAM 02</div><div class="alt">ALT <span class="a">12.0</span>m<br>N=${currentN}</div><div class="log"></div>`;
+  document.body.appendChild(hud);
+  SND("rise");
+  const sp = window.PNTest ? PNTest.speed() : 1, dur = Math.max(4200, rooms.length * 900) / sp;
+  const anim = stageEl.animate([
+    { transform: "none" },
+    { transform: "scale(1.55) translate(14%, 12%) rotate(-2deg)", offset: .2 },
+    { transform: "scale(1.7) translate(-14%, 8%) rotate(2deg)", offset: .5 },
+    { transform: "scale(1.6) translate(-8%, -12%) rotate(-1deg)", offset: .8 },
+    { transform: "none" },
+  ], { duration: dur, easing: "ease-in-out" });
+  const log = hud.querySelector(".log"), alt = hud.querySelector(".a");
+  const lines = [];
+  const altTimer = setInterval(() => { alt.textContent = (8 + Math.random() * 6).toFixed(1); }, 180);
+  for(const [i, r] of rooms.entries()){
+    await pause(dur * sp * 0.8 / rooms.length);
+    const a = Math.min(r.w, r.h), b = Math.max(r.w, r.h);
+    lines.push(`<div class="${a === b ? "strong" : ""}">ROOM ${String(i + 1).padStart(2, "0")} · ${roomName(r)} ${a}×${b} · ${a * b} squares ✓</div>`);
+    log.innerHTML = lines.slice(-4).join("");
+    SND("tag");
+  }
+  await anim.finished.catch(() => {});
+  clearInterval(altTimer);
+  hud.remove();
+}
 
 // ====== 3D CUBOID RECTANGLE RENDERER ======
 

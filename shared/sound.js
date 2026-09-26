@@ -156,6 +156,7 @@
       tone({ f: 1760, at: 0.08, dur: 0.06, vol: 0.07, verb:false });
       tone({ f: 2349, at: 0.16, dur: 0.08, vol: 0.07, verb:false });
     },
+    dock(){ servo(0, 0.25, 0.04); latch(0.22, 0.3); thunk(0.26, 0.45); hiss(0.34, 0.4, 0.04); },   // a floor locks onto the building
     hum(i=0){ tone({ f: 110 + i*6, type:"sawtooth", dur: 0.09, vol: 0.035, lp: 700, verb:false }); },   // fingerprint scanner
     verified(){ latch(0, 0.22); latch(0.1, 0.22); tone({ f: 220, to: 330, type:"triangle", at: 0.14, dur: 0.4, vol: 0.1, lp: 1400 }); },
   };

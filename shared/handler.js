@@ -39,7 +39,9 @@
 
   function fill(text){
     const m = PN && PN.mission ? PN.mission() : { codename:"AGENT", target:"the bank" };
-    return String(text).replace(/\{agent\}/g, m.codename).replace(/\{target\}/g, m.target);
+    const poss = n => /s$/i.test(n) ? `${n}'` : `${n}'s`;   // "Rivercross Utilities'", "Atlas Prime's"
+    return String(text).replace(/\{target\}'s/g, poss(m.target)).replace(/\{agent\}/g, m.codename).replace(/\{target\}/g, m.target)
+      .replace(/(\w+s)'s\b/g, "$1'");
   }
 
   async function show(text){
