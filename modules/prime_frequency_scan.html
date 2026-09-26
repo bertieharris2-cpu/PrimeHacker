@@ -1,6 +1,11 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="phase-hack">
 <head>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../shared/primenet.css">
+
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>PRIME NET – Prime Frequency Scan</title>
@@ -12,13 +17,13 @@
 
   <style>
     :root{
-      --bg: #050806;
-      --panel: rgba(6, 14, 10, 0.82);
-      --border: rgba(140, 255, 190, 0.35);
+      --bg: var(--bg-primary);
+      --panel: rgba(6,16,20, 0.82);
+      --border: rgba(var(--accent-rgb), 0.35);
       --text: rgba(240, 255, 248, 0.92);
       --muted: rgba(240, 255, 248, 0.70);
-      --green: rgba(120, 255, 170, 0.95);
-      --greenSoft: rgba(120, 255, 170, 0.25);
+      --green: rgba(var(--accent-rgb), 0.95);
+      --greenSoft: rgba(var(--accent-rgb), 0.25);
       --warn: rgba(255, 185, 90, 0.95);
       --danger: rgba(255, 90, 90, 0.92);
 
@@ -35,8 +40,8 @@
     html, body{ height: 100%; }
     body{
       margin: 0;
-      background: radial-gradient(1200px 800px at 60% 30%, rgba(120,255,170,0.10), transparent 55%),
-                  radial-gradient(900px 700px at 25% 75%, rgba(120,255,170,0.08), transparent 60%),
+      background: radial-gradient(1200px 800px at 60% 30%, rgba(var(--accent-rgb),0.10), transparent 55%),
+                  radial-gradient(900px 700px at 25% 75%, rgba(var(--accent-rgb),0.08), transparent 60%),
                   var(--bg);
       color: var(--text);
       font-family: "Courier Prime", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
@@ -73,7 +78,7 @@
       position: fixed;
       inset: 0;
       pointer-events: none;
-      background: radial-gradient(circle at 50% 50%, rgba(120,255,170,0.08), transparent 60%);
+      background: radial-gradient(circle at 50% 50%, rgba(var(--accent-rgb),0.08), transparent 60%);
       opacity: 0.7;
       animation: flicker 6s infinite;
     }
@@ -98,7 +103,7 @@
       width: min(var(--maxW), 100%);
       border: 1px solid var(--border);
       background: var(--panel);
-      box-shadow: 0 0 0 1px rgba(120,255,170,0.10) inset, 0 18px 60px rgba(0,0,0,0.55);
+      box-shadow: 0 0 0 1px rgba(var(--accent-rgb),0.10) inset, 0 18px 60px rgba(0,0,0,0.55);
       border-radius: var(--radius);
       overflow: hidden;
     }
@@ -130,8 +135,8 @@
       width: 10px;
       height: 10px;
       border: 1px solid var(--border);
-      background: rgba(120,255,170,0.18);
-      box-shadow: 0 0 12px rgba(120,255,170,0.25);
+      background: rgba(var(--accent-rgb),0.18);
+      box-shadow: 0 0 12px rgba(var(--accent-rgb),0.25);
     }
     .status strong{ color: var(--text); font-weight: 700; }
 
@@ -213,12 +218,12 @@
       transition: transform 0.06s ease, background 0.15s ease, border-color 0.15s ease;
     }
     button:hover{
-      background: rgba(120,255,170,0.08);
-      border-color: rgba(140,255,190,0.55);
+      background: rgba(var(--accent-rgb),0.08);
+      border-color: rgba(var(--accent-rgb),0.55);
     }
     button:active{ transform: translateY(1px); }
     button:focus-visible{
-      outline: 2px solid rgba(120,255,170,0.55);
+      outline: 2px solid rgba(var(--accent-rgb),0.55);
       outline-offset: 2px;
     }
     button[disabled]{
@@ -229,7 +234,7 @@
     .divider{
       width: 100%;
       height: 1px;
-      background: rgba(140,255,190,0.22);
+      background: rgba(var(--accent-rgb),0.22);
       margin: 6px 0;
     }
 
@@ -244,16 +249,16 @@
     .barFill{
       height: 100%;
       width: 0%;
-      background: rgba(120,255,170,0.25);
-      border-right: 1px solid rgba(120,255,170,0.55);
-      box-shadow: 0 0 18px rgba(120,255,170,0.15);
+      background: rgba(var(--accent-rgb),0.25);
+      border-right: 1px solid rgba(var(--accent-rgb),0.55);
+      box-shadow: 0 0 18px rgba(var(--accent-rgb),0.15);
       transition: width 0.2s linear;
     }
     .barPulse{
       position: absolute;
       inset: 0;
       pointer-events: none;
-      background: linear-gradient(90deg, transparent, rgba(120,255,170,0.10), transparent);
+      background: linear-gradient(90deg, transparent, rgba(var(--accent-rgb),0.10), transparent);
       transform: translateX(-100%);
       animation: sweep 1.6s linear infinite;
       opacity: 0.65;
@@ -278,8 +283,8 @@
       background: rgba(0,0,0,0.35);
     }
     .seg.on{
-      background: rgba(120,255,170,0.22);
-      box-shadow: 0 0 12px rgba(120,255,170,0.18);
+      background: rgba(var(--accent-rgb),0.22);
+      box-shadow: 0 0 12px rgba(var(--accent-rgb),0.18);
     }
 
     /* Number grid */
@@ -309,16 +314,16 @@
       transition: background 0.15s ease, border-color 0.15s ease, transform 0.06s ease;
     }
     .cell:hover{
-      background: rgba(120,255,170,0.08);
-      border-color: rgba(140,255,190,0.55);
+      background: rgba(var(--accent-rgb),0.08);
+      border-color: rgba(var(--accent-rgb),0.55);
     }
     .cell:active{ transform: translateY(1px); }
     .cell.selected{
-      background: rgba(120,255,170,0.18);
-      box-shadow: 0 0 0 1px rgba(120,255,170,0.18) inset, 0 0 18px rgba(120,255,170,0.12);
+      background: rgba(var(--accent-rgb),0.18);
+      box-shadow: 0 0 0 1px rgba(var(--accent-rgb),0.18) inset, 0 0 18px rgba(var(--accent-rgb),0.12);
     }
     .cell:focus-visible{
-      outline: 2px solid rgba(120,255,170,0.55);
+      outline: 2px solid rgba(var(--accent-rgb),0.55);
       outline-offset: 2px;
     }
 
@@ -345,7 +350,7 @@
   top: 12px;
   left: 12px;
   z-index: 10000;
-  border: 1px solid rgba(140,255,190,0.45);
+  border: 1px solid rgba(var(--accent-rgb),0.45);
   background: rgba(0,0,0,0.55);
   color: rgba(240,255,248,0.9);
   padding: 8px 10px;
@@ -360,8 +365,8 @@
   left: 12px;
   z-index: 10000;
   width: min(360px, 92vw);
-  border: 1px solid rgba(140,255,190,0.35);
-  background: rgba(6,14,10,0.90);
+  border: 1px solid rgba(var(--accent-rgb),0.35);
+  background: rgba(6,16,20,0.90);
   padding: 12px;
   display: none;
   gap: 10px;
@@ -387,7 +392,21 @@
   font-size: 0.95rem;
 }
 
-  </style>
+  
+/* ===== PRIMENET shared style (docs/STYLE.md). Keep this block last. ===== */
+html, body{ background: var(--bg-primary) !important; }
+body{ color: var(--text-primary); }
+body::before{
+  content: "" !important; position: fixed !important; inset: 0 !important; pointer-events: none !important;
+  z-index: 0; filter: none !important; opacity: 1 !important; animation: none !important; transform: none !important;
+  background:
+    radial-gradient(1100px 700px at 30% 15%, rgba(var(--accent-rgb), .07), transparent 60%),
+    repeating-linear-gradient(0deg, rgba(255,255,255,.022) 0 1px, transparent 1px 7px),
+    repeating-linear-gradient(90deg, rgba(255,255,255,.014) 0 1px, transparent 1px 30px) !important;
+}
+button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [class*="Title"]{ font-family: var(--font-ui); }
+.cell{ font-family: var(--font-mono) !important; min-width: 0 !important; }  /* the general button min-width squashed the number grid */
+</style>
 </head>
 
 <body class="scanlines">
@@ -751,7 +770,7 @@
       style: `
         position: fixed; inset: 0; display: grid; place-items: center;
         background: rgba(0,0,0,0.72);
-        border: 1px solid rgba(140,255,190,0.35);
+        border: 1px solid rgba(67,229,138,0.35);
         z-index: 9999;
       `
     });
@@ -759,7 +778,7 @@
     const box = el("div", {
       style: `
         width: min(760px, 92vw);
-        border: 1px solid rgba(140,255,190,0.35);
+        border: 1px solid rgba(67,229,138,0.35);
         background: rgba(6,14,10,0.85);
         padding: 22px;
         display: grid;
@@ -770,7 +789,7 @@
 
     const code = el("div", {
       style: `
-        height: 120px; overflow: hidden; border: 1px solid rgba(140,255,190,0.25);
+        height: 120px; overflow: hidden; border: 1px solid rgba(67,229,138,0.25);
         background: rgba(0,0,0,0.35);
         padding: 10px; text-align: left; color: rgba(240,255,248,0.70);
         font-size: 0.95rem;
@@ -868,7 +887,7 @@
     const box = document.createElement("div");
     box.style.cssText = `
       width: min(760px, 92vw);
-      border: 1px solid rgba(140,255,190,0.35);
+      border: 1px solid rgba(67,229,138,0.35);
       background: rgba(6,14,10,0.85);
       padding: 22px;
       display: grid;

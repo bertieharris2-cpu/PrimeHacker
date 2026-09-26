@@ -1,19 +1,23 @@
 
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="phase-build">
 <head>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../shared/primenet.css">
+
 <meta charset="UTF-8" />
 <title>Vault Laser Grid Demo — N=18 (v2 random layout + staggered concurrency)</title>
 <style>
   :root{
-    --bg-primary: #071418;
-    --fill1: rgba(0, 255, 100, 0.65);
-    --fill2: rgba(0, 255, 100, 0.45);
-    --flow1: rgba(74, 163, 255, 0.55);
-    --flow2: rgba(74, 163, 255, 0.30);
-    --laser: rgba(74, 163, 255, 0.85);
-    --lock: rgba(0, 215, 184, 0.80);
-    --frame: rgba(0, 255, 100, 0.70);
+    --fill1: rgba(var(--accent-rgb), 0.65);
+    --fill2: rgba(var(--accent-rgb), 0.45);
+    --flow1: rgba(var(--accent-rgb), 0.55);
+    --flow2: rgba(var(--accent-rgb), 0.30);
+    --laser: rgba(var(--accent-rgb), 0.85);
+    --lock: rgba(var(--accent-rgb), 0.80);
+    --frame: rgba(var(--accent-rgb), 0.70);
     --text: rgba(235, 255, 248, 0.85);
     --text-muted: rgba(235, 255, 248, 0.55);
     --border: rgba(17, 75, 95, 0.40);
@@ -25,8 +29,8 @@
   body{
     margin:0;
     background:
-      radial-gradient(1200px 800px at 50% 40%, rgba(0, 255, 100, 0.06), transparent 50%),
-      radial-gradient(900px 650px at 70% 75%, rgba(74, 163, 255, 0.04), transparent 60%),
+      radial-gradient(1200px 800px at 50% 40%, rgba(var(--accent-rgb), 0.06), transparent 50%),
+      radial-gradient(900px 650px at 70% 75%, rgba(var(--accent-rgb), 0.04), transparent 60%),
       var(--bg-primary);
     color: var(--text);
     font-family: "Courier Prime", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
@@ -42,8 +46,8 @@
     position:fixed;
     inset:-40px;
     background:
-      radial-gradient(600px 450px at 30% 25%, rgba(74, 163, 255, 0.08), transparent 65%),
-      radial-gradient(700px 500px at 70% 75%, rgba(0, 255, 100, 0.06), transparent 70%);
+      radial-gradient(600px 450px at 30% 25%, rgba(var(--accent-rgb), 0.08), transparent 65%),
+      radial-gradient(700px 500px at 70% 75%, rgba(var(--accent-rgb), 0.06), transparent 70%);
     pointer-events:none;
     opacity:.85;
     filter: blur(8px);
@@ -76,10 +80,10 @@
     width:min(610px, 90vw);
     aspect-ratio:1/1;
     margin:0 auto;
-    border: 1.5px solid rgba(0, 255, 100, 0.50);
+    border: 1.5px solid rgba(var(--accent-rgb), 0.50);
     padding:18px;
     box-sizing:border-box;
-    background: rgba(2, 20, 26, 0.80);
+    background: rgba(6,16,20, 0.80);
     backdrop-filter: blur(4px);
     box-shadow:
       0 0 0 1px rgba(17, 75, 95, 0.35) inset,
@@ -98,7 +102,7 @@
   }
 
   .cell{
-    background: rgba(6, 20, 28, 0.75);
+    background: rgba(6,16,20, 0.75);
     border: var(--cell-border) solid rgba(17, 75, 95, 0.2);
     box-sizing:border-box;
     transition: background var(--transition-fast), box-shadow var(--transition-fast);
@@ -106,13 +110,13 @@
   .cell.on{
     background:linear-gradient(180deg, var(--fill1), var(--fill2));
     box-shadow:
-      0 0 8px rgba(0, 255, 100, 0.20),
+      0 0 8px rgba(var(--accent-rgb), 0.20),
       0 0 0 0.5px rgba(255,255,255,.08) inset;
   }
   .cell.flow{
     background:linear-gradient(180deg, var(--flow1), var(--flow2));
     box-shadow:
-      0 0 10px rgba(74, 163, 255, 0.25),
+      0 0 10px rgba(var(--accent-rgb), 0.25),
       0 0 0 0.5px rgba(255,255,255,.06) inset;
   }
 
@@ -135,27 +139,27 @@
     font:inherit;
     color: var(--text);
     border: 0.75px solid var(--border);
-    background: rgba(6, 20, 28, 0.60);
+    background: rgba(6,16,20, 0.60);
     padding:6px 10px;
     cursor:pointer;
     transition: background var(--transition-fast), border-color var(--transition-fast);
   }
   button:hover{
     background: rgba(17, 75, 95, 0.40);
-    border-color: rgba(0, 255, 100, 0.50);
+    border-color: rgba(var(--accent-rgb), 0.50);
   }
   .next-floor-btn{
-    background: linear-gradient(135deg, rgba(0,200,255,.2), rgba(74,163,255,.15));
-    border-color: rgba(0,200,255,.5);
-    color: rgba(0,200,255,.9);
+    background: linear-gradient(135deg, rgba(var(--accent-rgb),.2), rgba(var(--accent-rgb),.15));
+    border-color: rgba(var(--accent-rgb),.5);
+    color: rgba(var(--accent-rgb),.9);
     font-weight: 600;
     letter-spacing: .05em;
     text-transform: uppercase;
   }
   .next-floor-btn:hover{
-    background: linear-gradient(135deg, rgba(0,200,255,.3), rgba(74,163,255,.25));
-    border-color: rgba(0,200,255,.8);
-    box-shadow: 0 0 12px rgba(0,200,255,.3);
+    background: linear-gradient(135deg, rgba(var(--accent-rgb),.3), rgba(var(--accent-rgb),.25));
+    border-color: rgba(var(--accent-rgb),.8);
+    box-shadow: 0 0 12px rgba(var(--accent-rgb),.3);
   }
   .mini{ font-size:11px; opacity:.65; color: var(--text-muted); }
 
@@ -206,6 +210,19 @@
     transform: none;              /* IMPORTANT: no extra tilt */
     transform-origin: 50% 50%;
   }
+
+/* ===== PRIMENET shared style (docs/STYLE.md). Keep this block last. ===== */
+html, body{ background: var(--bg-primary) !important; }
+body{ color: var(--text-primary); }
+body::before{
+  content: "" !important; position: fixed !important; inset: 0 !important; pointer-events: none !important;
+  z-index: 0; filter: none !important; opacity: 1 !important; animation: none !important; transform: none !important;
+  background:
+    radial-gradient(1100px 700px at 30% 15%, rgba(var(--accent-rgb), .07), transparent 60%),
+    repeating-linear-gradient(0deg, rgba(255,255,255,.022) 0 1px, transparent 1px 7px),
+    repeating-linear-gradient(90deg, rgba(255,255,255,.014) 0 1px, transparent 1px 30px) !important;
+}
+button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [class*="Title"]{ font-family: var(--font-ui); }
 </style>
 </head>
 <body>
@@ -242,17 +259,17 @@
   </div>
 
   <div class="legend">
-    <div><span class="sw" style="background:#4aa3ff"></span>Laser outline</div>
-    <div><span class="sw" style="background:#6fb8ff"></span>Power flow</div>
-    <div><span class="sw" style="background:#7fffd4"></span>Array fill</div>
-    <div><span class="sw" style="background:#00d7b8"></span>Locked border</div>
+    <div><span class="sw" style="background:var(--accent)"></span>Laser outline</div>
+    <div><span class="sw" style="background:var(--accent)"></span>Power flow</div>
+    <div><span class="sw" style="background:var(--accent)"></span>Array fill</div>
+    <div><span class="sw" style="background:var(--accent)"></span>Locked border</div>
   </div>
   <div class="hint">Now uses a random non-overlapping layout each run, and arrays animate with staggered overlap (smoother, less “one-by-one”).</div>
 
   <div class="btnRow">
     <label style="display:flex; gap:8px; align-items:center; font-size:12px;">
       TARGET N =
-      <select id="nSelect" style="padding:4px 6px; font-family:inherit; color:inherit; background:rgba(2,43,36,.45); border:1px solid rgba(74,163,255,.45);">
+      <select id="nSelect" style="padding:4px 6px; font-family:inherit; color:inherit; background:rgba(6,16,20,.45); border:1px solid rgba(var(--accent-rgb),.45);">
         <optgroup label="L1 (Easy)">
           <option value="12">12</option>
           <option value="18" selected>18</option>
@@ -275,26 +292,26 @@
     </label>
     <button id="initBtn">INIT</button>
     <button id="rerunBtn">RERUN (new layout)</button>
-    <button id="view3dBtn" style="background: linear-gradient(135deg, rgba(0,255,100,.15), rgba(74,163,255,.15)); border-color: rgba(0,255,100,.45); color: rgba(0,255,100,.85);">3D VIEW</button>
+    <button id="view3dBtn" style="background: linear-gradient(135deg, rgba(var(--accent-rgb),.15), rgba(var(--accent-rgb),.15)); border-color: rgba(var(--accent-rgb),.45); color: rgba(var(--accent-rgb),.85);">3D VIEW</button>
     <button id="exit3dBtn" style="display:none; background: linear-gradient(135deg, rgba(255,100,0,.15), rgba(255,163,74,.15)); border-color: rgba(255,100,0,.45); color: rgba(255,100,0,.85);">EXIT 3D</button>
     <button id="nextFloorBtn" class="next-floor-btn">Next Floor Reconstruction</button>
     <span class="mini" id="seedInfo"></span>
   </div>
 
   <!-- 3D Extrusion Mode Selector (hidden by default) -->
-  <div id="extrusionModePanel" style="display:none; margin-top:12px; padding:10px; border:1px solid rgba(74,163,255,0.35); background:rgba(7,20,24,0.6); border-radius:2px;">
+  <div id="extrusionModePanel" style="display:none; margin-top:12px; padding:10px; border:1px solid rgba(var(--accent-rgb),0.35); background:rgba(7,20,24,0.6); border-radius: 0;">
     <div style="font-size:11px; opacity:0.75; margin-bottom:8px; letter-spacing:0.05em; text-transform:uppercase;">EXTRUSION DIRECTION:</div>
     <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px;">
-      <button id="mode1Btn" style="flex:1; min-width:160px; background:rgba(6,20,28,0.6); border-color:rgba(74,163,255,0.35); color:rgba(200,200,200,0.85);">Mode 1: -60°</button>
-      <button id="mode2Btn" style="flex:1; min-width:160px; background:rgba(6,20,28,0.6); border-color:rgba(74,163,255,0.35); color:rgba(200,200,200,0.85);">Mode 2: -90°</button>
-      <button id="mode3Btn" style="flex:1; min-width:160px; background:linear-gradient(135deg,rgba(0,255,100,.2),rgba(74,163,255,.15)); border-color:rgba(0,255,100,.6); color:rgba(0,255,100,.9); font-weight:600;">Mode 3: -75°</button>
+      <button id="mode1Btn" style="flex:1; min-width:160px; background:rgba(6,16,20,0.6); border-color:rgba(var(--accent-rgb),0.35); color:rgba(200,200,200,0.85);">Mode 1: -60°</button>
+      <button id="mode2Btn" style="flex:1; min-width:160px; background:rgba(6,16,20,0.6); border-color:rgba(var(--accent-rgb),0.35); color:rgba(200,200,200,0.85);">Mode 2: -90°</button>
+      <button id="mode3Btn" style="flex:1; min-width:160px; background:linear-gradient(135deg,rgba(var(--accent-rgb),.2),rgba(var(--accent-rgb),.15)); border-color:rgba(var(--accent-rgb),.6); color:rgba(var(--accent-rgb),.9); font-weight:600;">Mode 3: -75°</button>
     </div>
     <div style="font-size:11px; opacity:0.75; margin-bottom:8px; letter-spacing:0.05em; text-transform:uppercase;">VAULT TILT:</div>
     <div style="display:flex; gap:8px; flex-wrap:wrap;">
-      <button id="tilt60Btn" style="flex:1; min-width:160px; background:rgba(6,20,28,0.6); border-color:rgba(74,163,255,0.35); color:rgba(200,200,200,0.85);">Tilt 60°</button>
-      <button id="tilt65Btn" style="flex:1; min-width:160px; background:linear-gradient(135deg,rgba(0,200,255,.2),rgba(100,200,255,.15)); border-color:rgba(0,200,255,.6); color:rgba(0,200,255,.9); font-weight:600;">Tilt 65°</button>
-      <button id="tilt70Btn" style="flex:1; min-width:160px; background:rgba(6,20,28,0.6); border-color:rgba(74,163,255,0.35); color:rgba(200,200,200,0.85);">Tilt 70°</button>
-      <button id="tilt75Btn" style="flex:1; min-width:160px; background:rgba(6,20,28,0.6); border-color:rgba(74,163,255,0.35); color:rgba(200,200,200,0.85);">Tilt 75°</button>
+      <button id="tilt60Btn" style="flex:1; min-width:160px; background:rgba(6,16,20,0.6); border-color:rgba(var(--accent-rgb),0.35); color:rgba(200,200,200,0.85);">Tilt 60°</button>
+      <button id="tilt65Btn" style="flex:1; min-width:160px; background:linear-gradient(135deg,rgba(var(--accent-rgb),.2),rgba(var(--accent-rgb),.15)); border-color:rgba(var(--accent-rgb),.6); color:rgba(var(--accent-rgb),.9); font-weight:600;">Tilt 65°</button>
+      <button id="tilt70Btn" style="flex:1; min-width:160px; background:rgba(6,16,20,0.6); border-color:rgba(var(--accent-rgb),0.35); color:rgba(200,200,200,0.85);">Tilt 70°</button>
+      <button id="tilt75Btn" style="flex:1; min-width:160px; background:rgba(6,16,20,0.6); border-color:rgba(var(--accent-rgb),0.35); color:rgba(200,200,200,0.85);">Tilt 75°</button>
     </div>
   </div>
 </div>
@@ -681,7 +698,7 @@ function addExternalLabel(rect){
   }
   path.setAttribute("d",d);
   path.setAttribute("fill","none");
-  path.setAttribute("stroke","rgba(74, 163, 255, 0.45)");
+  path.setAttribute("stroke","rgba(74,163,255, 0.45)");
   path.setAttribute("stroke-width","0.5");
   labelSvg.appendChild(path);
 
@@ -691,7 +708,7 @@ function addExternalLabel(rect){
 
   const t1=document.createElementNS("http://www.w3.org/2000/svg","text");
   t1.textContent=text1;
-  t1.setAttribute("fill","rgba(74, 163, 255, 0.80)");
+  t1.setAttribute("fill","rgba(74,163,255, 0.80)");
   t1.setAttribute("font-size","12");
   t1.setAttribute("letter-spacing","1.6");
   t1.setAttribute("dominant-baseline","middle");
@@ -700,7 +717,7 @@ function addExternalLabel(rect){
 
   const t2=document.createElementNS("http://www.w3.org/2000/svg","text");
   t2.textContent=text2;
-  t2.setAttribute("fill","rgba(0, 255, 100, 0.75)");
+  t2.setAttribute("fill","rgba(74,163,255, 0.75)");
   t2.setAttribute("font-size","11");
   t2.setAttribute("letter-spacing","0.6");
   t2.setAttribute("dominant-baseline","middle");
@@ -712,7 +729,7 @@ function addExternalLabel(rect){
   dot.setAttribute("cx",axL);
   dot.setAttribute("cy",ayL);
   dot.setAttribute("r","1.8");
-  dot.setAttribute("fill","rgba(74, 163, 255, 0.65)");
+  dot.setAttribute("fill","rgba(74,163,255, 0.65)");
   labelSvg.appendChild(dot);
 }
 
@@ -933,16 +950,16 @@ const mode5Btn = document.getElementById("mode5Btn");
 
 function updateModeButtonStates(){
   mode1Btn.style.background = window.extrusionMode === 1 
-    ? "linear-gradient(135deg, rgba(0,255,100,.2), rgba(74,163,255,.15))" 
+    ? "linear-gradient(135deg, rgba(74,163,255,.2), rgba(74,163,255,.15))" 
     : "rgba(6, 20, 28, 0.6)";
-  mode1Btn.style.borderColor = window.extrusionMode === 1 ? "rgba(0,255,100,.6)" : "rgba(74,163,255,0.35)";
-  mode1Btn.style.color = window.extrusionMode === 1 ? "rgba(0,255,100,.9)" : "rgba(200,200,200,0.85)";
+  mode1Btn.style.borderColor = window.extrusionMode === 1 ? "rgba(74,163,255,.6)" : "rgba(74,163,255,0.35)";
+  mode1Btn.style.color = window.extrusionMode === 1 ? "rgba(74,163,255,.9)" : "rgba(200,200,200,0.85)";
   
   mode2Btn.style.background = window.extrusionMode === 2 
-    ? "linear-gradient(135deg, rgba(0,200,255,.2), rgba(100,200,255,.15))" 
+    ? "linear-gradient(135deg, rgba(74,163,255,.2), rgba(74,163,255,.15))" 
     : "rgba(6, 20, 28, 0.6)";
-  mode2Btn.style.borderColor = window.extrusionMode === 2 ? "rgba(0,200,255,.6)" : "rgba(74,163,255,0.35)";
-  mode2Btn.style.color = window.extrusionMode === 2 ? "rgba(0,200,255,.9)" : "rgba(200,200,200,0.85)";
+  mode2Btn.style.borderColor = window.extrusionMode === 2 ? "rgba(74,163,255,.6)" : "rgba(74,163,255,0.35)";
+  mode2Btn.style.color = window.extrusionMode === 2 ? "rgba(74,163,255,.9)" : "rgba(200,200,200,0.85)";
   
   mode3Btn.style.background = window.extrusionMode === 3 
     ? "linear-gradient(135deg, rgba(255,150,0,.2), rgba(255,180,100,.15))" 
@@ -972,9 +989,9 @@ function updateTiltButtonStates(){
   }[window.currentTiltAngle];
   
   if(activeTiltBtn){
-    activeTiltBtn.style.background = "linear-gradient(135deg, rgba(0,200,255,.2), rgba(100,200,255,.15))";
-    activeTiltBtn.style.borderColor = "rgba(0,200,255,.6)";
-    activeTiltBtn.style.color = "rgba(0,200,255,.9)";
+    activeTiltBtn.style.background = "linear-gradient(135deg, rgba(74,163,255,.2), rgba(74,163,255,.15))";
+    activeTiltBtn.style.borderColor = "rgba(74,163,255,.6)";
+    activeTiltBtn.style.color = "rgba(74,163,255,.9)";
     activeTiltBtn.style.fontWeight = "600";
   }
 }
@@ -1099,12 +1116,13 @@ function drawCuboid(ctx, rect, cellSize, gap, heightPx, mode=1){
   const Ch = {x: C.x + hx, y: C.y + hy};
   const Dh = {x: D.x + hx, y: D.y + hy};
   
+  // Build-phase blue (docs/STYLE.md). Canvas can't read CSS variables, so these are literal.
   const colors = {
-    top:   "rgba(40, 180, 140, 0.60)",
-    left:  "rgba(20, 100, 80, 0.70)",
-    right: "rgba(25, 120, 100, 0.65)",
-    front: "rgba(35, 150, 120, 0.58)",
-    edge:  "rgba(60, 255, 200, 0.9)"
+    top:   "rgba(74, 163, 255, 0.55)",
+    left:  "rgba(30, 72, 120, 0.75)",
+    right: "rgba(40, 95, 155, 0.70)",
+    front: "rgba(55, 130, 210, 0.55)",
+    edge:  "rgba(150, 205, 255, 0.9)"
   };
   
   // LEFT FACE: D → A → Ah → Dh
@@ -1207,7 +1225,7 @@ function renderRectCuboids(ctx, rects, GRID, cellSize, gap, heightPx, mode=1){
   
   // Debug: Draw cell indices at corners (remove in production)
   if(window.debugCellIndices){
-    ctx.fillStyle = "rgba(74, 163, 255, 0.4)";
+    ctx.fillStyle = "rgba(74,163,255, 0.4)";
     ctx.font = "10px monospace";
     ctx.textAlign = "left";
     ctx.textBaseline = "top";

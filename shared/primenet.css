@@ -12,7 +12,7 @@
   --accent-build-rgb: 74,163,255;
   --accent-hack: #43e58a;           /* prime stages: Frequency Scan, Prime Hack, finale */
   --accent-hack-rgb: 67,229,138;
-  --accent: var(--accent-hack);     /* each screen sets its phase with body.phase-build / body.phase-hack */
+  --accent: var(--accent-hack);     /* each screen sets its phase with class="phase-build" or "phase-hack" on <html> */
   --accent-rgb: var(--accent-hack-rgb);
 
   --text-primary: rgba(235,255,248,.94);
@@ -33,8 +33,9 @@
   --transition-normal: 240ms ease;
 }
 
-body.phase-build{ --accent: var(--accent-build); --accent-rgb: var(--accent-build-rgb); }
-body.phase-hack{ --accent: var(--accent-hack); --accent-rgb: var(--accent-hack-rgb); }
+/* On <html>, so every colour a game defines on :root picks up its phase */
+.phase-build{ --accent: var(--accent-build); --accent-rgb: var(--accent-build-rgb); }
+.phase-hack{ --accent: var(--accent-hack); --accent-rgb: var(--accent-hack-rgb); }
 
 *{ box-sizing: border-box; }
 html, body{ height: 100%; }

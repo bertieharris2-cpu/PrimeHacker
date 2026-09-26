@@ -78,7 +78,9 @@
 - [x] Include the 3D code locally so the Blueprint works offline
 - [x] Mission level used by every game; level buttons, Dev panel, Vault Grid test controls and Blueprint sample numbers are teacher-only
 - [x] Vault Grid plays its 3D rise automatically; a wallet per codename
-- [ ] Apply the agreed style and changes inside each game
+- [x] Agreed style applied to every game: shared colours (blue for build stages, green for hack stages), Inter + Courier Prime, sharp corners, scanline texture
+- [x] Prime Hack: always-visible hint strip, `PRIME? n`, `HINT` (merged with `RANGE`), answers are just two numbers, NEW TARGET and the Assist toggle removed for students
+- [x] Factor Vault: flipped arrays always shown, tick box removed
 - [ ] Success screen prototypes
 
 ## Success screens (first pass)

@@ -16,6 +16,10 @@ Which stages are which:
 - **Build (blue):** Factor Vault, Vault Grid, Blueprint
 - **Hack (green):** Frequency Scan, Prime Hack, the finale
 
+## Where it lives
+
+The values are in `shared/primenet.css`, which every screen loads. Each screen sets its phase on the `<html>` tag (`class="phase-build"` or `class="phase-hack"`), and `--accent` follows. Canvas and 3D drawing can't read CSS, so the Vault Grid and Blueprint use the same blue written out directly.
+
 ## Style code
 
 ```css
