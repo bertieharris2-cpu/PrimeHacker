@@ -73,8 +73,11 @@
 ## Build progress
 
 - [x] Title screen (`index.html`): codename, level choice, teacher level rule, mission record, download and load records
-- [ ] Join the route: title → Frequency Scan → Factor Vault and Vault Grid ×3 → Blueprint → Prime Hack
-- [ ] Include the 3D code locally so the Blueprint works offline
+- [x] Teacher PIN on the teacher controls
+- [x] Join the route: title → Frequency Scan → Factor Vault and Vault Grid ×3 → Blueprint → Prime Hack
+- [x] Include the 3D code locally so the Blueprint works offline
+- [x] Mission level used by every game; level buttons, Dev panel, Vault Grid test controls and Blueprint sample numbers are teacher-only
+- [x] Vault Grid plays its 3D rise automatically; a wallet per codename
 - [ ] Apply the agreed style and changes inside each game
 - [ ] Success screen prototypes
 

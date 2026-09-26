@@ -299,7 +299,13 @@
   </div>
 </div>
 
+<script src="../shared/primenet.js"></script>
 <script>
+const PN = window.Primenet;
+const TEACHER = !!(PN && PN.isTeacher());   // layout and 3D test controls are teacher-only
+const FLOORS_NEEDED = 3;
+function floorsBuilt(){ try{ return JSON.parse(localStorage.getItem('blueprintProgress') || '[]').length; }catch(e){ return 0; } }
+
 // Curated N values by difficulty
 const VALID_N = {
   L1: [12, 18, 20, 24],
@@ -322,6 +328,11 @@ const nSelect = document.getElementById("nSelect");
 const initBtn = document.getElementById("initBtn");
 const rerunBtn = document.getElementById("rerunBtn");
 const view3dBtn = document.getElementById("view3dBtn");
+
+if(!TEACHER){
+  document.querySelector(".hint").hidden = true;
+  [nSelect.closest("label"), initBtn, rerunBtn, view3dBtn, seedInfo].forEach(el => { if(el) el.style.display = "none"; });
+}
 
 let cells=[];
 
@@ -860,8 +871,8 @@ async function triggerIsometricMorph(placements){
   }
   
   // Show exit button and mode panel
-  if(exitBtn) exitBtn.style.display = "inline-block";
-  if(modePanel) modePanel.style.display = "block";
+  if(TEACHER && exitBtn) exitBtn.style.display = "inline-block";
+  if(TEACHER && modePanel) modePanel.style.display = "block";
   
   // Keep 3D view active until user clicks exit
 }
@@ -1013,12 +1024,13 @@ if(tilt75Btn) tilt75Btn.addEventListener("click", () => applyTiltAngle(75));
 
 // next floor button - go back to factor_vault with new random N
 const nextFloorBtn = document.getElementById("nextFloorBtn");
+function blueprintReady(){ return floorsBuilt() >= FLOORS_NEEDED; }
+function setNextButton(){
+  nextFloorBtn.textContent = blueprintReady() ? "Assemble the blueprint" : `Next floor (${Math.min(floorsBuilt() + 1, FLOORS_NEEDED)} of ${FLOORS_NEEDED})`;
+}
 nextFloorBtn.addEventListener("click", ()=>{
-  // Pick random N from all difficulty levels
-  const allN = [...VALID_N.L1, ...VALID_N.L2, ...VALID_N.L3];
-  const randomN = allN[Math.floor(Math.random() * allN.length)];
-  console.log(`Next Floor: navigating to factor_vault.html?n=${randomN}`);
-  window.location.href = `factor_vault.html?n=${randomN}`;
+  // After three floors, go to the Blueprint; otherwise back to Factor Vault for a new number at the mission level
+  window.location.href = blueprintReady() ? "vault_blueprint_viewer.html" : "factor_vault.html";
 });
 
 // Check URL parameters for N value from factor_vault
@@ -1026,8 +1038,20 @@ const urlParams = new URLSearchParams(window.location.search);
 const urlN = parseInt(urlParams.get('n'), 10);
 const initialN = (Number.isInteger(urlN) && urlN > 1) ? urlN : 18;
 
-// Initialize with N from URL or default to 18
-initVault(initialN);
+// Initialize with N from URL or default to 18.
+// Students: lasers build the floor plan, then it rises into 3D, then the next step appears.
+if(PN) PN.log("grid", { n: initialN });
+setNextButton();
+nextFloorBtn.style.visibility = "hidden";
+document.querySelector(".title div:first-child").insertAdjacentHTML("afterend",
+  `<div>FLOOR ${Math.max(1, Math.min(floorsBuilt(), FLOORS_NEEDED))} OF ${FLOORS_NEEDED}</div>`);
+initVault(initialN).then(async () => {
+  await pause(700);
+  if(window.lastPlacements && window.lastPlacements.length) await triggerIsometricMorph(window.lastPlacements);
+  await pause(1900);
+  nextFloorBtn.style.visibility = "visible";
+  nextFloorBtn.focus();
+});
 
 // ====== 3D CUBOID RECTANGLE RENDERER ======
 
@@ -1248,7 +1272,7 @@ function animateRectExtrusion(canvas, rects, GRID, duration=650){
   window.animationState = {rects, GRID, cellSize, gap, targetHeight, ctx, canvas};
   
   // Enable debug visualization
-  window.debugCellIndices = true;
+  window.debugCellIndices = false;
   
   // Visual reference: draw expected rect bounds for first rect in light color
   const testRect = rects[0];

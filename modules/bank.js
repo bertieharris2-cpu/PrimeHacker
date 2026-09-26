@@ -13,7 +13,9 @@ const Bank = (() => {
     ledger: []
   };
 
-  const STORAGE_KEY = 'PRIMENET_BANK_V1';
+  // One bank (wallet, accounts, ledger) per codename, so students sharing a computer don't share a wallet.
+  const agent = window.Primenet && window.Primenet.getAgent();
+  const STORAGE_KEY = 'PRIMENET_BANK_V1' + (agent && agent.codename ? '_' + agent.codename : '');
 
   // --- Utilities ---
   function formatGBP(n) {

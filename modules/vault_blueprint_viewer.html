@@ -205,13 +205,16 @@
     </div>
   </div>
 
-  <script src="https://unpkg.com/three@0.154.0/build/three.min.js"></script>
+  <!-- Three.js is included with the game so the 3D view works without internet -->
+  <script src="../shared/vendor/three.min.js"></script>
+  <script src="../shared/primenet.js"></script>
   <script>
+    const PN = window.Primenet;
     // Load completed levels from localStorage
     let completed = JSON.parse(localStorage.getItem('blueprintProgress') || '[]');
     
-    // Demo mode: if not enough completed, use demo values for testing
-    const DEMO_MODE = completed.length < 3;
+    // Sample numbers are a teacher preview only. Students always see the floors they built.
+    const DEMO_MODE = completed.length < 3 && !!(PN && PN.isTeacher());
     if(DEMO_MODE){
       completed = [12, 30, 60];  // Demo N values - change these to test different numbers
       console.log('🎯 Blueprint Viewer DEMO MODE - Using hardcoded N values:', completed);
@@ -219,9 +222,11 @@
     
     if(completed.length < 3){
       // Not enough levels completed - show error
-      document.getElementById('floorsContainer').innerHTML = 
-        '<div class="error-message">ERROR: Insufficient vault data. Complete at least 3 levels before accessing blueprint viewer.</div>';
-      document.getElementById('proceedToHackBtn').disabled = true;
+      document.getElementById('floorsContainer').innerHTML =
+        `<div class="error-message">INSUFFICIENT VAULT DATA // ${completed.length} OF 3 FLOORS RECONSTRUCTED</div>`;
+      const btn = document.getElementById('proceedToHackBtn');
+      btn.textContent = 'Return to Factor Vault';
+      btn.addEventListener('click', () => { window.location.href = 'factor_vault.html'; });
     } else {
       // Sort the completed N values: smallest to largest
       const sorted = [...completed].sort((a, b) => a - b);
@@ -261,6 +266,8 @@
       
       container.appendChild(wrapper);
       
+      if(PN && !DEMO_MODE) PN.log("blueprint", { floors: sorted });
+
       // Initialize shared Three.js scene with all floors
       initializeSharedScene(floors, canvasContainer);
       
@@ -269,7 +276,7 @@
         // Clear blueprint progress
         localStorage.removeItem('blueprintProgress');
         // Navigate to prime_hack game
-        window.location.href = '../modules/prime_hack.html';
+        window.location.href = 'prime_hack.html';
       });
     }
 

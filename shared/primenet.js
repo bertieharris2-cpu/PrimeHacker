@@ -4,11 +4,17 @@
 (function(){
   "use strict";
 
+  /* Teacher PIN. Change it here: it applies on every computer that runs this copy of the game.
+     It keeps students out of the teacher controls; it is not strong security. */
+  const TEACHER_PIN = "2357";
+
   const KEYS = {
     settings: "primenet_settings_v1",
     agent: "primenet_agent_v1",
     records: "primenet_records_v1",
     device: "primenet_device_v1",
+    teacher: "primenet_teacher_unlocked",   // sessionStorage: cleared when the browser tab closes
+    floors: "blueprintProgress",            // numbers finished in Factor Vault this mission
   };
 
   const LEVELS = {
@@ -97,7 +103,27 @@
     list.push(session);
     saveRecords(list);
     write(KEYS.agent, { sessionId: session.id, codename: session.codename, level });
+    try{ localStorage.removeItem(KEYS.floors); }catch(e){}   // a new mission starts with no floors built
     return session;
+  }
+
+  // The level for this mission. Games fall back to L1 when opened without the title screen.
+  function level(){
+    const a = getAgent();
+    return a && LEVELS[a.level] ? a.level : "L1";
+  }
+
+  /* ---------- Teacher unlock ---------- */
+  function unlockTeacher(pin){
+    if(String(pin).trim() !== TEACHER_PIN) return false;
+    try{ sessionStorage.setItem(KEYS.teacher, "1"); }catch(e){}
+    return true;
+  }
+  function isTeacher(){
+    try{ return sessionStorage.getItem(KEYS.teacher) === "1"; }catch(e){ return false; }
+  }
+  function lockTeacher(){
+    try{ sessionStorage.removeItem(KEYS.teacher); }catch(e){}
   }
 
   function getAgent(){ return read(KEYS.agent, null); }
@@ -194,7 +220,8 @@
   window.Primenet = {
     LEVELS, LEVEL_ORDER, STAGES,
     getSettings, setSettings, allowedLevels,
-    startSession, getAgent, log,
+    startSession, getAgent, level, log,
+    unlockTeacher, isTeacher, lockTeacher,
     getRecords, summary, suggestedLevel,
     exportData, downloadRecord, importRecords, clearRecords,
     randomCodename,

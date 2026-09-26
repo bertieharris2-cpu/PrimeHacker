@@ -845,7 +845,12 @@
     </div>
   </div>
 
+  <script src="../shared/primenet.js"></script>
   <script>
+    const PN = window.Primenet;
+    const TEACHER = !!(PN && PN.isTeacher());
+    const FLOORS_NEEDED = 3;
+
     // ===== AUDIO MANAGER =====
     class AudioManager {
       constructor(){
@@ -1112,7 +1117,7 @@
       L2: [25, 28, 30, 32, 36, 40, 42, 45, 48, 50, 54, 56, 63, 64],
       L3: [60, 72, 80, 84, 90, 96, 100]
     };
-    let currentDifficulty = 'L1';
+    let currentDifficulty = PN ? PN.level() : 'L1';   // set on the title screen
 
     // ===== GAME STATE =====
     let N = 12; // Game-set value (not user-selectable)
@@ -1169,7 +1174,10 @@
 
     // ===== DIFFICULTY SYSTEM =====
     function pickRandomFromDifficulty(difficulty){
-      const nums = VALID_N[difficulty] || VALID_N['L1'];
+      const all = VALID_N[difficulty] || VALID_N['L1'];
+      const done = getCompletedLevels();
+      const fresh = all.filter(n => !done.includes(n));   // don't repeat a floor already built
+      const nums = fresh.length ? fresh : all;
       return nums[Math.floor(Math.random() * nums.length)];
     }
 
@@ -1415,11 +1423,11 @@
         // Check for completion
         if(found.size === allPairs.length){
           saveCompletedLevel(); // Save progress
+          if(PN) PN.log("vault-complete", { n: N, level: currentDifficulty });
           setMode("Blueprint Decryption");
-          setHint("🎉 All pairs found!");
-          setTimeout(() => {
-            showCompletionPrompt();
-          }, 200);
+          setHint(`All pairs verified. Reconstructing floor plan for N=${N}…`);
+          submitAllBtn.disabled = true;
+          setTimeout(() => { window.location.href = `vault_grid_demo.html?n=${N}`; }, 1800);
         }
       } else if(totalEntered === 0){
         setHint("Enter at least one pair.");
@@ -1739,7 +1747,9 @@
       found = new Set();
       gameStage = 0;
       setMode("Vault Analysis Terminal");
-      setHint(`Find ${allPairs.length} factor pairs for N=${N}.`);
+      const floor = Math.min(getCompletedLevels().length + 1, FLOORS_NEEDED);
+      setHint(`Floor ${floor} of ${FLOORS_NEEDED}: find all ${allPairs.length} factor pairs for N=${N}.`);
+      if(PN) PN.log("vault", { floor, n: N, level: currentDifficulty });
       renderTable();
       renderVaults();
       // Hide completion prompt when starting new game
@@ -1888,6 +1898,12 @@
 
     // Listen for fullscreen change events (ESC key exit)
     document.addEventListener("fullscreenchange", updateFullscreenUI);
+
+    // Level choice and New Game are teacher-only: students set their level on the title screen
+    if(!TEACHER){
+      document.querySelector(".settings-levels").style.display = "none";
+      settingsBtnNewGame.style.display = "none";
+    }
 
     // Level button event listeners
     btnL1.addEventListener("click", () => { setDifficulty('L1'); init(); updateLevelButtons(); settingsDropdown.classList.remove('open'); });

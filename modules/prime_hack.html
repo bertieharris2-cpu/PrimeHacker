@@ -1068,7 +1068,7 @@ html,body{ font-family: var(--font-ui); }
       <button class="hudBtn toggle" id="hudBtnSound" type="button">KEY SOUND: OFF</button>
       
       <!-- Difficulty Controls in Dropdown -->
-      <div style="display: flex; gap: 6px; border-top: 1px solid rgba(17,75,95,0.25); padding-top: 8px; margin-top: 8px;">
+      <div id="levelControls" style="display: flex; gap: 6px; border-top: 1px solid rgba(17,75,95,0.25); padding-top: 8px; margin-top: 8px;">
         <button class="hudBtn" id="hudBtnL1" type="button" style="flex: 1; padding: 6px 8px; font-size: 11px;">L1</button>
         <button class="hudBtn" id="hudBtnL2" type="button" style="flex: 1; padding: 6px 8px; font-size: 11px;">L2</button>
         <button class="hudBtn" id="hudBtnL3" type="button" style="flex: 1; padding: 6px 8px; font-size: 11px;">L3</button>
@@ -1089,13 +1089,17 @@ html,body{ font-family: var(--font-ui); }
   </div>
 </div>
 
-<!-- Banking System Module -->
+<!-- Mission data (agent, level, record), then the banking system, which keeps a wallet per codename -->
+<script src="../shared/primenet.js"></script>
 <script src="./bank.js"></script>
 
 <script>
 /* =========================
    PRIME HACK – CLEAN CORE
    ========================= */
+
+const PN = window.Primenet;
+const TEACHER = !!(PN && PN.isTeacher());   // level buttons and test controls are teacher-only
 
 // --- Timing & structure config (edit these numbers)
 const PRIME_NET_EFFECTS = {
@@ -1709,6 +1713,7 @@ async function onLockSolved(){
 
   // Bank the run earnings
   const banked = Bank.bankRun(DIFF);
+  if(PN) PN.log("complete", { level: DIFF, banked });
   await showBankingOverlay(banked);
 
   // start fresh run same difficulty
@@ -1769,6 +1774,10 @@ async function handleMath(text){
   if(u==="NEWTARGET"){ newTargetManual(); return; }
   if(u==="RANGE"){
     printRangeHint();
+    return;
+  }
+  if(u.startsWith("LEVEL") && !TEACHER){
+    addLine(`Clearance is locked at ${DIFF} for this mission. It was set on the title screen.`, "warn");
     return;
   }
   if(u.startsWith("LEVEL")){
@@ -1902,7 +1911,7 @@ document.addEventListener("keydown", (e)=>{
 // HOME button handler
 hudBtnHome.addEventListener("click", ()=>{
   settingsDropdown.classList.remove("open");
-  // Navigate to parent hub (might need to adjust path depending on deployment)
+  // Back to the title screen
   window.location.href = "../index.html";
 });
 
@@ -1969,7 +1978,12 @@ hiddenInput.addEventListener("keydown", async (e)=>{
 // --- Boot
 function boot(){
   setMode("roleplay");
-  setDiff("L1");
+  setDiff(PN ? PN.level() : "L1");   // the level chosen on the title screen
+  if(!TEACHER){
+    document.getElementById("levelControls").style.display = "none";
+    document.getElementById("hudBtnTestFlood").style.display = "none";
+  }
+  if(PN) PN.log("hack", { level: DIFF });
   updateLevelButtons();
   Run.locksPerRun = PRIME_NET_EFFECTS.locksPerRun;
   newRunSameDifficulty();

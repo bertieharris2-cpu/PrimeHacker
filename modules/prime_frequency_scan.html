@@ -418,9 +418,12 @@
     </div>
   </div>
 
+<script src="../shared/primenet.js"></script>
 <script>
 (() => {
   "use strict";
+  const PN = window.Primenet;
+  if(PN) PN.log("scan");
 
   // ====== CONFIG (edit safely, no spaghetti) ======
   const CONFIG = {
@@ -724,11 +727,11 @@
     const sub = el("div", { class: "sub", text: "All bands verified. Secure channels stabilised." });
 
     const proceed = el("button", {
-      text: "PROCEED TO ENCRYPTION",
+      text: "PROCEED TO THE VAULT",
       onClick: () => {
-        // Placeholder hook: replace with navigation into Prime Hacker later.
-        setConsole("ROUTE SET", "Next module: PRIME HACKER (hook not yet connected).");
-        flashAccessGranted();
+        setConsole("ROUTE SET", "Next module: FACTOR VAULT.");
+        if(PN) PN.log("scan-complete");
+        flashAccessGranted(() => { location.href = "factor_vault.html"; });
       }
     });
 
@@ -742,7 +745,7 @@
     main.append(title, segs, sub, btnRow);
   }
 
-  function flashAccessGranted(){
+  function flashAccessGranted(onDone){
     // Simple centre overlay: code rain vibe without heavy graphics
     const overlay = el("div", {
       style: `
@@ -811,7 +814,7 @@
       barWrap.setAttribute("aria-valuenow", String(p));
       if (p >= 100){
         clearInterval(t);
-        setTimeout(() => overlay.remove(), 900);
+        setTimeout(() => { overlay.remove(); if(typeof onDone === "function") onDone(); }, 900);
       }
     }, 90);
   }
@@ -900,7 +903,8 @@
   devBtn.type = "button";
   devBtn.textContent = "DEV";
   devBtn.addEventListener("click", toggleDevLab);
-  document.body.appendChild(devBtn);
+  const teacherMode = !!(PN && PN.isTeacher());   // the Dev panel is for the teacher only
+  if(teacherMode) document.body.appendChild(devBtn);
 
   const panel = document.createElement("div");
   panel.className = "devPanel";
@@ -959,7 +963,7 @@
   panel.querySelector("#devClose").addEventListener("click", () => toggleDevLab());
 
   document.addEventListener("keydown", (e) => {
-    if (e.key.toLowerCase() === "d"){
+    if (teacherMode && e.key.toLowerCase() === "d"){
       toggleDevLab();
     }
   });
