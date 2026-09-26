@@ -81,6 +81,7 @@
 - [x] Agreed style applied to every game: shared colours (blue for build stages, green for hack stages), Inter + Courier Prime, sharp corners, scanline texture
 - [x] Prime Hack: always-visible hint strip, `PRIME? n`, `HINT` (merged with `RANGE`), answers are just two numbers, NEW TARGET and the Assist toggle removed for students
 - [x] Factor Vault: flipped arrays always shown, tick box removed
+- [x] Play-test feedback 1: teal lifted; Vault Grid and Blueprint back to the green-and-blue mix (Factor Vault arrays green too); Prime Hack hint shows only on the first lock and after mistakes; HINT and HELP formatted as boxes; a banner for each new lock; sounds throughout (`shared/sound.js`) with a sound check in the teacher controls
 - [ ] Success screen prototypes
 
 ## Success screens (first pass)

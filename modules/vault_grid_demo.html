@@ -11,13 +11,14 @@
 <title>Vault Laser Grid Demo — N=18 (v2 random layout + staggered concurrency)</title>
 <style>
   :root{
-    --fill1: rgba(var(--accent-rgb), 0.65);
-    --fill2: rgba(var(--accent-rgb), 0.45);
+    /* Original mix: green power fill, blue lasers and flow, teal locked borders */
+    --fill1: rgba(var(--accent-hack-rgb), 0.65);
+    --fill2: rgba(var(--accent-hack-rgb), 0.45);
     --flow1: rgba(var(--accent-rgb), 0.55);
     --flow2: rgba(var(--accent-rgb), 0.30);
     --laser: rgba(var(--accent-rgb), 0.85);
-    --lock: rgba(var(--accent-rgb), 0.80);
-    --frame: rgba(var(--accent-rgb), 0.70);
+    --lock: rgba(0, 215, 184, 0.80);
+    --frame: rgba(var(--accent-hack-rgb), 0.70);
     --text: rgba(235, 255, 248, 0.85);
     --text-muted: rgba(235, 255, 248, 0.55);
     --border: rgba(17, 75, 95, 0.40);
@@ -211,6 +212,12 @@
     transform-origin: 50% 50%;
   }
 
+
+.pn-powerup{ position:fixed; inset:0; z-index:9999; display:flex; align-items:center; justify-content:center; background:rgba(4,14,17,.72); font-family:var(--font-ui); }
+.pn-powerup div{ border:1px solid rgba(var(--accent-rgb),.6); background:rgba(9,32,38,.92); padding:22px 30px; text-align:center; letter-spacing:.16em; font-weight:700; color:var(--accent); animation:pnPulse 1.4s ease-in-out infinite; }
+.pn-powerup small{ display:block; margin-top:8px; letter-spacing:.06em; font-weight:400; color:var(--text-muted); }
+@keyframes pnPulse{ 50%{ box-shadow:0 0 24px rgba(var(--accent-rgb),.35); } }
+
 /* ===== PRIMENET shared style (docs/STYLE.md). Keep this block last. ===== */
 html, body{ background: var(--bg-primary) !important; }
 body{ color: var(--text-primary); }
@@ -219,6 +226,7 @@ body::before{
   z-index: 0; filter: none !important; opacity: 1 !important; animation: none !important; transform: none !important;
   background:
     radial-gradient(1100px 700px at 30% 15%, rgba(var(--accent-rgb), .07), transparent 60%),
+    radial-gradient(1400px 900px at 75% 85%, rgba(20,120,130,.22), transparent 65%),
     repeating-linear-gradient(0deg, rgba(255,255,255,.022) 0 1px, transparent 1px 7px),
     repeating-linear-gradient(90deg, rgba(255,255,255,.014) 0 1px, transparent 1px 30px) !important;
 }
@@ -259,10 +267,10 @@ button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [clas
   </div>
 
   <div class="legend">
-    <div><span class="sw" style="background:var(--accent)"></span>Laser outline</div>
-    <div><span class="sw" style="background:var(--accent)"></span>Power flow</div>
-    <div><span class="sw" style="background:var(--accent)"></span>Array fill</div>
-    <div><span class="sw" style="background:var(--accent)"></span>Locked border</div>
+    <div><span class="sw" style="background:#4aa3ff"></span>Laser outline</div>
+    <div><span class="sw" style="background:#6fb8ff"></span>Power flow</div>
+    <div><span class="sw" style="background:var(--accent-hack)"></span>Array fill</div>
+    <div><span class="sw" style="background:#00d7b8"></span>Locked border</div>
   </div>
   <div class="hint">Now uses a random non-overlapping layout each run, and arrays animate with staggered overlap (smoother, less “one-by-one”).</div>
 
@@ -317,8 +325,20 @@ button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [clas
 </div>
 
 <script src="../shared/primenet.js"></script>
+<script src="../shared/sound.js"></script>
 <script>
 const PN = window.Primenet;
+const SND = (name, arg) => { if(window.PNSound) PNSound.play(name, arg); };
+let fillCount = 0;
+// Browsers only play sound after a key press on the page. If it isn't allowed yet, ask for one before the animation.
+function powerUpPrompt(title){
+  const ov = document.createElement("div");
+  ov.className = "pn-powerup";
+  ov.innerHTML = `<div>${title}<small>Press any key or click to continue</small></div>`;
+  document.body.appendChild(ov);
+  return () => ov.remove();
+}
+
 const TEACHER = !!(PN && PN.isTeacher());   // layout and 3D test controls are teacher-only
 const FLOORS_NEEDED = 3;
 function floorsBuilt(){ try{ return JSON.parse(localStorage.getItem('blueprintProgress') || '[]').length; }catch(e){ return 0; } }
@@ -502,6 +522,7 @@ function generatePlacements(seed, wanted){
 
 /* ---------- Visual engine ---------- */
 function drawLaser(rect, ms=920){
+  SND("laser");
   const r=document.createElementNS("http://www.w3.org/2000/svg","rect");
   r.setAttribute("x",rect.x*STEP);
   r.setAttribute("y",rect.y*STEP);
@@ -525,6 +546,7 @@ function drawLaser(rect, ms=920){
 }
 
 function lockBorder(rect){
+  SND("seal");
   const r=document.createElementNS("http://www.w3.org/2000/svg","rect");
   r.setAttribute("x",rect.x*STEP);
   r.setAttribute("y",rect.y*STEP);
@@ -548,6 +570,7 @@ async function fillOutsideInPower(rect){
   let l=rect.x,r=rect.x+rect.w-1,t=rect.y,b=rect.y+rect.h-1;
 
   async function flowThenSet(x,y){
+    SND("fill", (fillCount++) % 48);
     setCell(x,y,"flow");
     await pause(settle);
     setCell(x,y,"on");
@@ -830,6 +853,7 @@ async function triggerIsometricMorph(placements){
   
   // Start vault tilt animation (800ms total duration)
   vaultEl.classList.add("tilting-to-iso");
+  SND("rise");
   
   // Show canvas but keep it invisible while tilting
   const canvasWrapper = document.querySelector(".vault3d-wrap");
@@ -1062,11 +1086,13 @@ setNextButton();
 nextFloorBtn.style.visibility = "hidden";
 document.querySelector(".title div:first-child").insertAdjacentHTML("afterend",
   `<div>FLOOR ${Math.max(1, Math.min(floorsBuilt(), FLOORS_NEEDED))} OF ${FLOORS_NEEDED}</div>`);
-initVault(initialN).then(async () => {
+(window.PNSound ? PNSound.whenUnlocked(() => powerUpPrompt("POWER UP THE GRID")) : Promise.resolve())
+.then(() => initVault(initialN)).then(async () => {
   await pause(700);
   if(window.lastPlacements && window.lastPlacements.length) await triggerIsometricMorph(window.lastPlacements);
   await pause(1900);
   nextFloorBtn.style.visibility = "visible";
+  SND("success");
   nextFloorBtn.focus();
 });
 
@@ -1116,13 +1142,13 @@ function drawCuboid(ctx, rect, cellSize, gap, heightPx, mode=1){
   const Ch = {x: C.x + hx, y: C.y + hy};
   const Dh = {x: D.x + hx, y: D.y + hy};
   
-  // Build-phase blue (docs/STYLE.md). Canvas can't read CSS variables, so these are literal.
+  // Green buildings with bright edges: the original Vault Grid mix. Canvas can't read CSS variables.
   const colors = {
-    top:   "rgba(74, 163, 255, 0.55)",
-    left:  "rgba(30, 72, 120, 0.75)",
-    right: "rgba(40, 95, 155, 0.70)",
-    front: "rgba(55, 130, 210, 0.55)",
-    edge:  "rgba(150, 205, 255, 0.9)"
+    top:   "rgba(40, 180, 140, 0.60)",
+    left:  "rgba(20, 100, 80, 0.70)",
+    right: "rgba(25, 120, 100, 0.65)",
+    front: "rgba(35, 150, 120, 0.58)",
+    edge:  "rgba(60, 255, 200, 0.9)"
   };
   
   // LEFT FACE: D → A → Ah → Dh

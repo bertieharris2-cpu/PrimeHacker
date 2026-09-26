@@ -191,6 +191,12 @@
     letter-spacing: 0.08em;
   }
 
+
+.pn-powerup{ position:fixed; inset:0; z-index:9999; display:flex; align-items:center; justify-content:center; background:rgba(4,14,17,.72); font-family:var(--font-ui); }
+.pn-powerup div{ border:1px solid rgba(var(--accent-rgb),.6); background:rgba(9,32,38,.92); padding:22px 30px; text-align:center; letter-spacing:.16em; font-weight:700; color:var(--accent); animation:pnPulse 1.4s ease-in-out infinite; }
+.pn-powerup small{ display:block; margin-top:8px; letter-spacing:.06em; font-weight:400; color:var(--text-muted); }
+@keyframes pnPulse{ 50%{ box-shadow:0 0 24px rgba(var(--accent-rgb),.35); } }
+
 /* ===== PRIMENET shared style (docs/STYLE.md). Keep this block last. ===== */
 html, body{ background: var(--bg-primary) !important; }
 body{ color: var(--text-primary); }
@@ -199,6 +205,7 @@ body::before{
   z-index: 0; filter: none !important; opacity: 1 !important; animation: none !important; transform: none !important;
   background:
     radial-gradient(1100px 700px at 30% 15%, rgba(var(--accent-rgb), .07), transparent 60%),
+    radial-gradient(1400px 900px at 75% 85%, rgba(20,120,130,.22), transparent 65%),
     repeating-linear-gradient(0deg, rgba(255,255,255,.022) 0 1px, transparent 1px 7px),
     repeating-linear-gradient(90deg, rgba(255,255,255,.014) 0 1px, transparent 1px 30px) !important;
 }
@@ -226,8 +233,19 @@ button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [clas
   <!-- Three.js is included with the game so the 3D view works without internet -->
   <script src="../shared/vendor/three.min.js"></script>
   <script src="../shared/primenet.js"></script>
+  <script src="../shared/sound.js"></script>
   <script>
     const PN = window.Primenet;
+    const SND = (name, arg) => { if(window.PNSound) PNSound.play(name, arg); };
+// Browsers only play sound after a key press on the page. If it isn't allowed yet, ask for one before the animation.
+function powerUpPrompt(title){
+  const ov = document.createElement("div");
+  ov.className = "pn-powerup";
+  ov.innerHTML = `<div>${title}<small>Press any key or click to continue</small></div>`;
+  document.body.appendChild(ov);
+  return () => ov.remove();
+}
+
     // Load completed levels from localStorage
     let completed = JSON.parse(localStorage.getItem('blueprintProgress') || '[]');
     
@@ -287,7 +305,12 @@ button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [clas
       if(PN && !DEMO_MODE) PN.log("blueprint", { floors: sorted });
 
       // Initialize shared Three.js scene with all floors
-      initializeSharedScene(floors, canvasContainer);
+      // Wait for sound to be allowed, then build: a pop per box, and a chord when the bank is complete
+      (window.PNSound ? PNSound.whenUnlocked(() => powerUpPrompt("ASSEMBLE THE BLUEPRINT")) : Promise.resolve()).then(() => {
+        initializeSharedScene(floors, canvasContainer);
+        const boxes = floors.reduce((m, f) => Math.max(m, getFactorPairs(f.n).length), 0);
+        setTimeout(() => SND("success"), 180 + boxes * 90 + 800);
+      });
       
       // Proceed button handler
       document.getElementById('proceedToHackBtn').addEventListener('click', () => {
@@ -317,9 +340,9 @@ button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [clas
       camera.lookAt(0, 18, 0);
 
       // lights
-      const ambient = new THREE.AmbientLight(0xd6e9ff, 0.45);
+      const ambient = new THREE.AmbientLight(0xaaffee, 0.45);
       scene.add(ambient);
-      const dir = new THREE.DirectionalLight(0xd6e9ff, 0.6);
+      const dir = new THREE.DirectionalLight(0xaaffee, 0.6);
       dir.position.set(0.5, 1, 0.2);
       scene.add(dir);
 
@@ -386,7 +409,7 @@ button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [clas
 
       const cuboidGeom = new THREE.BoxGeometry(maxExtentX * 2, totalHeight, maxExtentZ * 2);
       const cuboidEdges = new THREE.EdgesGeometry(cuboidGeom);
-      const edgeMat = new THREE.LineBasicMaterial({ color: 0x6fb8ff, transparent: true, opacity: 0.2, linewidth: 1 });
+      const edgeMat = new THREE.LineBasicMaterial({ color: 0x00ffcc, transparent: true, opacity: 0.2, linewidth: 1 });
       const wireframe = new THREE.LineSegments(cuboidEdges, edgeMat);
       wireframe.position.y = centerY + 9;
       mainGroup.add(wireframe);
@@ -398,7 +421,7 @@ button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [clas
       const wireframeBottomY = (centerY + 9) - totalHeight / 2;  // 9
       
       // First dividing plane (1/3 up)
-      const gridDiv1 = new THREE.GridHelper(Math.max(cuboidWidth, cuboidDepth), 16, 0x6fb8ff, 0x12304a);
+      const gridDiv1 = new THREE.GridHelper(Math.max(cuboidWidth, cuboidDepth), 16, 0x00ffcc, 0x003844);
       gridDiv1.position.y = wireframeBottomY + thirdHeight;
       gridDiv1.scale.set(cuboidWidth / Math.max(cuboidWidth, cuboidDepth), 1, cuboidDepth / Math.max(cuboidWidth, cuboidDepth));
       gridDiv1.material.transparent = true;
@@ -407,7 +430,7 @@ button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [clas
       gridReferences.push(gridDiv1);
       
       // Second dividing plane (2/3 up)
-      const gridDiv2 = new THREE.GridHelper(Math.max(cuboidWidth, cuboidDepth), 16, 0x6fb8ff, 0x12304a);
+      const gridDiv2 = new THREE.GridHelper(Math.max(cuboidWidth, cuboidDepth), 16, 0x00ffcc, 0x003844);
       gridDiv2.position.y = wireframeBottomY + thirdHeight * 2;
       gridDiv2.scale.set(cuboidWidth / Math.max(cuboidWidth, cuboidDepth), 1, cuboidDepth / Math.max(cuboidWidth, cuboidDepth));
       gridDiv2.material.transparent = true;
@@ -416,7 +439,7 @@ button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [clas
       gridReferences.push(gridDiv2);
       
       // Bottom face grid
-      const gridBottom = new THREE.GridHelper(Math.max(cuboidWidth, cuboidDepth), 16, 0x6fb8ff, 0x12304a);
+      const gridBottom = new THREE.GridHelper(Math.max(cuboidWidth, cuboidDepth), 16, 0x00ffcc, 0x003844);
       gridBottom.position.y = wireframeBottomY;
       gridBottom.scale.set(cuboidWidth / Math.max(cuboidWidth, cuboidDepth), 1, cuboidDepth / Math.max(cuboidWidth, cuboidDepth));
       gridBottom.material.transparent = true;
@@ -488,7 +511,7 @@ button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [clas
       const floorGroup = new THREE.Group();
       group.add(floorGroup);
 
-      const boxColor = 0x4aa3ff;
+      const boxColor = 0x00ff99;   // green buildings with teal edges (the original mix), blue labels
 
       pairs.forEach((p, i) => {
         const a = p[0], b = p[1];
@@ -505,7 +528,7 @@ button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [clas
         const mesh = new THREE.Mesh(geom, mat);
 
         const geoWire = new THREE.EdgesGeometry(geom);
-        const line = new THREE.LineSegments(geoWire, new THREE.LineBasicMaterial({ color: 0x6fb8ff, linewidth: 1 }));
+        const line = new THREE.LineSegments(geoWire, new THREE.LineBasicMaterial({ color: 0x00ffcc, linewidth: 1 }));
         mesh.add(line);
 
         const col = i % cols;
@@ -519,6 +542,7 @@ button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [clas
 
         // animation per box
         setTimeout(() => {
+          SND("pop", i);
           const start = performance.now();
           const duration = 700;
           function anim(t){

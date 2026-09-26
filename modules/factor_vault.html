@@ -407,8 +407,8 @@
     .array-cell{
       width: var(--grid-unit);
       height: var(--grid-unit);
-      background: rgba(var(--accent-rgb),.18);
-      box-shadow: 0 0 0 1px rgba(var(--accent-rgb),.10) inset;
+      background: rgba(var(--accent-hack-rgb),.26);   /* green arrays on the blue interface, like the Vault Grid */
+      box-shadow: 0 0 0 1px rgba(var(--accent-hack-rgb),.22) inset;
       border: none;
       box-sizing: border-box;
       margin: 0;
@@ -760,6 +760,7 @@ body::before{
   z-index: 0; filter: none !important; opacity: 1 !important; animation: none !important; transform: none !important;
   background:
     radial-gradient(1100px 700px at 30% 15%, rgba(var(--accent-rgb), .07), transparent 60%),
+    radial-gradient(1400px 900px at 75% 85%, rgba(20,120,130,.22), transparent 65%),
     repeating-linear-gradient(0deg, rgba(255,255,255,.022) 0 1px, transparent 1px 7px),
     repeating-linear-gradient(90deg, rgba(255,255,255,.014) 0 1px, transparent 1px 30px) !important;
 }
@@ -863,6 +864,7 @@ body{ font-size: var(--font-size); }
   </div>
 
   <script src="../shared/primenet.js"></script>
+  <script src="../shared/sound.js"></script>
   <script>
     const PN = window.Primenet;
     const TEACHER = !!(PN && PN.isTeacher());
@@ -894,6 +896,7 @@ body{ font-size: var(--font-size); }
       }
 
       playCorrectTone(){
+        if(window.PNSound){ PNSound.play("correct", Math.max(0, found.size - 1)); return; }   // bell climbs with each pair
         if(!this.soundEnabled || !this.initAudioContext()) return;
         
         const ctx = this.audioContext;
@@ -942,6 +945,7 @@ body{ font-size: var(--font-size); }
       }
 
       playIncorrectTone(){
+        if(window.PNSound){ PNSound.play("wrong"); return; }
         if(!this.soundEnabled || !this.initAudioContext()) return;
         
         const now = Date.now();
@@ -979,6 +983,7 @@ body{ font-size: var(--font-size); }
       }
 
       playTileSpawn(){
+        if(window.PNSound){ PNSound.play("pop", Math.floor(Math.random()*6)); return; }
         if(!this.soundEnabled || !this.initAudioContext()) return;
         
         const now = Date.now();
@@ -1074,12 +1079,14 @@ body{ font-size: var(--font-size); }
 
       toggleSound(){
         this.soundEnabled = !this.soundEnabled;
+        if(window.PNSound) PNSound.setOn(this.soundEnabled);
         this.savePreferences();
         return this.soundEnabled;
       }
 
       setVolume(value){
         this.masterVolume = Math.max(0, Math.min(1, value / 100));
+        if(window.PNSound) PNSound.setVolume(this.masterVolume);
         this.savePreferences();
       }
 
@@ -1094,6 +1101,7 @@ body{ font-size: var(--font-size); }
         
         if(savedEnabled !== null) this.soundEnabled = JSON.parse(savedEnabled);
         if(savedVolume !== null) this.masterVolume = JSON.parse(savedVolume);
+        if(window.PNSound){ this.soundEnabled = PNSound.isOn(); this.masterVolume = PNSound.getVolume(); }   // one switch for the whole game
       }
     }
 
@@ -1441,6 +1449,7 @@ body{ font-size: var(--font-size); }
         if(found.size === allPairs.length){
           saveCompletedLevel(); // Save progress
           if(PN) PN.log("vault-complete", { n: N, level: currentDifficulty });
+          setTimeout(() => { if(window.PNSound) PNSound.play("success"); }, 350);
           setMode("Blueprint Decryption");
           setHint(`All pairs verified. Reconstructing floor plan for N=${N}…`);
           submitAllBtn.disabled = true;

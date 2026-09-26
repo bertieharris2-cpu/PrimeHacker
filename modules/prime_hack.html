@@ -990,7 +990,32 @@ html,body{ font-family: var(--font-ui); }
 }
 
 
+/* New lock banner */
+.lockBanner{ margin:16px 0 8px; display:flex; align-items:center; gap:14px 22px; flex-wrap:wrap; padding:10px 16px; border:1px solid rgba(var(--accent-rgb),.55); border-left:5px solid var(--accent); background:rgba(var(--accent-rgb),.09); animation:lbIn .45s cubic-bezier(.2,.9,.3,1); }
+.lockBanner .lb-top{ font-family:var(--font-ui); font-weight:800; font-size:13px; letter-spacing:.18em; color:var(--accent); }
+.lockBanner .lb-n{ font-family:var(--font-mono); font-size:28px; font-weight:700; color:var(--text-primary); letter-spacing:.04em; }
+.lockBanner .lb-pips{ display:flex; gap:5px; }
+.lockBanner .lb-pips span{ width:14px; height:14px; border:1px solid rgba(var(--accent-rgb),.6); }
+.lockBanner .lb-pips span.done{ background:var(--accent); }
+.lockBanner .lb-pips span.cur{ border-color:var(--warning); box-shadow:0 0 8px rgba(242,193,78,.5); animation:lbPulse 1.2s ease-in-out infinite; }
+.lockBanner .lb-note{ font-family:var(--font-ui); font-size:13px; color:var(--text-muted); }
+@keyframes lbIn{ from{ opacity:0; transform:translateX(-14px); } }
+@keyframes lbPulse{ 50%{ background:rgba(242,193,78,.35); } }
+
+/* Formatted HINT and HELP packets in the terminal */
+.infoBlock{ margin:12px 0; max-width:820px; padding:12px 16px; border:1px solid rgba(242,193,78,.4); background:rgba(242,193,78,.05); font-family:var(--font-ui); font-size:16px; line-height:1.5; color:var(--text-primary); white-space:normal; }
+.infoBlock .ib-head{ font-weight:800; font-size:13px; letter-spacing:.16em; color:var(--warning); margin-bottom:6px; }
+.infoBlock .ib-row{ display:grid; grid-template-columns:130px 1fr; gap:4px 14px; padding:8px 0; border-top:1px solid rgba(242,193,78,.15); }
+.infoBlock .ib-k{ font-size:11px; font-weight:700; letter-spacing:.12em; color:var(--text-muted); padding-top:4px; }
+.infoBlock ul{ margin:0; padding-left:18px; }
+.infoBlock li{ margin:2px 0; }
+.infoBlock .chip{ display:inline-block; font-family:var(--font-mono); font-weight:700; border:1px solid rgba(var(--accent-rgb),.55); color:var(--accent); padding:0 8px; margin:2px 5px 2px 0; }
+.infoBlock code{ font-family:var(--font-mono); font-weight:700; color:var(--accent); }
+.infoBlock .ib-tip{ font-size:14px; color:var(--text-muted); padding-top:6px; border-top:1px solid rgba(242,193,78,.15); }
+@media (max-width:700px){ .infoBlock .ib-row{ grid-template-columns:1fr; } }
+
 /* Always-visible hint strip */
+.hintStrip[hidden]{ display:none !important; }
 .hintStrip{ display:flex; gap:12px; align-items:baseline; flex-shrink:0; margin-top:8px; padding:8px 12px; border:1px solid rgba(242,193,78,.35); background:rgba(242,193,78,.06); font-family:var(--font-ui); font-size:15px; line-height:1.45; color:var(--text-primary); }
 .hintStrip .hintTag{ font-weight:700; font-size:11px; letter-spacing:.14em; color:var(--warning); flex-shrink:0; }
 .hintStrip b{ font-family:var(--font-mono); color:var(--warning); font-weight:700; }
@@ -1003,6 +1028,7 @@ body::before{
   z-index: 0; filter: none !important; opacity: 1 !important; animation: none !important; transform: none !important;
   background:
     radial-gradient(1100px 700px at 30% 15%, rgba(var(--accent-rgb), .07), transparent 60%),
+    radial-gradient(1400px 900px at 75% 85%, rgba(20,120,130,.22), transparent 65%),
     repeating-linear-gradient(0deg, rgba(255,255,255,.022) 0 1px, transparent 1px 7px),
     repeating-linear-gradient(90deg, rgba(255,255,255,.014) 0 1px, transparent 1px 30px) !important;
 }
@@ -1058,7 +1084,7 @@ button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [clas
           <div class="terminal" id="term" aria-label="terminal output" role="log"></div>
 
           <!-- Always-visible hint (from the Option A layout). Changes with what the student is doing. -->
-          <div class="hintStrip" id="hintStrip" aria-live="polite"><span class="hintTag">HINT</span><span id="hintText"></span></div>
+          <div class="hintStrip" id="hintStrip" aria-live="polite" hidden><span class="hintTag">HINT</span><span id="hintText"></span></div>
 
           <div class="promptRow">
             <div class="prompt">student@lifehouse:~$</div>
@@ -1117,6 +1143,7 @@ button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [clas
 
 <!-- Mission data (agent, level, record), then the banking system, which keeps a wallet per codename -->
 <script src="../shared/primenet.js"></script>
+<script src="../shared/sound.js"></script>
 <script src="./bank.js"></script>
 
 <script>
@@ -1219,6 +1246,21 @@ function addLine(text, cls="sys"){
   term.scrollTop = term.scrollHeight;
 }
 function addBlank(){ addLine(" ", "sys"); }
+function addBlock(html, cls){
+  const div = document.createElement("div");
+  div.className = cls;
+  div.innerHTML = html;
+  term.appendChild(div);
+  term.scrollTop = term.scrollHeight;
+  return div;
+}
+// A clear banner each time a lock comes online
+function lockBanner(note){
+  const pips = Array.from({length: Run.locksPerRun}, (_, i) =>
+    `<span class="${i < Run.index - 1 ? "done" : i === Run.index - 1 ? "cur" : ""}"></span>`).join("");
+  addBlock(`<span class="lb-top">LOCK ${Run.index} OF ${Run.locksPerRun}</span><span class="lb-n">N = ${Run.n}</span><span class="lb-pips" aria-hidden="true">${pips}</span>${note ? `<span class="lb-note">${note}</span>` : ""}`, "lockBanner");
+  if(window.PNSound) PNSound.play("newlock");
+}
 
 function randInt(n){ return Math.floor(Math.random()*n); }
 function pick(arr){ return arr[randInt(arr.length)]; }
@@ -1232,17 +1274,29 @@ function setMode(next){
 }
 
 // --- Always-visible hint strip
+// The hint shows when it helps (first lock, after a mistake), not all the time
 function setHint(html){
   const el = document.getElementById("hintText");
   if(el) el.innerHTML = html;
+  const strip = document.getElementById("hintStrip");
+  if(strip) strip.hidden = false;
 }
+function hideHint(){
+  const strip = document.getElementById("hintStrip");
+  if(strip) strip.hidden = true;
+}
+const hintIntro = { roleplay:false, math:false };
 function primesUpTo(n){ const out=[]; for(let i=2;i<=n;i++) if(isPrime(i)) out.push(i); return out; }
 // The opening hint for the current lock (or for roleplay mode)
 function lockHint(){
   if(MODE !== "math"){
+    if(hintIntro.roleplay){ hideHint(); return; }
+    hintIntro.roleplay = true;
     setHint("Roleplay: type anything and press Enter. Press <b>MODE</b> when you're ready to crack the lock.");
     return;
   }
+  if(hintIntro.math){ hideHint(); return; }   // only the first lock gets the how-to
+  hintIntro.math = true;
   const root = Math.floor(Math.sqrt(Run.n));
   const cands = primesUpTo(root);
   setHint(`Find two primes that multiply to make <b>${Run.n}</b>. Type both numbers with a space between them. ` +
@@ -1262,7 +1316,7 @@ function updateLevelButtons(){
 }
 
 function updateRunUI(){
-  if(typeof lockHint === "function" && Run.tries === 0) setTimeout(lockHint, 0);
+  if(typeof lockHint === "function" && Run.tries === 0 && MODE === "math") setTimeout(lockHint, 0);
   runLabel.textContent = `${Run.index}/${Run.locksPerRun}`;
   targetLabel.textContent = `N=${Run.n}`;
   walletLabel.textContent = Bank.formatGBP(Bank.getWalletBalance());
@@ -1347,44 +1401,15 @@ async function typeOut(lines, cls="sys", cps=28){
   }
 }
 
-// --- Sound (simple WebAudio, optional)
-const Sound = (() => {
-  let ctx=null;
-  function ensure(){
-    if(!ctx) ctx = new (window.AudioContext||window.webkitAudioContext)();
-    if(ctx.state==="suspended") ctx.resume().catch(()=>{});
-  }
-  function beep(freq=880, dur=0.06, gain=0.06){
-    if(!soundOn) return;
-    ensure();
-    const o = ctx.createOscillator();
-    const g = ctx.createGain();
-    o.type="square";
-    o.frequency.value=freq;
-    g.gain.value=gain;
-    o.connect(g); g.connect(ctx.destination);
-    o.start();
-    o.stop(ctx.currentTime+dur);
-  }
-  function tap(){ beep(980, 0.015, 0.015); }
-  function ok(){ beep(660, 0.07, 0.06); setTimeout(()=>beep(990,0.06,0.05), 80); }
-  function ready(){ beep(1200, 0.05, 0.05); }
-  function commit(){ beep(520, 0.05, 0.06); }
-  function hackery(){
-    if(!soundOn) return;
-    ensure();
-    // Rapid digital beeps with rising pitch for hacker vibe
-    for(let i=0; i<8; i++){
-      setTimeout(()=>{
-        const freq = 400 + (i*100);
-        beep(freq, 0.04, 0.04);
-      }, i*40);
-    }
-  }
-  function win(){ beep(440,0.10,0.07); setTimeout(()=>beep(660,0.10,0.07), 110); setTimeout(()=>beep(880,0.10,0.07), 220); }
-  return { tap, ok, ready, commit, win, hackery };
-})();
-
+// --- Sound: shared PRIMENET sounds (shared/sound.js). KEY SOUND only controls typing clicks.
+const Sound = {
+  tap(){ if(soundOn && window.PNSound) PNSound.play("key"); },
+  ok(){ if(window.PNSound) PNSound.play("lock"); },
+  ready(){ if(window.PNSound) PNSound.play("ready"); },
+  commit(){ if(window.PNSound) PNSound.play("commit"); },
+  win(){ if(window.PNSound) PNSound.play("success"); },
+  hackery(){ if(window.PNSound) PNSound.play("laser"); },
+};
 // --- Mini reward overlay
 async function miniReward(lockIdx, withdrawnAmount){
   const msg = MINI_REWARDS[Math.min(lockIdx-1, MINI_REWARDS.length-1)];
@@ -1744,10 +1769,11 @@ async function onLockSolved(){
     // Withdraw funds from target account
     const withdrawn = Bank.withdrawForLock(DIFF, Run.index);
     Sound.ok();
+    setTimeout(() => { if(window.PNSound) PNSound.play("cash"); }, 700);
     await miniReward(Run.index, withdrawn);
     Run.index += 1;
     newTargetNextLock();
-    addLine(`NEXT LOCK // N=${Run.n}  (Run ${Run.index}/${Run.locksPerRun})`, "sys");
+    lockBanner(Run.index === Run.locksPerRun ? "Final lock: crack it to breach the vault" : "");
     return;
   }
 
@@ -1762,11 +1788,13 @@ async function onLockSolved(){
   // Bank the run earnings
   const banked = Bank.bankRun(DIFF);
   if(PN) PN.log("complete", { level: DIFF, banked });
+  if(window.PNSound) PNSound.play("cash");
   await showBankingOverlay(banked);
 
   // start fresh run same difficulty
   newRunSameDifficulty();
-  addLine(`NEW RUN READY // N=${Run.n}`, "sys");
+  addBlank();
+  lockBanner("New run. Bigger withdrawals await.");
 }
 
 // --- Prime checking
@@ -1784,12 +1812,10 @@ function parsePair(text){
 }
 
 function printHelp(){
-  addLine("PRIME HACK HELP", "warn");
-  addLine("Goal: find two primes that multiply to make N.", "sys");
-  addLine("Answer: type the two numbers with a space, e.g. 3 7", "sys");
-  addLine("HINT       clues about this lock", "sys");
-  addLine("PRIME? n   test whether a number is prime, e.g. PRIME? 91", "sys");
-  addLine("MODE MATH / MODE ROLEPLAY   switch mode", "sys");
+  addBlock(`<div class="ib-head">PRIME HACK HELP</div>
+    <div class="ib-row"><span class="ib-k">GOAL</span><span>Find two primes that multiply to make N.</span></div>
+    <div class="ib-row"><span class="ib-k">TO ANSWER</span><span>Type both numbers with a space between them, then press Enter.</span></div>
+    <div class="ib-row"><span class="ib-k">COMMANDS</span><span><code>HINT</code> clues about this lock<br><code>PRIME? 91</code> test whether a number is prime<br><code>MODE MATH</code> / <code>MODE ROLEPLAY</code> switch mode</span></div>`, "infoBlock");
 }
 
 // PRIME? n: tests a number and, if it isn't prime, shows why
@@ -1803,26 +1829,24 @@ function printPrimeTest(raw){
   for(let i=2;i*i<=n;i++){ if(n%i===0){ addLine(`Evidence: ${i} × ${n/i} = ${n}`, "sys"); return; } }
 }
 
-// HINT (RANGE also works): divisibility clues, then the prime pools for this lock
+// HINT (RANGE also works): divisibility clues, what to check first, and the prime pools for this lock
 function printRangeHint(){
   const n = Run.n;
   const digitSum = String(n).split("").reduce((a,d)=>a+Number(d),0);
-  addLine("HINT_PACKET //", "warn");
-  addLine(n % 2 === 0 ? `• ${n} is even, so 2 is one of the primes.` : `• ${n} is odd, so 2 is not one of the primes.`, "sys");
-  if(n % 5 === 0) addLine(`• ${n} ends in 0 or 5, so it divides by 5.`, "sys");
-  addLine(`• Digits add to ${digitSum}${digitSum % 3 === 0 ? ", which divides by 3, so 3 works." : ", which doesn't divide by 3, so 3 won't work."}`, "sys");
-  // Based on current difficulty + lock index band
+  const clues = [
+    n % 2 === 0 ? `${n} is even, so <b>2</b> is one of the primes.` : `${n} is odd, so 2 is <b>not</b> one of the primes.`,
+    `The digits add to ${digitSum}. ${digitSum % 3 === 0 ? "That divides by 3, so <b>3</b> goes into " + n + "." : "That doesn't divide by 3, so 3 won't work."}`,
+  ];
+  if(n % 5 === 0) clues.push(`${n} ends in 0 or 5, so <b>5</b> goes into it.`);
   const band = DIFF_BANDS[DIFF][Math.min(Run.index-1, DIFF_BANDS[DIFF].length-1)];
-  const pList = band.p.slice().sort((a,b)=>a-b);
-  const qList = band.q.slice().sort((a,b)=>a-b);
-  const sqrtN = Math.floor(Math.sqrt(Run.n));
-  addLine("PRIME POOLS FOR THIS LOCK", "warn");
-  addLine(`Target N = ${Run.n}`, "sys");
-  addLine(`This lock uses primes from these pools:`, "sys");
-  addLine(`p options: ${pList.join(", ")}  (min ${pList[0]} max ${pList[pList.length-1]})`, "sys");
-  addLine(`q options: ${qList.join(", ")}  (min ${qList[0]} max ${qList[qList.length-1]})`, "sys");
-  addLine(`N is p×q, so at least one factor is ≤ √N = ${sqrtN}.`, "sys");
-  addLine("Tip: try primes ≤ √N first, if it doesn’t divide, move on.", "sys");
+  const chips = list => list.slice().sort((a,b)=>a-b).map(x => `<span class="chip">${x}</span>`).join("");
+  const root = Math.floor(Math.sqrt(n));
+  const first = primesUpTo(root);
+  addBlock(`<div class="ib-head">HINT PACKET // N = ${n}</div>
+    <div class="ib-row"><span class="ib-k">CLUES</span><ul>${clues.map(c => `<li>${c}</li>`).join("")}</ul></div>
+    <div class="ib-row"><span class="ib-k">CHECK FIRST</span><span>The smaller prime is at most √${n} ≈ ${root}.<br>${first.length ? chips(first) : "Try the pools below."}</span></div>
+    <div class="ib-row"><span class="ib-k">PRIME POOLS</span><span>Smaller prime: ${chips(band.p)}<br>Larger prime: ${chips(band.q)}</span></div>
+    <div class="ib-tip">Divide ${n} by each prime in turn. When one goes in exactly, the answer is that prime and what's left.</div>`, "infoBlock");
 }
 
 
@@ -1869,6 +1893,7 @@ async function handleMath(text){
     // Tiny pattern nudge (last digit) without giving the answer away
     addLine(`Pattern check: ${p} ends ${String(p).slice(-1)}, ${q} ends ${String(q).slice(-1)} ⇒ product ends ${String(prod).slice(-1)}`, "sys");
     Run.tries = (Run.tries || 0) + 1;
+    if(window.PNSound) PNSound.play("wrong");
     setHint(Run.tries >= 3
       ? `Stuck? Type <b>HINT</b> for clues, or test a number with <b>PRIME? 91</b>.`
       : `${p} × ${q} = ${prod}, which is too ${prod < Run.n ? "low: try a bigger" : "high: try a smaller"} prime. Target: <b>${Run.n}</b>.`);
@@ -1879,6 +1904,7 @@ async function handleMath(text){
     if(!isPrime(p)) addLine(`${p} is not prime.`, "bad");
     if(!isPrime(q)) addLine(`${q} is not prime.`, "bad");
     Run.tries = (Run.tries || 0) + 1;
+    if(window.PNSound) PNSound.play("denied");
     const bad = !isPrime(p) ? p : q;
     let split = ""; for(let i=2;i*i<=bad;i++){ if(bad%i===0){ split = ` It's ${i} × ${bad/i}.`; break; } }
     setHint(`Right product, but <b>${bad}</b> isn't prime.${split} Break it down and try again.`);
@@ -2035,6 +2061,7 @@ hiddenInput.addEventListener("keydown", async (e)=>{
   }
 
   // Normal mode
+  if(soundOn && e.key && e.key.length === 1) Sound.tap();
   if(e.key==="Enter"){
     e.preventDefault();
     const raw = hiddenInput.value;
@@ -2068,7 +2095,7 @@ function boot(){
   addLine("Warm up: bash the keyboard. Press Enter. Watch it “work”.", "sys");
   addLine("Then switch to MATH mode. Crack the prime lock to breach the vault.", "sys");
   addBlank();
-  addLine(`TARGET ONLINE // N=${Run.n} // Difficulty=${DIFF} // Run 1/${Run.locksPerRun}`, "warn");
+  lockBanner(`Clearance ${DIFF}`);
   addBlank();
   focusInput();
 }

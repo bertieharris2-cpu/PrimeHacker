@@ -401,6 +401,7 @@ body::before{
   z-index: 0; filter: none !important; opacity: 1 !important; animation: none !important; transform: none !important;
   background:
     radial-gradient(1100px 700px at 30% 15%, rgba(var(--accent-rgb), .07), transparent 60%),
+    radial-gradient(1400px 900px at 75% 85%, rgba(20,120,130,.22), transparent 65%),
     repeating-linear-gradient(0deg, rgba(255,255,255,.022) 0 1px, transparent 1px 7px),
     repeating-linear-gradient(90deg, rgba(255,255,255,.014) 0 1px, transparent 1px 30px) !important;
 }
@@ -438,10 +439,12 @@ button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [clas
   </div>
 
 <script src="../shared/primenet.js"></script>
+<script src="../shared/sound.js"></script>
 <script>
 (() => {
   "use strict";
   const PN = window.Primenet;
+  const SND = (name, arg) => { if(window.PNSound) PNSound.play(name, arg); };
   if(PN) PN.log("scan");
 
   // ====== CONFIG (edit safely, no spaghetti) ======
@@ -553,9 +556,11 @@ button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [clas
   function toggleSelected(n){
     if (selected.has(n)){
       selected.delete(n);
+      SND("untag");
       setConsole("SIGNAL REMOVED", `Signal tag cleared: ${n}`);
     } else {
       selected.add(n);
+      SND("tag");
       setConsole("SIGNAL TAGGED", `Signal tagged: ${n}`);
     }
   }
@@ -606,6 +611,7 @@ button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [clas
     const btn = el("button", {
       text: "BEGIN SCAN",
       onClick: () => {
+        SND("start");
         bandIndex = 0;
         progress = new Array(CONFIG.bands.length).fill(false);
         renderScan();
@@ -685,9 +691,11 @@ button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [clas
 
     if (ok){
       progress[bandIndex] = true;
+      SND("correct", bandIndex * 2);
       renderVerified(b);
     } else {
       setConsole("NOISE DETECTED", "Rescan required.");
+      SND("wrong");
       // brief visual cue: flash border by toggling status text class
       statusText.classList.remove("ok", "warn", "bad");
       statusText.classList.add("warn");
@@ -737,6 +745,7 @@ button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [clas
 
   function renderComplete(){
     state = State.COMPLETE;
+    SND("success");
     setStatus("STATUS: READY");
     setConsole("Core systems synchronised.", "Primary encryption now accessible.");
     clearMain();

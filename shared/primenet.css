@@ -2,10 +2,10 @@
    Values come from docs/STYLE.md. Change them here, never inside a game file. */
 
 :root{
-  --bg-primary: #071418;
-  --bg-panel: rgba(6,16,20,.72);
-  --bg-panel-solid: #0a1c21;
-  --line: rgba(17,75,95,.6);
+  --bg-primary: #0b2227;
+  --bg-panel: rgba(9,32,38,.78);
+  --bg-panel-solid: #0d2a30;
+  --line: rgba(30,110,125,.55);
   --line-strong: rgba(40,120,140,.75);
 
   --accent-build: #4aa3ff;          /* factor stages: Factor Vault, Vault Grid, Blueprint */
@@ -57,6 +57,7 @@ body::before{
   z-index: 0;
   background:
     radial-gradient(1100px 700px at 30% 15%, rgba(var(--accent-rgb), .07), transparent 60%),
+    radial-gradient(1400px 900px at 75% 85%, rgba(20,120,130,.22), transparent 65%),
     repeating-linear-gradient(0deg, rgba(255,255,255,.022) 0 1px, transparent 1px 7px),
     repeating-linear-gradient(90deg, rgba(255,255,255,.014) 0 1px, transparent 1px 30px);
 }

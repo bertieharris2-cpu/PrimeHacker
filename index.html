@@ -93,7 +93,7 @@
 </head>
 <body>
 <div class="shell">
-  <div class="topline"><span><span class="dot"></span>SECURE UPLINK</span><span id="clock"></span></div>
+  <div class="topline"><span><span class="dot"></span>SECURE UPLINK</span><span class="row" style="gap:14px"><button class="pn-btn small" type="button" id="soundBtn" aria-pressed="true">Sound: on</button><span id="clock"></span></span></div>
 
   <div class="hero">
     <h1 class="logo"><span class="p">PRIME</span><span class="n">NET</span></h1>
@@ -186,6 +186,16 @@
     </section>
 
     <section>
+      <span class="pn-label">Sound check</span>
+      <div class="row">
+        <label for="volume" class="msg">Volume</label>
+        <input type="range" id="volume" min="0" max="100" style="width:200px;accent-color:var(--warning)">
+      </div>
+      <div class="jumps" id="soundBoard"></div>
+      <p class="msg">Every sound in the game. Click one to hear it. They're all generated in code, so they can be tuned.</p>
+    </section>
+
+    <section>
       <span class="pn-label">Move records between computers</span>
       <div class="row">
         <button class="pn-btn small primary" type="button" id="downloadBtn">Download record</button>
@@ -199,6 +209,7 @@
 </div>
 
 <script src="shared/primenet.js"></script>
+<script src="shared/sound.js"></script>
 <script>
 (() => {
   "use strict";
@@ -233,7 +244,7 @@
       b.innerHTML = `<span class="lv">${id}</span><span class="rank">${L.rank}</span>
         <span class="spec">Factors: ${L.factors}<br>Primes: ${L.primes}</span>
         <span class="reward">${L.reward}</span>${ok ? "" : '<span class="lock">Locked by your teacher</span>'}`;
-      b.addEventListener("click", () => { chosen = id; renderLevels(); update(); });
+      b.addEventListener("click", () => { chosen = id; PNSound.play("tag"); renderLevels(); update(); });
       levelsEl.appendChild(b);
     });
     const s = P.getSettings();
@@ -250,17 +261,18 @@
   }
 
   codename.addEventListener("input", update);
-  $("#randomName").addEventListener("click", () => { codename.value = P.randomCodename(); update(); codename.focus(); });
+  $("#randomName").addEventListener("click", () => { codename.value = P.randomCodename(); PNSound.play("click"); update(); codename.focus(); });
 
   form.addEventListener("submit", e => {
     e.preventDefault();
     const name = codename.value.trim();
     if(!name || !chosen || !P.allowedLevels().includes(chosen)) return;
     P.startSession(name, chosen);
+    PNSound.play("start");
     startBtn.disabled = true;
     $("#status").textContent = "Mission starting…";
     // The rest of the route isn't linked yet. For now the mission opens the first stage.
-    setTimeout(() => { location.href = "modules/prime_frequency_scan.html"; }, 500);
+    setTimeout(() => { location.href = "modules/prime_frequency_scan.html"; }, 1100);
   });
 
   /* Teacher panel */
@@ -343,6 +355,25 @@
     $("#fileMsg").textContent = "This computer's record is cleared. Downloaded files are not affected.";
     renderRecord();
   });
+
+  /* Sound switch and the teacher's sound check */
+  const soundBtn = $("#soundBtn");
+  const syncSound = () => { soundBtn.textContent = `Sound: ${PNSound.isOn() ? "on" : "off"}`; soundBtn.setAttribute("aria-pressed", PNSound.isOn() ? "true" : "false"); };
+  soundBtn.addEventListener("click", () => { PNSound.setOn(!PNSound.isOn()); syncSound(); PNSound.play("click"); });
+  syncSound();
+  const SOUND_LABELS = { click:"Button", key:"Typing", tag:"Tag", untag:"Untag", correct:"Correct", wrong:"Wrong", lock:"Lock cracked", success:"Stage complete", start:"Start mission", newlock:"New lock", denied:"Not prime", laser:"Laser", fill:"Power fill", seal:"Seal", rise:"3D rise", pop:"Blueprint box", cash:"Money", ready:"Buffer ready", commit:"Buffer commit", alarm:"Alarm", chatter:"Chatter" };
+  const board = $("#soundBoard");
+  PNSound.list().forEach(name => {
+    const b = document.createElement("button"); b.type = "button"; b.className = "pn-btn small"; b.textContent = SOUND_LABELS[name] || name;
+    b.addEventListener("click", () => {
+      if(name === "fill"){ for(let i = 0; i < 16; i++) setTimeout(() => PNSound.play("fill", i), i * 45); return; }
+      if(name === "correct"){ for(let i = 0; i < 4; i++) setTimeout(() => PNSound.play("correct", i), i * 380); return; }
+      PNSound.play(name);
+    });
+    board.appendChild(b);
+  });
+  const vol = $("#volume"); vol.value = Math.round(PNSound.getVolume() * 100);
+  vol.addEventListener("input", () => PNSound.setVolume(vol.value / 100));
 
   renderLevels(); update();
 })();
