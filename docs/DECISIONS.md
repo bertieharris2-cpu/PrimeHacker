@@ -137,7 +137,15 @@ Ideas voted yes (from `IDEAS.md`), grouped into a build order:
   - Drag to build (numbers up to 40): a tray of N columns × √N rows; drag out a rectangle of exactly N squares to enter that pair
   - Named rooms in Vault Grid: CORRIDOR (1 × N), SERVICE TUNNEL (long), OFFICE, SERVER ROOM (near square), STRONGROOM (square)
   - Drone flythrough after the 3D rise: a drone camera sweeps the floor and logs each room
-- [ ] Round 3 groups 4–6: see the build order under Round 3
+- [x] The original small code flood (fast random code with pink, yellow and red flecks, and a sweeping progress bar) is back as the last stage before the vault door, after the breach channel. It now ends on ENCRYPTION BROKEN so ACCESS GRANTED stays for the stamp
+- [x] Round 3 group 4, Blueprint (plus lit windows and the floor quiz):
+  - Plotter print: the three floor plans draw themselves line by line on blueprint paper before the 3D build
+  - Lit windows: each room has a rows × b columns of windows, which light up floor by floor, so every room on a floor has N lights
+  - Weak point: the floor with the fewest factor pairs glows red; ORACLE names it as the way in
+  - Hidden vault: if the three numbers share a factor above 1, a gold basement vault rises, with the highest common factor explained
+  - Explore: drag to turn the building, hover a room for its name and windows, click a floor to pull it out and list its pairs
+  - Floor quiz: one question (most rooms, weak point, odd number of factors, highest common factor or rooms on a floor) before Prime Hack. A right answer adds 10% to the first heist's haul
+- [ ] Round 3 groups 5–6: see the build order under Round 3
 
 ## Success screens (first pass)
 

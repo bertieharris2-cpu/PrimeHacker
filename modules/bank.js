@@ -174,6 +174,16 @@ const Bank = (() => {
     return withdrawn;
   }
 
+  // Extra money for this run, e.g. the Blueprint quiz's intel bonus
+  function addRunBonus(amount, note) {
+    amount = Math.max(0, Math.floor(amount));
+    if (!amount) return 0;
+    state.runEarnings += amount;
+    state.ledger.push({ ts: Date.now(), type: 'bonus', module: 'prime_hack', note: note || '', amount });
+    save();
+    return amount;
+  }
+
   function bankRun(diff) {
     if (state.runEarnings <= 0) return 0;
 
@@ -226,6 +236,7 @@ const Bank = (() => {
     getCurrentAccount,
     withdrawForLock,
     bankRun,
+    addRunBonus,
     getState,
     getWalletBalance,
     getRunEarnings,

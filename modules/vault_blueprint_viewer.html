@@ -124,6 +124,32 @@
   .floor-label.waiting{ opacity:.35; }
   .floor-label.docking{ opacity:1; color:#ffe14d !important; border-color:rgba(255,225,77,.6) !important; }
   .floor-label .reinforced{ display:block; font-size:11px; letter-spacing:.14em; color:#ffc94d; margin-top:2px; }
+  /* ===== Round 3 group 4 ===== */
+  .blueprint-viewer-canvas{ position:relative; }
+  .plotter{ position:absolute; inset:0; z-index:3; transition:opacity .6s ease; }
+  .plotter canvas{ width:100%; height:100%; display:block; }
+  .floor-label.weak{ border-color:#ff4f6d !important; }
+  .floor-label .weaktag{ display:block; font-size:11px; letter-spacing:.14em; color:#ff4f6d; margin-top:2px; }
+  .floor-label.picked{ background:rgba(var(--accent-rgb),.12); }
+  .intel{ display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:10px; width:min(900px, 100%); margin:10px auto 0; }
+  .intel > div{ border:1px solid var(--line); background:rgba(0,0,0,.25); padding:10px 12px; font-size:14px; line-height:1.45; color:var(--text-muted); opacity:0; transform:translateY(6px); transition:all .4s ease; }
+  .intel > div.on{ opacity:1; transform:none; }
+  .intel b{ display:block; font-size:11px; letter-spacing:.16em; margin-bottom:4px; }
+  .intel .i-win b{ color:#ffe9a3; } .intel .i-weak b{ color:#ff4f6d; } .intel .i-hid b{ color:#ffc94d; } .intel .i-exp b{ color:var(--accent); }
+  .room-tip{ position:fixed; z-index:30; pointer-events:none; background:rgba(4,14,17,.95); border:1px solid var(--accent); padding:6px 10px; font-family:var(--font-mono); font-size:13px; color:var(--text-primary); white-space:nowrap; display:none; }
+  .floor-info{ font-family:var(--font-mono); font-size:14px; color:var(--text-primary); text-align:center; min-height:1.4em; margin-top:4px; }
+  .quiz{ position:fixed; inset:0; z-index:50; background:rgba(2,8,10,.8); display:flex; align-items:center; justify-content:center; padding:16px; }
+  .quiz .card{ width:min(560px, 100%); background:#0a1c21; border:1px solid var(--accent); padding:22px; display:flex; flex-direction:column; gap:14px; box-shadow:0 20px 80px rgba(0,0,0,.7); }
+  .quiz h2{ margin:0; font-family:var(--font-ui); letter-spacing:.16em; font-size:16px; color:var(--accent); }
+  .quiz .q{ font-size:19px; line-height:1.5; color:var(--text-primary); }
+  .quiz .opts{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .quiz .opts button{ font:inherit; font-size:16px; padding:12px; background:rgba(0,0,0,.3); color:var(--text-primary); border:1px solid var(--line-strong); cursor:pointer; text-align:left; }
+  .quiz .opts button:hover:not(:disabled){ border-color:var(--accent); }
+  .quiz .opts button.right{ border-color:#2fbf8a; background:rgba(47,191,138,.2); }
+  .quiz .opts button.wrong{ border-color:#ff6b6b; background:rgba(255,107,107,.18); }
+  .quiz .why{ font-size:15px; color:var(--text-muted); line-height:1.5; min-height:1.5em; }
+  .quiz .why b{ color:#ffe14d; }
+  .quiz .go{ align-self:flex-end; }
   .assembly-status{ font-family:var(--font-mono); font-size:14px; letter-spacing:.08em; color:var(--text-muted); min-height:1.4em; text-align:center; margin-top:8px; }
   .floor-label .n-value{
     display: block;
@@ -315,6 +341,9 @@ function powerUpPrompt(title){
       const status = document.createElement('div');
       status.className = 'assembly-status'; status.id = 'assemblyStatus';
       container.appendChild(status);
+      const info = document.createElement('div'); info.className = 'floor-info'; info.id = 'floorInfo'; container.appendChild(info);
+      const intel = document.createElement('div'); intel.className = 'intel'; intel.id = 'intel'; container.appendChild(intel);
+      const tip = document.createElement('div'); tip.className = 'room-tip'; tip.id = 'roomTip'; document.body.appendChild(tip);
       
       if(PN && !DEMO_MODE) PN.log("blueprint", { floors: sorted });
 
@@ -322,20 +351,25 @@ function powerUpPrompt(title){
       // Wait for sound to be allowed, then build: a pop per box, and a chord when the bank is complete
       (window.PNSound ? PNSound.whenUnlocked(() => powerUpPrompt("ASSEMBLE THE BLUEPRINT")) : Promise.resolve()).then(() => {
         const t = document.querySelector("h1"); if(t && PN) t.textContent = `${PN.mission().target}: assembling`;
-        initializeSharedScene(floors, canvasContainer).then(() => {
-          SND("success");
+        plotterPrint(floors, canvasContainer).then(() => initializeSharedScene(floors, canvasContainer)).then(() => {
           if(t && PN) t.textContent = `${PN.mission().target}: blueprint complete`;
-          if(window.PNHandler) PNHandler.once("blueprint", "There it is: {target}, all three floors in one building. The vault is sealed with prime locks. Time to crack them.", { delay: 900 });
         });
       });
       
       // Proceed button handler
-      if(window.PNTest) PNTest.add("Continue to Prime Hack", () => { window.location.href = "prime_hack.html"; });
-      document.getElementById('proceedToHackBtn').addEventListener('click', () => {
-        // Clear blueprint progress
-        localStorage.removeItem('blueprintProgress');
-        // Navigate to prime_hack game
+      if(window.PNTest){
+        PNTest.add("Continue to Prime Hack", () => { window.location.href = "prime_hack.html"; });
+        PNTest.add("Show the floor quiz", () => { floorQuiz(floors, () => {}); });
+      }
+      const goHack = () => {
+        localStorage.removeItem('blueprintProgress');   // the next mission starts with no floors
         (window.PNGlitch ? PNGlitch.go('prime_hack.html') : (location.href = 'prime_hack.html'));
+      };
+      // One quick question about the building before the hack: a right answer earns an intel bonus
+      document.getElementById('proceedToHackBtn').addEventListener('click', () => {
+        const a = PN && PN.getAgent();
+        if(DEMO_MODE || (a && a.quizDone)) return goHack();
+        floorQuiz(floors, goHack);
       });
     }
 
@@ -466,13 +500,103 @@ function powerUpPrompt(title){
       const labelFor = n => document.querySelector(`.floor-label[data-n="${n}"]`);
       const order = [floorGroups[2], floorGroups[1], floorGroups[0]];   // ground floor first
 
+      // ---------- After assembly: lights, weak point, hidden vault, explore ----------
+      const card = (cls, html) => { const d = document.createElement('div'); d.className = cls; d.innerHTML = html; document.getElementById('intel').appendChild(d); requestAnimationFrame(() => d.classList.add('on')); return d; };
+      async function afterAssembly(){
+        // Lit windows: every room has a × b windows, so every room on a floor has exactly N lights
+        say('Powering up…');
+        for(const f of order){
+          const rooms = f.boxes.map(b => b.userData.win);
+          await tween(900, e => rooms.forEach(w => w.draw(Math.round(e * w.a * w.b))), p => p);
+          SND("seal");
+        }
+        card('i-win', `<b>LIGHTS ON</b>Every room has a × b windows, so every room on a floor has exactly N lights. A 4 × 6 office has 24.`);
+
+        // Weak point: the floor with the fewest rooms (factor pairs)
+        const fewest = Math.min(...floorGroups.map(f => f.boxes.length));
+        const weak = floorGroups.filter(f => f.boxes.length === fewest).sort((a, b) => a.n - b.n)[0];
+        weak.lines.forEach(m => m.color.set(0xff4f6d)); weak.plate.material.color.set(0xff4f6d);
+        ring(weak.yOffset + 0.5, 0xff4f6d); SND("alarm");
+        const wl = labelFor(weak.n); if(wl){ wl.classList.add('weak'); wl.insertAdjacentHTML('beforeend', `<span class="weaktag">WEAK POINT · ${fewest} room${fewest === 1 ? '' : 's'}</span>`); }
+        const wName = weak.label.split('—')[0].trim();
+        card('i-weak', `<b>WEAK POINT: ${wName.toUpperCase()}</b>N=${weak.n} has only ${fewest} factor pair${fewest === 1 ? '' : 's'}: the fewest rooms, so the fewest guards.`);
+        if(PN) PN.updateAgent({ weakFloor: wName, weakN: weak.n });
+        if(window.PNHandler) PNHandler.say(`${wName} only has ${fewest} rooms. Fewest rooms, fewest guards. That's our way in.`);
+        let pulse = true; (function pulseWeak(t){ if(!pulse) return; const k = 0.5 + 0.5 * Math.abs(Math.sin(t / 300)); weak.lines.forEach(m => m.opacity = k); requestAnimationFrame(pulseWeak); })(0);
+        weak.lines.forEach(m => m.transparent = true);
+        await wait(1400);
+
+        // Hidden vault: the highest common factor of the three floors
+        const nums = floorGroups.map(f => f.n), h = nums.reduce(gcd);
+        const list = `${nums.slice(0, -1).join(', ')} and ${nums[nums.length - 1]}`;
+        if(h > 1){
+          const size = Math.min(maxExtentX, maxExtentZ) * 0.7;
+          const g = new THREE.BoxGeometry(size, 10, size);
+          const vault = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ color: 0xffc94d, emissive: 0xffc94d, emissiveIntensity: 0.5, transparent: true, opacity: 0.35 }));
+          vault.add(new THREE.LineSegments(new THREE.EdgesGeometry(g), new THREE.LineBasicMaterial({ color: 0xffe9a3 })));
+          vault.position.y = -30; mainGroup.add(vault);
+          SND("rise");
+          await tween(900, e => { vault.position.y = -30 + e * 20; });
+          ring(-5, 0xffc94d); SND("dock");
+          card('i-hid', `<b>HIDDEN VAULT FOUND</b>${list} all divide by <strong>${h}</strong>. ${h} is their highest common factor: the key to the basement.`);
+          if(window.PNHandler) PNHandler.say(`Wait. Every floor divides by ${h}. There's a hidden vault in the basement.`);
+        } else {
+          card('i-hid', `<b>NO HIDDEN VAULT</b>${list} share no factor except 1, so there's no secret room this time.`);
+        }
+        card('i-exp', `<b>EXPLORE</b>Drag to turn the building. Click a floor to pull it out and see its rooms.`);
+        enableExplore();
+        say(`${PN ? PN.mission().target.toUpperCase() : 'TARGET'} // READY`);
+      }
+
+      // Explore: drag to rotate, hover a room for its name, click a floor to pull it out
+      function enableExplore(){
+        const el = renderer.domElement, tip = document.getElementById('roomTip'), info = document.getElementById('floorInfo');
+        const ray = new THREE.Raycaster(), mouse = new THREE.Vector2();
+        const boxes = floorGroups.flatMap(f => f.boxes);
+        let drag = null, moved = 0, picked = null, resume = null;
+        el.style.cursor = 'grab'; el.style.touchAction = 'none';
+        const hit = e => {
+          const r = el.getBoundingClientRect();
+          mouse.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
+          ray.setFromCamera(mouse, camera);
+          const h = ray.intersectObjects(boxes, false)[0];
+          return h ? h.object : null;
+        };
+        el.addEventListener('pointerdown', e => { drag = { x: e.clientX, rot: mainGroup.rotation.y }; moved = 0; spinning = false; el.setPointerCapture(e.pointerId); el.style.cursor = 'grabbing'; });
+        el.addEventListener('pointermove', e => {
+          if(drag){ moved = Math.max(moved, Math.abs(e.clientX - drag.x)); rotationY = drag.rot + (e.clientX - drag.x) * 0.01; mainGroup.rotation.y = rotationY; tip.style.display = 'none'; return; }
+          const o = hit(e);
+          if(o){ const w = o.userData.win; tip.style.display = 'block'; tip.style.left = (e.clientX + 14) + 'px'; tip.style.top = (e.clientY + 10) + 'px'; tip.textContent = `${roomName(w.a, w.b)} · ${w.a} × ${w.b} · ${w.a * w.b} windows`; el.style.cursor = 'pointer'; }
+          else { tip.style.display = 'none'; el.style.cursor = 'grab'; }
+        });
+        el.addEventListener('pointerleave', () => { tip.style.display = 'none'; });
+        el.addEventListener('pointerup', e => {
+          el.style.cursor = 'grab';
+          const wasDrag = moved > 4; drag = null;
+          clearTimeout(resume); resume = setTimeout(() => { if(!picked) spinning = true; }, 3000);
+          if(wasDrag) return;
+          const o = hit(e);
+          const f = o ? floorGroups.find(g => g.boxes.includes(o)) : null;
+          if(picked){ const p = picked, from = p.group.position.clone(); tween(400, k => { p.group.position.copy(from).multiplyScalar(1 - k); }); labelFor(p.n)?.classList.remove('picked'); picked = null; info.textContent = ''; }
+          if(f && f !== picked){
+            picked = f; spinning = false; SND("tag");
+            // Slide the floor out towards the viewer, whichever way the building is facing
+            const dirV = camera.position.clone(); mainGroup.worldToLocal(dirV); dirV.y = 0; dirV.normalize().multiplyScalar(maxExtentZ * 1.6 + 24);
+            tween(450, k => { f.group.position.copy(dirV).multiplyScalar(k); });
+            labelFor(f.n)?.classList.add('picked');
+            const rooms = getFactorPairs(f.n).map(([a, b]) => `${a}×${b}`).join(' · ');
+            info.textContent = `${f.label.split('—')[0].trim()} · N=${f.n} · ${f.boxes.length} rooms: ${rooms}`;
+          }
+        });
+      }
+
       // Final positions straight away when motion is reduced
       if(reduced()){
-        floorGroups.forEach(f => { f.boxes.forEach(b => b.scale.set(1, 1, 1)); labelFor(f.n)?.classList.remove('waiting'); });
+        floorGroups.forEach(f => { f.boxes.forEach(b => { b.scale.set(1, 1, 1); b.userData.win.draw(b.userData.win.a * b.userData.win.b); }); labelFor(f.n)?.classList.remove('waiting'); });
         shell.visible = true; shell.scale.y = 1; gridReferences.forEach(g => { g.visible = true; g.userData.fade = 1; }); beacon.visible = true;
         camera.position.copy(CAM_FINAL.pos); camLook.copy(CAM_FINAL.look); spinning = true;
         say('Blueprint assembled.');
-        return Promise.resolve();
+        return afterAssembly();
       }
 
       return (async () => {
@@ -518,7 +642,163 @@ function powerUpPrompt(title){
         beacon.visible = true; beacon.material.transparent = true;
         spinning = true;
         say(`${PN ? PN.mission().target.toUpperCase() : 'TARGET'} // STRUCTURE ASSEMBLED`);
+        SND("success");
+        if(window.PNHandler) PNHandler.once("blueprint", "There it is: {target}, all three floors in one building. Let's look for a way in.");
+        await wait(2400);
+        await afterAssembly();
       })();
+    }
+
+    // Windows: a grid of a rows × b columns on the front and back of each room, drawn on a canvas.
+    // draw(k) lights the first k windows in a shuffled order, so the lights come on unevenly.
+    function windowPanel(mesh, r, h){
+      const cv = document.createElement('canvas'); cv.width = 256; cv.height = 128;
+      const g = cv.getContext('2d'), tex = new THREE.CanvasTexture(cv);
+      const order = [...Array(r.a * r.b).keys()].sort(() => Math.random() - .5);
+      const rank = new Array(order.length); order.forEach((cell, i) => rank[cell] = i);
+      function draw(k){
+        g.clearRect(0, 0, 256, 128);
+        const cw = 256 / r.b, ch = 128 / r.a, gx = Math.max(1.5, cw * .4), gy = Math.max(1.5, ch * .4);
+        for(let row = 0; row < r.a; row++) for(let col = 0; col < r.b; col++){
+          const lit = rank[row * r.b + col] < k;
+          g.fillStyle = lit ? 'rgba(255,214,120,0.72)' : 'rgba(0,50,50,0.3)';
+          g.fillRect(col * cw + gx / 2, row * ch + gy / 2, cw - gx, ch - gy);
+        }
+        tex.needsUpdate = true;
+      }
+      draw(0);
+      const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, side: THREE.DoubleSide, depthWrite: false });
+      [1, -1].forEach(side => {
+        const plane = new THREE.Mesh(new THREE.PlaneGeometry(r.w * 0.9, h * 0.72), mat);
+        plane.position.z = side * (r.d / 2 + 0.15);
+        if(side < 0) plane.rotation.y = Math.PI;
+        mesh.add(plane);
+      });
+      return { a: r.a, b: r.b, draw };
+    }
+    const gcd = (a, b) => b ? gcd(b, a % b) : a;
+    function roomName(a, b){
+      if(a === b) return 'STRONGROOM';
+      if(a === 1) return 'CORRIDOR';
+      if(b / a >= 4) return 'SERVICE TUNNEL';
+      if(b / a >= 2) return 'OFFICE';
+      return 'SERVER ROOM';
+    }
+
+    // ---------- Plotter print ----------
+    // Before the 3D build, the three floor plans draw themselves on blueprint paper, line by line.
+    function plotterPrint(floors, container){
+      if(reduced()) return Promise.resolve();
+      const wrap = document.createElement('div'); wrap.className = 'plotter';
+      const cv = document.createElement('canvas'); wrap.appendChild(cv);
+      const host = container.querySelector('.blueprint-viewer-canvas') || container;
+      host.appendChild(wrap);
+      const W = host.clientWidth, H = host.clientHeight, dpr = window.devicePixelRatio || 1;
+      cv.width = W * dpr; cv.height = H * dpr;
+      const g = cv.getContext('2d'); g.scale(dpr, dpr);
+      function paper(){
+        const grd = g.createLinearGradient(0, 0, 0, H); grd.addColorStop(0, '#0d3f73'); grd.addColorStop(1, '#0a2f57');
+        g.fillStyle = grd; g.fillRect(0, 0, W, H);
+        g.strokeStyle = 'rgba(180,215,255,.12)'; g.lineWidth = 1;
+        for(let x = 0; x < W; x += 16){ g.beginPath(); g.moveTo(x, 0); g.lineTo(x, H); g.stroke(); }
+        for(let y = 0; y < H; y += 16){ g.beginPath(); g.moveTo(0, y); g.lineTo(W, y); g.stroke(); }
+        g.fillStyle = 'rgba(230,242,255,.9)'; g.font = '600 13px "Courier Prime", monospace';
+        g.fillText(`BLUEPRINT // ${PN ? PN.mission().target.toUpperCase() : 'TARGET'}`, 16, 26);
+      }
+      // One strip per floor, stacked like the building: roof at the top, ground floor at the bottom
+      const order = [floors[0], floors[1], floors[2]];
+      const top = 44, gapY = 14, ph = (H - top - 20 - gapY * 2) / 3, pw = W - 40;
+      const segs = [];   // every line the pen will draw, in order
+      order.forEach((f, i) => {
+        const x0 = 20, y0 = top + i * (ph + gapY), rooms = layoutFor(f.n, 1);
+        let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
+        rooms.forEach(r => { minX = Math.min(minX, r.x - r.w / 2); maxX = Math.max(maxX, r.x + r.w / 2); minZ = Math.min(minZ, r.z - r.d / 2); maxZ = Math.max(maxZ, r.z + r.d / 2); });
+        const k = Math.min((pw - 160) / (maxX - minX), (ph - 20) / (maxZ - minZ));
+        const cx = x0 + 140 + (pw - 140) / 2, cy = y0 + ph / 2;
+        const P = (x, z) => [cx + (x - (minX + maxX) / 2) * k, cy + (z - (minZ + maxZ) / 2) * k];
+        segs.push({ label: `${f.label.split('—')[0].trim()} · N=${f.n}`, lx: x0 + 4, ly: y0 + ph / 2 + 4 });
+        const [ox0, oy0] = P(minX - 4, minZ - 4), [ox1, oy1] = P(maxX + 4, maxZ + 4);
+        [[ox0, oy0, ox1, oy0], [ox1, oy0, ox1, oy1], [ox1, oy1, ox0, oy1], [ox0, oy1, ox0, oy0]].forEach(l => segs.push({ l, outer: true }));
+        rooms.forEach(r => {
+          const [a0, b0] = P(r.x - r.w / 2, r.z - r.d / 2), [a1, b1] = P(r.x + r.w / 2, r.z + r.d / 2);
+          [[a0, b0, a1, b0], [a1, b0, a1, b1], [a1, b1, a0, b1], [a0, b1, a0, b0]].forEach(l => segs.push({ l }));
+          if(Math.abs(a1 - a0) > 34 && Math.abs(b1 - b0) > 12) segs.push({ text: `${r.a}×${r.b}`, tx: (a0 + a1) / 2, ty: (b0 + b1) / 2 + 4 });
+        });
+      });
+      const total = segs.reduce((t, sg) => t + (sg.l ? Math.hypot(sg.l[2] - sg.l[0], sg.l[3] - sg.l[1]) : 0), 0);
+      const DUR = 4200 / speedUp();
+      SND("laser");
+      return new Promise(done => {
+        const start = performance.now(); let lastTick = 0;
+        (function frame(now){
+          const budget = Math.min(1, (now - start) / DUR) * total;
+          paper();
+          let used = 0, pen = null;
+          for(const sg of segs){
+            if(sg.label){ g.fillStyle = 'rgba(230,242,255,.8)'; g.font = '12px "Courier Prime", monospace'; g.fillText(sg.label, sg.lx, sg.ly); continue; }
+            if(sg.text){ if(used < budget){ g.fillStyle = 'rgba(230,242,255,.85)'; g.font = '11px "Courier Prime", monospace'; g.textAlign = 'center'; g.fillText(sg.text, sg.tx, sg.ty); g.textAlign = 'left'; } continue; }
+            const [x0, y0, x1, y1] = sg.l, len = Math.hypot(x1 - x0, y1 - y0);
+            if(used >= budget) break;
+            const f = Math.min(1, (budget - used) / len);
+            g.strokeStyle = sg.outer ? 'rgba(230,242,255,.95)' : 'rgba(230,242,255,.8)'; g.lineWidth = sg.outer ? 2 : 1.2;
+            g.beginPath(); g.moveTo(x0, y0); g.lineTo(x0 + (x1 - x0) * f, y0 + (y1 - y0) * f); g.stroke();
+            pen = [x0 + (x1 - x0) * f, y0 + (y1 - y0) * f];
+            used += len;
+          }
+          if(pen){ g.fillStyle = '#ffe14d'; g.beginPath(); g.arc(pen[0], pen[1], 3, 0, Math.PI * 2); g.fill(); }
+          if(now - lastTick > 45){ lastTick = now; SND("key"); }
+          if(budget < total){ requestAnimationFrame(frame); return; }
+          SND("seal");
+          setTimeout(() => { wrap.style.opacity = '0'; setTimeout(() => { wrap.remove(); done(); }, 600 / speedUp()); }, 700 / speedUp());
+        })(start);
+      });
+    }
+
+    // ---------- Floor quiz ----------
+    // One question about the building. A right answer earns a 10% intel bonus on the heist.
+    function floorQuiz(floors, onDone){
+      const F = [floors[2], floors[1], floors[0]].map(f => ({ ...f, name: f.label.split('—')[0].trim(), rooms: getFactorPairs(f.n).length }));
+      const opt = f => `${f.name} (N=${f.n})`;
+      const qs = [];
+      const most = Math.max(...F.map(f => f.rooms)), fewest = Math.min(...F.map(f => f.rooms));
+      if(F.filter(f => f.rooms === most).length === 1){ const w = F.find(f => f.rooms === most);
+        qs.push({ q: 'Which floor has the most rooms (factor pairs)?', opts: F.map(opt), ans: opt(w), why: `${w.n} has ${w.rooms} factor pairs: ${getFactorPairs(w.n).map(p => p.join('×')).join(', ')}.` }); }
+      if(F.filter(f => f.rooms === fewest).length === 1){ const w = F.find(f => f.rooms === fewest);
+        qs.push({ q: 'Which floor is the weak point: the one with the fewest rooms?', opts: F.map(opt), ans: opt(w), why: `${w.n} has only ${w.rooms} factor pair${w.rooms === 1 ? '' : 's'}.` }); }
+      const sq = F.filter(f => Number.isInteger(Math.sqrt(f.n)));
+      if(sq.length === 1){ const w = sq[0];
+        qs.push({ q: 'Which floor has an odd number of factors?', opts: F.map(opt), ans: opt(w), why: `${w.n} is square (${Math.sqrt(w.n)} × ${Math.sqrt(w.n)}). That pair repeats a number, so it only adds one factor.` }); }
+      const nums = F.map(f => f.n), h = nums.reduce(gcd);
+      if(h > 1){
+        const common = []; for(let d = 1; d <= h; d++) if(nums.every(n => n % d === 0)) common.push(d);
+        const opts = new Set([h, ...common.slice(-3)]); let extra = h * 2; while(opts.size < 4){ opts.add(extra); extra += h; }
+        qs.push({ q: `What is the highest common factor of ${nums.join(', ')}?`, opts: [...opts].sort((a, b) => a - b).map(String), ans: String(h), why: `All three divide by ${h}, and no bigger number goes into all of them.` });
+      }
+      const pick = F[Math.floor(Math.random() * 3)];
+      qs.push({ q: `How many rooms (factor pairs) does ${pick.name} (N=${pick.n}) have?`, opts: [...new Set([pick.rooms, pick.rooms + 1, Math.max(1, pick.rooms - 1), pick.rooms + 2])].sort((a, b) => a - b).map(String), ans: String(pick.rooms), why: `${pick.n} = ${getFactorPairs(pick.n).map(p => p.join(' × ')).join(', ')}.` });
+      const Q = qs[Math.floor(Math.random() * qs.length)];
+
+      const ov = document.createElement('div'); ov.className = 'quiz';
+      ov.innerHTML = `<div class="card" role="dialog" aria-modal="true" aria-labelledby="quizTitle"><h2 id="quizTitle">ORACLE // ONE LAST CHECK</h2>
+        <div class="q">${Q.q}</div><div class="opts"></div><div class="why">Answer right for a 10% intel bonus on the heist.</div>
+        <button class="pn-btn primary go" type="button" hidden>Continue to Prime Hack</button></div>`;
+      document.body.appendChild(ov);
+      SND("comms");
+      const box = ov.querySelector('.opts'), why = ov.querySelector('.why'), go = ov.querySelector('.go');
+      Q.opts.forEach(o => {
+        const b = document.createElement('button'); b.type = 'button'; b.textContent = o;
+        b.addEventListener('click', () => {
+          box.querySelectorAll('button').forEach(x => { x.disabled = true; if(x.textContent === Q.ans) x.classList.add('right'); });
+          const ok = o === Q.ans;
+          if(!ok) b.classList.add('wrong');
+          SND(ok ? "correct" : "wrong", 4);
+          why.innerHTML = ok ? `<b>Intel confirmed: +10% on this heist.</b> ${Q.why}` : `Not quite. ${Q.why} No bonus this time.`;
+          if(PN) PN.updateAgent({ quizDone: true, intelBonus: ok ? 10 : 0 });
+          go.hidden = false; go.focus();
+        });
+        box.appendChild(b);
+      });
+      go.addEventListener('click', () => { ov.remove(); onDone(); });
     }
 
     // Where each factor-pair room sits on its floor (shared by the sizing pass and the build)
@@ -545,18 +825,22 @@ function powerUpPrompt(title){
       plate.position.y = yOffset + 0.3;
       group.add(plate);
 
+      const lines = [];
       layoutFor(n, scale).forEach(r => {
         // A square pair (6 × 6) is the reinforced strongroom: gold edges
         const strong = r.a === r.b;
         const color = 0x00ff99;
         const geom = new THREE.BoxGeometry(r.w, boxHeight, r.d);
         const mesh = new THREE.Mesh(geom, new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.25, transparent: true, opacity: strong ? 0.24 : 0.16 }));
-        mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(geom), new THREE.LineBasicMaterial({ color: strong ? 0xffc94d : 0x00ffcc })));
+        const lineMat = new THREE.LineBasicMaterial({ color: strong ? 0xffc94d : 0x00ffcc });
+        mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(geom), lineMat));
+        lines.push(lineMat);
+        mesh.userData.win = windowPanel(mesh, r, boxHeight);
         mesh.position.set(r.x, yOffset + boxHeight / 2, r.z);
         mesh.scale.set(0.01, 0.01, 0.01);
         group.add(mesh); boxes.push(mesh);
       });
-      return { group, boxes, square };
+      return { group, boxes, square, plate, lines };
     }
 
     function getFactorPairs(n){

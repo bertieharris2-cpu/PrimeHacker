@@ -252,6 +252,67 @@
   .codeFloodBarWrap{ height:6px; background:rgba(0,0,0,.5); border-top:1px solid rgba(var(--accent-rgb),.2); }
   .codeFloodBarFill{ height:100%; width:0%; background:var(--accent); box-shadow:0 0 12px rgba(var(--accent-rgb),.7); }
 
+  /* Mini code flood: the original small box of fast coloured code, the last stage before the vault door */
+  .miniFloodOverlay{
+    position:fixed; inset:0; z-index: 7000;
+    display:flex; align-items:center; justify-content:center;
+    background: rgba(0,0,0,0.62);
+  }
+  .miniFloodBox{
+    width:min(760px, 90vw);
+    border:1px solid rgba(var(--accent-rgb),0.40);
+    background: rgba(0,0,0,0.92);
+    box-shadow: 0 18px 80px rgba(0,0,0,0.85);
+    border-radius: var(--radius);
+    padding: 14px 16px 16px 16px;
+  }
+  .miniFloodHeader{
+    display:flex; align-items:center; justify-content:space-between;
+    gap:10px; margin-bottom: 8px;
+  }
+  .miniFloodTitle{ color: var(--green); font-size: 16px; letter-spacing:0.6px; }
+  .miniFloodStream{
+    height: 220px;
+    overflow:hidden;
+    border:1px solid rgba(var(--accent-rgb),0.18);
+    background: rgba(0,0,0,0.55);
+    border-radius: var(--radius);
+    padding: 10px 12px;
+    color: rgba(180,255,215,0.95);
+    white-space: pre-wrap;
+    font-size: 14px;
+    line-height: 1.35;
+    word-break: break-word;
+  }
+  .miniFloodStream .cfPink{ color: #ff4fd8; }
+  .miniFloodStream .cfYellow{ color: #ffe66a; }
+  .miniFloodStream .cfRed{ color: #ff6b6b; }
+  .miniFloodBarWrap{
+    margin-top: 10px;
+    height: 18px;
+    border-radius: var(--radius);
+    overflow:hidden;
+    border:1px solid rgba(var(--accent-rgb),0.30);
+    background: rgba(0,0,0,0.55);
+    position:relative;
+  }
+  .miniFloodBarFill{ height:100%; width:0%; background: rgba(var(--accent-rgb),0.85); }
+  .miniFloodBarSweep{
+    position:absolute; top:0; bottom:0; width:90px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.16), transparent);
+    animation: miniSweep 0.85s linear infinite;
+    opacity:0.75;
+  }
+  @keyframes miniSweep{ from{transform:translateX(-110px)} to{transform:translateX(820px)} }
+  .miniFloodResult{
+    margin-top: 12px;
+    text-align:center;
+    font-size: 28px;
+    letter-spacing: 2px;
+    color: var(--green);
+  }
+
+
 /* ===== PRIMENET override layer (readability + modern B) ===== */
 body{
   font-family: var(--font-ui) !important;
@@ -1216,7 +1277,8 @@ const PRIME_NET_EFFECTS = {
   bufferStages: 4,
   keysPerStage: 16,
   interStageScrollSeconds: 2,
-  finalFloodSeconds: 6,      // the code flood between the buffer charge and the vault door; 0 skips it
+  finalFloodSeconds: 6,
+  miniFloodSeconds: 5,        // the small box of fast coloured code after the breach channel      // the code flood between the buffer charge and the vault door; 0 skips it
   miniRewardSeconds: 2.2,
 };
 
@@ -1622,6 +1684,99 @@ async function codeFlood(title="BREACH CHANNEL", seconds=6){
     })(last);
   });
 }
+
+// --- Mini code flood: the original small box of fast coloured code (kept by request).
+// It plays after the breach channel, just before the vault door.
+function miniRandLine(len=66){
+  const chars = "0123456789ABCDEFabcdef/\\|_-=+*~<>[]{}():;.," + "█▓▒░";
+  let s="";
+  for(let i=0;i<len;i++) s += chars[Math.floor(Math.random()*chars.length)];
+  return s;
+}
+async function miniFlood(title="ENCRYPTION HANDSHAKE", seconds=15){
+  Sound.hackery();
+  const ff = () => (typeof speed === 'function' ? speed() : 1);
+  return new Promise((resolve)=>{
+    const overlay = document.createElement("div");
+    overlay.className="miniFloodOverlay";
+    const box = document.createElement("div");
+    box.className="miniFloodBox";
+    const header = document.createElement("div");
+    header.className="miniFloodHeader";
+    const h = document.createElement("div");
+    h.className="miniFloodTitle";
+    h.textContent = title;
+    header.append(h);
+
+    const stream = document.createElement("div");
+    stream.className="miniFloodStream";
+    stream.innerHTML = "INITIALISING STREAM…<br>";
+
+    const barWrap = document.createElement("div");
+    barWrap.className="miniFloodBarWrap";
+    const barFill = document.createElement("div");
+    barFill.className="miniFloodBarFill";
+    const barSweep = document.createElement("div");
+    barSweep.className="miniFloodBarSweep";
+    barWrap.append(barFill, barSweep);
+
+    const result = document.createElement("div");
+    result.className="miniFloodResult";
+    result.textContent = "";
+
+    box.append(header, stream, barWrap, result);
+    overlay.append(box);
+    document.body.append(overlay);
+
+    const lines=[];
+    for(let i=0;i<120;i++) lines.push(miniRandLine(50 + randInt(32)));
+
+    // Colourize function: sprinkle 4-9 coloured characters into the line for more visual splash
+    function colourize(line){
+      const colours = ['cfPink','cfYellow','cfRed'];
+      const n = 4 + Math.floor(Math.random()*6);
+      let chars = line.split('');
+      for(let i=0;i<n;i++){
+        const idx = Math.floor(Math.random()*chars.length);
+        const c = chars[idx] || '';
+        const cls = colours[Math.floor(Math.random()*colours.length)];
+        chars[idx] = `<span class="${cls}">${c}</span>`;
+      }
+      return chars.join('');
+    }
+
+    let htmlLines = [colourize("INITIALISING STREAM…")];
+
+    let floodTimer = setInterval(()=>{
+      const line = lines[Math.floor(Math.random() * lines.length)];
+      htmlLines.push(colourize(line));
+      htmlLines = htmlLines.slice(-32);
+      stream.innerHTML = htmlLines.join("<br>");
+    }, 55);
+
+    let p=0;
+    const durationMs = Math.max(2, seconds)*1000;
+    const steps = Math.max(1, Math.floor(durationMs/70));
+    const inc = 100/steps;
+
+    const barTimer = setInterval(()=>{
+      p = Math.min(100, p + inc * ff());
+      barFill.style.width = `${p}%`;
+      if(p>=100){
+        clearInterval(barTimer);
+        clearInterval(floodTimer);
+        floodTimer=null;
+        result.textContent = "ENCRYPTION BROKEN";
+        Sound.win();
+        setTimeout(()=>{
+          overlay.remove();
+          resolve();
+        }, 900);
+      }
+    }, 70);
+  });
+}
+
 
 // --- Buffer sequence (final)
 const Buffer = {
@@ -2091,7 +2246,12 @@ async function onLockSolved(){
   await breachPrelude(PRIME_NET_EFFECTS.preludeSeconds);
   setCinematic(false);
   await runBufferSequence();
-  if(PRIME_NET_EFFECTS.finalFloodSeconds > 0){ setCinematic(true); await codeFlood("BREACH CHANNEL", PRIME_NET_EFFECTS.finalFloodSeconds); setCinematic(false); }
+  if(PRIME_NET_EFFECTS.finalFloodSeconds > 0){
+    setCinematic(true);
+    await codeFlood("BREACH CHANNEL", PRIME_NET_EFFECTS.finalFloodSeconds);
+    await miniFlood("ENCRYPTION HANDSHAKE", PRIME_NET_EFFECTS.miniFloodSeconds);   // the small fast box, last stage before the door
+    setCinematic(false);
+  }
 
   const acct = Bank.getCurrentAccount() || { name:"TARGET", balance:0 };
   const acctSnapshot = { name: acct.name, balance: acct.balance };
@@ -2101,6 +2261,13 @@ async function onLockSolved(){
   const codename = agent ? agent.codename : "AGENT";
   const before = PN ? PN.agentRank(codename) : null;
   const walletBefore = Bank.getWalletBalance();
+  // Intel bonus from the Blueprint quiz: +10% on the first heist of the mission
+  const intel = PN && PN.getAgent() ? PN.getAgent().intelBonus : 0;
+  if(intel){
+    const extra = Bank.addRunBonus(Bank.getRunEarnings() * intel / 100, "blueprint intel");
+    PN.updateAgent({ intelBonus: 0 });
+    if(extra) addLine(`INTEL BONUS +${Bank.formatGBP(extra)} (blueprint quiz)`, "ok");
+  }
   const banked = Bank.bankRun(DIFF);
   if(PN) PN.log("complete", { level: DIFF, banked, locks: Run.cracked, wrong: Run.wrongTotal || 0 });
   const after = PN ? PN.agentRank(codename) : null;
