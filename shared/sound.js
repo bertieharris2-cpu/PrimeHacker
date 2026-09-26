@@ -134,9 +134,24 @@
     commit(){ noise({ dur: 0.06, vol: 0.3, type:"lowpass", freq: 600 }); tone({ f: 880, at: 0.03, dur: 0.12, vol: 0.14 }); },
     alarm(){ [0, 0.25, 0.5, 0.75].forEach((at, k) => tone({ f: k % 2 ? 420 : 560, type:"sawtooth", at, dur: 0.22, vol: 0.08, lp: 1500 })); },
     chatter(){ noise({ dur: 0.012, vol: 0.03, type:"highpass", freq: 5000 }); },
+
+    // Whole game
+    glitch(){   // stage change: a burst of static and a falling blip
+      noise({ dur: 0.22, vol: 0.2, freq: 2400, to: 300, q: 0.6 });
+      noise({ at: 0.05, dur: 0.05, vol: 0.18, type:"highpass", freq: 3500 });
+      tone({ f: 1400, to: 90, type:"square", dur: 0.2, vol: 0.05, lp: 2400, verb:false });
+    },
+    comms(){   // the handler's radio opens: a click, crackle, two soft pips
+      noise({ dur: 0.03, vol: 0.2, type:"highpass", freq: 2500 });
+      noise({ at: 0.03, dur: 0.18, vol: 0.05, freq: 1800, q: 0.7 });
+      tone({ f: 1760, at: 0.08, dur: 0.06, vol: 0.07, verb:false });
+      tone({ f: 2349, at: 0.16, dur: 0.08, vol: 0.07, verb:false });
+    },
+    hum(i=0){ tone({ f: 110 + i*6, type:"sawtooth", dur: 0.09, vol: 0.035, lp: 700, verb:false }); },   // fingerprint scanner
+    verified(){ tone({ f: 988, dur: 0.1, vol: 0.14 }); tone({ f: 1319, at: 0.1, dur: 0.1, vol: 0.14 }); tone({ f: 1976, at: 0.2, dur: 0.35, vol: 0.12 }); },
   };
 
-  const THROTTLE = { key: 15, fill: 28, chatter: 45, laser: 120, pop: 40, seal: 50, click: 30 };
+  const THROTTLE = { hum: 60, key: 15, fill: 28, chatter: 45, laser: 120, pop: 40, seal: 50, click: 30 };
 
   function play(name, arg){
     if(!settings.on || !SOUNDS[name]) return;

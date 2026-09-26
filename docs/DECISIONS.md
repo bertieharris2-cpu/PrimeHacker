@@ -113,7 +113,16 @@ Ideas voted yes (from `IDEAS.md`), grouped into a build order:
 - [x] Prime Hack starts in Math mode. Roleplay is its own screen (`modules/roleplay_terminal.html`), opened from the title screen
 - [x] Play-test feedback 2: Factor Vault input has one clean highlight, typed digits are bright, and found pairs move to the top so a correct pair in the "wrong" row never lingers; Vault Grid buildings get taller as N grows; Prime Hack lock banner and first hint are smaller; the student's tried pairs are neon pink, products cyan, TOO HIGH/LOW orange, the target yellow, a cracked lock green; buffer charge key presses type out real-looking commands that use the target bank, codename and cracked primes
 - [x] Round 3 style: deep background, steel green, Chakra Petch, medium glow, drifting laser lines, pink and yellow neon only, text size per learner
-- [ ] Round 3 ideas: see the build order under Round 3
+- [x] Round 3 group 1, whole-game feel:
+  - One heist per mission: the briefing picks a bank for the level and an operation name; ORACLE, the Blueprint title and Prime Hack all use it, and the case file carries the operation name
+  - ORACLE, the handler (`shared/handler.js`): short typed comms in the corner at the start of each stage, after a second mistake, after each lock and at the getaway. Each message plays once per mission; click to skip
+  - Briefing (`modules/briefing.html`) between the title and the Frequency Scan: hold SPACE (or press the pad) for the fingerprint identity scan, then ORACLE names the target, the operation and the plan
+  - Glitch transitions between stages (`shared/glitch.js`): static and a screen tear, a plain fade with reduced motion
+  - Agent ID card on the title screen: codename, agent number, rank, vaults, clearance and progress to the next rank
+  - Settings on the title screen, saved per codename: text size, easy-read font (Atkinson Hyperlegible), reduce motion and sound
+  - The code flood is back between the buffer charge and the vault door, in the roleplay terminal's style, with the student's cracked primes, the bank and their codename; it ends on FIREWALL DOWN. Hold ENTER fast-forwards it
+  - Fixed: Prime Hack's first message said "Target bank: unknown" because the bank loaded after the target was picked
+- [ ] Round 3 groups 2–6: see the build order under Round 3
 
 ## Success screens (first pass)
 

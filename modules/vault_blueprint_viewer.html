@@ -234,6 +234,8 @@ button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [clas
   <script src="../shared/vendor/three.min.js"></script>
   <script src="../shared/primenet.js"></script>
   <script src="../shared/testtools.js"></script>
+  <script src="../shared/handler.js"></script>
+  <script src="../shared/glitch.js"></script>
   <script src="../shared/sound.js"></script>
   <script>
     const PN = window.Primenet;
@@ -311,6 +313,8 @@ function powerUpPrompt(title){
         initializeSharedScene(floors, canvasContainer);
         const boxes = floors.reduce((m, f) => Math.max(m, getFactorPairs(f.n).length), 0);
         setTimeout(() => SND("success"), 180 + boxes * 90 + 800);
+        if(window.PNHandler) PNHandler.once("blueprint", "There it is: {target}, all three floors. The vault is sealed with prime locks. Time to crack them.", { delay: 180 + boxes * 90 + 1600 });
+        const t = document.querySelector("h1"); if(t && PN) t.textContent = `${PN.mission().target}: blueprint complete`;
       });
       
       // Proceed button handler
@@ -319,7 +323,7 @@ function powerUpPrompt(title){
         // Clear blueprint progress
         localStorage.removeItem('blueprintProgress');
         // Navigate to prime_hack game
-        window.location.href = 'prime_hack.html';
+        (window.PNGlitch ? PNGlitch.go('prime_hack.html') : (location.href = 'prime_hack.html'));
       });
     }
 

@@ -50,6 +50,10 @@ repeating-linear-gradient(120deg, rgba(var(--accent-rgb),.06) 0 1px, transparent
 
 All sounds live in `shared/sound.js`, generated in code. One on/off switch (title screen) and one volume (teacher controls → Sound check) cover the whole game. Big moments share a family: a heavy clunk followed by a chord for a cracked lock or a finished stage, and a climbing bell for each correct answer in a row.
 
+## Handler messages (ORACLE)
+
+Short, one or two sentences, in the handler's voice. Name the student by codename and the target bank where it fits. Messages sit in the bottom-right corner and never block the game. The target and codename go in bright yellow in the briefing.
+
 ## Neon highlights (Prime Hack)
 
 Used only for the student's own working, so they can look back at what they tried. Round 3 cut it to two colours: **pink** `#ff4fd8` for the pair they typed and **yellow** `#ffe14d` for the target. **Red** `#ff6b6b` still marks a number that isn't prime. Everything else stays in the normal text colour.

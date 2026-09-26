@@ -131,6 +131,15 @@ const Bank = (() => {
     return account;
   }
 
+  // The mission's named bank, if it's in this tier (see Primenet.mission())
+  function selectAccountByName(diff, name) {
+    const account = state.accounts.find(a => a.tier === diff && a.name === name);
+    if (!account) return selectAccountForRun(diff);
+    state.currentAccountId = account.id;
+    save();
+    return account;
+  }
+
   function getCurrentAccount() {
     if (!state.currentAccountId) return null;
     return state.accounts.find(a => a.id === state.currentAccountId);
@@ -202,14 +211,9 @@ const Bank = (() => {
     return state.accounts.find(a => a.id === id);
   }
 
-  // Initialize on page load (async if needed)
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-      initialize();
-    });
-  } else {
-    initialize();
-  }
+  // Load straight away: Prime Hack picks the target bank while the page is still loading,
+  // and waiting for DOMContentLoaded used to wipe that choice.
+  initialize();
 
   // --- Public API ---
   return {
@@ -218,6 +222,7 @@ const Bank = (() => {
     formatGBP,
     getRandomAccountForTier,
     selectAccountForRun,
+    selectAccountByName,
     getCurrentAccount,
     withdrawForLock,
     bankRun,

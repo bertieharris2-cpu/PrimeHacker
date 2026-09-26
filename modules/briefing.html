@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="en" class="phase-hack">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PRIMENET · Briefing</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Inter:wght@400;600;700;800&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../shared/primenet.css">
+<style>
+  /* Between the title screen and the Frequency Scan: an identity scan, then ORACLE's briefing. */
+  body{ min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px; box-sizing:border-box; }
+  .stage{ position:relative; z-index:1; width:min(860px,100%); }
+  .step[hidden]{ display:none; }
+  .head{ font-family:var(--font-ui); font-weight:700; letter-spacing:.24em; font-size:13px; color:var(--accent); text-transform:uppercase; margin-bottom:14px; display:flex; justify-content:space-between; gap:12px; }
+  .head span{ color:var(--text-faint); letter-spacing:.14em; }
+
+  /* Identity scan */
+  .idscan{ display:grid; grid-template-columns:240px 1fr; gap:34px; align-items:center; padding:34px; }
+  .pad{ position:relative; width:240px; height:290px; border:1px solid rgba(var(--accent-rgb),.5); background:rgba(var(--accent-rgb),.04);
+        display:flex; align-items:center; justify-content:center; cursor:pointer; user-select:none; touch-action:none; }
+  .pad::before,.pad::after{ content:""; position:absolute; width:22px; height:22px; border:2px solid var(--accent); }
+  .pad::before{ top:-2px; left:-2px; border-right:0; border-bottom:0; }
+  .pad::after{ bottom:-2px; right:-2px; border-left:0; border-top:0; }
+  .pad svg{ width:170px; height:220px; overflow:visible; }
+  .pad .beam{ position:absolute; left:10px; right:10px; height:2px; background:var(--accent); box-shadow:0 0 18px 3px rgba(var(--accent-rgb),.6); opacity:0; }
+  .pad.holding .beam{ opacity:1; }
+  .pad.done{ border-color:var(--accent); box-shadow:0 0 40px rgba(var(--accent-rgb),.3); }
+  .idtext h1{ font-family:var(--font-ui); font-size:clamp(26px,4vw,38px); letter-spacing:.12em; margin:0 0 10px; }
+  .idtext p{ color:var(--text-muted); margin:0 0 18px; line-height:1.5; }
+  .idtext kbd{ font-family:var(--font-ui); font-weight:700; border:1px solid var(--line-strong); padding:2px 8px; color:var(--text-primary); }
+  .meter{ height:10px; border:1px solid var(--line-strong); background:rgba(0,0,0,.35); }
+  .meter i{ display:block; height:100%; width:0; background:var(--accent); box-shadow:0 0 14px rgba(var(--accent-rgb),.6); }
+  .readout{ margin-top:10px; font-size:15px; color:var(--text-faint); min-height:1.5em; letter-spacing:.06em; }
+  .confirmed{ margin-top:16px; font-size:17px; line-height:1.7; }
+  .confirmed .ok{ font-family:var(--font-ui); font-weight:700; letter-spacing:.2em; color:var(--accent); font-size:20px; }
+
+  /* Briefing */
+  .brief{ padding:30px 34px; }
+  .comms{ display:flex; gap:16px; align-items:center; border-bottom:1px solid var(--line); padding-bottom:16px; margin-bottom:18px; }
+  .wave{ width:56px; height:56px; border:1px solid rgba(var(--accent-rgb),.5); display:flex; gap:4px; align-items:center; justify-content:center; }
+  .wave i{ width:4px; height:8px; background:var(--accent); }
+  .talking .wave i{ animation:bar .45s ease-in-out infinite alternate; }
+  .wave i:nth-child(2){ animation-delay:-.2s !important } .wave i:nth-child(3){ animation-delay:-.33s !important } .wave i:nth-child(4){ animation-delay:-.1s !important } .wave i:nth-child(5){ animation-delay:-.4s !important }
+  @keyframes bar{ from{ height:5px } to{ height:38px } }
+  .comms .who{ font-family:var(--font-ui); font-weight:700; letter-spacing:.22em; color:var(--accent); }
+  .comms .sub{ color:var(--text-faint); font-size:14px; letter-spacing:.08em; }
+  .lines{ min-height:12.5em; font-size:19px; line-height:1.65; cursor:pointer; }
+  .lines p{ margin:0 0 6px; }
+  .lines b{ color:#ffe14d; font-weight:700; }
+  .dossier{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin:18px 0 6px; }
+  .dossier > div{ border:1px solid var(--line); padding:10px 12px; opacity:0; transform:translateY(6px); transition:all .35s ease; }
+  .dossier > div.on{ opacity:1; transform:none; }
+  .dossier .k{ font-family:var(--font-ui); font-size:11px; letter-spacing:.16em; color:var(--text-faint); text-transform:uppercase; }
+  .dossier .v{ font-size:17px; margin-top:4px; }
+  .route{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-top:14px; font-size:14px; }
+  .route .st{ border:1px solid var(--line); padding:6px 10px; opacity:0; transition:opacity .3s ease; }
+  .route .st.on{ opacity:1; }
+  .route .st.h{ color:var(--accent-hack); border-color:rgba(var(--accent-hack-rgb),.5); }
+  .route .st.b{ color:var(--accent-build); border-color:rgba(var(--accent-build-rgb),.5); }
+  .route .ar{ color:var(--text-faint); }
+  .actions{ display:flex; justify-content:space-between; align-items:center; gap:14px; margin-top:22px; flex-wrap:wrap; }
+  .actions .note{ color:var(--text-faint); font-size:14px; }
+  @media (max-width:700px){ .idscan{ grid-template-columns:1fr; justify-items:center; text-align:center; } .dossier{ grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<div class="stage">
+  <section class="step" id="stepId">
+    <div class="head">PRIMENET // SECURE LOGIN <span id="clock"></span></div>
+    <div class="pn-panel idscan">
+      <div class="pad" id="pad" role="button" tabindex="0" aria-label="Fingerprint pad. Hold Space, or press and hold here.">
+        <svg viewBox="0 0 170 220" aria-hidden="true">
+          <defs><clipPath id="fillClip"><rect id="fillRect" x="0" y="220" width="170" height="220"></rect></clipPath></defs>
+          <g id="printDim" fill="none" stroke="rgba(47,191,138,.22)" stroke-width="3.2" stroke-linecap="round"></g>
+          <g id="printLit" fill="none" stroke="#2fbf8a" stroke-width="3.2" stroke-linecap="round" clip-path="url(#fillClip)" style="filter:drop-shadow(0 0 4px rgba(47,191,138,.8))"></g>
+        </svg>
+        <div class="beam" id="beam"></div>
+      </div>
+      <div class="idtext">
+        <h1>IDENTITY SCAN</h1>
+        <p>Hold <kbd>SPACE</kbd> to scan your fingerprint, or press and hold the pad. Let go and the scan drains.</p>
+        <div class="meter"><i id="meter"></i></div>
+        <div class="readout" id="readout">Awaiting print…</div>
+        <div class="confirmed" id="confirmed" hidden></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="step" id="stepBrief" hidden>
+    <div class="head">INCOMING TRANSMISSION <span id="opName"></span></div>
+    <div class="pn-panel brief">
+      <div class="comms talking" id="comms">
+        <div class="wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+        <div><div class="who">ORACLE</div><div class="sub">Your handler // encrypted channel</div></div>
+      </div>
+      <div class="lines" id="lines" aria-live="polite" title="Click to show all"></div>
+      <div class="dossier" id="dossier">
+        <div><div class="k">Target</div><div class="v" id="dTarget"></div></div>
+        <div><div class="k">Operation</div><div class="v" id="dOp"></div></div>
+        <div><div class="k">Agent</div><div class="v" id="dAgent"></div></div>
+      </div>
+      <div class="route" id="route">
+        <span class="st h">1 · Frequency Scan</span><span class="ar">→</span>
+        <span class="st b">2 · Factor Vault ×3 floors</span><span class="ar">→</span>
+        <span class="st b">3 · Blueprint</span><span class="ar">→</span>
+        <span class="st h">4 · Prime Hack</span>
+      </div>
+      <div class="actions">
+        <span class="note">Press <b>Enter</b> or click to accept.</span>
+        <button class="pn-btn primary" type="button" id="acceptBtn" disabled>Accept mission</button>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script src="../shared/sound.js"></script>
+<script src="../shared/primenet.js"></script>
+<script src="../shared/testtools.js"></script>
+<script src="../shared/glitch.js"></script>
+<script>
+(() => {
+  "use strict";
+  const PN = window.Primenet;
+  const SND = (n, a) => { if(window.PNSound) PNSound.play(n, a); };
+  const $ = s => document.querySelector(s);
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const m = PN.mission();
+  const agent = PN.getAgent();
+  if(!agent){ location.href = "../index.html"; return; }
+  const NEXT = "prime_frequency_scan.html";
+  const go = () => PNGlitch.go(NEXT);
+
+  setInterval(() => { $("#clock").textContent = new Date().toLocaleTimeString("en-GB"); }, 1000);
+
+  // ---------- Fingerprint: loops of a whorl, drawn as broken ellipse arcs ----------
+  (function drawPrint(){
+    const cx = 85, cy = 118; let d = "";
+    for(let k = 0; k < 11; k++){
+      const rx = 10 + k * 7, ry = 14 + k * 8.6;
+      const gapAt = (k * 67) % 360, gap = 22 + (k % 3) * 10;          // each ridge has a break, like a real print
+      const a0 = (gapAt + gap) * Math.PI / 180, a1 = (gapAt + 360) * Math.PI / 180;
+      const pt = a => [cx + rx * Math.cos(a), cy + ry * Math.sin(a)];
+      const [x0, y0] = pt(a0), [x1, y1] = pt(a1);
+      d += `<path d="M${x0.toFixed(1)} ${y0.toFixed(1)} A${rx} ${ry} 0 1 1 ${x1.toFixed(1)} ${y1.toFixed(1)}"/>`;
+    }
+    $("#printDim").innerHTML = d; $("#printLit").innerHTML = d;
+  })();
+
+  // ---------- Identity scan ----------
+  const pad = $("#pad"), meter = $("#meter"), fillRect = $("#fillRect"), beam = $("#beam"), readout = $("#readout");
+  const READOUTS = ["Reading ridges…", "Mapping whorl…", "Matching print…", "Checking clearance…"];
+  let holding = false, progress = 0, done = false, last = performance.now(), humTick = 0;
+  const HOLD_MS = PN.isTeacher() && window.PNTest && PNTest.fast ? 250 : 1700;
+
+  function hold(on){ if(done) return; holding = on; pad.classList.toggle("holding", on); if(on) SND("click"); }
+  document.addEventListener("keydown", e => { if(e.code === "Space" && !e.repeat && !done){ e.preventDefault(); hold(true); } });
+  document.addEventListener("keyup", e => { if(e.code === "Space"){ e.preventDefault(); hold(false); } });
+  pad.addEventListener("pointerdown", e => { e.preventDefault(); pad.setPointerCapture(e.pointerId); hold(true); });
+  ["pointerup","pointercancel"].forEach(t => pad.addEventListener(t, () => hold(false)));
+
+  (function tick(now){
+    const dt = now - last; last = now;
+    if(!done){
+      progress = Math.max(0, Math.min(1, progress + (holding ? dt / HOLD_MS : -dt / 900)));
+      meter.style.width = (progress * 100) + "%";
+      fillRect.setAttribute("y", String(220 - progress * 220));
+      beam.style.top = (270 - progress * 250) + "px";
+      if(holding){
+        readout.textContent = `${READOUTS[Math.min(3, Math.floor(progress * 4))]} ${Math.round(progress * 100)}%`;
+        if(now - humTick > 70){ humTick = now; SND("hum", Math.round(progress * 20)); }
+      } else if(progress > 0) readout.textContent = `Signal fading… ${Math.round(progress * 100)}%`;
+      else readout.textContent = "Awaiting print…";
+      if(progress >= 1) verified();
+    }
+    requestAnimationFrame(tick);
+  })(last);
+
+  async function verified(){
+    done = true; holding = false; pad.classList.remove("holding"); pad.classList.add("done");
+    SND("verified");
+    const r = PN.agentRank(m.codename);
+    readout.textContent = "Match found.";
+    const c = $("#confirmed"); c.hidden = false;
+    c.innerHTML = `<div class="ok">IDENTITY CONFIRMED</div>
+      Agent <b>${m.codename}</b> · ${PN.agentNumber(m.codename)}<br>
+      Rank: ${r.rank} · Clearance ${agent.level} (${PN.LEVELS[agent.level].rank})`;
+    await sleep(1500);
+    brief();
+  }
+
+  // ---------- Briefing ----------
+  const LINES = [
+    `*${m.codename}*, ORACLE here. Channel's secure.`,
+    `Tonight's target: *${m.target}*. Operation ${m.operation}.`,
+    `Their network hides its keys among prime signals. Scan the bands and tag every prime.`,
+    `Then rebuild the bank's blueprint, one floor at a time, from factor pairs.`,
+    `Once we know the building, crack the prime locks and empty the vault. I'll be on comms the whole way.`,
+  ];
+  let skipTyping = false;
+  async function brief(){
+    $("#stepId").hidden = true; $("#stepBrief").hidden = false;
+    $("#opName").textContent = "OPERATION " + m.operation;
+    $("#dTarget").textContent = m.target; $("#dOp").textContent = m.operation;
+    $("#dAgent").textContent = `${m.codename} · ${agent.level}`;
+    SND("comms");
+    await sleep(350);
+    const box = $("#lines");
+    box.addEventListener("click", () => { skipTyping = true; });
+    for(const text of LINES){
+      const p = document.createElement("p"); box.appendChild(p);
+      const parts = text.split(/(\*[^*]+\*)/); let html = "";
+      for(const part of parts){
+        const bold = /^\*.*\*$/.test(part), t = bold ? part.slice(1, -1) : part;
+        for(let i = 0; i < t.length && !skipTyping; i++){
+          p.innerHTML = html + (bold ? `<b>${t.slice(0, i + 1)}</b>` : t.slice(0, i + 1));
+          if(i % 2 === 0 && t[i] !== " ") SND("chatter");
+          await sleep(24);
+        }
+        html += bold ? `<b>${t}</b>` : t; p.innerHTML = html;
+      }
+      if(!skipTyping) await sleep(320);
+    }
+    $("#comms").classList.remove("talking");
+    const cards = [...document.querySelectorAll("#dossier > div")], steps = [...document.querySelectorAll("#route .st")];
+    for(const el of [...cards, ...steps]){ el.classList.add("on"); SND("tag"); await sleep(skipTyping ? 40 : 160); }
+    const btn = $("#acceptBtn"); btn.disabled = false; btn.focus();
+    SND("ready");
+  }
+  $("#acceptBtn").addEventListener("click", () => { SND("start"); $("#acceptBtn").disabled = true; setTimeout(go, 350); });
+  document.addEventListener("keydown", e => { if(e.key === "Enter" && !$("#acceptBtn").disabled){ e.preventDefault(); $("#acceptBtn").click(); } });
+
+  if(window.PNTest){
+    PNTest.add("Pass the identity scan", () => { if(!done) verified(); });
+    PNTest.add("Skip to Frequency Scan", () => { location.href = NEXT; });
+  }
+})();
+</script>
+</body>
+</html>

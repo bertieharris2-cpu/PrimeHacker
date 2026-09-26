@@ -61,6 +61,39 @@
   .foot{ width:min(980px,100%); display:flex; justify-content:space-between; font-size:12px; color:var(--text-faint); }
   .ver{ background:none; border:0; color:inherit; font:inherit; cursor:default; padding:2px 4px; }
 
+  /* Agent ID card */
+  .idcard{ margin-top:6px; display:grid; grid-template-columns:74px 1fr; gap:6px 14px; border:1px solid var(--line-strong); background:linear-gradient(135deg, rgba(var(--accent-hack-rgb),.08), rgba(var(--accent-build-rgb),.05) 60%, transparent); padding:14px; position:relative; overflow:hidden; }
+  .idcard::after{ content:""; position:absolute; inset:0; background:repeating-linear-gradient(0deg, rgba(255,255,255,.025) 0 1px, transparent 1px 3px); pointer-events:none; }
+  .idcard .photo{ grid-row:span 4; width:74px; height:92px; border:1px solid rgba(var(--accent-hack-rgb),.5); background:rgba(0,0,0,.3); display:flex; align-items:flex-end; justify-content:center; overflow:hidden; }
+  .idcard .photo svg{ width:64px; height:80px; }
+  .idcard .top{ display:flex; justify-content:space-between; font-family:var(--font-ui); font-size:10px; letter-spacing:.2em; color:var(--text-faint); text-transform:uppercase; }
+  .idcard .top b{ color:var(--accent-hack); font-weight:700; }
+  .idcard .nm{ font-family:var(--font-ui); font-weight:700; font-size:22px; letter-spacing:.1em; color:var(--text-primary); min-height:1.2em; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .idcard .nm.empty{ color:var(--text-faint); }
+  .idcard .row2{ display:flex; flex-wrap:wrap; gap:4px 14px; font-size:13px; color:var(--text-muted); }
+  .idcard .row2 b{ color:var(--text-primary); font-weight:700; }
+  .idcard .prog{ height:6px; background:rgba(0,0,0,.4); border:1px solid var(--line); }
+  .idcard .prog i{ display:block; height:100%; background:var(--accent-hack); width:0; transition:width .4s ease; }
+  .idcard .nextr{ grid-column:1/-1; font-size:12px; color:var(--text-faint); padding-right:84px; }
+  .idcard .stamp{ position:absolute; right:10px; bottom:8px; font-family:var(--font-ui); font-size:10px; letter-spacing:.2em; color:rgba(var(--accent-hack-rgb),.5); border:1px solid rgba(var(--accent-hack-rgb),.35); padding:2px 6px; transform:rotate(-6deg); }
+
+  /* Learner settings */
+  .settings{ width:min(520px,100%); background:var(--bg-panel-solid); border:1px solid rgba(var(--accent-rgb),.5); padding:22px; display:flex; flex-direction:column; gap:18px; margin-top:8vh; }
+  .settings h2{ margin:0; font-family:var(--font-ui); font-size:20px; letter-spacing:.1em; text-transform:uppercase; color:var(--accent); }
+  .settings .who{ margin:-10px 0 0; font-size:14px; color:var(--text-faint); }
+  .settings fieldset{ border:0; padding:0; margin:0; display:flex; flex-direction:column; gap:8px; }
+  .settings legend{ font-family:var(--font-ui); font-size:12px; letter-spacing:.16em; text-transform:uppercase; color:var(--text-faint); margin-bottom:8px; padding:0; }
+  .seg{ display:grid; grid-template-columns:repeat(4,1fr); gap:6px; }
+  .seg button{ font:inherit; color:var(--text-muted); background:rgba(0,0,0,.25); border:1px solid var(--line); padding:10px 4px; cursor:pointer; }
+  .seg button[aria-pressed="true"]{ color:var(--text-primary); border-color:var(--accent); box-shadow:inset 0 0 0 1px rgba(var(--accent-rgb),.4); }
+  .seg button:nth-child(1){ font-size:14px } .seg button:nth-child(2){ font-size:16px } .seg button:nth-child(3){ font-size:19px } .seg button:nth-child(4){ font-size:22px }
+  .toggle{ display:flex; justify-content:space-between; align-items:center; gap:14px; border:1px solid var(--line); padding:12px 14px; cursor:pointer; }
+  .toggle .t{ display:flex; flex-direction:column; gap:2px; }
+  .toggle .t small{ color:var(--text-faint); font-size:13px; }
+  .toggle input{ width:22px; height:22px; accent-color:var(--accent); }
+  .settings .sample{ border:1px dashed var(--line); padding:10px 12px; color:var(--text-muted); font-size:15px; }
+  .settings footer{ display:flex; justify-content:flex-end; gap:8px; }
+
   /* Teacher panel */
   .overlay{ position:fixed; inset:0; z-index:50; background:rgba(0,0,0,.72); display:flex; align-items:flex-start; justify-content:center; padding:24px 16px; overflow:auto; }
   .overlay[hidden]{ display:none; }
@@ -98,7 +131,7 @@
 </head>
 <body>
 <div class="shell">
-  <div class="topline"><span><span class="dot"></span>SECURE UPLINK</span><span class="row" style="gap:14px"><button class="pn-btn small" type="button" id="textBtn" title="Text size for this agent">Text: Medium</button><button class="pn-btn small" type="button" id="soundBtn" aria-pressed="true">Sound: on</button><span id="clock"></span></span></div>
+  <div class="topline"><span><span class="dot"></span>SECURE UPLINK</span><span class="row" style="gap:14px"><button class="pn-btn small" type="button" id="settingsBtn" title="Text size, font, motion and sound for this agent">Settings</button><button class="pn-btn small" type="button" id="soundBtn" aria-pressed="true">Sound: on</button><span id="clock"></span></span></div>
 
   <div class="hero">
     <h1 class="logo"><span class="p">PRIME</span><span class="n">NET</span></h1>
@@ -114,6 +147,15 @@
         <button class="pn-btn small" type="button" id="randomName" title="Pick a random codename">Random</button>
       </div>
       <p class="hint">Use a made-up name, not your real one. Your teacher sees it in the mission record.</p>
+      <div class="idcard" id="idcard" aria-live="polite">
+        <div class="photo" aria-hidden="true"><svg viewBox="0 0 64 80"><circle cx="32" cy="28" r="14" fill="rgba(47,191,138,.35)"/><path d="M6 80 C8 58 20 50 32 50 C44 50 56 58 58 80 Z" fill="rgba(47,191,138,.35)"/><rect x="0" y="36" width="64" height="2" fill="rgba(47,191,138,.8)"><animate attributeName="y" values="4;76;4" dur="3s" repeatCount="indefinite"/></rect></svg></div>
+        <div class="top"><span>PRIMENET · AGENT ID</span><b id="idNum">AG-0000-X</b></div>
+        <div class="nm empty" id="idName">NO CODENAME</div>
+        <div class="row2"><span>Rank <b id="idRank">Rookie</b></span><span>Vaults <b id="idVaults">0</b></span><span>Clearance <b id="idClear">·</b></span></div>
+        <div class="prog" title="Progress to the next rank"><i id="idProg"></i></div>
+        <div class="nextr" id="idNext">Breach one vault to become a Field Agent.</div>
+        <span class="stamp">VERIFIED</span>
+      </div>
     </div>
 
     <div class="field">
@@ -147,6 +189,21 @@
 </div>
 
 <!-- Teacher controls: hold Shift and click "v1", or press Ctrl + Shift + Y, then enter the PIN -->
+<div class="overlay" id="settingsOverlay" hidden role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+  <div class="settings">
+    <h2 id="settingsTitle">Agent settings</h2>
+    <p class="who" id="settingsWho">Saved for this codename on this computer.</p>
+    <fieldset><legend>Text size</legend><div class="seg" id="sizeSeg"></div></fieldset>
+    <fieldset><legend>Reading and motion</legend>
+      <label class="toggle"><span class="t">Easy-read font<small>Letters that are easier to tell apart (Atkinson Hyperlegible)</small></span><input type="checkbox" id="optFont"></label>
+      <label class="toggle"><span class="t">Reduce motion<small>Stops the drifting background, shaking and glitch effects</small></span><input type="checkbox" id="optMotion"></label>
+      <label class="toggle"><span class="t">Sound<small>For the whole game on this computer</small></span><input type="checkbox" id="optSound"></label>
+    </fieldset>
+    <div class="sample">Sample: 7 × 13 = 91. Is 91 prime? No: it has the factors 1, 7, 13 and 91.</div>
+    <footer><button class="pn-btn primary" type="button" id="settingsDone">Done</button></footer>
+  </div>
+</div>
+
 <div class="overlay" id="pinOverlay" hidden role="dialog" aria-modal="true" aria-labelledby="pinTitle">
   <form class="pinbox" id="pinForm" autocomplete="off">
     <h2 id="pinTitle">Teacher PIN</h2>
@@ -187,6 +244,7 @@
     <section>
       <span class="pn-label">Preview a stage</span>
       <div class="jumps">
+        <a class="pn-btn small" href="modules/briefing.html">Briefing</a>
         <a class="pn-btn small" href="modules/prime_frequency_scan.html">Frequency Scan</a>
         <a class="pn-btn small" href="modules/factor_vault.html">Factor Vault</a>
         <a class="pn-btn small" href="modules/vault_grid_demo.html?n=24">Vault Grid (N = 24)</a>
@@ -222,6 +280,7 @@
 
 <script src="shared/primenet.js"></script>
 <script src="shared/sound.js"></script>
+<script src="shared/glitch.js"></script>
 <script>
 (() => {
   "use strict";
@@ -237,7 +296,7 @@
   (function typeBoot(){
     const text = "> UPLINK ESTABLISHED. AWAITING AGENT IDENTIFICATION_";
     const el = $("#boot"); let i = 0;
-    if(matchMedia("(prefers-reduced-motion: reduce)").matches){ el.textContent = text; return; }
+    if(P.reducedMotion()){ el.textContent = text; return; }
     const t = setInterval(() => { el.textContent = text.slice(0, ++i); if(i >= text.length) clearInterval(t); }, 32);
   })();
 
@@ -282,12 +341,11 @@
     const name = codename.value.trim();
     if(!name || !chosen || !P.allowedLevels().includes(chosen)) return;
     P.startSession(name, chosen);
-    P.setTextSize(name, textSize);
+    P.setPrefs(name, prefs);
     PNSound.play("start");
     startBtn.disabled = true;
     $("#status").textContent = "Mission starting…";
-    // The rest of the route isn't linked yet. For now the mission opens the first stage.
-    setTimeout(() => { location.href = "modules/prime_frequency_scan.html"; }, 1100);
+    setTimeout(() => PNGlitch.go("modules/briefing.html"), 900);
   });
 
   /* Teacher panel */
@@ -353,7 +411,7 @@
   $("#testMission").addEventListener("click", () => {
     const lvl = P.allowedLevels()[0];
     P.startSession("TEST", lvl);
-    location.href = "modules/prime_frequency_scan.html";
+    location.href = "modules/briefing.html";
   });
 
   $("#downloadBtn").addEventListener("click", () => {
@@ -378,23 +436,62 @@
   });
 
   /* Sound switch and the teacher's sound check */
-  // Text size: saved per codename, so each learner gets their own size back
-  const textBtn = $("#textBtn");
-  let textSize = P.textSizeFor(codename.value);
-  const syncText = () => { textBtn.textContent = `Text: ${P.TEXT_SIZES[textSize].label}`; P.applyTextSize(textSize); };
-  textBtn.addEventListener("click", () => {
-    textSize = P.TEXT_ORDER[(P.TEXT_ORDER.indexOf(textSize) + 1) % P.TEXT_ORDER.length];
-    if(codename.value.trim()) P.setTextSize(codename.value, textSize);
-    syncText(); PNSound.play("click");
+  // Learner settings: saved per codename, so each learner gets their own back
+  let prefs = P.prefsFor(codename.value);
+  const settingsOverlay = $("#settingsOverlay");
+  function renderSettings(){
+    const name = codename.value.trim().toUpperCase();
+    $("#settingsWho").textContent = name ? `Saved for agent ${name} on this computer.` : "Type a codename first to save these for next time.";
+    const seg = $("#sizeSeg"); seg.innerHTML = "";
+    P.TEXT_ORDER.forEach(k => {
+      const b = document.createElement("button"); b.type = "button"; b.textContent = P.TEXT_SIZES[k].label;
+      b.setAttribute("aria-pressed", prefs.text === k ? "true" : "false");
+      b.addEventListener("click", () => { prefs.text = k; savePrefs(); PNSound.play("click"); renderSettings(); });
+      seg.appendChild(b);
+    });
+    $("#optFont").checked = prefs.font; $("#optMotion").checked = prefs.motion; $("#optSound").checked = PNSound.isOn();
+  }
+  function savePrefs(){ prefs = codename.value.trim() ? P.setPrefs(codename.value, prefs) : (P.applyPrefs(prefs), prefs); }
+  $("#optFont").addEventListener("change", e => { prefs.font = e.target.checked; savePrefs(); });
+  $("#optMotion").addEventListener("change", e => { prefs.motion = e.target.checked; savePrefs(); });
+  $("#optSound").addEventListener("change", e => { PNSound.setOn(e.target.checked); syncSound(); PNSound.play("click"); });
+  $("#settingsBtn").addEventListener("click", () => { renderSettings(); settingsOverlay.hidden = false; PNSound.play("click"); $("#settingsDone").focus(); });
+  $("#settingsDone").addEventListener("click", () => { settingsOverlay.hidden = true; });
+  settingsOverlay.addEventListener("click", e => { if(e.target === settingsOverlay) settingsOverlay.hidden = true; });
+  document.addEventListener("keydown", e => { if(e.key === "Escape") settingsOverlay.hidden = true; });
+  // A learner who has saved settings gets them back when they type their codename
+  codename.addEventListener("change", () => {
+    const name = codename.value.trim().toUpperCase();
+    if(!name) return;
+    let saved = null; try{ saved = (JSON.parse(localStorage.getItem("primenet_learner_v1")) || {})[name]; }catch(e){}
+    if(saved) prefs = P.prefsFor(name); else P.setPrefs(name, prefs);
+    P.applyPrefs(prefs);
   });
-  codename.addEventListener("change", () => { const k = P.textSizeFor(codename.value); if(k !== "M" || !codename.value.trim()) textSize = k; else P.setTextSize(codename.value, textSize); syncText(); });
-  syncText();
+  P.applyPrefs(prefs);
+
+  // Agent ID card
+  function renderIdCard(){
+    const name = codename.value.trim().toUpperCase();
+    const r = P.agentRank(name || "-");
+    $("#idName").textContent = name || "NO CODENAME"; $("#idName").classList.toggle("empty", !name);
+    $("#idNum").textContent = name ? P.agentNumber(name) : "AG-0000-X";
+    $("#idRank").textContent = name ? r.rank : "·";
+    $("#idVaults").textContent = name ? r.count : "·";
+    $("#idClear").textContent = chosen ? `${chosen} ${P.LEVELS[chosen].rank}` : "·";
+    const steps = [0, 1, 2, 3, 5, 8], lo = [...steps].reverse().find(v => v <= r.count), hi = steps.find(v => v > r.count);
+    $("#idProg").style.width = !name ? "0" : hi === undefined ? "100%" : `${Math.round((r.count - lo) / (hi - lo) * 100)}%`;
+    $("#idNext").textContent = !name ? "Type a codename to load an agent file." : r.next ? `${r.toNext} more vault${r.toNext === 1 ? "" : "s"} to become ${/^[AEIOU]/.test(r.next) ? "an" : "a"} ${r.next}.` : "Top rank. A legend in the network.";
+  }
+  codename.addEventListener("input", renderIdCard);
+  levelsEl.addEventListener("click", () => setTimeout(renderIdCard));
+  $("#randomName").addEventListener("click", () => { renderIdCard(); codename.dispatchEvent(new Event("change")); });
+  renderIdCard();
 
   const soundBtn = $("#soundBtn");
   const syncSound = () => { soundBtn.textContent = `Sound: ${PNSound.isOn() ? "on" : "off"}`; soundBtn.setAttribute("aria-pressed", PNSound.isOn() ? "true" : "false"); };
   soundBtn.addEventListener("click", () => { PNSound.setOn(!PNSound.isOn()); syncSound(); PNSound.play("click"); });
   syncSound();
-  const SOUND_LABELS = { click:"Button", key:"Typing", tag:"Tag", untag:"Untag", correct:"Correct", wrong:"Wrong", lock:"Lock cracked", success:"Stage complete", start:"Start mission", newlock:"New lock", denied:"Not prime", laser:"Laser", fill:"Power fill", seal:"Seal", rise:"3D rise", pop:"Blueprint box", cash:"Money", ready:"Buffer ready", commit:"Buffer commit", alarm:"Alarm", chatter:"Chatter" };
+  const SOUND_LABELS = { click:"Button", key:"Typing", tag:"Tag", untag:"Untag", correct:"Correct", wrong:"Wrong", lock:"Lock cracked", success:"Stage complete", start:"Start mission", newlock:"New lock", denied:"Not prime", laser:"Laser", fill:"Power fill", seal:"Seal", rise:"3D rise", pop:"Blueprint box", cash:"Money", ready:"Buffer ready", commit:"Buffer commit", alarm:"Alarm", chatter:"Chatter", glitch:"Glitch", comms:"Handler comms", hum:"Fingerprint hum", verified:"Identity confirmed" };
   const board = $("#soundBoard");
   PNSound.list().forEach(name => {
     const b = document.createElement("button"); b.type = "button"; b.className = "pn-btn small"; b.textContent = SOUND_LABELS[name] || name;

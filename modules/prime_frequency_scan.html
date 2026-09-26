@@ -440,6 +440,8 @@ button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [clas
 
 <script src="../shared/primenet.js"></script>
 <script src="../shared/testtools.js"></script>
+<script src="../shared/handler.js"></script>
+<script src="../shared/glitch.js"></script>
 <script src="../shared/sound.js"></script>
 <script>
 (() => {
@@ -613,6 +615,7 @@ button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [clas
       text: "BEGIN SCAN",
       onClick: () => {
         SND("start");
+        if(window.PNHandler) PNHandler.once("scan-start", "{agent}, {target} hides its keys in prime signals. A prime has exactly two factors: 1 and itself. Tag every one in the band.", { delay: 600 });
         bandIndex = 0;
         progress = new Array(CONFIG.bands.length).fill(false);
         renderScan();
@@ -678,6 +681,7 @@ button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [clas
     main.append(heading, instruction, grid, renderSegments(), btnRow);
   }
 
+  let bandMisses = 0;
   function verifyBand(b){
     const primes = new Set(primesInBand(b.start, b.end));
     let ok = true;
@@ -691,11 +695,15 @@ button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [clas
     }
 
     if (ok){
+      if(window.PNHandler && bandIndex === 0) PNHandler.once("scan-band1", "Band one is clean. Keep going.");
+      bandMisses = 0;
       progress[bandIndex] = true;
       SND("correct", bandIndex * 2);
       renderVerified(b);
     } else {
       setConsole("NOISE DETECTED", "Rescan required.");
+      bandMisses++;
+      if(window.PNHandler && bandMisses === 2) PNHandler.once("scan-miss-" + bandIndex, "Check each number: does it split into a times-table fact, like 3 × 7? Then it's noise, not a prime. And 1 is never prime.");
       SND("wrong");
       // brief visual cue: flash border by toggling status text class
       statusText.classList.remove("ok", "warn", "bad");
@@ -747,6 +755,7 @@ button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [clas
   function renderComplete(){
     state = State.COMPLETE;
     SND("success");
+    if(window.PNHandler) PNHandler.once("scan-done", "Signal's clean, {agent}. Next we need {target}'s blueprint. Head for the vault.", { delay: 700 });
     setStatus("STATUS: READY");
     setConsole("Core systems synchronised.", "Primary encryption now accessible.");
     clearMain();
@@ -760,7 +769,7 @@ button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [clas
       onClick: () => {
         setConsole("ROUTE SET", "Next module: FACTOR VAULT.");
         if(PN) PN.log("scan-complete");
-        flashAccessGranted(() => { location.href = "factor_vault.html"; });
+        flashAccessGranted(() => (window.PNGlitch ? PNGlitch.go("factor_vault.html") : (location.href = "factor_vault.html")));
       }
     });
 

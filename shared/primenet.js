@@ -15,7 +15,8 @@
     device: "primenet_device_v1",
     teacher: "primenet_teacher_unlocked",   // sessionStorage: cleared when the browser tab closes
     floors: "blueprintProgress",            // numbers finished in Factor Vault this mission
-    textSize: "primenet_textsize_v1",       // { CODENAME: "M" }, each learner's text size on this computer
+    textSize: "primenet_textsize_v1",       // older text-size-only settings, read once and folded into `learner`
+    learner: "primenet_learner_v1",         // { CODENAME: { text, font, motion } }, each learner's settings on this computer
   };
 
   const LEVELS = {
@@ -103,32 +104,80 @@
     const list = getRecords();
     list.push(session);
     saveRecords(list);
-    write(KEYS.agent, { sessionId: session.id, codename: session.codename, level });
+    session.target = pickTarget(level);
+    session.operation = pickOperation();
+    write(KEYS.agent, { sessionId: session.id, codename: session.codename, level, target: session.target, operation: session.operation });
     try{ localStorage.removeItem(KEYS.floors); }catch(e){}   // a new mission starts with no floors built
     return session;
   }
 
-  /* Text size, chosen per learner on the title screen. Pages are scaled with CSS zoom
-     because the games use fixed pixel sizes. */
+  /* One heist per mission: the bank named in the briefing is the building the student
+     rebuilds and the bank Prime Hack breaks into. Names match the accounts in modules/bank.js. */
+  const TARGETS = {
+    L1: ["Rivercross Utilities","Northwick Transit","Sentinel Finance","Haven Council"],
+    L2: ["Ember Freight","Crystal Holdings","Vault Secure","Pinnacle Corp"],
+    L3: ["Helix Dynamics","Nexus Global","Kronos Finance","Atlas Prime"],
+  };
+  const OP_A = ["SILENT","GLASS","IRON","HOLLOW","NEON","MIDNIGHT","COBALT","PAPER","STATIC","VELVET"];
+  const OP_B = ["HERON","PRISM","LEDGER","HARBOUR","CIPHER","LANTERN","ORBIT","FALCON","VAULT","ECHO"];
+  const pickFrom = a => a[Math.floor(Math.random() * a.length)];
+  function pickTarget(level){ return pickFrom(TARGETS[level] || TARGETS.L1); }
+  function pickOperation(){ return `${pickFrom(OP_A)} ${pickFrom(OP_B)}`; }
+  // This mission's bank and operation name, with fallbacks for a game opened on its own
+  function mission(){
+    const a = getAgent() || {};
+    return { target: a.target || "Rivercross Utilities", operation: a.operation || "SILENT HERON", codename: a.codename || "AGENT" };
+  }
+
+  // A stable agent number made from the codename, e.g. "AG-4821-K"
+  function agentNumber(codename){
+    const name = cleanName(codename || "");
+    let h = 2166136261;
+    for(const ch of name) h = Math.imul(h ^ ch.charCodeAt(0), 16777619) >>> 0;
+    return `AG-${String(1000 + h % 9000)}-${"ABCDEFGHJKLMNPQRSTUVWXYZ"[(h >>> 13) % 24]}`;
+  }
+
+  /* Learner settings, chosen on the title screen and saved per codename on this computer:
+     text size (pages are scaled with CSS zoom because the games use fixed pixel sizes),
+     an easy-read font and reduced motion. */
   const TEXT_SIZES = { S:{ id:"S", label:"Small", zoom:.9 }, M:{ id:"M", label:"Medium", zoom:1 }, L:{ id:"L", label:"Large", zoom:1.15 }, XL:{ id:"XL", label:"Extra large", zoom:1.3 } };
   const TEXT_ORDER = ["S","M","L","XL"];
+  const DEFAULT_PREFS = { text:"M", font:false, motion:false };
   const cleanName = n => String(n).trim().toUpperCase().slice(0, 20);
-  function textSizeFor(codename){
-    const map = read(KEYS.textSize, {});
-    const k = map[cleanName(codename || (getAgent() || {}).codename || "")];
-    return TEXT_SIZES[k] ? k : "M";
+  function prefsFor(codename){
+    const name = cleanName(codename || (getAgent() || {}).codename || "");
+    const saved = read(KEYS.learner, {})[name];
+    if(saved) return { ...DEFAULT_PREFS, ...saved };
+    const oldText = read(KEYS.textSize, {})[name];
+    return { ...DEFAULT_PREFS, text: TEXT_SIZES[oldText] ? oldText : "M" };
   }
-  function setTextSize(codename, size){
-    if(!TEXT_SIZES[size]) return;
-    const map = read(KEYS.textSize, {});
+  function setPrefs(codename, prefs){
+    const p = { ...DEFAULT_PREFS, ...prefs };
     const name = cleanName(codename || "");
-    if(name){ map[name] = size; write(KEYS.textSize, map); }
-    applyTextSize(size);
+    if(name){ const map = read(KEYS.learner, {}); map[name] = p; write(KEYS.learner, map); }
+    applyPrefs(p);
+    return p;
   }
-  function applyTextSize(size){
-    const z = (TEXT_SIZES[size || textSizeFor()] || TEXT_SIZES.M).zoom;
-    document.documentElement.style.zoom = z === 1 ? "" : String(z);
+  function applyPrefs(p){
+    p = p || prefsFor();
+    const root = document.documentElement;
+    const z = (TEXT_SIZES[p.text] || TEXT_SIZES.M).zoom;
+    root.style.zoom = z === 1 ? "" : String(z);
+    root.classList.toggle("pn-easyfont", !!p.font);
+    root.classList.toggle("pn-reduce-motion", !!p.motion);
+    if(p.font && !document.getElementById("pn-easyfont-link")){
+      const l = document.createElement("link");
+      l.id = "pn-easyfont-link"; l.rel = "stylesheet";
+      l.href = "https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Atkinson+Hyperlegible+Mono:wght@400;700&display=swap";
+      document.head.appendChild(l);
+    }
   }
+  const reducedMotion = () => document.documentElement.classList.contains("pn-reduce-motion") ||
+    (window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches);
+  // Older names, still used by the title screen's text-size code
+  const textSizeFor = codename => prefsFor(codename).text;
+  const setTextSize = (codename, size) => setPrefs(codename, { ...prefsFor(codename), text: size });
+  const applyTextSize = size => applyPrefs({ ...prefsFor(), text: size || prefsFor().text });
 
   // The level for this mission. Games fall back to L1 when opened without the title screen.
   function level(){
@@ -271,6 +320,8 @@
     randomCodename,
     agentRank, rankFor, currentSession,
     TEXT_SIZES, TEXT_ORDER, textSizeFor, setTextSize, applyTextSize,
+    prefsFor, setPrefs, applyPrefs, reducedMotion,
+    mission, agentNumber, TARGETS,
   };
-  applyTextSize();   // every page opens at the current agent's text size
+  applyPrefs();   // every page opens with the current agent's settings
 })();

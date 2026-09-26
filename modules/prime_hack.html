@@ -235,65 +235,22 @@
   .pressSpace.show{ opacity:1; animation: blink2 1.1s infinite; }
   @keyframes blink2{ 0%,49%{opacity:1} 50%,100%{opacity:0.25} }
 
-  /* Code flood overlay (final) */
-  .codeFloodOverlay{
-    position:fixed; inset:0; z-index: 7000;
-    display:flex; align-items:center; justify-content:center;
-    background: rgba(0,0,0,0.62);
-  }
-  .codeFloodBox{
-    width:min(760px, 90vw);
-    border:1px solid rgba(var(--accent-rgb),0.40);
-    background: rgba(0,0,0,0.92);
-    box-shadow: 0 18px 80px rgba(0,0,0,0.85);
-    border-radius: var(--radius);
-    padding: 14px 16px 16px 16px;
-  }
-  .codeFloodHeader{
-    display:flex; align-items:center; justify-content:space-between;
-    gap:10px; margin-bottom: 8px;
-  }
-  .codeFloodTitle{ color: var(--green); font-size: 16px; letter-spacing:0.6px; }
-  .codeFloodStream{
-    height: 220px;
-    overflow:hidden;
-    border:1px solid rgba(var(--accent-rgb),0.18);
-    background: rgba(0,0,0,0.55);
-    border-radius: var(--radius);
-    padding: 10px 12px;
-    color: rgba(180,255,215,0.95);
-    white-space: pre-wrap;
-    font-size: 14px;
-    line-height: 1.35;
-    word-break: break-word;
-  }
-  .codeFloodStream .cfPink{ color: #ff4fd8; }
-  .codeFloodStream .cfYellow{ color: #ffe66a; }
-  .codeFloodStream .cfRed{ color: #ff6b6b; }
-  .codeFloodBarWrap{
-    margin-top: 10px;
-    height: 18px;
-    border-radius: var(--radius);
-    overflow:hidden;
-    border:1px solid rgba(var(--accent-rgb),0.30);
-    background: rgba(0,0,0,0.55);
-    position:relative;
-  }
-  .codeFloodBarFill{ height:100%; width:0%; background: rgba(var(--accent-rgb),0.85); }
-  .codeFloodBarSweep{
-    position:absolute; top:0; bottom:0; width:90px;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.16), transparent);
-    animation: sweep2 0.85s linear infinite;
-    opacity:0.75;
-  }
-  @keyframes sweep2{ from{transform:translateX(-110px)} to{transform:translateX(820px)} }
-  .codeFloodResult{
-    margin-top: 12px;
-    text-align:center;
-    font-size: 28px;
-    letter-spacing: 2px;
-    color: var(--green);
-  }
+  /* Code flood overlay (final). Styled like the roleplay terminal's SCAN output. */
+  .codeFloodOverlay{ position:fixed; inset:0; z-index:7000; display:flex; align-items:center; justify-content:center; background:rgba(3,10,12,.9); }
+  .codeFloodBox{ width:min(1000px,94vw); height:min(640px,78vh); display:flex; flex-direction:column; border:1px solid rgba(var(--accent-rgb),.45); background:rgba(4,14,17,.97); box-shadow:0 20px 90px rgba(0,0,0,.85), 0 0 40px rgba(var(--accent-rgb),.12); }
+  .codeFloodHeader{ display:flex; justify-content:space-between; align-items:center; gap:12px; padding:12px 18px; border-bottom:1px solid rgba(var(--accent-rgb),.25); font-family:var(--font-ui); font-weight:800; letter-spacing:.16em; font-size:14px; color:var(--accent); }
+  .codeFloodHeader span{ color:var(--text-muted); font-weight:600; }
+  .codeFloodHeader .pct{ color:#ffe14d; font-family:var(--font-mono); letter-spacing:.06em; }
+  .codeFloodStream{ flex:1; min-height:0; overflow:hidden; padding:14px 20px; font-family:var(--font-mono); font-size:19px; line-height:1.6; white-space:pre-wrap; word-break:break-word; display:flex; flex-direction:column; justify-content:flex-end; }
+  .codeFloodStream .sys{ color:rgba(var(--accent-rgb),.85); }
+  .codeFloodStream .warn{ color:var(--warning, #f2c14e); }
+  .codeFloodStream .hot{ color:#ff6ec7; }
+  .codeFloodStream .me{ color:rgba(235,255,248,.6); }
+  .codeFloodStream .pk{ color:#ff4fd8; text-shadow:0 0 10px rgba(255,79,216,.45); }
+  .codeFloodStream .yl{ color:#ffe14d; }
+  .codeFloodStream .big{ font-family:var(--font-ui); font-weight:800; font-size:34px; letter-spacing:.18em; color:var(--accent); text-shadow:0 0 22px rgba(var(--accent-rgb),.5); margin:10px 0 4px; }
+  .codeFloodBarWrap{ height:6px; background:rgba(0,0,0,.5); border-top:1px solid rgba(var(--accent-rgb),.2); }
+  .codeFloodBarFill{ height:100%; width:0%; background:var(--accent); box-shadow:0 0 12px rgba(var(--accent-rgb),.7); }
 
 /* ===== PRIMENET override layer (readability + modern B) ===== */
 body{
@@ -1239,6 +1196,8 @@ button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [clas
 <!-- Mission data (agent, level, record), then the banking system, which keeps a wallet per codename -->
 <script src="../shared/primenet.js"></script>
 <script src="../shared/testtools.js"></script>
+<script src="../shared/handler.js"></script>
+<script src="../shared/glitch.js"></script>
 <script src="../shared/sound.js"></script>
 <script src="./bank.js"></script>
 
@@ -1257,7 +1216,7 @@ const PRIME_NET_EFFECTS = {
   bufferStages: 4,
   keysPerStage: 16,
   interStageScrollSeconds: 2,
-  finalFloodSeconds: 0,      // 0 = skip the code flood; the vault door is the finale now
+  finalFloodSeconds: 6,      // the code flood between the buffer charge and the vault door; 0 skips it
   miniRewardSeconds: 2.2,
 };
 
@@ -1470,7 +1429,9 @@ function newRunSameDifficulty(){
   const lock = generatePairForLock(1);
   Run.p=lock.p; Run.q=lock.q; Run.n=lock.n;
   Run.solved=false;
-  Bank.selectAccountForRun(DIFF);
+  // The first run hits the bank named in the briefing; later runs pick a new one
+  if(!Run.missionBankUsed && PN && PN.getAgent() && PN.getAgent().target){ Run.missionBankUsed = true; Bank.selectAccountByName(DIFF, PN.mission().target); }
+  else Bank.selectAccountForRun(DIFF);
   updateRunUI();
 }
 
@@ -1598,93 +1559,67 @@ async function showBankingOverlay(bankedAmount){
   });
 }
 
-// --- Code flood overlay (final)
-function randLine(len=66){
-  const chars = "0123456789ABCDEFabcdef/\\|_-=+*~<>[]{}():;.," + "█▓▒░";
-  let s="";
-  for(let i=0;i<len;i++) s += chars[Math.floor(Math.random()*chars.length)];
-  return s;
-}
-async function codeFlood(title="ENCRYPTION HANDSHAKE", seconds=15){
-  Sound.hackery();
-  return new Promise((resolve)=>{
-    const overlay = document.createElement("div");
-    overlay.className="codeFloodOverlay";
-    const box = document.createElement("div");
-    box.className="codeFloodBox";
-    const header = document.createElement("div");
-    header.className="codeFloodHeader";
-    const h = document.createElement("div");
-    h.className="codeFloodTitle";
-    h.textContent = title;
-    header.append(h);
+// --- Code flood overlay (final): the breach scrolling past, in the roleplay terminal's style,
+// with the student's own cracked primes, the target bank and their codename woven in.
+async function codeFlood(title="BREACH CHANNEL", seconds=6){
+  const acct = Bank.getCurrentAccount();
+  const bank = acct ? acct.name.toUpperCase() : "TARGET";
+  const agent = PN && PN.getAgent() ? PN.getAgent().codename : "AGENT";
+  const locks = (Run.cracked && Run.cracked.length) ? Run.cracked : [{ p: Run.p, q: Run.q, n: Run.n }];
+  const hex = n => Array.from({length:n}, () => "0123456789ABCDEF"[randInt(16)]).join("");
+  const pickOne = a => a[randInt(a.length)];
+  const TAGS = ["[NET]","[AUTH]","[VAULT]","[MUX]","[PROC]","[TRACE]","[LEDGER]"];
+  const VERBS = ["probe_gate()","sync_ledger()","mask_account()","open_channel()","shuffle_route()","checksum_ok()","bounce_proxy()","spoof_signal()"];
+  const SMALL = [2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53];
+  const esc = t => String(t).replace(/[&<>]/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;" })[c]);
 
-    const stream = document.createElement("div");
-    stream.className="codeFloodStream";
-    stream.innerHTML = "INITIALISING STREAM…<br>";
+  // Story beats that land in order as the bar fills; noise fills the gaps
+  const beats = [
+    [`agent@primenet:~$ breach --target "${esc(bank)}" --agent ${esc(agent)}`, "me"],
+    [`Initiating breach on ${esc(bank)}…`, "sys"],
+    [`TARGET: ${esc(bank)} // ACCT-${hex(6)} // security ${pickOne(["HIGH","MAXIMUM","PARANOID"])}`, "warn"],
+    [`⚠ Counter-trace found. Bouncing signal…`, "hot"],
+    [`Trace lost. Close call.`, "sys"],
+    [`[LEDGER] ${hex(8)} :: transfer --to wallet://${esc(agent.toLowerCase())} --amount ALL`, "warn"],
+    [`Vault door responding…`, "warn"],
+    // The student's own locks land last, so they're on screen when the firewall drops
+    ...locks.map((c, i) => [`[VAULT] bolt_${i + 1} :: unlock(<span class="pk">${c.p}</span>, <span class="pk">${c.q}</span>)  = <span class="yl">${c.p * c.q}</span>  ✓ primes verified`, "sys"]),
+  ];
 
-    const barWrap = document.createElement("div");
-    barWrap.className="codeFloodBarWrap";
-    const barFill = document.createElement("div");
-    barFill.className="codeFloodBarFill";
-    const barSweep = document.createElement("div");
-    barSweep.className="codeFloodBarSweep";
-    barWrap.append(barFill, barSweep);
-
-    const result = document.createElement("div");
-    result.className="codeFloodResult";
-    result.textContent = "";
-
-    box.append(header, stream, barWrap, result);
-    overlay.append(box);
+  if(window.PNSound) PNSound.play("laser");
+  return new Promise(resolve => {
+    const overlay = document.createElement("div"); overlay.className = "codeFloodOverlay";
+    overlay.innerHTML = `<div class="codeFloodBox">
+      <div class="codeFloodHeader"><div>PRIME NET <span>// ${esc(title)}</span></div><div class="pct">0%</div></div>
+      <div class="codeFloodStream"></div>
+      <div class="codeFloodBarWrap"><div class="codeFloodBarFill"></div></div></div>`;
     document.body.append(overlay);
-
-    const lines=[];
-    for(let i=0;i<120;i++) lines.push(randLine(50 + randInt(32)));
-
-    // Colourize function: sprinkle 4-9 coloured characters into the line for more visual splash
-    function colourize(line){
-      const colours = ['cfPink','cfYellow','cfRed'];
-      const n = 4 + Math.floor(Math.random()*6);
-      let chars = line.split('');
-      for(let i=0;i<n;i++){
-        const idx = Math.floor(Math.random()*chars.length);
-        const c = chars[idx] || '';
-        const cls = colours[Math.floor(Math.random()*colours.length)];
-        chars[idx] = `<span class="${cls}">${c}</span>`;
+    const stream = overlay.querySelector(".codeFloodStream"), fill = overlay.querySelector(".codeFloodBarFill"), pct = overlay.querySelector(".pct");
+    const push = (html, cls) => {
+      const d = document.createElement("div"); d.className = cls; d.innerHTML = html; stream.append(d);
+      while(stream.children.length > 40) stream.firstChild.remove();
+    };
+    const duration = Math.max(2, seconds) * 1000;
+    let elapsed = 0, beat = 0, last = performance.now(), sinceLine = 0;
+    (function frame(now){
+      const dt = (now - last) * speed(); last = now; elapsed += dt; sinceLine += dt;
+      const p = Math.min(1, elapsed / duration);
+      fill.style.width = (p * 100) + "%"; pct.textContent = Math.floor(p * 100) + "%";
+      while(beat < beats.length && p >= beat / beats.length * .92){
+        const [t, cls] = beats[beat++]; push(t, cls);
+        if(window.PNSound) PNSound.play(cls === "hot" ? "alarm" : "tag");
       }
-      return chars.join('');
-    }
-
-    let htmlLines = [colourize("INITIALISING STREAM…")];
-
-    let floodTimer = setInterval(()=>{
-      const line = lines[Math.floor(Math.random() * lines.length)];
-      htmlLines.push(colourize(line));
-      htmlLines = htmlLines.slice(-32);
-      stream.innerHTML = htmlLines.join("<br>");
-    }, 55);
-
-    let p=0;
-    const durationMs = Math.max(2, seconds)*1000;
-    const steps = Math.max(1, Math.floor(durationMs/70));
-    const inc = 100/steps;
-
-    const barTimer = setInterval(()=>{
-      p = Math.min(100, p+inc);
-      barFill.style.width = `${p}%`;
-      if(p>=100){
-        clearInterval(barTimer);
-        clearInterval(floodTimer);
-        floodTimer=null;
-        result.textContent = "ACCESS GRANTED";
-        Sound.win();
-        setTimeout(()=>{
-          overlay.remove();
-          resolve();
-        }, 900);
+      if(sinceLine > 80){
+        sinceLine = 0;
+        const r = Math.random();
+        push(`${pickOne(TAGS)} ${hex(8)} :: ${pickOne(VERBS)}${r < .3 ? "  primes " + Array.from({length:5}, () => pickOne(SMALL)).join(" ") : ""}`, r < .06 ? "hot" : r < .12 ? "warn" : "sys");
+        if(window.PNSound) PNSound.play("chatter");
       }
-    }, 70);
+      if(p < 1){ requestAnimationFrame(frame); return; }
+      push("FIREWALL DOWN", "big");
+      if(window.PNSound) PNSound.play("lock");
+      setTimeout(() => { overlay.remove(); resolve(); }, 1300 / speed());
+    })(last);
   });
 }
 
@@ -2103,7 +2038,7 @@ function caseFile({ codename, levelId, cracked, wrong, banked, walletAfter, afte
     const L = (PN && PN.LEVELS[levelId]) || { rank: levelId };
     const o = overlay();
     o.innerHTML = `<div class="caseFile" role="dialog" aria-label="Case file">
-      <div class="cf-head"><div><h2>CASE FILE</h2><div class="op">OPERATION ${pick(OP_A)} ${pick(OP_B)} · ${new Date().toLocaleDateString("en-GB", {day:"numeric", month:"long", year:"numeric"})}</div></div><div class="cf-classified">CLASSIFIED</div></div>
+      <div class="cf-head"><div><h2>CASE FILE</h2><div class="op">OPERATION ${(PN && PN.getAgent() && PN.getAgent().operation && !Run.opUsed) ? (Run.opUsed = true, PN.mission().operation) : `${pick(OP_A)} ${pick(OP_B)}`} · ${new Date().toLocaleDateString("en-GB", {day:"numeric", month:"long", year:"numeric"})}</div></div><div class="cf-classified">CLASSIFIED</div></div>
       <div class="cf-grid">
         <div><small>AGENT</small><b>${codename}</b></div>
         <div><small>RANK</small><b>${after ? after.rank : "Agent"}</b></div>
@@ -2137,6 +2072,10 @@ async function onLockSolved(){
     const withdrawn = Bank.withdrawForLock(DIFF, Run.index);
     Sound.ok();
     await lockCard(Run.index, withdrawn, last.p, last.q);
+    if(window.PNHandler){
+      const left = Run.locksPerRun - Run.index;
+      PNHandler.say(left === 1 ? "Last lock, {agent}. Their security team is waking up. Make it count." : `Lock ${Run.index} down. ${left} to go.`);
+    }
     Run.index += 1;
     newTargetNextLock();
     lockBanner(Run.index === Run.locksPerRun ? "Final lock: crack it to breach the vault" : "");
@@ -2152,7 +2091,7 @@ async function onLockSolved(){
   await breachPrelude(PRIME_NET_EFFECTS.preludeSeconds);
   setCinematic(false);
   await runBufferSequence();
-  if(PRIME_NET_EFFECTS.finalFloodSeconds > 0) await codeFlood("ENCRYPTION HANDSHAKE", PRIME_NET_EFFECTS.finalFloodSeconds);
+  if(PRIME_NET_EFFECTS.finalFloodSeconds > 0){ setCinematic(true); await codeFlood("BREACH CHANNEL", PRIME_NET_EFFECTS.finalFloodSeconds); setCinematic(false); }
 
   const acct = Bank.getCurrentAccount() || { name:"TARGET", balance:0 };
   const acctSnapshot = { name: acct.name, balance: acct.balance };
@@ -2169,6 +2108,7 @@ async function onLockSolved(){
 
   await drainAndStamp(doorOverlay, { acct: acctSnapshot, banked, walletBefore, walletAfter: Bank.getWalletBalance(), codename, before, after });
   addLine("VAULT BREACH COMPLETE // SESSION SAVED", "ok");
+  if(window.PNHandler) PNHandler.say(`We're out clean. ${acctSnapshot.name} won't know what hit them. Outstanding work, {agent}.`);
   await caseFile({ codename, levelId: DIFF, cracked: Run.cracked.slice(), wrong: Run.wrongTotal || 0, banked, walletAfter: Bank.getWalletBalance(), after, startedAt: Run.startedAt });
 
   // A new run at the same clearance
@@ -2276,6 +2216,7 @@ async function handleMath(text){
     Run.tries = (Run.tries || 0) + 1;
     Run.wrongTotal = (Run.wrongTotal || 0) + 1;
     if(window.PNSound) PNSound.play("wrong");
+    if(window.PNHandler && Run.tries === 3) PNHandler.once(`hack-tip-${Run.n}`, `Try dividing ${Run.n} by the small primes: 2, 3, 5, 7, 11. If one goes in exactly, you've found half the pair.`);
     setHint(Run.tries >= 3
       ? `Stuck? Type <b>HINT</b> for clues, or test a number with <b>PRIME? 91</b>.`
       : `${p} × ${q} = ${prod}, which is too ${prod < Run.n ? "low: try a bigger" : "high: try a smaller"} prime. Target: <b>${Run.n}</b>.`);
@@ -2481,6 +2422,7 @@ function boot(){
   addLine(`Target bank: ${target ? target.name : "unknown"}. Four locks stand between you and its vault.`, "sys");
   addLine("Each lock is a number made by multiplying two primes. Type the two primes to crack it.", "sys");
   addLine("Type HELP for commands.", "sys");
+  if(window.PNHandler) PNHandler.once("hack-start", `You're at ${target ? target.name : "{target}"}'s vault, {agent}. Four locks. Each one is two primes multiplied together. Type the pair.`, { delay: 1200 });
   addBlank();
   lockBanner(`Clearance ${DIFF}`);
   addBlank();

@@ -326,6 +326,8 @@ button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [clas
 
 <script src="../shared/primenet.js"></script>
 <script src="../shared/testtools.js"></script>
+<script src="../shared/handler.js"></script>
+<script src="../shared/glitch.js"></script>
 <script src="../shared/sound.js"></script>
 <script>
 const PN = window.Primenet;
@@ -1073,7 +1075,7 @@ function setNextButton(){
 }
 nextFloorBtn.addEventListener("click", ()=>{
   // After three floors, go to the Blueprint; otherwise back to Factor Vault for a new number at the mission level
-  window.location.href = blueprintReady() ? "vault_blueprint_viewer.html" : "factor_vault.html";
+  (window.PNGlitch ? PNGlitch.go((blueprintReady() ? "vault_blueprint_viewer.html" : "factor_vault.html")) : (location.href = (blueprintReady() ? "vault_blueprint_viewer.html" : "factor_vault.html")));
 });
 
 // Check URL parameters for N value from factor_vault
@@ -1101,6 +1103,10 @@ document.querySelector(".title div:first-child").insertAdjacentHTML("afterend",
   await pause(1900);
   nextFloorBtn.style.visibility = "visible";
   SND("success");
+  if(window.PNHandler){
+    const f = Math.max(1, Math.min(floorsBuilt(), FLOORS_NEEDED));
+    PNHandler.once(`grid-${f}-${initialN}`, f >= FLOORS_NEEDED ? "Three floors mapped. Let's put {target}'s building together." : `Floor ${f} is solid. Every room is one factor pair of ${initialN}.`, { delay: 400 });
+  }
   nextFloorBtn.focus();
 });
 

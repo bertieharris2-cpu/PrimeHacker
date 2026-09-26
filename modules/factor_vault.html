@@ -866,6 +866,8 @@ body{ font-size: var(--font-size); }
 
   <script src="../shared/primenet.js"></script>
   <script src="../shared/testtools.js"></script>
+  <script src="../shared/handler.js"></script>
+  <script src="../shared/glitch.js"></script>
   <script src="../shared/sound.js"></script>
   <script>
     const PN = window.Primenet;
@@ -1340,6 +1342,7 @@ body{ font-size: var(--font-size); }
       }
     }
 
+    let floorMisses = 0;
     function validateAll(){
       const rows = pairsTable.querySelectorAll("tr");
       let validCount = 0;
@@ -1397,6 +1400,8 @@ body{ font-size: var(--font-size); }
 
       // Provide feedback
       if(validCount === 0 && totalEntered > 0){
+        floorMisses++;
+        if(window.PNHandler && floorMisses === 2) PNHandler.once(`vault-tip-${N}`, `Try counting up from 1. If a number goes into ${N} exactly, its partner is ${N} ÷ that number.`);
         const errorMsg = errors.length > 0 ? errors[0] : "No valid pairs found";
         setHint(`✗ ${errorMsg}`);
       } else if(validCount > 0){
@@ -1419,7 +1424,7 @@ body{ font-size: var(--font-size); }
           setMode("Blueprint Decryption");
           setHint(`All pairs verified. Reconstructing floor plan for N=${N}…`);
           submitAllBtn.disabled = true;
-          setTimeout(() => { window.location.href = `vault_grid_demo.html?n=${N}`; }, 1800);
+          setTimeout(() => (window.PNGlitch ? PNGlitch.go(`vault_grid_demo.html?n=${N}`) : (location.href = `vault_grid_demo.html?n=${N}`)), 1800);
         }
       } else if(totalEntered === 0){
         setHint("Enter at least one pair.");
@@ -1743,6 +1748,12 @@ body{ font-size: var(--font-size); }
       const floor = Math.min(getCompletedLevels().length + 1, FLOORS_NEEDED);
       setHint(`Floor ${floor} of ${FLOORS_NEEDED}: find all ${allPairs.length} factor pairs for N=${N}.`);
       if(PN) PN.log("vault", { floor, n: N, level: currentDifficulty });
+      floorMisses = 0;
+      if(window.PNHandler) PNHandler.once(`vault-floor-${floor}-${N}`, [
+        "This is {target}'s vault system. Each factor pair of N is a room on one floor. Find every pair and we can map it.",
+        "Floor two. Same drill: every pair, and don't forget 1 × N.",
+        "Last floor, {agent}. Then we'll have the whole building.",
+      ][floor - 1] || "Find every pair.", { delay: 900 });
       renderTable();
       renderVaults();
       // Hide completion prompt when starting new game
@@ -1770,12 +1781,12 @@ body{ font-size: var(--font-size); }
     proceedBtn.addEventListener("click", () => {
       // Some levels complete - go to vault grid demo for current N
       const gridUrl = `vault_grid_demo.html?n=${N}`;
-      window.location.href = gridUrl;
+      (window.PNGlitch ? PNGlitch.go(gridUrl) : (location.href = gridUrl));
     });
 
     buildBlueprintBtn.addEventListener("click", () => {
       // All 3 levels complete - go to blueprint viewer
-      window.location.href = "vault_blueprint_viewer.html";
+      (window.PNGlitch ? PNGlitch.go("vault_blueprint_viewer.html") : (location.href = "vault_blueprint_viewer.html"));
     });
 
     // Override the completion check to show the right prompt

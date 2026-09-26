@@ -118,3 +118,22 @@ body::before{
 @media (prefers-reduced-motion: reduce){
   *, *::before, *::after{ animation: none !important; transition: none !important; }
 }
+
+/* ===== Learner settings (title screen → Settings). Classes are set on <html> by primenet.js. ===== */
+/* Easy-read font: Atkinson Hyperlegible, designed for readers who find letters hard to tell apart */
+html.pn-easyfont{
+  --font-ui: "Atkinson Hyperlegible", "Inter", system-ui, sans-serif;
+  --font-mono: "Atkinson Hyperlegible Mono", "Atkinson Hyperlegible", ui-monospace, monospace;
+}
+html.pn-easyfont body, html.pn-easyfont body *:not(svg):not(svg *){
+  font-family: "Atkinson Hyperlegible", "Atkinson Hyperlegible Mono", "Inter", system-ui, sans-serif !important;
+  letter-spacing: .02em;
+}
+/* Reduced motion: no drifting texture, no looping effects, no screen shake */
+html.pn-reduce-motion body::before{ animation: none !important; }
+html.pn-reduce-motion *, html.pn-reduce-motion *::before, html.pn-reduce-motion *::after{
+  animation-duration: .01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: .01ms !important;
+  scroll-behavior: auto !important;
+}
