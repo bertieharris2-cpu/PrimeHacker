@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Bank Blueprint Assembled</title>
+<style>
+  :root{
+    --bg-primary: #050f14;
+    --fill1: rgba(0, 255, 100, 0.65);
+    --fill2: rgba(0, 255, 100, 0.45);
+    --flow1: rgba(74, 163, 255, 0.55);
+    --flow2: rgba(74, 163, 255, 0.30);
+    --laser: rgba(74, 163, 255, 0.85);
+    --lock: rgba(0, 215, 184, 0.80);
+    --frame: rgba(0, 255, 100, 0.70);
+    --text: rgba(235, 255, 248, 0.85);
+    --text-muted: rgba(235, 255, 248, 0.55);
+    --border: rgba(17, 75, 95, 0.40);
+    --transition-fast: 120ms ease;
+    --cell-border: 0.5px;
+    --grid-gap: 1px;
+  }
+
+  body{
+    margin:0;
+    padding: 20px;
+    background:
+      radial-gradient(1200px 800px at 50% 40%, rgba(0, 255, 100, 0.06), transparent 50%),
+      radial-gradient(900px 650px at 70% 75%, rgba(74, 163, 255, 0.04), transparent 60%),
+      var(--bg-primary);
+    color: var(--text);
+    font-family: "Courier Prime", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    min-height: 100vh;
+    overflow-y: auto;
+  }
+
+  body::before{
+    content:"";
+    position:fixed;
+    inset:-40px;
+    background:
+      radial-gradient(600px 450px at 30% 25%, rgba(74, 163, 255, 0.08), transparent 65%),
+      radial-gradient(700px 500px at 70% 75%, rgba(0, 255, 100, 0.06), transparent 70%);
+    pointer-events:none;
+    opacity:.85;
+    filter: blur(8px);
+    z-index: 0;
+  }
+
+  .container{
+    position: relative;
+    z-index: 1;
+    max-width: 1000px;
+    margin: 0 auto;
+  }
+
+  .blueprint-header{
+    text-align: center;
+    margin-bottom: 40px;
+    padding: 20px;
+    border: 1px solid var(--border);
+    background: rgba(7, 20, 24, 0.55);
+    box-shadow: 0 0 0 1px rgba(17, 75, 95, 0.20) inset;
+  }
+
+  .blueprint-header h1{
+    margin: 0 0 10px 0;
+    font-size: 24px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--laser);
+    text-shadow: 0 0 12px rgba(74, 163, 255, 0.5);
+  }
+
+  .blueprint-header p{
+    margin: 0;
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    text-transform: uppercase;
+  }
+
+  .floors-container{
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+    perspective: 1200px;
+    transform-style: preserve-3d;
+    align-items: center;
+  }
+
+  .blueprint-wrapper{
+    display: flex;
+    gap: 32px;
+    align-items: flex-start;
+    justify-content: center;
+    opacity: 0;
+    animation: slideInFloor 0.8s ease-out 0.3s forwards;
+  }
+
+  .blueprint-labels{
+    display: flex;
+    flex-direction: column;
+    gap: 54px;
+    justify-content: flex-start;
+  }
+
+  .floor-label{
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    padding: 4px 0 4px 8px;
+    border-left: 2px solid var(--laser);
+    white-space: nowrap;
+    line-height: 1.4;
+  }
+
+  .floor-label .n-value{
+    display: block;
+    color: var(--laser);
+    font-weight: bold;
+    margin-top: 4px;
+  }
+
+  .blueprint-viewer-canvas{
+    width: 600px;
+    height: 600px;
+    flex-shrink: 0;
+    border: 1px solid var(--border);
+    background: rgba(7, 20, 24, 0.55);
+    box-shadow: inset 0 0 20px rgba(0, 255, 100, 0.05);
+  }
+
+  @keyframes slideInFloor{
+    from{
+      opacity: 0;
+      transform: translateY(30px) scale(0.95);
+    }
+    to{
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  .completion-section{
+    margin-top: 40px;
+    padding: 20px;
+    text-align: center;
+    border: 1px solid var(--border);
+    background: rgba(7, 20, 24, 0.55);
+    box-shadow: 0 0 0 1px rgba(17, 75, 95, 0.20) inset;
+  }
+
+  .completion-text{
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin: 0 0 16px 0;
+  }
+
+  .proceed-btn{
+    padding: 10px 24px;
+    background: rgba(0, 255, 100, 0.15);
+    border: 1px solid var(--fill1);
+    color: var(--fill1);
+    font-family: inherit;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 200ms ease;
+    box-shadow: 0 0 8px rgba(0, 255, 100, 0.2);
+  }
+
+  .proceed-btn:hover{
+    background: rgba(0, 255, 100, 0.25);
+    box-shadow: 0 0 16px rgba(0, 255, 100, 0.4);
+  }
+
+  .error-message{
+    text-align: center;
+    padding: 40px 20px;
+    color: rgba(255, 100, 100, 0.8);
+    font-size: 12px;
+    letter-spacing: 0.08em;
+  }
+</style>
+</head>
+<body>
+  <div class="container">
+    <div class="blueprint-header">
+      <h1>Bank Blueprint Complete</h1>
+      <p>Facility reconstruction successful — 3-floor structure assembled</p>
+    </div>
+
+    <div class="floors-container" id="floorsContainer">
+      <!-- Floors will be populated by JavaScript -->
+    </div>
+
+    <div class="completion-section">
+      <p class="completion-text">All vault structures decoded. Ready for access protocol initiation?</p>
+      <button class="proceed-btn" id="proceedToHackBtn">Initiate Prime Hack Protocol</button>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/three@0.154.0/build/three.min.js"></script>
+  <script>
+    // Load completed levels from localStorage
+    let completed = JSON.parse(localStorage.getItem('blueprintProgress') || '[]');
+    
+    // Demo mode: if not enough completed, use demo values for testing
+    const DEMO_MODE = completed.length < 3;
+    if(DEMO_MODE){
+      completed = [12, 30, 60];  // Demo N values - change these to test different numbers
+      console.log('🎯 Blueprint Viewer DEMO MODE - Using hardcoded N values:', completed);
+    }
+    
+    if(completed.length < 3){
+      // Not enough levels completed - show error
+      document.getElementById('floorsContainer').innerHTML = 
+        '<div class="error-message">ERROR: Insufficient vault data. Complete at least 3 levels before accessing blueprint viewer.</div>';
+      document.getElementById('proceedToHackBtn').disabled = true;
+    } else {
+      // Sort the completed N values: smallest to largest
+      const sorted = [...completed].sort((a, b) => a - b);
+      
+      // Assign to floors: Floor 1 (ground/largest), Floor 2 (medium), Floor 3 (top/smallest)
+      const floor1N = sorted[sorted.length - 1];  // Largest - Ground floor
+      const floor2N = sorted[Math.floor(sorted.length / 2)] || sorted[1];  // Medium
+      const floor3N = sorted[0];  // Smallest - Top floor
+      
+      const floors = [
+        { label: 'FLOOR 3 — ROOF ACCESS', n: floor3N, yOffset: 36 },
+        { label: 'FLOOR 2 — VAULT CHAMBER', n: floor2N, yOffset: 18 },
+        { label: 'FLOOR 1 — SECURITY CORE (GROUND)', n: floor1N, yOffset: 0 }
+      ];
+      
+      const container = document.getElementById('floorsContainer');
+      
+      // Create wrapper for labels + canvas side-by-side
+      const wrapper = document.createElement('div');
+      wrapper.className = 'blueprint-wrapper';
+      
+      // Create labels column (left side)
+      const labelsCol = document.createElement('div');
+      labelsCol.className = 'blueprint-labels';
+      floors.forEach((floor) => {
+        const labelEl = document.createElement('div');
+        labelEl.className = 'floor-label';
+        labelEl.innerHTML = `${floor.label}<span class="n-value">N=${floor.n}</span>`;
+        labelsCol.appendChild(labelEl);
+      });
+      wrapper.appendChild(labelsCol);
+      
+      // Create single shared 3D canvas container (right side)
+      const canvasContainer = document.createElement('div');
+      canvasContainer.className = 'blueprint-viewer-canvas';
+      wrapper.appendChild(canvasContainer);
+      
+      container.appendChild(wrapper);
+      
+      // Initialize shared Three.js scene with all floors
+      initializeSharedScene(floors, canvasContainer);
+      
+      // Proceed button handler
+      document.getElementById('proceedToHackBtn').addEventListener('click', () => {
+        // Clear blueprint progress
+        localStorage.removeItem('blueprintProgress');
+        // Navigate to prime_hack game
+        window.location.href = '../modules/prime_hack.html';
+      });
+    }
+
+    function initializeSharedScene(floors, container){
+      // Single shared Three.js setup
+      const width = container.clientWidth;
+      const height = container.clientHeight;
+      const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+      renderer.setPixelRatio(window.devicePixelRatio || 1);
+      renderer.setSize(width, height);
+      renderer.domElement.style.width = '100%';
+      renderer.domElement.style.height = '100%';
+      container.appendChild(renderer.domElement);
+
+      const scene = new THREE.Scene();
+
+      // camera positioned to see all 3 floors in one view (stacked vertically)
+      const camera = new THREE.PerspectiveCamera(35, width / height, 1, 4000);
+      camera.position.set(150, 75, 350);
+      camera.lookAt(0, 18, 0);
+
+      // lights
+      const ambient = new THREE.AmbientLight(0xaaffee, 0.45);
+      scene.add(ambient);
+      const dir = new THREE.DirectionalLight(0xaaffee, 0.6);
+      dir.position.set(0.5, 1, 0.2);
+      scene.add(dir);
+
+      // group to rotate all floors together
+      const mainGroup = new THREE.Group();
+      scene.add(mainGroup);
+
+      // calculate plane size
+      const planeSize = Math.max(300, Math.min(width, height) * 1.4) * 0.95;
+
+      // Calculate scale factors to normalize all floors to same visual size
+      // Inverse scale by sqrt(N) so larger N floors don't have huge boxes
+      const maxN = Math.max(...floors.map(f => f.n));
+      const scales = {};
+      floors.forEach((floor) => {
+        scales[floor.n] = Math.sqrt(maxN / floor.n);
+      });
+
+      // Pre-calculate max extents of boxes to size cuboid faces properly
+      let maxExtentX = 0;
+      let maxExtentZ = 0;
+      
+      floors.forEach((floor) => {
+        const pairs = getFactorPairs(floor.n);
+        const cols = Math.min(6, Math.max(1, Math.ceil(Math.sqrt(pairs.length))));
+        const rows = Math.ceil(pairs.length / cols);
+        const spacing = (36 + 8) * scales[floor.n];
+        
+        pairs.forEach((p, i) => {
+          const a = p[0], b = p[1];
+          let bw = Math.max(12, b * 4) * scales[floor.n];
+          let bh = Math.max(6, a * 4) * scales[floor.n];
+          if (a === 1 && b > 1) {
+            bw = Math.min(bw, bh * 2.5);
+          } else if (b === 1 && a > 1) {
+            bh = Math.min(bh, bw * 2.5);
+          }
+          
+          const col = i % cols;
+          const row = Math.floor(i / cols);
+          const posX = (col - (cols - 1) / 2) * spacing;
+          const posZ = -(row - (rows - 1) / 2) * spacing;
+          
+          maxExtentX = Math.max(maxExtentX, Math.abs(posX) + bw / 2);
+          maxExtentZ = Math.max(maxExtentZ, Math.abs(posZ) + bh / 2);
+        });
+      });
+
+      // array to store grid references
+      const gridReferences = [];
+
+      // add each floor to the shared scene at different Y positions
+      floors.forEach((floor) => {
+        addFloorToScene(mainGroup, floor.n, floor.yOffset, planeSize, scales[floor.n], maxExtentX, maxExtentZ, gridReferences);
+      });
+
+      // Create single wireframe cuboid to frame all three floors
+      // Sized so faces touch the outermost cuboid faces
+      const boxHeight = 18;  // Must match the boxHeight in addFloorToScene
+      const cuboidBottomY = floors[2].yOffset;  // floor 1 bottom (0)
+      const cuboidTopY = floors[0].yOffset + boxHeight;  // floor 3 top (54)
+      const totalHeight = cuboidTopY - cuboidBottomY;
+      const centerY = (cuboidBottomY + cuboidTopY) / 2;
+
+      const cuboidGeom = new THREE.BoxGeometry(maxExtentX * 2, totalHeight, maxExtentZ * 2);
+      const cuboidEdges = new THREE.EdgesGeometry(cuboidGeom);
+      const edgeMat = new THREE.LineBasicMaterial({ color: 0x00ffcc, transparent: true, opacity: 0.2, linewidth: 1 });
+      const wireframe = new THREE.LineSegments(cuboidEdges, edgeMat);
+      wireframe.position.y = centerY + 9;
+      mainGroup.add(wireframe);
+      
+      // Add 2 horizontal grid planes to divide wireframe into 3rds
+      const cuboidWidth = maxExtentX * 2;
+      const cuboidDepth = maxExtentZ * 2;
+      const thirdHeight = totalHeight / 3;
+      const wireframeBottomY = (centerY + 9) - totalHeight / 2;  // 9
+      
+      // First dividing plane (1/3 up)
+      const gridDiv1 = new THREE.GridHelper(Math.max(cuboidWidth, cuboidDepth), 16, 0x00ffcc, 0x003844);
+      gridDiv1.position.y = wireframeBottomY + thirdHeight;
+      gridDiv1.scale.set(cuboidWidth / Math.max(cuboidWidth, cuboidDepth), 1, cuboidDepth / Math.max(cuboidWidth, cuboidDepth));
+      gridDiv1.material.transparent = true;
+      gridDiv1.material.opacity = 0.05;
+      mainGroup.add(gridDiv1);
+      gridReferences.push(gridDiv1);
+      
+      // Second dividing plane (2/3 up)
+      const gridDiv2 = new THREE.GridHelper(Math.max(cuboidWidth, cuboidDepth), 16, 0x00ffcc, 0x003844);
+      gridDiv2.position.y = wireframeBottomY + thirdHeight * 2;
+      gridDiv2.scale.set(cuboidWidth / Math.max(cuboidWidth, cuboidDepth), 1, cuboidDepth / Math.max(cuboidWidth, cuboidDepth));
+      gridDiv2.material.transparent = true;
+      gridDiv2.material.opacity = 0.05;
+      mainGroup.add(gridDiv2);
+      gridReferences.push(gridDiv2);
+      
+      // Bottom face grid
+      const gridBottom = new THREE.GridHelper(Math.max(cuboidWidth, cuboidDepth), 16, 0x00ffcc, 0x003844);
+      gridBottom.position.y = wireframeBottomY;
+      gridBottom.scale.set(cuboidWidth / Math.max(cuboidWidth, cuboidDepth), 1, cuboidDepth / Math.max(cuboidWidth, cuboidDepth));
+      gridBottom.material.transparent = true;
+      gridBottom.material.opacity = 0.05;
+      mainGroup.add(gridBottom);
+      gridReferences.push(gridBottom);
+
+      // shared animation loop
+      let rotationY = 0;
+      let scanTime = 0;
+      const scanSpeed = 0.008;
+      const scanWidth = 12;  // width of visible scan area
+      const scanBottomY = 0;
+      const scanTopY = 54;
+      const scanRange = scanTopY - scanBottomY;
+
+      function animate(){
+        rotationY += 0.0012;
+        mainGroup.rotation.y = rotationY;
+        
+        // Update scan position - moves bottom to top along Y axis
+        scanTime += scanSpeed;
+        const scanProgress = (Math.sin(scanTime) + 1) / 2;  // 0 to 1
+        const scanY = scanBottomY + scanProgress * scanRange;
+        
+        // Update grid opacity based on scan position
+        gridReferences.forEach(grid => {
+          const distance = Math.abs(grid.position.y - scanY);
+          const opacity = Math.max(0, 1 - distance / scanWidth) * 0.8 + 0.05;  // fade between 0.05 and 0.85
+          grid.material.opacity = opacity;
+        });
+        
+        renderer.render(scene, camera);
+        requestAnimationFrame(animate);
+      }
+      animate();
+
+      // resize handling
+      function onResize(){
+        const w = container.clientWidth;
+        const h = container.clientHeight;
+        renderer.setSize(w, h);
+        camera.aspect = w / h;
+        camera.updateProjectionMatrix();
+      }
+      window.addEventListener('resize', onResize);
+    }
+
+    function addFloorToScene(group, n, yOffset, planeSize, scale, maxExtentX, maxExtentZ, gridReferences){
+      // factor pair boxes
+      const pairs = getFactorPairs(n);
+      if(pairs.length === 0) return;
+
+      const cols = Math.min(6, Math.max(1, Math.ceil(Math.sqrt(pairs.length))));
+      const rows = Math.ceil(pairs.length / cols);
+      const cell = 36;
+      const spacing = (cell + 8) * scale;
+      
+      // Box height - used for both geometry and grid positioning
+      const boxHeight = 18;
+      const boxCenterY = yOffset + boxHeight / 2;  // Center boxes within floor region
+      const boxBottomY = yOffset;                  // Bottom aligns with floor start
+      const boxTopY = yOffset + boxHeight;        // Top aligns with floor end
+      
+      // Grid size matches the outer cuboid dimensions
+      const gridSizeX = maxExtentX * 2;
+      const gridSizeZ = maxExtentZ * 2;
+
+      const floorGroup = new THREE.Group();
+      group.add(floorGroup);
+
+      const boxColor = 0x00ff99;
+
+      pairs.forEach((p, i) => {
+        const a = p[0], b = p[1];
+        let bw = Math.max(12, b * 4) * scale;
+        let bh = Math.max(6, a * 4) * scale;
+        if (a === 1 && b > 1) {
+          bw = Math.min(bw, bh * 2.5);
+        } else if (b === 1 && a > 1) {
+          bh = Math.min(bh, bw * 2.5);
+        }
+
+        const geom = new THREE.BoxGeometry(bw, boxHeight, bh);
+        const mat = new THREE.MeshStandardMaterial({ color: boxColor, emissive: boxColor, emissiveIntensity: 0.25, transparent: true, opacity: 0.16 });
+        const mesh = new THREE.Mesh(geom, mat);
+
+        const geoWire = new THREE.EdgesGeometry(geom);
+        const line = new THREE.LineSegments(geoWire, new THREE.LineBasicMaterial({ color: 0x00ffcc, linewidth: 1 }));
+        mesh.add(line);
+
+        const col = i % cols;
+        const row = Math.floor(i / cols);
+        mesh.position.x = (col - (cols - 1) / 2) * spacing;
+        mesh.position.z = - (row - (rows - 1) / 2) * spacing;
+        mesh.position.y = boxCenterY;
+
+        mesh.scale.set(0.01, 0.01, 0.01);
+        floorGroup.add(mesh);
+
+        // animation per box
+        setTimeout(() => {
+          const start = performance.now();
+          const duration = 700;
+          function anim(t){
+            const p = Math.min(1, (t - start) / duration);
+            const ease = p < 0.5 ? 2 * p * p : -1 + (4 - 2 * p) * p;
+            const s = 0.01 + ease * 1.0;
+            mesh.scale.set(s, s, s);
+            mesh.position.y = yOffset + 4 + ease * 14;
+            if(p < 1) requestAnimationFrame(anim);
+          }
+          requestAnimationFrame(anim);
+        }, 180 + i * 90);
+      });
+    }
+
+    function getFactorPairs(n){
+      const pairs = [];
+      for(let a = 1; a * a <= n; a++){
+        if(n % a === 0){
+          pairs.push([a, n / a]);
+        }
+      }
+      return pairs;
+    }
+  </script>
+</body>
+</html>

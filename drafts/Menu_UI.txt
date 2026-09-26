@@ -1,0 +1,665 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>PRIME NET – MAIN MENU</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --bg:#000;
+      --border: rgba(140,255,190,0.35);
+      --borderStrong: rgba(140,255,190,0.55);
+      --text: rgba(240,255,248,0.92);
+      --muted: rgba(240,255,248,0.70);
+      --green: rgba(120,255,170,0.95);
+      --greenSoft: rgba(120,255,170,0.18);
+      --panel: rgba(0,0,0,0.55);
+      --panel2: rgba(0,0,0,0.40);
+      --fontSize: 18px;
+      --lineHeight: 1.6;
+      --radius: 12px;
+      --shadow: 0 0 30px rgba(120,255,170,0.10);
+    }
+
+    html,body{height:100%;}
+    body{
+      margin:0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Courier Prime", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-size: var(--fontSize);
+      line-height: var(--lineHeight);
+      overflow:hidden;
+    }
+
+    /* Cinematic background: subtle laser lines */
+    .backdrop{
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(1000px 700px at 50% 35%, rgba(120,255,170,0.08), transparent 60%), #000;
+      overflow: hidden;
+      z-index: 0;
+    }
+    .backdrop::before{
+      content:"";
+      position:absolute;
+      inset:-40px;
+      background: repeating-linear-gradient(
+        120deg,
+        rgba(0,255,120,0.06),
+        rgba(0,255,120,0.06) 1px,
+        transparent 2px,
+        transparent 44px
+      );
+      animation: drift 14s linear infinite;
+      opacity: 0.8;
+    }
+    @keyframes drift{
+      from{ transform: translateX(-40px); }
+      to{ transform: translateX(40px); }
+    }
+
+    .shell{
+      position: relative;
+      z-index: 1;
+      height: 100%;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+    }
+
+    .topbar{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 12px;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+      background: var(--panel);
+    }
+
+    .brand{
+      display:flex;
+      gap:12px;
+      align-items:center;
+      font-weight:700;
+      letter-spacing: 0.5px;
+      white-space:nowrap;
+    }
+
+    .status{
+      color: var(--muted);
+      display:flex;
+      align-items:center;
+      gap:10px;
+      white-space:nowrap;
+    }
+    .dot{
+      width:10px;height:10px;
+      border:1px solid var(--border);
+      background: var(--greenSoft);
+      box-shadow: 0 0 12px rgba(120,255,170,0.20);
+    }
+
+    .controls{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+    }
+
+    button{
+      border: 1px solid var(--border);
+      background: rgba(0,0,0,0.45);
+      color: var(--text);
+      padding: 10px 12px;
+      font: inherit;
+      cursor:pointer;
+      border-radius: 10px;
+      transition: transform 80ms ease, background 120ms ease, border-color 120ms ease;
+    }
+    button:hover{
+      background: rgba(120,255,170,0.08);
+      border-color: var(--borderStrong);
+    }
+    button:active{
+      transform: translateY(1px);
+    }
+
+    .content{
+      padding: 16px;
+      display:grid;
+      grid-template-columns: minmax(320px, 0.95fr) minmax(360px, 1.05fr);
+      gap: 16px;
+      height: 100%;
+      box-sizing: border-box;
+    }
+
+    .panel{
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+      display:flex;
+      flex-direction:column;
+      min-height: 0; /* allow internal scrolling areas */
+    }
+
+    .panelHeader{
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(0,0,0,0.35);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 12px;
+    }
+
+    .panelTitle{
+      font-weight:700;
+      letter-spacing: 0.4px;
+    }
+
+    .panelBody{
+      padding: 14px;
+      display:flex;
+      flex-direction:column;
+      gap: 12px;
+      min-height: 0;
+    }
+
+    .hint{
+      color: var(--muted);
+      font-size: 0.95em;
+    }
+
+    /* Left menu layout */
+    .menuGrid{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .bigBtn{
+      text-align:left;
+      padding: 12px 12px;
+      border-radius: 12px;
+      background: rgba(0,0,0,0.35);
+      border: 1px solid var(--border);
+      cursor:pointer;
+      transition: background 120ms ease, border-color 120ms ease, transform 80ms ease;
+    }
+    .bigBtn:hover{
+      background: rgba(120,255,170,0.08);
+      border-color: var(--borderStrong);
+    }
+    .bigBtn:active{ transform: translateY(1px); }
+
+    .bigBtn .label{
+      display:block;
+      font-weight:700;
+      margin-bottom: 4px;
+    }
+    .bigBtn .desc{
+      display:block;
+      color: var(--muted);
+      font-size: 0.95em;
+      line-height: 1.35;
+    }
+
+    .divider{
+      height:1px;
+      background: var(--border);
+      opacity: 0.9;
+      margin: 4px 0;
+    }
+
+    /* Scan screen (marquee) */
+    .scanFrame{
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: rgba(0,0,0,0.35);
+      overflow:hidden;
+    }
+
+    .scanTop{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 12px;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(0,0,0,0.25);
+    }
+    .scanTitle{
+      font-weight:700;
+      letter-spacing: 0.35px;
+    }
+    .pill{
+      display:inline-flex;
+      gap:8px;
+      align-items:center;
+      padding: 6px 10px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: rgba(0,0,0,0.35);
+      color: var(--muted);
+      font-size: 0.9em;
+      white-space:nowrap;
+    }
+
+    .scanWindow{
+      position: relative;
+      height: 140px;
+      overflow:hidden;
+      background:
+        radial-gradient(700px 200px at 50% 50%, rgba(120,255,170,0.06), transparent 60%),
+        rgba(0,0,0,0.30);
+    }
+
+    .marqueeTrack{
+      position:absolute;
+      inset:0;
+      display:flex;
+      align-items:center;
+      gap: 28px;
+      padding-left: 18px;
+      will-change: transform;
+      animation: marquee 16s linear infinite;
+    }
+
+    /* Duplicate content gives seamless loop */
+    .marqueeText{
+      white-space: nowrap;
+      color: rgba(240,255,248,0.86);
+      text-shadow: 0 0 18px rgba(120,255,170,0.10);
+      letter-spacing: 0.5px;
+    }
+
+    @keyframes marquee{
+      from { transform: translateX(0); }
+      to   { transform: translateX(-50%); }
+    }
+
+    /* Scan detail grid under marquee */
+    .scanDetails{
+      padding: 12px;
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .kv{
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: rgba(0,0,0,0.28);
+      padding: 10px 12px;
+      min-height: 64px;
+    }
+    .kv .k{
+      color: var(--muted);
+      font-size: 0.9em;
+      margin-bottom: 6px;
+    }
+    .kv .v{
+      font-weight:700;
+      color: rgba(240,255,248,0.90);
+    }
+
+    /* Bottom ticker */
+    .bottombar{
+      border-top: 1px solid var(--border);
+      background: var(--panel);
+      padding: 10px 14px;
+      display:flex;
+      align-items:center;
+      gap: 12px;
+      min-height: 44px;
+    }
+
+    .tickerFrame{
+      flex:1;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      overflow:hidden;
+      background: rgba(0,0,0,0.35);
+    }
+    .tickerTrack{
+      display:flex;
+      gap: 28px;
+      padding: 8px 12px;
+      will-change: transform;
+      animation: ticker 22s linear infinite;
+    }
+    .tickerItem{
+      white-space: nowrap;
+      color: var(--muted);
+    }
+    @keyframes ticker{
+      from { transform: translateX(0); }
+      to   { transform: translateX(-50%); }
+    }
+
+    /* Responsive */
+    @media (max-width: 980px){
+      body{ overflow:auto; }
+      .shell{ min-height: 100vh; overflow:auto; }
+      .content{
+        grid-template-columns: 1fr;
+        height: auto;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="backdrop"></div>
+
+  <div class="shell">
+    <div class="topbar">
+      <div class="brand">
+        <span>PRIME NET</span>
+        <span style="color: var(--muted); font-weight:400;">// MAIN MENU</span>
+      </div>
+
+      <div class="controls">
+        <div class="status"><span class="dot"></span><span id="status">STATUS: IDLE</span></div>
+        <button id="btnTheme" type="button">TOGGLE AMBIENT</button>
+        <button id="btnAbout" type="button">ABOUT</button>
+      </div>
+    </div>
+
+    <div class="content">
+      <!-- LEFT: MENU -->
+      <section class="panel" aria-label="Main menu">
+        <div class="panelHeader">
+          <div class="panelTitle">OPERATOR CONSOLE</div>
+          <div class="pill"><span class="dot"></span><span id="opMode">MODE: TRAINING</span></div>
+        </div>
+
+        <div class="panelBody">
+          <div class="hint">
+            Select a module. Nothing launches yet, this is just the shell UI.
+          </div>
+
+          <div class="menuGrid">
+            <div class="bigBtn" data-action="start">
+              <span class="label">START SESSION</span>
+              <span class="desc">Boot into PrimeNet training sequence.</span>
+            </div>
+
+            <div class="bigBtn" data-action="continue">
+              <span class="label">CONTINUE</span>
+              <span class="desc">Resume last checkpoint, placeholder.</span>
+            </div>
+
+            <div class="bigBtn" data-action="modules">
+              <span class="label">MODULE SELECT</span>
+              <span class="desc">View minigames later, currently locked.</span>
+            </div>
+
+            <div class="bigBtn" data-action="settings">
+              <span class="label">SETTINGS</span>
+              <span class="desc">Audio, difficulty, accessibility, placeholder.</span>
+            </div>
+
+            <div class="bigBtn" data-action="credits">
+              <span class="label">CREDITS</span>
+              <span class="desc">Team, tools, references, placeholder.</span>
+            </div>
+
+            <div class="bigBtn" data-action="quit">
+              <span class="label">QUIT</span>
+              <span class="desc">Close app, placeholder.</span>
+            </div>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="kv">
+            <div class="k">CURRENT OBJECTIVE</div>
+            <div class="v" id="objective">Establish secure uplink to PRIME NET.</div>
+          </div>
+
+          <div class="kv">
+            <div class="k">OPERATOR NOTES</div>
+            <div class="v" id="notes">Awaiting command input.</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- RIGHT: SCAN SCREEN -->
+      <section class="panel" aria-label="Scan screen">
+        <div class="panelHeader">
+          <div class="panelTitle">SCAN SCREEN</div>
+          <div class="pill">SIGNAL: <span id="signal">STABLE</span></div>
+        </div>
+
+        <div class="panelBody">
+          <div class="scanFrame">
+            <div class="scanTop">
+              <div class="scanTitle">LIVE TELEMETRY</div>
+              <div class="pill">SCANNER: <span id="scanner">ONLINE</span></div>
+            </div>
+
+            <!-- The rectangular marquee window -->
+            <div class="scanWindow" id="scanWindow">
+              <div class="marqueeTrack" id="marqueeTrack" aria-hidden="true">
+                <div class="marqueeText" id="marqueeTextA"></div>
+                <div class="marqueeText" id="marqueeTextB"></div>
+              </div>
+            </div>
+
+            <div class="scanDetails">
+              <div class="kv">
+                <div class="k">ANOMALY COUNT</div>
+                <div class="v" id="anomCount">0</div>
+              </div>
+              <div class="kv">
+                <div class="k">LAST PING</div>
+                <div class="v" id="lastPing">—</div>
+              </div>
+              <div class="kv">
+                <div class="k">NODE REGION</div>
+                <div class="v" id="region">RIVERCROSS / HAVEN</div>
+              </div>
+              <div class="kv">
+                <div class="k">INTEGRITY</div>
+                <div class="v" id="integrity">98.6%</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="hint" id="scanHint">
+            Tip: this marquee is the same “quality glue” as your scan_screen. We can later swap the text for real data logs.
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <div class="bottombar">
+      <div class="status"><span class="dot"></span><span id="footerStatus">READY</span></div>
+
+      <div class="tickerFrame" aria-label="System log ticker">
+        <div class="tickerTrack" id="tickerTrack" aria-hidden="true">
+          <div class="tickerItem" id="tickerA"></div>
+          <div class="tickerItem" id="tickerB"></div>
+        </div>
+      </div>
+
+      <button id="btnFocus" type="button">FOCUS MODE</button>
+    </div>
+  </div>
+
+  <script>
+    const status = document.getElementById("status");
+    const footerStatus = document.getElementById("footerStatus");
+    const objective = document.getElementById("objective");
+    const notes = document.getElementById("notes");
+
+    const anomCount = document.getElementById("anomCount");
+    const lastPing = document.getElementById("lastPing");
+    const signal = document.getElementById("signal");
+    const scanner = document.getElementById("scanner");
+
+    const marqueeTextA = document.getElementById("marqueeTextA");
+    const marqueeTextB = document.getElementById("marqueeTextB");
+
+    const tickerA = document.getElementById("tickerA");
+    const tickerB = document.getElementById("tickerB");
+
+    const btnTheme = document.getElementById("btnTheme");
+    const btnAbout = document.getElementById("btnAbout");
+    const btnFocus = document.getElementById("btnFocus");
+
+    let ambientOn = true;
+    let focusMode = false;
+
+    // --- Marquee content (scan_screen vibe) ---
+    // Keep it shortish but repeatable; we duplicate A/B for a seamless loop.
+    const telemetryPhrases = [
+      "PACKET TRACE: OK",
+      "PRIME SIGNAL LOCKED",
+      "ENERGY SPIKE: NONE",
+      "FIREWALL: STANDBY",
+      "NODE MAP: SYNCED",
+      "AUTH: PENDING",
+      "DATA LOGS: STREAMING",
+      "ANOMALY SWEEP: ACTIVE",
+      "PORTS: MONITORED",
+      "UPLINK: ENCRYPTED"
+    ];
+
+    function buildMarqueeLine(){
+      // Build one long line with separators so it feels “pro”
+      const sep = "   ░▒▓   ";
+      return telemetryPhrases.join(sep) + sep + "PRIMENET SCAN LOOP";
+    }
+
+    const marqueeLine = buildMarqueeLine();
+    marqueeTextA.textContent = marqueeLine;
+    marqueeTextB.textContent = marqueeLine;
+
+    // --- Bottom ticker ---
+    const tickerItems = [
+      "SYSLOG: Boot sequence complete",
+      "INFO: Operator console loaded",
+      "INFO: Telemetry stream initialised",
+      "WARN: No modules linked (expected)",
+      "OK: UI integrity nominal"
+    ];
+    const tickerSep = "   •   ";
+    const tickerLine = tickerItems.join(tickerSep) + tickerSep + "PRIME NET READY";
+    tickerA.textContent = tickerLine;
+    tickerB.textContent = tickerLine;
+
+    // --- Fake “live” stats so it feels alive ---
+    function nowTime(){
+      const d = new Date();
+      const hh = String(d.getHours()).padStart(2,"0");
+      const mm = String(d.getMinutes()).padStart(2,"0");
+      const ss = String(d.getSeconds()).padStart(2,"0");
+      return `${hh}:${mm}:${ss}`;
+    }
+
+    function ping(){
+      lastPing.textContent = nowTime();
+      // tiny chance of anomaly just to show life
+      const hit = Math.random() < 0.08;
+      if(hit){
+        const current = Number(anomCount.textContent || "0");
+        anomCount.textContent = String(current + 1);
+        signal.textContent = "FLUCTUATING";
+        footerStatus.textContent = "ANOMALY FLAGGED";
+        setTimeout(() => {
+          signal.textContent = "STABLE";
+          footerStatus.textContent = "READY";
+        }, 900);
+      }else{
+        footerStatus.textContent = focusMode ? "FOCUS" : "READY";
+      }
+    }
+    setInterval(ping, 1200);
+    ping();
+
+    // --- Menu interactions (placeholders only) ---
+    const actions = {
+      start(){
+        status.textContent = "STATUS: BOOTING";
+        objective.textContent = "Initiate training handshake.";
+        notes.textContent = "Placeholder only. Later, this can fade into your hub / map screen.";
+      },
+      continue(){
+        status.textContent = "STATUS: CHECKPOINT";
+        objective.textContent = "Locate last session data.";
+        notes.textContent = "No save system yet. We can stub one with localStorage when you're ready.";
+      },
+      modules(){
+        status.textContent = "STATUS: MODULES";
+        objective.textContent = "Select a module (locked).";
+        notes.textContent = "Next step: add your triangulation, geometry, coordinates, logic gates, data logs, etc.";
+      },
+      settings(){
+        status.textContent = "STATUS: SETTINGS";
+        objective.textContent = "Adjust operator preferences.";
+        notes.textContent = "We can add toggles for motion reduction, font size, and audio cues.";
+      },
+      credits(){
+        status.textContent = "STATUS: CREDITS";
+        objective.textContent = "System authorship and references.";
+        notes.textContent = "Placeholder panel. Could become a full-screen overlay like your finale UI.";
+      },
+      quit(){
+        status.textContent = "STATUS: STANDBY";
+        objective.textContent = "Session ended (placeholder).";
+        notes.textContent = "In a browser you can’t close tabs reliably; we can show a ‘safe to close’ screen instead.";
+      }
+    };
+
+    document.querySelectorAll(".bigBtn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const key = btn.getAttribute("data-action");
+        (actions[key] || (()=>{}))();
+      });
+    });
+
+    // --- Controls ---
+    btnTheme.addEventListener("click", () => {
+      ambientOn = !ambientOn;
+      document.querySelector(".backdrop").style.display = ambientOn ? "block" : "none";
+      footerStatus.textContent = ambientOn ? "AMBIENT ON" : "AMBIENT OFF";
+      setTimeout(() => footerStatus.textContent = focusMode ? "FOCUS" : "READY", 700);
+    });
+
+    btnAbout.addEventListener("click", () => {
+      status.textContent = "STATUS: ABOUT";
+      objective.textContent = "PRIME NET UI SHELL";
+      notes.textContent = "Main menu scaffold. Next: add map screen, then connect minigames one by one.";
+    });
+
+    btnFocus.addEventListener("click", () => {
+      focusMode = !focusMode;
+      document.documentElement.style.setProperty("--fontSize", focusMode ? "20px" : "18px");
+      document.documentElement.style.setProperty("--lineHeight", focusMode ? "1.7" : "1.6");
+      footerStatus.textContent = focusMode ? "FOCUS" : "READY";
+      document.getElementById("opMode").textContent = focusMode ? "MODE: FOCUS" : "MODE: TRAINING";
+    });
+
+    // Keyboard niceties (optional)
+    document.addEventListener("keydown", (e) => {
+      const k = e.key.toLowerCase();
+      if(k === "1") actions.start();
+      if(k === "2") actions.continue();
+      if(k === "3") actions.modules();
+      if(k === "4") actions.settings();
+      if(k === "f") btnFocus.click();
+    });
+  </script>
+</body>
+</html>

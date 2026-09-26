@@ -1,0 +1,1006 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Factor Pair Array Vault (Assemble)</title>
+  <style>
+    :root{
+      /* PRIMENET Design System */
+      --bg-primary: #071418;
+      --bg-panel: rgba(6, 16, 20, 0.65);
+      --system: #114b5f;
+      --accent: rgba(0, 255, 100, 0.95);
+      --text-primary: rgba(235, 255, 248, 0.92);
+      --text-muted: rgba(235, 255, 248, 0.65);
+      --ok: #1a936f;
+      --warning: #f2c14e;
+      --danger: #ff6b6b;
+      --glow-accent: rgba(0, 255, 100, 0.18);
+      --glow-system: rgba(17, 75, 95, 0.18);
+      --font-ui: "Inter", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      --font-mono: "Courier Prime", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      --radius: 0px;
+      --border-thin: 1px solid rgba(17, 75, 95, 0.45);
+      --border-strong: 1px solid rgba(26, 147, 111, 0.55);
+      --panel-shadow: 0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+      --transition-fast: 120ms ease;
+      --transition-normal: 240ms ease;
+      --transition-slow: 400ms ease;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: var(--font-mono);
+      background:
+        radial-gradient(circle at 30% 20%, rgba(0,255,102,.08), transparent 40%),
+        radial-gradient(circle at 70% 80%, rgba(0,255,102,.06), transparent 45%),
+        var(--bg-primary);
+      color: var(--text-primary);
+      min-height:100vh;
+      display:flex;
+      align-items:stretch;
+    }
+    .app{
+      width:100%;
+      max-width:1600px;
+      margin:0 auto;
+      padding:32px 20px;
+      display:grid;
+      grid-template-rows:auto 1fr;
+      gap:24px;
+    }
+    header{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      padding:12px 14px;
+      border: var(--border-thin);
+      background: var(--bg-panel);
+      border-radius: var(--radius);
+      box-shadow: var(--panel-shadow);
+    }
+    .title{display:flex;gap:10px;align-items:center;}
+    .dot{
+      width:10px;height:10px;border-radius:50%;
+      background: var(--accent);
+      box-shadow:0 0 12px var(--glow-accent);
+    }
+    .controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+    input, button, select{
+      font:inherit;
+      color: var(--text-primary);
+      background: var(--bg-panel);
+      border: var(--border-thin);
+      border-radius: var(--radius);
+      padding:8px 10px;
+      outline:none;
+    }
+    input{width:90px; cursor:text;}
+    input:focus{cursor:text;}
+    button{cursor:pointer;transition:transform var(--transition-fast);}
+    button:active{transform:translateY(1px)}
+    button.primary{
+      border-color: rgba(0, 255, 100, 0.55);
+      box-shadow: 0 0 14px rgba(0, 255, 100, 0.12);
+    }
+    .toggle{
+      display:flex;align-items:center;gap:8px;
+      padding:6px 10px;border-radius: var(--radius);
+      border: var(--border-thin);
+      background: rgba(0, 255, 100, 0.05);
+    }
+
+    main{
+      display:grid;
+      grid-template-columns: 300px 1fr 300px;
+      grid-template-rows: auto auto;
+      gap:20px;
+      align-items: stretch;
+      min-height:0;
+    }
+    main > .vaultPanelLeft{
+      grid-column: 1;
+      grid-row: 1;
+    }
+    main > .vaultPanelRight{
+      grid-column: 3;
+      grid-row: 1;
+    }
+    main > section:nth-of-type(1){
+      grid-column: 2;
+      grid-row: 1;
+      min-height:520px;
+    }
+    main > section:nth-of-type(2){
+      grid-column: 1 / -1;
+      grid-row: 2;
+      min-height: auto;
+      padding: 0;
+    }
+    .vaultPanelLeft, .vaultPanelRight{
+      border: var(--border-thin);
+      border-radius: var(--radius);
+      background: var(--bg-panel);
+      box-shadow: var(--panel-shadow);
+      padding:12px;
+      overflow:auto;
+      min-height:0;
+    }
+    main > section:nth-of-type(2) h2{
+      display:none;
+    }
+    main > section:nth-of-type(2) .content{
+      padding:8px 14px;
+      color: var(--text-muted);
+      font-size:12px;
+      overflow:hidden;
+      height:auto;
+      min-height:auto;
+      flex:none;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:16px;
+    }
+    main > section:nth-of-type(2) .content span:first-child{
+      flex:1;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .panel{
+      border: var(--border-thin);
+      border-radius: var(--radius);
+      background: var(--bg-panel);
+      overflow:hidden;
+      min-height:0;
+      display:flex;
+      flex-direction:column;
+      box-shadow: var(--panel-shadow);
+    }
+    .panel h2{
+      margin:0;
+      padding:10px 12px;
+      font-size:14px;
+      letter-spacing:.08em;
+      border-bottom: var(--border-thin);
+      color: var(--text-muted);
+    }
+    .panel .content{
+      padding:12px;
+      overflow:auto;
+      min-height:0;
+      flex:1;
+    }
+
+    table{width:100%;border-collapse:collapse;font-size:14px;margin:0;}
+    td, th{border: var(--border-thin);padding:10px 12px;text-align:center;}
+    th{color: var(--text-muted);font-weight:600;padding:8px 10px;font-size:12px;}
+    td[contenteditable]{
+      cursor: text;
+      background:rgba(0, 255, 100, 0.06);
+      user-select:none;
+      font-family: var(--font-mono);
+    }
+    td[contenteditable]:focus{
+      outline: 1px solid rgba(0, 255, 100, 0.55);
+      background:rgba(0, 255, 100, 0.12);
+    }
+    td.found{
+      color: var(--accent);
+      text-shadow:0 0 10px var(--glow-accent);
+      background:rgba(0, 255, 100, 0.05);
+      cursor: default;
+      font-weight:500;
+    }
+    td.blank{
+      color: rgba(235, 255, 248, 0.35);
+      cursor:default;
+    }
+    td:nth-child(1), td:nth-child(2){
+      font-family: var(--font-mono);
+      letter-spacing:0.08em;
+    }
+
+    .vaultGrid{
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+    .tile{
+      border: var(--border-thin);
+      border-radius: var(--radius);
+      background: rgba(0, 255, 100, 0.04);
+      padding:10px;
+      position:relative;
+      will-change:transform, opacity;
+    }
+    .tileHeader{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      margin-bottom:8px;
+      font-size:12px;
+      color: var(--text-muted);
+    }
+    .miniArray{
+      display:grid;
+      gap:2px;
+      background:rgba(0,0,0,.25);
+      padding:6px;
+      border-radius: var(--radius);
+      border: 1px solid rgba(0, 255, 100, 0.18);
+    }
+    .cell{
+      width:10px;height:10px;
+      background:rgba(0,255,102,.18);
+      border: 1px solid rgba(0, 255, 100, 0.12);
+      border-radius: var(--radius);
+    }
+
+    .statusLine{
+      padding:10px 12px;
+      border-top: var(--border-thin);
+      color: var(--text-muted);
+      display:flex;
+      justify-content:space-between;
+      gap:12px;
+      flex-wrap:wrap;
+    }
+    .msg.good{color: var(--accent)}
+    .msg.bad{color: var(--danger)}
+
+    /* Completion overlay */
+    .overlay{
+      position:fixed; inset:0;
+      display:none; place-items:center;
+      background:rgba(0,0,0,.72);
+      backdrop-filter: blur(4px);
+      z-index:50;
+    }
+    .overlay.show{display:grid;}
+    .completeBox{
+      width:min(980px, 94vw);
+      border: 1px solid rgba(0, 255, 100, 0.55);
+      border-radius: var(--radius);
+      background: linear-gradient(180deg, rgba(0, 255, 100, 0.10), rgba(0,0,0,.65));
+      padding:18px;
+      box-shadow:0 0 40px rgba(0, 255, 100, 0.18);
+      position:relative;
+    }
+    .big{
+      font-size:24px;
+      letter-spacing:.14em;
+      color: var(--accent);
+      margin:0 0 12px 0;
+    }
+    .sub{
+      margin:8px 0 14px;
+      color: rgba(235, 255, 248, 0.8);
+      font-size:13px;
+      line-height:1.4;
+    }
+
+    /* Assemble stage */
+    .assembleStage{
+      display:grid;
+      grid-template-columns: 1fr 420px;
+      gap:14px;
+      align-items:start;
+    }
+    .stageLeft{
+      border: 1px solid rgba(0, 255, 100, 0.25);
+      border-radius: var(--radius);
+      padding:12px;
+      min-height:420px;
+      position:relative;
+      overflow:hidden;
+      background:rgba(0, 255, 100, 0.03);
+    }
+    .stageTitle{
+      color: rgba(235, 255, 248, 0.75);
+      font-size:12px;
+      letter-spacing:.12em;
+      margin-bottom:10px;
+    }
+
+    .gridWrap{
+      display:grid;
+      place-items:center;
+      height:360px;
+      position:relative;
+    }
+    .vaultSquare{
+      display:grid;
+      gap:2px;
+      padding:10px;
+      border-radius: var(--radius);
+      border: 1px solid rgba(0, 255, 100, 0.35);
+      background:rgba(0,0,0,.25);
+      box-shadow:0 0 24px rgba(0, 255, 100, 0.08);
+      position:relative;
+    }
+    .vcell{
+      width:12px;height:12px;
+      border-radius: var(--radius);
+      background:rgba(0, 255, 100, 0.06);
+      border: 1px solid rgba(0, 255, 100, 0.10);
+      position:relative;
+      overflow:hidden;
+    }
+    .vcell.fill{
+      background:rgba(0, 255, 100, 0.28);
+      border-color:rgba(0, 255, 100, 0.20);
+      box-shadow:0 0 10px rgba(0, 255, 100, 0.14);
+    }
+    .vcell.laser{
+      box-shadow: 0 0 12px rgba(0,180,255,.35);
+    }
+    .vcell.laser::after{
+      content:"";
+      position:absolute; inset:-30%;
+      background:linear-gradient(90deg, transparent, rgba(0,180,255,.85), transparent);
+      transform:rotate(20deg);
+      animation:laserSweep .35s ease-out;
+    }
+    @keyframes laserSweep{
+      from{transform:translateX(-40px) rotate(20deg); opacity:.0;}
+      40%{opacity:1;}
+      to{transform:translateX(60px) rotate(20deg); opacity:0;}
+    }
+
+    .stageRight{
+      border: 1px solid rgba(0, 255, 100, 0.25);
+      border-radius: var(--radius);
+      padding:12px;
+      background:rgba(0, 255, 100, 0.03);
+    }
+    .bar{
+      height:18px;
+      border-radius: var(--radius);
+      border: 1px solid rgba(0, 255, 100, 0.55);
+      overflow:hidden;
+      background:rgba(0, 255, 100, 0.06);
+      margin:10px 0 6px;
+    }
+    .barFill{
+      height:100%;
+      width:0%;
+      background:rgba(0, 255, 100, 0.55);
+      box-shadow:0 0 20px rgba(0, 255, 100, 0.35);
+      transition:width var(--transition-slow);
+    }
+
+    .buttons{
+      margin-top:12px;
+      display:flex; gap:10px; justify-content:flex-end;
+    }
+
+    /* Flying tiles (ghosts) */
+    .ghostTile{
+      position:absolute;
+      width:160px;
+      border: 1px solid rgba(0, 255, 100, 0.35);
+      border-radius: var(--radius);
+      background:rgba(0, 255, 100, 0.06);
+      padding:8px;
+      pointer-events:none;
+      transform:translate(0,0);
+      opacity:1;
+      will-change:transform, opacity;
+      box-shadow:0 0 18px rgba(0, 255, 100, 0.12);
+    }
+    .ghostHdr{
+      display:flex; justify-content:space-between;
+      color: rgba(235, 255, 248, 0.7);
+      font-size:11px;
+      margin-bottom:6px;
+    }
+    .ghostMini{
+      display:grid; gap:2px;
+      background:rgba(0,0,0,.25);
+      padding:6px; border-radius: var(--radius);
+      border: 1px solid rgba(0, 255, 100, 0.18);
+    }
+    .gcell{
+      width:9px;height:9px;border-radius: var(--radius);
+      background:rgba(0, 255, 100, 0.14);
+      border: 1px solid rgba(0, 255, 100, 0.12);
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div class="title">
+        <div class="dot"></div>
+        <div>
+          <div style="font-weight:700; letter-spacing:.12em;">FACTOR PAIR ARRAY VAULT</div>
+          <div style="font-size:12px; color:var(--muted);">Type a factor pair, generate arrays, unlock access</div>
+        </div>
+      </div>
+
+      <div class="controls" style="display:none;">
+        <label style="display:flex;gap:8px;align-items:center;">
+          N
+          <select id="nSelect"></select>
+        </label>
+
+        <input id="aIn" type="text" inputmode="numeric" placeholder="a" style="width:60px; text-align:center; cursor:text;" />
+        <span style="color:var(--text-muted);">×</span>
+        <input id="bIn" type="text" inputmode="numeric" placeholder="b" style="width:60px; text-align:center; cursor:text;" />
+        <button class="primary" id="submitBtn">ENTER</button>
+
+        <label class="toggle">
+          <input id="flipToggle" type="checkbox" checked />
+          show flipped arrays
+        </label>
+      </div>
+
+      <div class="controls">
+        <label style="display:flex;gap:8px;align-items:center;">
+          N
+          <select id="nSelect"></select>
+        </label>
+        <label class="toggle">
+          <input id="flipToggle" type="checkbox" checked />
+          show flipped arrays
+        </label>
+      </div>
+    </header>
+
+    <main>
+      <!-- LEFT VAULT PANEL -->
+      <div class="vaultPanelLeft">
+        <div class="vaultGrid" id="vaultLeft"></div>
+      </div>
+
+      <!-- CENTER FACTOR PAIRS TABLE -->
+      <section class="panel">
+        <h2>FACTOR PAIRS</h2>
+        <div class="content">
+          <table>
+            <thead><tr><th>a</th><th>b</th></tr></thead>
+            <tbody id="pairsBody"></tbody>
+          </table>
+        </div>
+        <div class="statusLine">
+          <div>Progress: <span id="progress">0/0</span></div>
+          <div class="msg" id="msg">Awaiting input…</div>
+        </div>
+      </section>
+
+      <!-- RIGHT VAULT PANEL -->
+      <div class="vaultPanelRight">
+        <div class="vaultGrid" id="vaultRight"></div>
+      </div>
+
+      <!-- BOTTOM TRACE BAR -->
+      <section class="panel">
+        <div class="content" id="trace" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; display:flex; justify-content:space-between; align-items:center;">
+          <span>System ready.</span>
+          <span style="font-size:11px; color:var(--text-muted);">Arrays: <span id="arraysCount">0</span></span>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Completion overlay with assemble stage -->
+  <div class="overlay" id="overlay">
+    <div class="completeBox">
+      <div class="big" id="overlayTitle">VAULT ASSEMBLY</div>
+
+      <div class="assembleStage">
+        <div class="stageLeft" id="stageLeft">
+          <div class="stageTitle" id="stageTitle">ALIGNING ARRAYS…</div>
+          <div class="gridWrap">
+            <div class="vaultSquare" id="vaultSquare"></div>
+          </div>
+        </div>
+
+        <div class="stageRight">
+          <div style="color:rgba(183,255,204,.85); font-size:13px; line-height:1.5;">
+            <div><span style="color:var(--muted);">Target N:</span> <span id="ovN"></span></div>
+            <div><span style="color:var(--muted);">Square vault:</span> <span id="ovS"></span> × <span id="ovS2"></span></div>
+            <div><span style="color:var(--muted);">Cells needed:</span> <span id="ovNeed"></span></div>
+            <div><span style="color:var(--muted);">Laser padding:</span> <span id="ovPad"></span></div>
+          </div>
+
+          <div class="bar"><div class="barFill" id="barFill"></div></div>
+          <div class="sub" id="completeText">Stand by…</div>
+
+          <div class="buttons">
+            <button id="nextBtn" class="primary">NEXT LEVEL</button>
+            <button id="closeBtn">CLOSE</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+<script>
+  const nSelect = document.getElementById("nSelect");
+  const aIn = document.getElementById("aIn");
+  const bIn = document.getElementById("bIn");
+  const submitBtn = document.getElementById("submitBtn");
+  const flipToggle = document.getElementById("flipToggle");
+
+  const pairsBody = document.getElementById("pairsBody");
+  const progressEl = document.getElementById("progress");
+  const msgEl = document.getElementById("msg");
+  const traceEl = document.getElementById("trace");
+  const vaultLeft = document.getElementById("vaultLeft");
+  const vaultRight = document.getElementById("vaultRight");
+  const arraysCountEl = document.getElementById("arraysCount");
+  const targetNEl = document.getElementById("targetN");
+
+  const overlay = document.getElementById("overlay");
+  const barFill = document.getElementById("barFill");
+  const closeBtn = document.getElementById("closeBtn");
+  const nextBtn = document.getElementById("nextBtn");
+  const completeText = document.getElementById("completeText");
+  const overlayTitle = document.getElementById("overlayTitle");
+
+  const stageLeft = document.getElementById("stageLeft");
+  const stageTitle = document.getElementById("stageTitle");
+  const vaultSquare = document.getElementById("vaultSquare");
+
+  const ovN = document.getElementById("ovN");
+  const ovS = document.getElementById("ovS");
+  const ovS2 = document.getElementById("ovS2");
+  const ovNeed = document.getElementById("ovNeed");
+  const ovPad = document.getElementById("ovPad");
+
+  // Fill N options (8–100, ignoring primes) for now we filter to composite numbers
+  function isPrime(x){
+    if(x < 2) return false;
+    for(let i=2;i*i<=x;i++) if(x%i===0) return false;
+    return true;
+  }
+  const nums = [];
+  for(let n=8;n<=100;n++){
+    if(!isPrime(n)) nums.push(n);
+  }
+  // Prototype stage: you can limit to a few if you want, but this works across the range.
+  nums.forEach(n=>{
+    const opt = document.createElement("option");
+    opt.textContent = String(n);
+    nSelect.appendChild(opt);
+  });
+
+  let N = Number(nSelect.value);
+
+  let allPairs = [];
+  let found = new Set(); // key = "a,b" where a<=b
+
+  function factorPairsFor(n){
+    const res = [];
+    for(let a=1; a*a<=n; a++){
+      if(n % a === 0){
+        const b = n / a;
+        res.push([a,b]); // a<=b
+      }
+    }
+    return res;
+  }
+
+  function keyOf(a,b){
+    const x = Math.min(a,b);
+    const y = Math.max(a,b);
+    return `${x},${y}`;
+  }
+
+  function logTrace(line){
+    // Legacy function for compatibility
+    logHint(line);
+  }
+
+  function logHint(hint){
+    const hintSpan = traceEl.querySelector("span:first-child");
+    if(hintSpan){
+      hintSpan.textContent = hint;
+    } else {
+      traceEl.textContent = hint;
+    }
+  }
+
+  function setMsg(text, type){
+    msgEl.textContent = text;
+    msgEl.classList.remove("good","bad");
+    if(type) msgEl.classList.add(type);
+  }
+
+  function renderPairsTable(){
+    pairsBody.innerHTML = "";
+    allPairs.forEach((p, idx)=>{
+      const k = `${p[0]},${p[1]}`;
+      const isFound = found.has(k);
+      const tr = document.createElement("tr");
+      tr.dataset.pairKey = k;
+      
+      const td1 = document.createElement("td");
+      const td2 = document.createElement("td");
+      
+      if(isFound){
+        td1.textContent = String(p[0]);
+        td2.textContent = String(p[1]);
+        td1.className = "found";
+        td2.className = "found";
+      } else {
+        td1.contentEditable = true;
+        td2.contentEditable = true;
+        td1.textContent = "";
+        td2.textContent = "";
+        td1.className = "blank";
+        td2.className = "blank";
+        
+        // Handle input on either cell
+        const handleKeyDown = (e) => {
+          if(e.key === "Enter"){
+            e.preventDefault();
+            const a = Number(td1.textContent.trim());
+            const b = Number(td2.textContent.trim());
+            processTableInput(td1, td2, a, b, idx);
+          }
+        };
+        
+        td1.addEventListener("keydown", handleKeyDown);
+        td2.addEventListener("keydown", handleKeyDown);
+        
+        td1.addEventListener("blur", ()=>{
+          const val = td1.textContent.trim();
+          if(val && !Number.isInteger(Number(val))){
+            td1.textContent = "";
+          }
+        });
+        
+        td2.addEventListener("blur", ()=>{
+          const val = td2.textContent.trim();
+          if(val && !Number.isInteger(Number(val))){
+            td2.textContent = "";
+          }
+        });
+      }
+      
+      tr.appendChild(td1);
+      tr.appendChild(td2);
+      pairsBody.appendChild(tr);
+    });
+    progressEl.textContent = `${found.size}/${allPairs.length}`;
+  }
+  
+  function processTableInput(td1, td2, a, b, rowIdx){
+    if(!Number.isInteger(a) || !Number.isInteger(b) || a<=0 || b<=0){
+      logHint("Enter two positive whole numbers.");
+      td1.textContent = "";
+      td2.textContent = "";
+      return;
+    }
+
+    const product = a*b;
+
+    if(product !== N){
+      logHint(`${a}×${b}=${product}, need ${N}.`);
+      td1.textContent = "";
+      td2.textContent = "";
+      return;
+    }
+
+    const k = keyOf(a,b);
+    if(found.has(k)){
+      logHint("Already found that pair.");
+      td1.textContent = "";
+      td2.textContent = "";
+      return;
+    }
+
+    found.add(k);
+    logHint(`✓ Found: ${a} × ${b}`);
+    renderPairsTable();
+    renderVault();
+
+    if(found.size === allPairs.length){
+      completeLevel();
+    }
+  }
+
+  function makeArrayTile(a,b,label){
+    const maxDim = 10;
+    const rows = Math.min(a, maxDim);
+    const cols = Math.min(b, maxDim);
+
+    const tile = document.createElement("div");
+    tile.className = "tile";
+    tile.dataset.a = String(a);
+    tile.dataset.b = String(b);
+    tile.dataset.label = label;
+
+    const head = document.createElement("div");
+    head.className = "tileHeader";
+    head.innerHTML = `<span>${label}</span><span>${a*b}</span>`;
+    tile.appendChild(head);
+
+    const arr = document.createElement("div");
+    arr.className = "miniArray";
+    arr.style.gridTemplateColumns = `repeat(${cols}, 10px)`;
+
+    for(let r=0; r<rows; r++){
+      for(let c=0; c<cols; c++){
+        const cell = document.createElement("div");
+        cell.className = "cell";
+        arr.appendChild(cell);
+      }
+    }
+    tile.appendChild(arr);
+    return tile;
+  }
+
+  function renderVault(){
+    vaultLeft.innerHTML = "";
+    vaultRight.innerHTML = "";
+    let count = 0;
+    let leftCount = 0;
+
+    allPairs.forEach(([a,b])=>{
+      const k = `${a},${b}`;
+      if(found.has(k)){
+        const tile = makeArrayTile(a,b,`${a}×${b}`);
+        if(leftCount % 2 === 0){
+          vaultLeft.appendChild(tile);
+        } else {
+          vaultRight.appendChild(tile);
+        }
+        count++;
+        leftCount++;
+        if(flipToggle.checked && a !== b){
+          const flippedTile = makeArrayTile(b,a,`${b}×${a}`);
+          if(leftCount % 2 === 0){
+            vaultLeft.appendChild(flippedTile);
+          } else {
+            vaultRight.appendChild(flippedTile);
+          }
+          count++;
+          leftCount++;
+        }
+      }
+    });
+
+    arraysCountEl.textContent = String(count);
+  }
+
+  function resetLevel(){
+    N = Number(nSelect.value);
+    targetNEl.textContent = String(N);
+    allPairs = factorPairsFor(N);
+    found = new Set();
+    logHint(`Target: find ${allPairs.length} factor pairs for N=${N}. Start with 1 × ${N}.`);
+    setMsg("Awaiting input…");
+    renderPairsTable();
+    renderVault();
+    aIn.value = "";
+    bIn.value = "";
+    aIn.focus();
+  }
+
+  function buildVaultSquare(s){
+    vaultSquare.innerHTML = "";
+    vaultSquare.style.gridTemplateColumns = `repeat(${s}, 12px)`;
+    const total = s*s;
+    for(let i=0;i<total;i++){
+      const c = document.createElement("div");
+      c.className = "vcell";
+      c.dataset.idx = String(i);
+      vaultSquare.appendChild(c);
+    }
+  }
+
+  function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
+
+  function createGhostFromTile(tile){
+    const a = Number(tile.dataset.a);
+    const b = Number(tile.dataset.b);
+    const label = tile.dataset.label;
+    const rect = tile.getBoundingClientRect();
+    const stageRect = stageLeft.getBoundingClientRect();
+
+    const ghost = document.createElement("div");
+    ghost.style.transform = "scale(1.15)";
+    ghost.className = "ghostTile";
+    // Place relative to stageLeft
+    const left = rect.left - stageRect.left;
+    const top = rect.top - stageRect.top;
+    ghost.style.left = `${left}px`;
+    ghost.style.top = `${top}px`;
+
+    const hdr = document.createElement("div");
+    hdr.className = "ghostHdr";
+    hdr.innerHTML = `<span>${label}</span><span>${a*b}</span>`;
+    ghost.appendChild(hdr);
+
+    const maxDim = 8;
+    const rows = Math.min(a, maxDim);
+    const cols = Math.min(b, maxDim);
+    const mini = document.createElement("div");
+    mini.className = "ghostMini";
+    mini.style.gridTemplateColumns = `repeat(${cols}, 9px)`;
+    for(let r=0;r<rows;r++){
+      for(let c=0;c<cols;c++){
+        const gc = document.createElement("div");
+        gc.className = "gcell";
+        mini.appendChild(gc);
+      }
+    }
+    ghost.appendChild(mini);
+
+    stageLeft.appendChild(ghost);
+    return ghost;
+  }
+
+  async function animateAssembly(){
+    // square vault size
+    const s = Math.ceil(Math.sqrt(N));
+    const total = s*s;
+    const pad = total - N;
+
+    ovN.textContent = String(N);
+    ovS.textContent = String(s);
+    ovS2.textContent = String(s);
+    ovNeed.textContent = String(N);
+    ovPad.textContent = String(pad);
+
+    buildVaultSquare(s);
+    barFill.style.width = "0%";
+    overlayTitle.textContent = "VAULT ASSEMBLY";
+    completeText.textContent = "Aligning arrays…";
+
+    // Create ghosts from current vault tiles (only those shown)
+    // We take whatever is in the vault grids and fly them to the centre of stageLeft
+    const tilesLeft = Array.from(vaultLeft.querySelectorAll(".tile"));
+    const tilesRight = Array.from(vaultRight.querySelectorAll(".tile"));
+    const tiles = [...tilesLeft, ...tilesRight];
+    const ghosts = tiles.map(createGhostFromTile);
+
+    // Target point (centre-ish)
+    const stageRect = stageLeft.getBoundingClientRect();
+    const cx = stageRect.width/2 - 80;
+    const cy = stageRect.height/2 - 60;
+
+    // Fly in with stagger
+    stageTitle.textContent = "ALIGNING ARRAYS…";
+    for(let i=0;i<ghosts.length;i++){
+      const g = ghosts[i];
+      g.animate([
+  {
+    transform: "translate(0px,0px) scale(1) rotate(0deg)",
+    opacity: 1
+  },
+  {
+    transform: `translate(${cx - parseFloat(g.style.left)}px, ${cy - parseFloat(g.style.top)}px)
+                scale(1.3)
+                rotate(${(Math.random()*60 - 30).toFixed(1)}deg)`,
+    opacity: 0.95
+  }
+], {
+  duration: 1800,
+  easing: "cubic-bezier(.15,.85,.25,1)",
+  fill: "forwards"
+});
+
+      await sleep(140);
+    }
+
+    await sleep(900);
+
+    // Dissolve ghosts
+    stageTitle.textContent = "CONVERTING ARRAYS TO VAULT CELLS";
+    completeText.textContent = "Converting arrays…";
+    ghosts.forEach(g=>{
+      g.animate([{opacity:0.9},{opacity:0}], {duration: 420, fill:"forwards"});
+    });
+
+    await sleep(260);
+
+    // Fill N cells (wave fill)
+    const cells = Array.from(vaultSquare.querySelectorAll(".vcell"));
+    const order = [...Array(total).keys()]; // 0..total-1
+    // simple pleasing fill: left-to-right
+    for(let i=0;i<N;i++){
+      cells[order[i]].classList.add("fill");
+      barFill.style.width = `${Math.floor((i/N)*70)}%`;
+      await sleep(45);
+    }
+
+    await sleep(160);
+
+    // Laser fill padding to make it a perfect square vault
+    if(pad > 0){
+      stageTitle.textContent = "LASER SEALING GAPS…";
+      completeText.textContent = "Not a perfect square, sealing vault frame…";
+      for(let i=N;i<total;i++){
+        const c = cells[order[i]];
+        c.classList.add("fill","laser");
+        await sleep(22);
+        c.classList.remove("laser");
+      }
+    }
+
+    barFill.style.width = "100%";
+    await sleep(250);
+
+    overlayTitle.textContent = "ACCESS GRANTED";
+    completeText.textContent = "Vault wall breached. Structure confirmed.";
+  }
+
+  async function completeLevel(){
+    logHint("All pairs found! Assembling vault…");
+    setMsg("LEVEL COMPLETE", "good");
+
+    overlay.classList.add("show");
+    // Clear any ghosts left
+    Array.from(stageLeft.querySelectorAll(".ghostTile")).forEach(x=>x.remove());
+
+    await animateAssembly();
+  }
+
+  function trySubmit(){
+    const a = Number(aIn.value);
+    const b = Number(bIn.value);
+
+    if(!Number.isInteger(a) || !Number.isInteger(b) || a<=0 || b<=0){
+      logHint("Enter positive whole numbers.");
+      return;
+    }
+
+    const product = a*b;
+
+    if(product !== N){
+      logHint(`${a}×${b}=${product}, need ${N}.`);
+      return;
+    }
+
+    const k = keyOf(a,b);
+    if(found.has(k)){
+      logHint("Already found that pair.");
+      return;
+    }
+
+    found.add(k);
+    logHint(`✓ Found: ${a} × ${b}`);
+
+    renderPairsTable();
+    renderVault();
+
+    aIn.value = "";
+    bIn.value = "";
+    aIn.focus();
+
+    if(found.size === allPairs.length){
+      completeLevel();
+    }
+  }
+
+  submitBtn.addEventListener("click", trySubmit);
+  [aIn,bIn].forEach(el=>{
+    el.addEventListener("keydown", (e)=>{
+      if(e.key === "Enter") trySubmit();
+    });
+  });
+  flipToggle.addEventListener("change", renderVault);
+  nSelect.addEventListener("change", resetLevel);
+
+  closeBtn.addEventListener("click", ()=>{
+    overlay.classList.remove("show");
+  });
+  nextBtn.addEventListener("click", ()=>{
+    overlay.classList.remove("show");
+    const i = nSelect.selectedIndex;
+    if(i < nSelect.options.length - 1) nSelect.selectedIndex = i + 1;
+    resetLevel();
+  });
+
+  resetLevel();
+</script>
+</body>
+</html>

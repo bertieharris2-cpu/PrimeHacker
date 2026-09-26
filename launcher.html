@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PRIMENET Launcher</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: linear-gradient(135deg, #050f14 0%, #0a1a24 100%);
+      font-family: "Courier Prime", monospace;
+      color: #e6f4ff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+    }
+    .container {
+      text-align: center;
+      padding: 40px;
+      border: 2px solid rgba(74, 163, 255, 0.5);
+      background: rgba(10, 25, 34, 0.9);
+      box-shadow: 0 0 40px rgba(74, 163, 255, 0.3);
+      border-radius: 4px;
+    }
+    h1 {
+      font-size: 32px;
+      margin-bottom: 30px;
+      text-shadow: 0 0 20px rgba(74, 163, 255, 0.5);
+      letter-spacing: 0.1em;
+    }
+    .buttons {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+    button {
+      padding: 16px 32px;
+      font-size: 14px;
+      font-family: inherit;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      border: 1.5px solid rgba(74, 163, 255, 0.6);
+      background: rgba(74, 163, 255, 0.1);
+      color: #4aa3ff;
+      cursor: pointer;
+      transition: all 200ms ease;
+      border-radius: 2px;
+    }
+    button:hover {
+      background: rgba(74, 163, 255, 0.2);
+      border-color: #00c8ff;
+      color: #00c8ff;
+      box-shadow: 0 0 20px rgba(74, 163, 255, 0.4);
+    }
+    .subtitle {
+      font-size: 11px;
+      color: rgba(200, 230, 255, 0.6);
+      margin-top: 20px;
+      letter-spacing: 0.05em;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>⚙️ PRIMENET</h1>
+    <div class="buttons">
+      <button onclick="goTo('demo.html')">🎮 Demo Portal</button>
+      <button onclick="goTo('modules/factor_vault.html')">📊 Factor Vault Game</button>
+      <button onclick="goTo('modules/vault_blueprint_viewer.html')">🏦 Blueprint Viewer (Demo)</button>
+      <button onclick="goTo('modules/prime_hack.html')">🔐 Prime Hack Game</button>
+    </div>
+    <p class="subtitle">Quick access to PRIMENET games & tools</p>
+  </div>
+
+  <script>
+    function goTo(path) {
+      window.location.href = path;
+    }
+  </script>
+</body>
+</html>

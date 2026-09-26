@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>PRIMENET Demo — Interactive Factor & Prime Games</title>
+<style>
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  :root {
+    --bg-primary: #071418;
+    --accent-teal: #00d7b8;
+    --accent-cyan: #4aa3ff;
+    --accent-lime: #00ff64;
+    --text: rgba(235, 255, 248, 0.95);
+    --text-muted: rgba(235, 255, 248, 0.65);
+    --border: rgba(17, 75, 95, 0.40);
+  }
+
+  html, body {
+    width: 100%;
+    height: 100%;
+  }
+
+  body {
+    margin: 0;
+    background:
+      radial-gradient(1200px 800px at 50% 40%, rgba(0, 255, 100, 0.04), transparent 50%),
+      radial-gradient(900px 650px at 70% 75%, rgba(74, 163, 255, 0.03), transparent 60%),
+      var(--bg-primary);
+    color: var(--text);
+    font-family: "Courier Prime", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    overflow: auto;
+    padding: 40px 20px;
+  }
+
+  body::before {
+    content: "";
+    position: fixed;
+    inset: -40px;
+    background:
+      radial-gradient(600px 450px at 30% 25%, rgba(74, 163, 255, 0.06), transparent 65%),
+      radial-gradient(700px 500px at 70% 75%, rgba(0, 255, 100, 0.04), transparent 70%);
+    pointer-events: none;
+    z-index: -1;
+    filter: blur(8px);
+  }
+
+  .container {
+    max-width: 1200px;
+    width: 100%;
+    z-index: 1;
+  }
+
+  .header {
+    text-align: center;
+    margin-bottom: 60px;
+  }
+
+  .title {
+    font-size: 48px;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    background: linear-gradient(135deg, var(--accent-lime), var(--accent-teal), var(--accent-cyan));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 12px;
+    text-shadow: 0 0 30px rgba(0, 255, 100, 0.2);
+  }
+
+  .subtitle {
+    font-size: 18px;
+    color: var(--text-muted);
+    letter-spacing: 0.08em;
+    margin-bottom: 30px;
+  }
+
+  .divider {
+    width: 200px;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent-cyan), transparent);
+    margin: 0 auto 40px;
+  }
+
+  .games-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+    gap: 40px;
+    margin-bottom: 60px;
+  }
+
+  .game-card {
+    position: relative;
+    padding: 40px;
+    border: 1.5px solid var(--border);
+    background: rgba(7, 20, 24, 0.65);
+    backdrop-filter: blur(8px);
+    box-shadow:
+      0 0 0 1px rgba(17, 75, 95, 0.25) inset,
+      0 20px 60px rgba(0, 0, 0, 0.60);
+    border-radius: 8px;
+    transition: all 280ms cubic-bezier(0.34, 1.56, 0.64, 1);
+    overflow: hidden;
+    cursor: pointer;
+  }
+
+  .game-card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(0, 255, 100, 0.08), rgba(74, 163, 255, 0.08));
+    opacity: 0;
+    transition: opacity 280ms ease;
+    pointer-events: none;
+  }
+
+  .game-card:hover {
+    transform: translateY(-8px);
+    border-color: rgba(74, 163, 255, 0.6);
+    background: rgba(7, 20, 24, 0.85);
+    box-shadow:
+      0 0 0 1px rgba(17, 75, 95, 0.35) inset,
+      0 0 30px rgba(74, 163, 255, 0.25),
+      0 20px 80px rgba(0, 0, 0, 0.70);
+  }
+
+  .game-card:hover::before {
+    opacity: 1;
+  }
+
+  .game-card a {
+    position: relative;
+    z-index: 2;
+    text-decoration: none;
+    color: inherit;
+    display: block;
+    height: 100%;
+  }
+
+  .game-icon {
+    font-size: 48px;
+    margin-bottom: 20px;
+    display: inline-block;
+    padding: 12px;
+    background: rgba(74, 163, 255, 0.15);
+    border-radius: 8px;
+    border: 1px solid rgba(74, 163, 255, 0.3);
+    transition: all 200ms ease;
+  }
+
+  .game-card:hover .game-icon {
+    background: rgba(0, 255, 100, 0.2);
+    border-color: rgba(0, 255, 100, 0.5);
+    transform: scale(1.1);
+  }
+
+  .game-title {
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+    color: var(--text);
+  }
+
+  .game-card:nth-child(1) .game-title {
+    color: var(--accent-lime);
+  }
+
+  .game-card:nth-child(2) .game-title {
+    color: var(--accent-cyan);
+  }
+
+  .game-description {
+    font-size: 15px;
+    line-height: 1.6;
+    color: var(--text-muted);
+    margin-bottom: 24px;
+  }
+
+  .game-features {
+    font-size: 12px;
+    color: rgba(235, 255, 248, 0.5);
+    margin-bottom: 28px;
+  }
+
+  .feature-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+
+  .feature-dot {
+    width: 4px;
+    height: 4px;
+    background: var(--accent-teal);
+    border-radius: 50%;
+  }
+
+  .cta-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 12px 28px;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    border: 1.5px solid;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 200ms ease;
+    background: rgba(6, 20, 28, 0.6);
+  }
+
+  .game-card:nth-child(1) .cta-button {
+    border-color: var(--accent-lime);
+    color: var(--accent-lime);
+  }
+
+  .game-card:nth-child(1) .cta-button:hover {
+    background: rgba(0, 255, 100, 0.15);
+    box-shadow: 0 0 20px rgba(0, 255, 100, 0.3);
+  }
+
+  .game-card:nth-child(2) .cta-button {
+    border-color: var(--accent-cyan);
+    color: var(--accent-cyan);
+  }
+
+  .game-card:nth-child(2) .cta-button:hover {
+    background: rgba(74, 163, 255, 0.15);
+    box-shadow: 0 0 20px rgba(74, 163, 255, 0.3);
+  }
+
+  .arrow {
+    opacity: 0.6;
+    transition: transform 200ms ease;
+  }
+
+  .game-card:hover .arrow {
+    transform: translateX(4px);
+    opacity: 1;
+  }
+
+  .footer {
+    text-align: center;
+    padding-top: 40px;
+    border-top: 1px solid var(--border);
+    color: var(--text-muted);
+    font-size: 13px;
+  }
+
+  .footer-item {
+    display: inline-flex;
+    gap: 12px;
+    margin: 0 20px;
+  }
+
+  @media (max-width: 768px) {
+    .title {
+      font-size: 32px;
+    }
+
+    .subtitle {
+      font-size: 15px;
+    }
+
+    .games-grid {
+      grid-template-columns: 1fr;
+      gap: 24px;
+    }
+
+    .game-card {
+      padding: 28px;
+    }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1 class="title">PRIMENET Demo</h1>
+    <p class="subtitle">Interactive Factor & Prime Number Visualization Games</p>
+    <div class="divider"></div>
+  </div>
+
+  <div class="games-grid">
+    <!-- Factor Vault Game -->
+    <div class="game-card">
+      <a href="modules/factor_vault.html">
+        <div class="game-icon">🏛️</div>
+        <h2 class="game-title">factor vault</h2>
+        <p class="game-description">
+          Explore the factorization of numbers through an interactive 2D grid. Visualize how composite numbers decompose into factor pairs with animated laser outlines and flowing power dynamics.
+        </p>
+        <div class="game-features">
+          <div class="feature-item">
+            <div class="feature-dot"></div>
+            <span>Random factor pair layouts</span>
+          </div>
+          <div class="feature-item">
+            <div class="feature-dot"></div>
+            <span>Animated grid fills & laser outlines</span>
+          </div>
+          <div class="feature-item">
+            <div class="feature-dot"></div>
+            <span>Difficulty levels (L1–L3)</span>
+          </div>
+          <div class="feature-item">
+            <div class="feature-dot"></div>
+            <span>3D isometric extrusion view</span>
+          </div>
+        </div>
+        <button class="cta-button">
+          Launch Game
+          <span class="arrow">→</span>
+        </button>
+      </a>
+    </div>
+
+    <!-- Prime Hack Game -->
+    <div class="game-card">
+      <a href="modules/prime_hack.html">
+        <div class="game-icon">🔐</div>
+        <h2 class="game-title">prime hack</h2>
+        <p class="game-description">
+          Challenge yourself to identify prime numbers in a dynamic grid environment. With timed rounds, strategic hints, and progressive difficulty, test your prime-number knowledge and intuition.
+        </p>
+        <div class="game-features">
+          <div class="feature-item">
+            <div class="feature-dot"></div>
+            <span>Real-time scoring system</span>
+          </div>
+          <div class="feature-item">
+            <div class="feature-dot"></div>
+            <span>Timed challenge rounds</span>
+          </div>
+          <div class="feature-item">
+            <div class="feature-dot"></div>
+            <span>Hint & streak mechanics</span>
+          </div>
+          <div class="feature-item">
+            <div class="feature-dot"></div>
+            <span>Progressive difficulty scaling</span>
+          </div>
+        </div>
+        <button class="cta-button">
+          Launch Game
+          <span class="arrow">→</span>
+        </button>
+      </a>
+    </div>
+  </div>
+
+  <div class="footer">
+    <div class="footer-item">
+      <span>📊 Educational Math Visualization</span>
+    </div>
+    <div class="footer-item">
+      <span>🎮 Interactive Learning</span>
+    </div>
+    <div class="footer-item">
+      <span>✨ Modern Web Technology</span>
+    </div>
+  </div>
+</div>
+</body>
+</html>

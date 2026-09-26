@@ -1,0 +1,982 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>PRIME NET – Prime Frequency Scan</title>
+
+  <!-- Courier Prime (preferred). Falls back to monospace if unavailable. -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --bg: #050806;
+      --panel: rgba(6, 14, 10, 0.82);
+      --border: rgba(140, 255, 190, 0.35);
+      --text: rgba(240, 255, 248, 0.92);
+      --muted: rgba(240, 255, 248, 0.70);
+      --green: rgba(120, 255, 170, 0.95);
+      --greenSoft: rgba(120, 255, 170, 0.25);
+      --warn: rgba(255, 185, 90, 0.95);
+      --danger: rgba(255, 90, 90, 0.92);
+
+      /* Accessibility defaults */
+      --fontSize: 18px;      /* slightly larger than typical */
+      --lineHeight: 1.55;    /* more spacing for dyslexic learners */
+      --radius: 0px;         /* rectangles only */
+      --gap: 14px;
+      --pad: 16px;
+      --maxW: 920px;
+    }
+
+    *{ box-sizing: border-box; }
+    html, body{ height: 100%; }
+    body{
+      margin: 0;
+      background: radial-gradient(1200px 800px at 60% 30%, rgba(120,255,170,0.10), transparent 55%),
+                  radial-gradient(900px 700px at 25% 75%, rgba(120,255,170,0.08), transparent 60%),
+                  var(--bg);
+      color: var(--text);
+      font-family: "Courier Prime", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-size: var(--fontSize);
+      line-height: var(--lineHeight);
+      letter-spacing: 0.2px;
+      overflow: hidden;
+    }
+
+    /* Subtle scanlines + flicker */
+    .scanlines::before{
+      content:"";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background: repeating-linear-gradient(
+        to bottom,
+        rgba(255,255,255,0.03) 0px,
+        rgba(255,255,255,0.03) 1px,
+        rgba(0,0,0,0) 3px,
+        rgba(0,0,0,0) 6px
+      );
+      mix-blend-mode: overlay;
+      opacity: 0.25;
+      animation: drift 10s linear infinite;
+    }
+    @keyframes drift{
+      0%{ transform: translateY(0); }
+      100%{ transform: translateY(24px); }
+    }
+
+    .scanlines::after{
+      content:"";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background: radial-gradient(circle at 50% 50%, rgba(120,255,170,0.08), transparent 60%);
+      opacity: 0.7;
+      animation: flicker 6s infinite;
+    }
+    @keyframes flicker{
+      0%, 100%{ opacity: 0.55; }
+      25%{ opacity: 0.65; }
+      40%{ opacity: 0.5; }
+      65%{ opacity: 0.7; }
+      85%{ opacity: 0.58; }
+    }
+
+    .app{
+      position: relative;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+    }
+
+    .frame{
+      width: min(var(--maxW), 100%);
+      border: 1px solid var(--border);
+      background: var(--panel);
+      box-shadow: 0 0 0 1px rgba(120,255,170,0.10) inset, 0 18px 60px rgba(0,0,0,0.55);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    .topbar{
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(0,0,0,0.35);
+    }
+
+    .brand{
+      font-weight: 700;
+      color: var(--text);
+      white-space: nowrap;
+    }
+
+    .status{
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+    .dot{
+      width: 10px;
+      height: 10px;
+      border: 1px solid var(--border);
+      background: rgba(120,255,170,0.18);
+      box-shadow: 0 0 12px rgba(120,255,170,0.25);
+    }
+    .status strong{ color: var(--text); font-weight: 700; }
+
+    .content{
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: var(--gap);
+      padding: var(--pad);
+      min-height: 520px;
+    }
+
+    .main{
+      border: 1px solid var(--border);
+      padding: 18px;
+      background: rgba(0,0,0,0.18);
+      min-height: 330px;
+      display: grid;
+      align-content: center;
+      justify-items: center;
+      gap: 14px;
+    }
+
+    .console{
+      border: 1px solid var(--border);
+      padding: 12px 14px;
+      background: rgba(0,0,0,0.22);
+      color: var(--muted);
+      min-height: 84px;
+      display: grid;
+      gap: 8px;
+      align-content: start;
+    }
+
+    .consoleLine{
+      display: flex;
+      gap: 10px;
+      align-items: baseline;
+    }
+    .consoleTag{
+      color: var(--green);
+      font-weight: 700;
+      flex: 0 0 auto;
+    }
+    .consoleMsg{
+      flex: 1 1 auto;
+      overflow-wrap: anywhere;
+    }
+
+    .titleBig{
+      font-size: 1.35rem;
+      font-weight: 700;
+      letter-spacing: 0.6px;
+      text-align: center;
+    }
+    .sub{
+      color: var(--muted);
+      text-align: center;
+      max-width: 68ch;
+    }
+
+    .btnRow{
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-top: 6px;
+    }
+
+    button{
+      appearance: none;
+      border: 1px solid var(--border);
+      background: rgba(0,0,0,0.35);
+      color: var(--text);
+      padding: 10px 14px;
+      font: inherit;
+      border-radius: var(--radius);
+      cursor: pointer;
+      min-width: 180px;
+      transition: transform 0.06s ease, background 0.15s ease, border-color 0.15s ease;
+    }
+    button:hover{
+      background: rgba(120,255,170,0.08);
+      border-color: rgba(140,255,190,0.55);
+    }
+    button:active{ transform: translateY(1px); }
+    button:focus-visible{
+      outline: 2px solid rgba(120,255,170,0.55);
+      outline-offset: 2px;
+    }
+    button[disabled]{
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .divider{
+      width: 100%;
+      height: 1px;
+      background: rgba(140,255,190,0.22);
+      margin: 6px 0;
+    }
+
+    /* Loading bar */
+    .barWrap{
+      width: min(520px, 92%);
+      height: 16px;
+      border: 1px solid var(--border);
+      background: rgba(0,0,0,0.35);
+      position: relative;
+    }
+    .barFill{
+      height: 100%;
+      width: 0%;
+      background: rgba(120,255,170,0.25);
+      border-right: 1px solid rgba(120,255,170,0.55);
+      box-shadow: 0 0 18px rgba(120,255,170,0.15);
+      transition: width 0.2s linear;
+    }
+    .barPulse{
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background: linear-gradient(90deg, transparent, rgba(120,255,170,0.10), transparent);
+      transform: translateX(-100%);
+      animation: sweep 1.6s linear infinite;
+      opacity: 0.65;
+    }
+    @keyframes sweep{
+      0%{ transform: translateX(-100%); }
+      100%{ transform: translateX(100%); }
+    }
+
+    /* Progress segments */
+    .segments{
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .seg{
+      width: 48px;
+      height: 10px;
+      border: 1px solid var(--border);
+      background: rgba(0,0,0,0.35);
+    }
+    .seg.on{
+      background: rgba(120,255,170,0.22);
+      box-shadow: 0 0 12px rgba(120,255,170,0.18);
+    }
+
+    /* Number grid */
+    .gridTitle{
+      font-weight: 700;
+      color: var(--text);
+      text-align: center;
+    }
+    .instruction{
+      color: var(--muted);
+      text-align: center;
+    }
+    .numGrid{
+      display: grid;
+      grid-template-columns: repeat(5, minmax(54px, 1fr));
+      gap: 10px;
+      width: min(520px, 100%);
+      margin-top: 8px;
+    }
+    .cell{
+      border: 1px solid var(--border);
+      background: rgba(0,0,0,0.30);
+      padding: 10px 8px;
+      text-align: center;
+      user-select: none;
+      cursor: pointer;
+      transition: background 0.15s ease, border-color 0.15s ease, transform 0.06s ease;
+    }
+    .cell:hover{
+      background: rgba(120,255,170,0.08);
+      border-color: rgba(140,255,190,0.55);
+    }
+    .cell:active{ transform: translateY(1px); }
+    .cell.selected{
+      background: rgba(120,255,170,0.18);
+      box-shadow: 0 0 0 1px rgba(120,255,170,0.18) inset, 0 0 18px rgba(120,255,170,0.12);
+    }
+    .cell:focus-visible{
+      outline: 2px solid rgba(120,255,170,0.55);
+      outline-offset: 2px;
+    }
+
+    /* Alerts */
+    .ok{ color: var(--green); font-weight: 700; }
+    .warn{ color: var(--warn); font-weight: 700; }
+    .bad{ color: var(--danger); font-weight: 700; }
+
+    /* Small helper */
+    .small{
+      font-size: 0.95rem;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    @media (max-width: 560px){
+      :root{ --fontSize: 17px; }
+      .numGrid{ grid-template-columns: repeat(5, minmax(46px, 1fr)); }
+      button{ min-width: 150px; }
+    }
+/* ===== DEV LAB ===== */
+.devBtn{
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  z-index: 10000;
+  border: 1px solid rgba(140,255,190,0.45);
+  background: rgba(0,0,0,0.55);
+  color: rgba(240,255,248,0.9);
+  padding: 8px 10px;
+  cursor: pointer;
+  font: inherit;
+  border-radius: 0;
+}
+
+.devPanel{
+  position: fixed;
+  top: 52px;
+  left: 12px;
+  z-index: 10000;
+  width: min(360px, 92vw);
+  border: 1px solid rgba(140,255,190,0.35);
+  background: rgba(6,14,10,0.90);
+  padding: 12px;
+  display: none;
+  gap: 10px;
+}
+
+.devPanel.open{ display: grid; }
+
+.devTitle{
+  font-weight: 700;
+  color: rgba(240,255,248,0.92);
+}
+
+.devGrid{
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.devPanel button{
+  min-width: unset;
+  width: 100%;
+  padding: 9px 10px;
+  font-size: 0.95rem;
+}
+
+  </style>
+</head>
+
+<body class="scanlines">
+  <div class="app">
+    <div class="frame" role="application" aria-label="PRIME NET Prime Frequency Scan">
+      <div class="topbar">
+        <div class="brand" id="brandText">PRIME NET v1.3</div>
+        <div class="status">
+          <span class="dot" aria-hidden="true"></span>
+          <span id="statusText">STATUS: CALIBRATION</span>
+        </div>
+      </div>
+
+      <div class="content">
+        <div class="main" id="main"></div>
+
+        <div class="console" aria-live="polite" aria-atomic="true">
+          <div class="consoleLine">
+            <div class="consoleTag">SYS</div>
+            <div class="consoleMsg" id="consoleLine1">Booting secure interface…</div>
+          </div>
+          <div class="consoleLine">
+            <div class="consoleTag">LOG</div>
+            <div class="consoleMsg" id="consoleLine2">Establishing number stability parameters…</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+(() => {
+  "use strict";
+
+  // ====== CONFIG (edit safely, no spaghetti) ======
+  const CONFIG = {
+    versionLabel: "PRIME NET v1.3",
+    // Bands for warm-up. Add/remove freely.
+    // Example: { start: 40, end: 49 }
+    bands: [
+      { start: 40, end: 49 },
+      { start: 50, end: 59 },
+      { start: 60, end: 69 }
+    ],
+    // Grid columns (for 10-number decades, 5x2 feels clean)
+    gridColumns: 5,
+    bootDurationMs: 1600,
+    verifiedPauseMs: 900
+  };
+
+  // ====== DOM ======
+  const brandText = document.getElementById("brandText");
+  const statusText = document.getElementById("statusText");
+  const main = document.getElementById("main");
+  const consoleLine1 = document.getElementById("consoleLine1");
+  const consoleLine2 = document.getElementById("consoleLine2");
+
+  brandText.textContent = CONFIG.versionLabel;
+
+  // ====== STATE ======
+  const State = Object.freeze({
+    BOOT: "BOOT",
+    BRIEF: "BRIEF",
+    SCAN: "SCAN",
+    VERIFIED: "VERIFIED",
+    COMPLETE: "COMPLETE",
+  });
+
+  let state = State.BOOT;
+  let bandIndex = 0;
+  let selected = new Set();
+  let progress = new Array(CONFIG.bands.length).fill(false);
+
+  // ====== UTIL ======
+  function setStatus(text){
+    statusText.textContent = text;
+  }
+
+  function setConsole(sysMsg, logMsg){
+    consoleLine1.textContent = sysMsg;
+    consoleLine2.textContent = logMsg;
+  }
+
+  function clearMain(){
+    main.innerHTML = "";
+  }
+
+  function el(tag, props = {}, children = []){
+    const node = document.createElement(tag);
+    for (const [k,v] of Object.entries(props)){
+      if (k === "class") node.className = v;
+      else if (k === "text") node.textContent = v;
+      else if (k.startsWith("on") && typeof v === "function") node.addEventListener(k.slice(2).toLowerCase(), v);
+      else if (k === "html") node.innerHTML = v;
+      else node.setAttribute(k, v);
+    }
+    for (const child of children){
+      if (child == null) continue;
+      node.appendChild(typeof child === "string" ? document.createTextNode(child) : child);
+    }
+    return node;
+  }
+
+  function isPrime(n){
+    if (n <= 1) return false;
+    if (n === 2) return true;
+    if (n % 2 === 0) return false;
+    const r = Math.floor(Math.sqrt(n));
+    for (let i = 3; i <= r; i += 2){
+      if (n % i === 0) return false;
+    }
+    return true;
+  }
+
+  function primesInBand(start, end){
+    const out = [];
+    for (let n = start; n <= end; n++){
+      if (isPrime(n)) out.push(n);
+    }
+    return out;
+  }
+
+  function bandLabel(b){
+    return `BAND ${b.start}\u2013${b.end}`;
+  }
+
+  function renderSegments(){
+    const wrap = el("div", { class: "segments", "aria-label": "Scan progress" });
+    progress.forEach((on, idx) => {
+      const seg = el("div", { class: `seg ${on ? "on" : ""}`, "aria-label": `Step ${idx+1} ${on ? "complete" : "incomplete"}` });
+      wrap.appendChild(seg);
+    });
+    return wrap;
+  }
+
+  function setSelected(n, on){
+    if (on) selected.add(n);
+    else selected.delete(n);
+  }
+
+  function toggleSelected(n){
+    if (selected.has(n)){
+      selected.delete(n);
+      setConsole("SIGNAL REMOVED", `Signal tag cleared: ${n}`);
+    } else {
+      selected.add(n);
+      setConsole("SIGNAL TAGGED", `Signal tagged: ${n}`);
+    }
+  }
+
+  function renderBoot(){
+    state = State.BOOT;
+    setStatus("STATUS: CALIBRATION");
+    setConsole("Booting secure interface…", "Establishing number stability parameters…");
+    clearMain();
+
+    const title = el("div", { class: "titleBig", text: "INITIALISING PRIME FREQUENCY SCAN" });
+    const barWrap = el("div", { class: "barWrap", role: "progressbar", "aria-valuemin": "0", "aria-valuemax": "100", "aria-valuenow": "0" });
+    const fill = el("div", { class: "barFill" });
+    const pulse = el("div", { class: "barPulse", "aria-hidden": "true" });
+    barWrap.append(fill, pulse);
+
+    const note = el("div", { class: "small", text: "Synchronising channels…" });
+
+    main.append(title, barWrap, note);
+
+    // animate loading fill
+    let p = 0;
+    const step = 100 / Math.max(1, Math.floor(CONFIG.bootDurationMs / 80));
+    const tick = setInterval(() => {
+      p = Math.min(100, p + step);
+      fill.style.width = `${p}%`;
+      barWrap.setAttribute("aria-valuenow", String(Math.round(p)));
+      if (p >= 100){
+        clearInterval(tick);
+      }
+    }, 80);
+
+    setTimeout(() => {
+      renderBrief();
+    }, CONFIG.bootDurationMs);
+  }
+
+  function renderBrief(){
+    state = State.BRIEF;
+    setStatus("STATUS: SCANNING");
+    setConsole("Scan module armed.", "Awaiting operator input…");
+    clearMain();
+
+    const title = el("div", { class: "titleBig", text: "PRIME FREQUENCY SCAN" });
+    const sub = el("div", { class: "sub", text: "Secure channels require stable numerical signals. Noise must be filtered before access is granted." });
+    const divider = el("div", { class: "divider" });
+
+    const btn = el("button", {
+      text: "BEGIN SCAN",
+      onClick: () => {
+        bandIndex = 0;
+        progress = new Array(CONFIG.bands.length).fill(false);
+        renderScan();
+      }
+    });
+
+    const btnRow = el("div", { class: "btnRow" }, [btn]);
+
+    main.append(title, sub, divider, renderSegments(), btnRow);
+  }
+
+  function renderScan(){
+    state = State.SCAN;
+    selected.clear();
+    const b = CONFIG.bands[bandIndex];
+    setStatus(`SCANNING: ${bandLabel(b)}`);
+    setConsole("Scanning number band…", `Target range loaded: ${b.start}\u2013${b.end}`);
+    clearMain();
+
+    const heading = el("div", { class: "gridTitle", text: `SCANNING ${b.start}\u2013${b.end}` });
+    const instruction = el("div", { class: "instruction", text: "Identify all stable signals in this band." });
+
+    const grid = el("div", { class: "numGrid", role: "grid", "aria-label": `Number grid ${b.start} to ${b.end}` });
+    grid.style.gridTemplateColumns = `repeat(${CONFIG.gridColumns}, minmax(54px, 1fr))`;
+
+    for (let n = b.start; n <= b.end; n++){
+      const cell = el("button", {
+        class: "cell",
+        type: "button",
+        role: "gridcell",
+        "aria-pressed": "false",
+        text: String(n),
+        onClick: (e) => {
+          toggleSelected(n);
+          const pressed = selected.has(n);
+          e.currentTarget.classList.toggle("selected", pressed);
+          e.currentTarget.setAttribute("aria-pressed", pressed ? "true" : "false");
+        }
+      });
+      grid.appendChild(cell);
+    }
+
+    const verifyBtn = el("button", {
+      text: "VERIFY SIGNALS",
+      onClick: () => verifyBand(b)
+    });
+
+    const resetBtn = el("button", {
+      text: "CLEAR TAGS",
+      onClick: () => {
+        selected.clear();
+        // clear UI state
+        [...grid.querySelectorAll(".cell")].forEach(btn => {
+          btn.classList.remove("selected");
+          btn.setAttribute("aria-pressed", "false");
+        });
+        setConsole("TAGS CLEARED", "All signal tags removed.");
+      }
+    });
+
+    const btnRow = el("div", { class: "btnRow" }, [verifyBtn, resetBtn]);
+
+    main.append(heading, instruction, grid, renderSegments(), btnRow);
+  }
+
+  function verifyBand(b){
+    const primes = new Set(primesInBand(b.start, b.end));
+    let ok = true;
+
+    // Must match exactly: selected set equals primes set
+    if (selected.size !== primes.size) ok = false;
+    if (ok){
+      for (const n of selected){
+        if (!primes.has(n)){ ok = false; break; }
+      }
+    }
+
+    if (ok){
+      progress[bandIndex] = true;
+      renderVerified(b);
+    } else {
+      setConsole("NOISE DETECTED", "Rescan required.");
+      // brief visual cue: flash border by toggling status text class
+      statusText.classList.remove("ok", "warn", "bad");
+      statusText.classList.add("warn");
+      setTimeout(() => statusText.classList.remove("warn"), 700);
+    }
+  }
+
+  function renderVerified(b){
+    state = State.VERIFIED;
+    setStatus(`VERIFIED: ${bandLabel(b)}`);
+    setConsole("SIGNALS VERIFIED", "Encryption layer unlocked.");
+    clearMain();
+
+    const title = el("div", { class: "titleBig ok", text: "SIGNALS VERIFIED" });
+
+    // segment progress bar feel
+    const segs = renderSegments();
+
+    // small loading bar for “system committing results”
+    const barWrap = el("div", { class: "barWrap", role: "progressbar", "aria-valuemin": "0", "aria-valuemax": "100", "aria-valuenow": "0" });
+    const fill = el("div", { class: "barFill" });
+    const pulse = el("div", { class: "barPulse", "aria-hidden": "true" });
+    barWrap.append(fill, pulse);
+
+    const note = el("div", { class: "small", text: "Writing verification token…" });
+
+    main.append(title, segs, barWrap, note);
+
+    // animate the commit bar quickly
+    let p = 0;
+    const tick = setInterval(() => {
+      p = Math.min(100, p + 14);
+      fill.style.width = `${p}%`;
+      barWrap.setAttribute("aria-valuenow", String(p));
+      if (p >= 100) clearInterval(tick);
+    }, 90);
+
+    setTimeout(() => {
+      bandIndex += 1;
+      if (bandIndex >= CONFIG.bands.length){
+        renderComplete();
+      } else {
+        renderScan();
+      }
+    }, CONFIG.verifiedPauseMs + 450);
+  }
+
+  function renderComplete(){
+    state = State.COMPLETE;
+    setStatus("STATUS: READY");
+    setConsole("Core systems synchronised.", "Primary encryption now accessible.");
+    clearMain();
+
+    const title = el("div", { class: "titleBig", text: "PRIME FREQUENCY CALIBRATION COMPLETE" });
+    const segs = renderSegments();
+    const sub = el("div", { class: "sub", text: "All bands verified. Secure channels stabilised." });
+
+    const proceed = el("button", {
+      text: "PROCEED TO ENCRYPTION",
+      onClick: () => {
+        // Placeholder hook: replace with navigation into Prime Hacker later.
+        setConsole("ROUTE SET", "Next module: PRIME HACKER (hook not yet connected).");
+        flashAccessGranted();
+      }
+    });
+
+    const restart = el("button", {
+      text: "RESTART SCAN",
+      onClick: () => renderBrief()
+    });
+
+    const btnRow = el("div", { class: "btnRow" }, [proceed, restart]);
+
+    main.append(title, segs, sub, btnRow);
+  }
+
+  function flashAccessGranted(){
+    // Simple centre overlay: code rain vibe without heavy graphics
+    const overlay = el("div", {
+      style: `
+        position: fixed; inset: 0; display: grid; place-items: center;
+        background: rgba(0,0,0,0.72);
+        border: 1px solid rgba(140,255,190,0.35);
+        z-index: 9999;
+      `
+    });
+
+    const box = el("div", {
+      style: `
+        width: min(760px, 92vw);
+        border: 1px solid rgba(140,255,190,0.35);
+        background: rgba(6,14,10,0.85);
+        padding: 22px;
+        display: grid;
+        gap: 12px;
+        text-align: center;
+      `
+    });
+
+    const code = el("div", {
+      style: `
+        height: 120px; overflow: hidden; border: 1px solid rgba(140,255,190,0.25);
+        background: rgba(0,0,0,0.35);
+        padding: 10px; text-align: left; color: rgba(240,255,248,0.70);
+        font-size: 0.95rem;
+      `
+    });
+
+    // fake code generation
+    const lines = [];
+    const chars = "0123456789ABCDEF";
+    for (let i=0;i<40;i++){
+      let s = "";
+      const len = 56 + Math.floor(Math.random()*22);
+      for (let j=0;j<len;j++) s += chars[Math.floor(Math.random()*chars.length)];
+      lines.push(s);
+    }
+    code.textContent = lines.slice(0, 14).join("\n");
+
+    const big = el("div", { class: "titleBig ok", text: "ACCESS GRANTED" });
+
+    const barWrap = el("div", { class: "barWrap", role: "progressbar", "aria-valuemin": "0", "aria-valuemax": "100", "aria-valuenow": "0" });
+    const fill = el("div", { class: "barFill" });
+    const pulse = el("div", { class: "barPulse", "aria-hidden": "true" });
+    barWrap.append(fill, pulse);
+
+    box.append(code, barWrap, big);
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
+
+    let p = 0;
+    const t = setInterval(() => {
+      // scroll code
+      const next = lines.splice(0,1)[0];
+      if (next){
+        const current = code.textContent.split("\n");
+        current.push(next);
+        code.textContent = current.slice(-14).join("\n");
+      }
+      // fill bar
+      p = Math.min(100, p + 6);
+      fill.style.width = `${p}%`;
+      barWrap.setAttribute("aria-valuenow", String(p));
+      if (p >= 100){
+        clearInterval(t);
+        setTimeout(() => overlay.remove(), 900);
+      }
+    }, 90);
+  }
+  // ===== DEV LAB (effects playground) =====
+  const dev = {
+    open: false,
+    spamTimer: null,
+    overlayTimer: null
+  };
+
+  function randomHexLine(len = 64){
+    const chars = "0123456789ABCDEF";
+    let s = "";
+    for (let i = 0; i < len; i++){
+      s += chars[Math.floor(Math.random() * chars.length)];
+    }
+    return s;
+  }
+
+  function pushConsole(sysMsg, logMsg){
+    consoleLine2.textContent = consoleLine1.textContent;
+    consoleLine1.textContent = sysMsg;
+    if (logMsg) consoleLine2.textContent = logMsg;
+  }
+
+  function startConsoleSpam(){
+    stopConsoleSpam();
+    setConsole("STREAM ACTIVE", "Generating telemetry…");
+    dev.spamTimer = setInterval(() => {
+      const sys = "TRACE " + randomHexLine(10);
+      const log = randomHexLine(72);
+      pushConsole(sys, log);
+    }, 140);
+  }
+
+  function stopConsoleSpam(){
+    if (dev.spamTimer){
+      clearInterval(dev.spamTimer);
+      dev.spamTimer = null;
+    }
+  }
+
+  function showOverlayMessage(title, subtitle){
+    const overlay = document.createElement("div");
+    overlay.style.cssText = `
+      position: fixed; inset: 0; z-index: 9998;
+      display: grid; place-items: center;
+      background: rgba(0,0,0,0.70);
+    `;
+
+    const box = document.createElement("div");
+    box.style.cssText = `
+      width: min(760px, 92vw);
+      border: 1px solid rgba(140,255,190,0.35);
+      background: rgba(6,14,10,0.85);
+      padding: 22px;
+      display: grid;
+      gap: 10px;
+      text-align: center;
+    `;
+
+    const h = document.createElement("div");
+    h.className = "titleBig";
+    h.textContent = title;
+
+    const p = document.createElement("div");
+    p.className = "sub";
+    p.textContent = subtitle;
+
+    box.append(h, p);
+    overlay.append(box);
+    document.body.append(overlay);
+
+    clearTimeout(dev.overlayTimer);
+    dev.overlayTimer = setTimeout(() => overlay.remove(), 1200);
+  }
+
+  function toggleDevLab(){
+    dev.open = !dev.open;
+    panel.classList.toggle("open", dev.open);
+    devBtn.textContent = dev.open ? "DEV (D)" : "DEV";
+  }
+
+  const devBtn = document.createElement("button");
+  devBtn.className = "devBtn";
+  devBtn.type = "button";
+  devBtn.textContent = "DEV";
+  devBtn.addEventListener("click", toggleDevLab);
+  document.body.appendChild(devBtn);
+
+  const panel = document.createElement("div");
+  panel.className = "devPanel";
+  panel.innerHTML = `
+    <div class="devTitle">DEV LAB – Effects Playground</div>
+    <div class="small" style="text-align:left;">Trigger screens and effects without playing through.</div>
+    <div class="devGrid">
+      <button type="button" id="devBoot">Boot Screen</button>
+      <button type="button" id="devBrief">Briefing</button>
+
+      <button type="button" id="devScan">Scan Screen</button>
+      <button type="button" id="devVerified">Signals Verified</button>
+
+      <button type="button" id="devNoise">Noise Detected</button>
+      <button type="button" id="devAccess">Access Granted</button>
+
+      <button type="button" id="devSpamOn">Console Stream ON</button>
+      <button type="button" id="devSpamOff">Console Stream OFF</button>
+
+      <button type="button" id="devPopup">Popup Message</button>
+      <button type="button" id="devClose">Close</button>
+    </div>
+  `;
+  document.body.appendChild(panel);
+
+  panel.querySelector("#devBoot").addEventListener("click", () => renderBoot());
+  panel.querySelector("#devBrief").addEventListener("click", () => renderBrief());
+  panel.querySelector("#devScan").addEventListener("click", () => {
+    bandIndex = 0;
+    progress = new Array(CONFIG.bands.length).fill(false);
+    renderScan();
+  });
+
+  panel.querySelector("#devVerified").addEventListener("click", () => {
+    const b = CONFIG.bands[Math.min(bandIndex, CONFIG.bands.length - 1)];
+    progress[bandIndex] = true;
+    renderVerified(b);
+  });
+
+  panel.querySelector("#devNoise").addEventListener("click", () => {
+    setConsole("NOISE DETECTED", "Rescan required.");
+    showOverlayMessage("NOISE DETECTED", "Rescan required.");
+  });
+
+  panel.querySelector("#devAccess").addEventListener("click", () => flashAccessGranted());
+  panel.querySelector("#devSpamOn").addEventListener("click", () => startConsoleSpam());
+  panel.querySelector("#devSpamOff").addEventListener("click", () => {
+    stopConsoleSpam();
+    setConsole("STREAM HALTED", "Telemetry paused.");
+  });
+
+  panel.querySelector("#devPopup").addEventListener("click", () => {
+    showOverlayMessage("TARGET IDENTIFIED", "Awaiting confirmation…");
+  });
+
+  panel.querySelector("#devClose").addEventListener("click", () => toggleDevLab());
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key.toLowerCase() === "d"){
+      toggleDevLab();
+    }
+  });
+
+  // ====== Start ======
+  renderBoot();
+
+  // Keyboard convenience: Enter triggers primary button on BRIEF/COMPLETE
+  document.addEventListener("keydown", (e) => {
+    if (e.key !== "Enter") return;
+    if (state === State.BRIEF){
+      const btn = main.querySelector("button");
+      if (btn) btn.click();
+    }
+  });
+
+})();
+</script>
+</body>
+</html>

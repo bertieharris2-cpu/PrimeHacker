@@ -1,0 +1,63 @@
+:root{
+
+  /* ===============================
+     CORE COLOURS
+     =============================== */
+
+  /* Deep system background */
+  --bg-primary: #071418;
+  --bg-panel: rgba(6, 16, 20, 0.65);
+
+  /* Structural MI5 steel */
+  --system: #114b5f;
+
+  /* Authorised / active */
+  --accent: #1a936f;
+
+  /* Text */
+  --text-primary: rgba(235, 255, 248, 0.92);
+  --text-muted: rgba(235, 255, 248, 0.65);
+
+  /* States */
+  --ok: #1a936f;
+  --warning: #f2c14e;
+  --danger: #ff6b6b;
+
+  /* Glow (subtle only) */
+  --glow-accent: rgba(26,147,111,0.18);
+  --glow-system: rgba(17,75,95,0.18);
+
+
+  /* ===============================
+     TYPOGRAPHY
+     =============================== */
+
+  /* Structural UI font */
+  --font-ui: "Inter", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+
+  /* Terminal / data font */
+  --font-mono: "Courier Prime", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+
+  /* ===============================
+     BORDERS & SHAPE
+     =============================== */
+
+  --radius: 0px;                 /* always sharp */
+  --border-thin: 1px solid rgba(17,75,95,0.45);
+  --border-strong: 1px solid rgba(26,147,111,0.55);
+
+  /* Panel depth */
+  --panel-shadow: 0 0 0 1px rgba(255,255,255,0.05) inset;
+
+
+  /* ===============================
+     ANIMATION PHILOSOPHY
+     =============================== */
+
+  /* Smooth but serious */
+  --transition-fast: 120ms ease;
+  --transition-normal: 240ms ease;
+  --transition-slow: 400ms ease;
+
+}

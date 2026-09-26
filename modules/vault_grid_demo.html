@@ -1,0 +1,1289 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Vault Laser Grid Demo — N=18 (v2 random layout + staggered concurrency)</title>
+<style>
+  :root{
+    --bg-primary: #071418;
+    --fill1: rgba(0, 255, 100, 0.65);
+    --fill2: rgba(0, 255, 100, 0.45);
+    --flow1: rgba(74, 163, 255, 0.55);
+    --flow2: rgba(74, 163, 255, 0.30);
+    --laser: rgba(74, 163, 255, 0.85);
+    --lock: rgba(0, 215, 184, 0.80);
+    --frame: rgba(0, 255, 100, 0.70);
+    --text: rgba(235, 255, 248, 0.85);
+    --text-muted: rgba(235, 255, 248, 0.55);
+    --border: rgba(17, 75, 95, 0.40);
+    --transition-fast: 120ms ease;
+    --cell-border: 0.5px;
+    --grid-gap: 1px;
+  }
+
+  body{
+    margin:0;
+    background:
+      radial-gradient(1200px 800px at 50% 40%, rgba(0, 255, 100, 0.06), transparent 50%),
+      radial-gradient(900px 650px at 70% 75%, rgba(74, 163, 255, 0.04), transparent 60%),
+      var(--bg-primary);
+    color: var(--text);
+    font-family: "Courier Prime", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    height:100vh;
+    overflow:hidden;
+  }
+
+  body::before{
+    content:"";
+    position:fixed;
+    inset:-40px;
+    background:
+      radial-gradient(600px 450px at 30% 25%, rgba(74, 163, 255, 0.08), transparent 65%),
+      radial-gradient(700px 500px at 70% 75%, rgba(0, 255, 100, 0.06), transparent 70%);
+    pointer-events:none;
+    opacity:.85;
+    filter: blur(8px);
+  }
+
+  .wrap{ width:min(860px, 96vw); position:relative; z-index:1; }
+  .title{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    margin:0 0 10px 0;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+    font-size:12px;
+    opacity:.85;
+    color: var(--text-muted);
+  }
+
+  .stage{
+    position:relative;
+    padding:68px;
+    border: 0.5px solid var(--border);
+    background: rgba(7, 20, 24, 0.55);
+    box-shadow: 0 0 0 1px rgba(17, 75, 95, 0.20) inset;
+    perspective:50000px;
+  }
+
+  .vault{
+    position:relative;
+    width:min(610px, 90vw);
+    aspect-ratio:1/1;
+    margin:0 auto;
+    border: 1.5px solid rgba(0, 255, 100, 0.50);
+    padding:18px;
+    box-sizing:border-box;
+    background: rgba(2, 20, 26, 0.80);
+    backdrop-filter: blur(4px);
+    box-shadow:
+      0 0 0 1px rgba(17, 75, 95, 0.35) inset,
+      0 16px 60px rgba(0, 0, 0, 0.50);
+  }
+
+  .grid{
+    display:grid;
+    grid-template-columns:repeat(19,1fr);
+    grid-template-rows:repeat(19,1fr);
+    gap:var(--grid-gap);
+    width:100%;
+    height:100%;
+    position:relative;
+    z-index:1;
+  }
+
+  .cell{
+    background: rgba(6, 20, 28, 0.75);
+    border: var(--cell-border) solid rgba(17, 75, 95, 0.2);
+    box-sizing:border-box;
+    transition: background var(--transition-fast), box-shadow var(--transition-fast);
+  }
+  .cell.on{
+    background:linear-gradient(180deg, var(--fill1), var(--fill2));
+    box-shadow:
+      0 0 8px rgba(0, 255, 100, 0.20),
+      0 0 0 0.5px rgba(255,255,255,.08) inset;
+  }
+  .cell.flow{
+    background:linear-gradient(180deg, var(--flow1), var(--flow2));
+    box-shadow:
+      0 0 10px rgba(74, 163, 255, 0.25),
+      0 0 0 0.5px rgba(255,255,255,.06) inset;
+  }
+
+  svg.overlay{ position:absolute; inset:18px; pointer-events:none; z-index:4; }
+  svg.scan{ position:absolute; inset:18px; pointer-events:none; z-index:2; opacity:.60; mix-blend-mode:screen; }
+  svg.labels{ position:absolute; inset:0; pointer-events:none; z-index:10; }
+
+  .legend{
+    margin-top:10px;
+    display:flex;
+    gap:18px;
+    font-size:12px;
+    opacity:.80;
+    color: var(--text-muted);
+  }
+  .sw{ display:inline-block; width:10px;height:10px; margin-right:8px; border:0.5px solid rgba(255,255,255,.25); transform:translateY(1px); }
+  .hint{ margin-top:6px; font-size:11px; opacity:.65; letter-spacing:.05em; color: var(--text-muted);}
+  .btnRow{ margin-top:10px; display:flex; gap:10px; align-items:center; }
+  button{
+    font:inherit;
+    color: var(--text);
+    border: 0.75px solid var(--border);
+    background: rgba(6, 20, 28, 0.60);
+    padding:6px 10px;
+    cursor:pointer;
+    transition: background var(--transition-fast), border-color var(--transition-fast);
+  }
+  button:hover{
+    background: rgba(17, 75, 95, 0.40);
+    border-color: rgba(0, 255, 100, 0.50);
+  }
+  .next-floor-btn{
+    background: linear-gradient(135deg, rgba(0,200,255,.2), rgba(74,163,255,.15));
+    border-color: rgba(0,200,255,.5);
+    color: rgba(0,200,255,.9);
+    font-weight: 600;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+  }
+  .next-floor-btn:hover{
+    background: linear-gradient(135deg, rgba(0,200,255,.3), rgba(74,163,255,.25));
+    border-color: rgba(0,200,255,.8);
+    box-shadow: 0 0 12px rgba(0,200,255,.3);
+  }
+  .mini{ font-size:11px; opacity:.65; color: var(--text-muted); }
+
+  .sweep{
+    fill:url(#sweepGrad);
+    opacity:.23;
+    animation:sweepY 4.4s linear infinite;
+  }
+  @keyframes sweepY{
+    0%{ transform:translateY(-30%); }
+    100%{ transform:translateY(130%); }
+  }
+
+  /* 3D Vault Tilt System */
+  .vault{
+    transform-style:preserve-3d;
+    transition:none;
+  }
+
+  .vault.tilting-to-iso{
+    animation:tiltToIsometric 1000ms cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+  }
+
+  @keyframes tiltToIsometric{
+    0%{
+      transform:rotateX(0deg) rotateZ(0deg) scale(1);
+    }
+    100%{
+      transform:rotateX(65deg) rotateZ(-18deg) scale(0.92);
+    }
+  }
+
+  .vault3d-wrap{
+    position:absolute;
+    display:none;
+    pointer-events:none;
+    z-index:25;
+    inset:0;
+  }
+
+  #vault3d{
+    position:absolute;
+    inset:0;
+    width:100%;
+    height:100%;
+    display:block;
+    opacity:0;
+    transform: none;              /* IMPORTANT: no extra tilt */
+    transform-origin: 50% 50%;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="title">
+    <div>VAULT GRID: 19×19</div>
+    <div>TARGET: N=18</div>
+  </div>
+
+  <div class="stage" id="stage">
+    <div class="vault" id="vault">
+      <div id="grid" class="grid"></div>
+      <div class="iso-overlay-container" id="isoOverlayContainer"></div>
+      <div class="vault3d-wrap">
+        <canvas id="vault3d"></canvas>
+      </div>
+
+      <svg class="scan" viewBox="0 0 100 100" preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="sweepGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="rgba(74, 163, 255, 0)"></stop>
+            <stop offset="40%" stop-color="rgba(74, 163, 255, 0.40)"></stop>
+            <stop offset="60%" stop-color="rgba(74, 163, 255, 0.40)"></stop>
+            <stop offset="100%" stop-color="rgba(74, 163, 255, 0)"></stop>
+          </linearGradient>
+        </defs>
+        <rect class="sweep" x="0" y="-25" width="100" height="22"></rect>
+      </svg>
+
+      <svg id="laserOverlay" class="overlay" viewBox="0 0 100 100" preserveAspectRatio="none"></svg>
+    </div>
+
+    <svg id="labelOverlay" class="labels"></svg>
+  </div>
+
+  <div class="legend">
+    <div><span class="sw" style="background:#4aa3ff"></span>Laser outline</div>
+    <div><span class="sw" style="background:#6fb8ff"></span>Power flow</div>
+    <div><span class="sw" style="background:#7fffd4"></span>Array fill</div>
+    <div><span class="sw" style="background:#00d7b8"></span>Locked border</div>
+  </div>
+  <div class="hint">Now uses a random non-overlapping layout each run, and arrays animate with staggered overlap (smoother, less “one-by-one”).</div>
+
+  <div class="btnRow">
+    <label style="display:flex; gap:8px; align-items:center; font-size:12px;">
+      TARGET N =
+      <select id="nSelect" style="padding:4px 6px; font-family:inherit; color:inherit; background:rgba(2,43,36,.45); border:1px solid rgba(74,163,255,.45);">
+        <optgroup label="L1 (Easy)">
+          <option value="12">12</option>
+          <option value="18" selected>18</option>
+          <option value="20">20</option>
+          <option value="24">24</option>
+        </optgroup>
+        <optgroup label="L2 (Medium)">
+          <option value="30">30</option>
+          <option value="36">36</option>
+          <option value="42">42</option>
+          <option value="48">48</option>
+        </optgroup>
+        <optgroup label="L3 (Hard)">
+          <option value="60">60</option>
+          <option value="72">72</option>
+          <option value="84">84</option>
+          <option value="100">100</option>
+        </optgroup>
+      </select>
+    </label>
+    <button id="initBtn">INIT</button>
+    <button id="rerunBtn">RERUN (new layout)</button>
+    <button id="view3dBtn" style="background: linear-gradient(135deg, rgba(0,255,100,.15), rgba(74,163,255,.15)); border-color: rgba(0,255,100,.45); color: rgba(0,255,100,.85);">3D VIEW</button>
+    <button id="exit3dBtn" style="display:none; background: linear-gradient(135deg, rgba(255,100,0,.15), rgba(255,163,74,.15)); border-color: rgba(255,100,0,.45); color: rgba(255,100,0,.85);">EXIT 3D</button>
+    <button id="nextFloorBtn" class="next-floor-btn">Next Floor Reconstruction</button>
+    <span class="mini" id="seedInfo"></span>
+  </div>
+
+  <!-- 3D Extrusion Mode Selector (hidden by default) -->
+  <div id="extrusionModePanel" style="display:none; margin-top:12px; padding:10px; border:1px solid rgba(74,163,255,0.35); background:rgba(7,20,24,0.6); border-radius:2px;">
+    <div style="font-size:11px; opacity:0.75; margin-bottom:8px; letter-spacing:0.05em; text-transform:uppercase;">EXTRUSION DIRECTION:</div>
+    <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px;">
+      <button id="mode1Btn" style="flex:1; min-width:160px; background:rgba(6,20,28,0.6); border-color:rgba(74,163,255,0.35); color:rgba(200,200,200,0.85);">Mode 1: -60°</button>
+      <button id="mode2Btn" style="flex:1; min-width:160px; background:rgba(6,20,28,0.6); border-color:rgba(74,163,255,0.35); color:rgba(200,200,200,0.85);">Mode 2: -90°</button>
+      <button id="mode3Btn" style="flex:1; min-width:160px; background:linear-gradient(135deg,rgba(0,255,100,.2),rgba(74,163,255,.15)); border-color:rgba(0,255,100,.6); color:rgba(0,255,100,.9); font-weight:600;">Mode 3: -75°</button>
+    </div>
+    <div style="font-size:11px; opacity:0.75; margin-bottom:8px; letter-spacing:0.05em; text-transform:uppercase;">VAULT TILT:</div>
+    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+      <button id="tilt60Btn" style="flex:1; min-width:160px; background:rgba(6,20,28,0.6); border-color:rgba(74,163,255,0.35); color:rgba(200,200,200,0.85);">Tilt 60°</button>
+      <button id="tilt65Btn" style="flex:1; min-width:160px; background:linear-gradient(135deg,rgba(0,200,255,.2),rgba(100,200,255,.15)); border-color:rgba(0,200,255,.6); color:rgba(0,200,255,.9); font-weight:600;">Tilt 65°</button>
+      <button id="tilt70Btn" style="flex:1; min-width:160px; background:rgba(6,20,28,0.6); border-color:rgba(74,163,255,0.35); color:rgba(200,200,200,0.85);">Tilt 70°</button>
+      <button id="tilt75Btn" style="flex:1; min-width:160px; background:rgba(6,20,28,0.6); border-color:rgba(74,163,255,0.35); color:rgba(200,200,200,0.85);">Tilt 75°</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// Curated N values by difficulty
+const VALID_N = {
+  L1: [12, 18, 20, 24],
+  L2: [30, 36, 42, 48],
+  L3: [60, 72, 84, 100]
+};
+
+let GRID = 19;
+let STEP = 100/GRID;
+let currentN = 18;  // Track current N
+
+const stageEl = document.getElementById("stage");
+const vaultEl = document.getElementById("vault");
+const gridEl  = document.getElementById("grid");
+const overlay = document.getElementById("laserOverlay");
+const labelSvg= document.getElementById("labelOverlay");
+const isoOverlayContainer = document.getElementById("isoOverlayContainer");
+const seedInfo= document.getElementById("seedInfo");
+const nSelect = document.getElementById("nSelect");
+const initBtn = document.getElementById("initBtn");
+const rerunBtn = document.getElementById("rerunBtn");
+const view3dBtn = document.getElementById("view3dBtn");
+
+let cells=[];
+
+function buildGrid(){
+  gridEl.innerHTML = "";
+  cells = [];
+  for(let i=0;i<GRID*GRID;i++){
+    const d=document.createElement("div");
+    d.className="cell";
+    gridEl.appendChild(d);
+    cells.push(d);
+  }
+  // Update grid CSS to match new GRID size
+  gridEl.style.gridTemplateColumns = `repeat(${GRID}, 1fr)`;
+  gridEl.style.gridTemplateRows = `repeat(${GRID}, 1fr)`;
+  
+  // Adjust borders and gaps for larger grids
+  if(GRID > 70){
+    document.documentElement.style.setProperty('--grid-gap', '0px');
+    document.documentElement.style.setProperty('--cell-border', '0.05px');
+  } else if(GRID > 60){
+    document.documentElement.style.setProperty('--grid-gap', '0px');
+    document.documentElement.style.setProperty('--cell-border', '0.1px');
+  } else if(GRID > 40){
+    document.documentElement.style.setProperty('--grid-gap', '0.5px');
+    document.documentElement.style.setProperty('--cell-border', '0.25px');
+  } else {
+    document.documentElement.style.setProperty('--grid-gap', '1px');
+    document.documentElement.style.setProperty('--cell-border', '0.5px');
+  }
+}
+
+// Initial build
+buildGrid();
+
+const cellAt=(x,y)=>cells[y*GRID+x];
+
+function setCell(x,y,state){
+  if(x<0||y<0||x>=GRID||y>=GRID) return;
+  const c=cellAt(x,y);
+  c.classList.toggle("flow", state==="flow");
+  c.classList.toggle("on", state==="on");
+  if(state==="off") c.classList.remove("flow","on");
+}
+const pause=(ms)=>new Promise(r=>setTimeout(r,ms));
+
+/* ---------- Seeded RNG so reruns are stable per seed ---------- */
+function mulberry32(a){
+  return function(){
+    let t = a += 0x6D2B79F5;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  }
+}
+
+/* ---------- Generate all factor pairs for N ---------- */
+function generateFactorPairs(n){
+  const pairs = [];
+  for(let a = 1; a * a <= n; a++){
+    if(n % a === 0){
+      const b = n / a;
+      pairs.push({w: a, h: b, label: `${a}×${b}`});
+      if(a !== b){
+        pairs.push({w: b, h: a, label: `${b}×${a}`});
+      }
+    }
+  }
+  return pairs;
+}
+
+/* ---------- Geometry helpers ---------- */
+function rectsOverlap(a,b, pad=0){
+  return !(
+    a.x + a.w + pad <= b.x ||
+    b.x + b.w + pad <= a.x ||
+    a.y + a.h + pad <= b.y ||
+    b.y + b.h + pad <= a.y
+  );
+}
+
+/* Random packer: tries to place each factor-rect somewhere new */
+function generatePlacements(seed, wanted){
+  const rnd = mulberry32(seed);
+
+  // heuristic: place larger first
+  wanted = [...wanted];  // copy to avoid mutation
+  wanted.sort((a,b)=>(b.w*b.h)-(a.w*a.h));
+
+  const placed = [];
+  const triesPerRect = 900;
+  const pad = 1; // keep a 1-cell breathing space to stop “samey” clustering
+
+  for(const r0 of wanted){
+    let ok = false;
+    for(let k=0;k<triesPerRect;k++){
+      // allow perimeter preference sometimes so long strips often hug edges, but not always
+      const edgeBias = rnd() < 0.55;
+      let x, y;
+
+      if(edgeBias){
+        const side = Math.floor(rnd()*4);
+        if(side===0){ x = Math.floor(rnd()*(GRID - r0.w + 1)); y = 0; }
+        else if(side===1){ x = GRID - r0.w; y = Math.floor(rnd()*(GRID - r0.h + 1)); }
+        else if(side===2){ x = Math.floor(rnd()*(GRID - r0.w + 1)); y = GRID - r0.h; }
+        else { x = 0; y = Math.floor(rnd()*(GRID - r0.h + 1)); }
+      }else{
+        x = Math.floor(rnd()*(GRID - r0.w + 1));
+        y = Math.floor(rnd()*(GRID - r0.h + 1));
+      }
+
+      const cand = {x, y, w:r0.w, h:r0.h, label:r0.label};
+
+      // ensure fully inside
+      if(cand.x < 0 || cand.y < 0 || cand.x+cand.w>GRID || cand.y+cand.h>GRID) continue;
+
+      // avoid overlap with padding
+      let clash=false;
+      for(const p of placed){
+        if(rectsOverlap(cand,p,pad)){ clash=true; break; }
+      }
+      if(clash) continue;
+
+      placed.push(cand);
+      ok=true;
+      break;
+    }
+    if(!ok){
+      // fallback: reduce pad and try again quickly
+      for(let k=0;k<triesPerRect;k++){
+        const x = Math.floor(rnd()*(GRID - r0.w + 1));
+        const y = Math.floor(rnd()*(GRID - r0.h + 1));
+        const cand = {x, y, w:r0.w, h:r0.h, label:r0.label};
+        let clash=false;
+        for(const p of placed){
+          if(rectsOverlap(cand,p,0)){ clash=true; break; }
+        }
+        if(!clash){ placed.push(cand); ok=true; break; }
+      }
+    }
+  }
+
+  // shuffle order for animation variety (still deterministic for seed)
+  for(let i=placed.length-1;i>0;i--){
+    const j = Math.floor(rnd()*(i+1));
+    [placed[i], placed[j]] = [placed[j], placed[i]];
+  }
+  return placed;
+}
+
+/* ---------- Visual engine ---------- */
+function drawLaser(rect, ms=920){
+  const r=document.createElementNS("http://www.w3.org/2000/svg","rect");
+  r.setAttribute("x",rect.x*STEP);
+  r.setAttribute("y",rect.y*STEP);
+  r.setAttribute("width",rect.w*STEP);
+  r.setAttribute("height",rect.h*STEP);
+  r.setAttribute("fill","none");
+  r.setAttribute("stroke","var(--laser)");
+  r.setAttribute("stroke-width","0.5");
+  r.setAttribute("opacity","0.18");
+  const per=2*(rect.w*STEP+rect.h*STEP);
+  r.style.strokeDasharray=per;
+  r.style.strokeDashoffset=per;
+  overlay.appendChild(r);
+
+  requestAnimationFrame(()=>{
+    r.style.transition=`stroke-dashoffset ${ms}ms linear, opacity ${ms}ms linear`;
+    r.style.strokeDashoffset="0";
+    r.setAttribute("opacity","0.90");
+  });
+  return new Promise(res=>setTimeout(()=>res(r),ms+60));
+}
+
+function lockBorder(rect){
+  const r=document.createElementNS("http://www.w3.org/2000/svg","rect");
+  r.setAttribute("x",rect.x*STEP);
+  r.setAttribute("y",rect.y*STEP);
+  r.setAttribute("width",rect.w*STEP);
+  r.setAttribute("height",rect.h*STEP);
+  r.setAttribute("fill","none");
+  r.setAttribute("stroke","var(--lock)");
+  r.setAttribute("stroke-width","0.5");
+  r.setAttribute("opacity","0");
+  overlay.appendChild(r);
+  requestAnimationFrame(()=>{
+    r.style.transition="opacity 140ms ease";
+    r.setAttribute("opacity","0.75");
+  });
+}
+
+async function fillOutsideInPower(rect){
+  // smoother feel: slightly slower settle, but shorter per-cell delay
+  const perCell = 10;
+  const settle = 80;
+  let l=rect.x,r=rect.x+rect.w-1,t=rect.y,b=rect.y+rect.h-1;
+
+  async function flowThenSet(x,y){
+    setCell(x,y,"flow");
+    await pause(settle);
+    setCell(x,y,"on");
+  }
+
+  while(l<=r && t<=b){
+    for(let x=l;x<=r;x++){ await flowThenSet(x,t); await pause(perCell); }
+    for(let y=t+1;y<=b;y++){ await flowThenSet(r,y); await pause(perCell); }
+    if(b>t) for(let x=r-1;x>=l;x--){ await flowThenSet(x,b); await pause(perCell); }
+    if(r>l) for(let y=b-1;y>=t+1;y--){ await flowThenSet(l,y); await pause(perCell); }
+    l++;r--;t++;b--;
+    await pause(38);
+  }
+}
+
+/* External label: based on position, with leader */
+function sectorLabelFor(rect){
+  const col = String.fromCharCode(65 + rect.x);
+  const row = rect.y + 1;
+  return `SECTOR ${col}${row}`;
+}
+
+// Track placed labels to avoid overlaps
+const placedLabels = [];
+
+function clearLabelTracker(){
+  placedLabels.length = 0;
+}
+
+function labelBounds(lx, ly, anchor, text1, text2){
+  // Rough estimate of text width/height for collision detection
+  const w1 = text1.length * 7;  // ~7px per char at font-size 12
+  const w2 = text2.length * 6;  // ~6px per char at font-size 11
+  const maxWidth = Math.max(w1, w2) + 20;
+  const height = 32;  // ~16px per line + padding
+  
+  let x, y;
+  if(anchor === "middle"){
+    x = lx - maxWidth/2;
+    y = ly - height/2;
+  }else if(anchor === "end"){
+    x = lx - maxWidth;
+    y = ly - height/2;
+  }else{
+    x = lx;
+    y = ly - height/2;
+  }
+  
+  return {x, y, w: maxWidth, h: height};
+}
+
+function boundsOverlap(b1, b2, margin = 12){
+  return !(
+    b1.x + b1.w + margin <= b2.x ||
+    b2.x + b2.w + margin <= b1.x ||
+    b1.y + b1.h + margin <= b2.y ||
+    b2.y + b2.h + margin <= b1.y
+  );
+}
+
+function findNonOverlappingPosition(proposedLx, proposedLy, anchor, text1, text2, side){
+  let lx = proposedLx;
+  let ly = proposedLy;
+  const bounds = labelBounds(lx, ly, anchor, text1, text2);
+  
+  // Try offsets (increase spacing if overlapping)
+  const offsets = [0, 24, -24, 48, -48, 72, -72];
+  
+  for(const offset of offsets){
+    let testLx = lx;
+    let testLy = ly;
+    
+    // Offset based on side
+    if(side === "top" || side === "bottom"){
+      testLx = lx + offset;
+    }else{
+      testLy = ly + offset;
+    }
+    
+    const testBounds = labelBounds(testLx, testLy, anchor, text1, text2);
+    let overlaps = false;
+    
+    for(const existing of placedLabels){
+      if(boundsOverlap(testBounds, existing)){
+        overlaps = true;
+        break;
+      }
+    }
+    
+    if(!overlaps){
+      return {lx: testLx, ly: testLy, bounds: testBounds};
+    }
+  }
+  
+  // Fallback: return last bounds anyway
+  return {lx, ly, bounds};
+}
+
+function addExternalLabel(rect){
+  const stageBox=stageEl.getBoundingClientRect();
+  const vaultBox=vaultEl.getBoundingClientRect();
+  const pad=18;
+
+  const innerW=vaultBox.width-pad*2;
+  const innerH=vaultBox.height-pad*2;
+  const cellW=innerW/GRID, cellH=innerH/GRID;
+
+  const ax=vaultBox.left+pad+(rect.x+rect.w/2)*cellW;
+  const ay=vaultBox.top+pad+(rect.y+rect.h/2)*cellH;
+
+  const cx = rect.x + rect.w/2;
+  const cy = rect.y + rect.h/2;
+
+  let lx, ly, anchor, side;
+  if(cy < 5){
+    lx = ax; ly = vaultBox.top - 24; anchor="middle"; side="top";
+  }else if(cy > GRID-6){
+    lx = ax; ly = vaultBox.bottom + 28; anchor="middle"; side="bottom";
+  }else if(cx < 5){
+    lx = vaultBox.left - 26; ly = ay; anchor="end"; side="left";
+  }else{
+    lx = vaultBox.right + 26; ly = ay; anchor="start"; side="right";
+  }
+
+  const text1 = sectorLabelFor(rect);
+  const text2 = rect.label;
+  
+  // Find non-overlapping position
+  const positioned = findNonOverlappingPosition(lx, ly, anchor, text1, text2, side);
+  lx = positioned.lx;
+  ly = positioned.ly;
+  placedLabels.push(positioned.bounds);
+
+  const axL=ax-stageBox.left, ayL=ay-stageBox.top;
+  const lxL=lx-stageBox.left, lyL=ly-stageBox.top;
+
+  labelSvg.setAttribute("viewBox",`0 0 ${stageBox.width} ${stageBox.height}`);
+
+  const bend=18;
+  const path=document.createElementNS("http://www.w3.org/2000/svg","path");
+  let d;
+  if(anchor==="middle"){
+    d = `M ${lxL} ${lyL} L ${lxL} ${lyL + (lyL<ayL? bend : -bend)} L ${axL} ${ayL}`;
+  }else if(anchor==="end"){
+    d = `M ${lxL} ${lyL} L ${lxL + bend} ${lyL} L ${axL} ${ayL}`;
+  }else{
+    d = `M ${lxL} ${lyL} L ${lxL - bend} ${lyL} L ${axL} ${ayL}`;
+  }
+  path.setAttribute("d",d);
+  path.setAttribute("fill","none");
+  path.setAttribute("stroke","rgba(74, 163, 255, 0.45)");
+  path.setAttribute("stroke-width","0.5");
+  labelSvg.appendChild(path);
+
+  const g=document.createElementNS("http://www.w3.org/2000/svg","g");
+  g.setAttribute("transform",`translate(${lxL}, ${lyL})`);
+  labelSvg.appendChild(g);
+
+  const t1=document.createElementNS("http://www.w3.org/2000/svg","text");
+  t1.textContent=text1;
+  t1.setAttribute("fill","rgba(74, 163, 255, 0.80)");
+  t1.setAttribute("font-size","12");
+  t1.setAttribute("letter-spacing","1.6");
+  t1.setAttribute("dominant-baseline","middle");
+  t1.setAttribute("text-anchor", anchor==="middle"?"middle":(anchor==="end"?"end":"start"));
+  g.appendChild(t1);
+
+  const t2=document.createElementNS("http://www.w3.org/2000/svg","text");
+  t2.textContent=text2;
+  t2.setAttribute("fill","rgba(0, 255, 100, 0.75)");
+  t2.setAttribute("font-size","11");
+  t2.setAttribute("letter-spacing","0.6");
+  t2.setAttribute("dominant-baseline","middle");
+  t2.setAttribute("text-anchor", t1.getAttribute("text-anchor"));
+  t2.setAttribute("y","16");
+  g.appendChild(t2);
+
+  const dot=document.createElementNS("http://www.w3.org/2000/svg","circle");
+  dot.setAttribute("cx",axL);
+  dot.setAttribute("cy",ayL);
+  dot.setAttribute("r","1.8");
+  dot.setAttribute("fill","rgba(74, 163, 255, 0.65)");
+  labelSvg.appendChild(dot);
+}
+
+/* One rect animation pipeline */
+async function animateRect(rect, startDelay){
+  await pause(startDelay);
+  await drawLaser(rect, 900);
+  await fillOutsideInPower(rect);
+  lockBorder(rect);
+  addExternalLabel(rect);
+}
+
+/* Main */
+let currentSeed = (Date.now() ^ (Math.random()*1e9)) >>> 0;
+
+async function initVault(N){
+  // Update grid and display for new N
+  // Grid must be N+1 to fit the largest factor pair (1×N)
+  GRID = N + 1;
+  STEP = 100 / GRID;
+  currentN = N;
+  
+  // Update select dropdown to match
+  nSelect.value = String(N);
+  
+  // Update title
+  document.querySelector(".title div:first-child").textContent = `VAULT GRID: ${GRID}×${GRID}`;
+  document.querySelector(".title div:last-child").textContent = `TARGET: N=${N}`;
+  
+  // Rebuild grid
+  buildGrid();
+  
+  // Generate new seed and run
+  currentSeed = (Date.now() ^ (Math.random()*1e9)) >>> 0;
+  const wanted = generateFactorPairs(N);
+  await run(currentSeed, wanted);
+}
+
+async function run(seed, wanted){
+  currentSeed = seed >>> 0;
+  seedInfo.textContent = `seed: ${currentSeed}`;
+
+  // reset visuals and label tracker
+  cells.forEach(c=>c.classList.remove("on","flow"));
+  overlay.innerHTML="";
+  labelSvg.innerHTML="";
+  clearLabelTracker();
+
+  // generate layout
+  const placements = generatePlacements(currentSeed, wanted);
+  
+  // Store placements globally for 3D view reuse
+  window.lastPlacements = placements;
+  window.lastSeed = currentSeed;
+  window.lastN = currentN;
+
+  // border sweep (faint to strong, slightly longer)
+  await drawLaser({x:0,y:0,w:GRID,h:GRID,label:""}, 1350);
+
+  // staggered overlap (not strictly sequential)
+  // tighter stagger feels smoother; also vary a bit by index for organic cadence
+  const base = 260;
+  const jitter = 90;
+  const rnd = mulberry32(currentSeed ^ 0xA5A5A5A5);
+
+  const tasks = placements.map((r,i)=>{
+    const delay = i*base + Math.floor(rnd()*jitter);
+    return animateRect(r, delay);
+  });
+
+  await Promise.all(tasks);
+}
+
+// init button - change N and rebuild
+initBtn.addEventListener("click", ()=>{
+  const n = parseInt(nSelect.value, 10);
+  initVault(n);
+});
+
+// rerun button - same N, new layout
+rerunBtn.addEventListener("click", ()=>{
+  const newSeed = (Date.now() ^ (Math.random()*1e9)) >>> 0;
+  const wanted = generateFactorPairs(currentN);
+  run(newSeed, wanted);
+});
+
+// Get all occupied (filled) grid cells
+// Trigger 3D transformation: tilt vault and extrude rectangle arrays
+async function triggerIsometricMorph(placements){
+  // Hide external labels but keep grid and background visible
+  labelSvg.style.display = "none";
+  overlay.style.display = "none";
+  
+  // Fade the flat grid cells to background only (10-15% opacity)
+  cells.forEach(c => {
+    c.style.opacity = "0.1";
+  });
+  
+  // Start vault tilt animation (800ms total duration)
+  vaultEl.classList.add("tilting-to-iso");
+  
+  // Show canvas but keep it invisible while tilting
+  const canvasWrapper = document.querySelector(".vault3d-wrap");
+  const canvas = document.getElementById("vault3d");
+  const exitBtn = document.getElementById("exit3dBtn");
+  const modePanel = document.getElementById("extrusionModePanel");
+  
+  if(canvasWrapper && canvas){
+    canvasWrapper.style.display = "block";
+    canvas.style.opacity = "0";
+    
+    if(placements.length > 0){
+      // Wait for tilt animation to complete (1000ms)
+      await pause(1000);
+      
+      // Calculate exact canvas dimensions based on grid + padding
+      const gridW = gridEl.clientWidth;
+      const gridH = gridEl.clientHeight;
+      const gap = parseFloat(getComputedStyle(gridEl).gap) || 0;
+      const cellSize = (gridW - gap * (GRID - 1)) / GRID;
+      const verticalPad = cellSize * 1.8;
+      const horizontalPad = cellSize * 0.6;
+      
+      const canvasW = gridW + horizontalPad * 2;
+      const canvasH = gridH + verticalPad;
+      
+      // Position wrapper to be centered on the grid with room for canvas overflow
+      const gridPadding = 18;
+      const offsetLeft = gridPadding - horizontalPad;
+      const offsetTop = gridPadding - verticalPad;
+      
+      canvasWrapper.style.width = Math.ceil(canvasW) + "px";
+      canvasWrapper.style.height = Math.ceil(canvasH) + "px";
+      canvasWrapper.style.left = offsetLeft + "px";
+      canvasWrapper.style.top = offsetTop + "px";
+      console.log(`Canvas wrapper sized for extrusion padding: w=${Math.ceil(canvasW)}, h=${Math.ceil(canvasH)}, offset=(${offsetLeft}, ${offsetTop})`);
+      
+      // Immediately render floor grid at heightPx=0 so canvas isn't black
+      const ctx = canvas.getContext("2d");
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = Math.floor(canvasW * dpr);
+      canvas.height = Math.floor(canvasH * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, horizontalPad * dpr, verticalPad * dpr);
+      renderRectCuboids(ctx, placements, GRID, cellSize, gap, 0, window.extrusionMode);
+      
+      // Fade in canvas
+      canvas.style.transition = "opacity 300ms ease-out";
+      canvas.style.opacity = "1";
+      
+      // Wait for fade to complete, then immediately start extrusions
+      await pause(300);
+      
+      // Start rectangle extrusion animation
+      animateRectExtrusion(canvas, placements, GRID, 1500);
+    }
+  }
+  
+  // Show exit button and mode panel
+  if(exitBtn) exitBtn.style.display = "inline-block";
+  if(modePanel) modePanel.style.display = "block";
+  
+  // Keep 3D view active until user clicks exit
+}
+
+// Reset 3D view back to 2D
+function exitIsometricView(){
+  const canvasWrapper = document.querySelector(".vault3d-wrap");
+  const canvas = document.getElementById("vault3d");
+  const exitBtn = document.getElementById("exit3dBtn");
+  const modePanel = document.getElementById("extrusionModePanel");
+  
+  vaultEl.classList.remove("tilting-to-iso");
+  labelSvg.style.display = "";
+  overlay.style.display = "";
+  
+  // Restore grid cell opacity
+  cells.forEach(c => {
+    c.style.opacity = "";
+  });
+  
+  if(canvasWrapper){
+    canvasWrapper.style.display = "none";
+    canvasWrapper.style.left = "";
+    canvasWrapper.style.top = "";
+    canvasWrapper.style.width = "";
+    canvasWrapper.style.height = "";
+  }
+  if(canvas) canvas.style.opacity = "0";
+  vaultEl.style.transform = "";
+  if(exitBtn) exitBtn.style.display = "none";
+  if(modePanel) modePanel.style.display = "none";
+}
+
+// 3D view button - reuse last placements
+view3dBtn.onclick = ()=>{
+  const rects = window.lastPlacements || [];
+  console.log("3D rect count:", rects.length, "GRID:", GRID);
+  if(!rects.length){
+    console.warn("No lastPlacements saved. Click INIT first to generate placements.");
+    return;
+  }
+  triggerIsometricMorph(rects);
+};
+
+const exitBtn = document.getElementById("exit3dBtn");
+if(exitBtn){
+  exitBtn.addEventListener("click", ()=>{
+    exitIsometricView();
+  });
+}
+
+// Extrusion mode buttons
+const mode1Btn = document.getElementById("mode1Btn");
+const mode2Btn = document.getElementById("mode2Btn");
+const mode3Btn = document.getElementById("mode3Btn");
+const mode4Btn = document.getElementById("mode4Btn");
+const mode5Btn = document.getElementById("mode5Btn");
+
+function updateModeButtonStates(){
+  mode1Btn.style.background = window.extrusionMode === 1 
+    ? "linear-gradient(135deg, rgba(0,255,100,.2), rgba(74,163,255,.15))" 
+    : "rgba(6, 20, 28, 0.6)";
+  mode1Btn.style.borderColor = window.extrusionMode === 1 ? "rgba(0,255,100,.6)" : "rgba(74,163,255,0.35)";
+  mode1Btn.style.color = window.extrusionMode === 1 ? "rgba(0,255,100,.9)" : "rgba(200,200,200,0.85)";
+  
+  mode2Btn.style.background = window.extrusionMode === 2 
+    ? "linear-gradient(135deg, rgba(0,200,255,.2), rgba(100,200,255,.15))" 
+    : "rgba(6, 20, 28, 0.6)";
+  mode2Btn.style.borderColor = window.extrusionMode === 2 ? "rgba(0,200,255,.6)" : "rgba(74,163,255,0.35)";
+  mode2Btn.style.color = window.extrusionMode === 2 ? "rgba(0,200,255,.9)" : "rgba(200,200,200,0.85)";
+  
+  mode3Btn.style.background = window.extrusionMode === 3 
+    ? "linear-gradient(135deg, rgba(255,150,0,.2), rgba(255,180,100,.15))" 
+    : "rgba(6, 20, 28, 0.6)";
+  mode3Btn.style.borderColor = window.extrusionMode === 3 ? "rgba(255,150,0,.6)" : "rgba(74,163,255,0.35)";
+  mode3Btn.style.color = window.extrusionMode === 3 ? "rgba(255,150,0,.9)" : "rgba(200,200,200,0.85)";
+}
+
+function updateTiltButtonStates(){
+  const tilt60Btn = document.getElementById("tilt60Btn");
+  const tilt65Btn = document.getElementById("tilt65Btn");
+  const tilt70Btn = document.getElementById("tilt70Btn");
+  const tilt75Btn = document.getElementById("tilt75Btn");
+  
+  [tilt60Btn, tilt65Btn, tilt70Btn, tilt75Btn].forEach(btn => {
+    btn.style.background = "rgba(6, 20, 28, 0.6)";
+    btn.style.borderColor = "rgba(74,163,255,0.35)";
+    btn.style.color = "rgba(200,200,200,0.85)";
+    btn.style.fontWeight = "normal";
+  });
+  
+  const activeTiltBtn = {
+    60: tilt60Btn,
+    65: tilt65Btn,
+    70: tilt70Btn,
+    75: tilt75Btn
+  }[window.currentTiltAngle];
+  
+  if(activeTiltBtn){
+    activeTiltBtn.style.background = "linear-gradient(135deg, rgba(0,200,255,.2), rgba(100,200,255,.15))";
+    activeTiltBtn.style.borderColor = "rgba(0,200,255,.6)";
+    activeTiltBtn.style.color = "rgba(0,200,255,.9)";
+    activeTiltBtn.style.fontWeight = "600";
+  }
+}
+
+if(mode1Btn){
+  mode1Btn.addEventListener("click", ()=>{
+    window.extrusionMode = 1;
+    updateModeButtonStates();
+    refreshExtrusionMode();
+  });
+}
+
+if(mode2Btn){
+  mode2Btn.addEventListener("click", ()=>{
+    window.extrusionMode = 2;
+    updateModeButtonStates();
+    refreshExtrusionMode();
+  });
+}
+
+if(mode3Btn){
+  mode3Btn.addEventListener("click", ()=>{
+    window.extrusionMode = 3;
+    updateModeButtonStates();
+    refreshExtrusionMode();
+  });
+}
+
+// Tilt angle toggle buttons
+const tilt60Btn = document.getElementById("tilt60Btn");
+const tilt65Btn = document.getElementById("tilt65Btn");
+const tilt70Btn = document.getElementById("tilt70Btn");
+const tilt75Btn = document.getElementById("tilt75Btn");
+
+function applyTiltAngle(angle){
+  window.currentTiltAngle = angle;
+  const transformStr = TILT_ANGLES[angle];
+  vaultEl.classList.remove("tilting-to-iso");
+  vaultEl.style.transform = transformStr;
+  updateTiltButtonStates();
+}
+
+if(tilt60Btn) tilt60Btn.addEventListener("click", () => applyTiltAngle(60));
+if(tilt65Btn) tilt65Btn.addEventListener("click", () => applyTiltAngle(65));
+if(tilt70Btn) tilt70Btn.addEventListener("click", () => applyTiltAngle(70));
+if(tilt75Btn) tilt75Btn.addEventListener("click", () => applyTiltAngle(75));
+
+// next floor button - go back to factor_vault with new random N
+const nextFloorBtn = document.getElementById("nextFloorBtn");
+nextFloorBtn.addEventListener("click", ()=>{
+  // Pick random N from all difficulty levels
+  const allN = [...VALID_N.L1, ...VALID_N.L2, ...VALID_N.L3];
+  const randomN = allN[Math.floor(Math.random() * allN.length)];
+  console.log(`Next Floor: navigating to factor_vault.html?n=${randomN}`);
+  window.location.href = `factor_vault.html?n=${randomN}`;
+});
+
+// Check URL parameters for N value from factor_vault
+const urlParams = new URLSearchParams(window.location.search);
+const urlN = parseInt(urlParams.get('n'), 10);
+const initialN = (Number.isInteger(urlN) && urlN > 1) ? urlN : 18;
+
+// Initialize with N from URL or default to 18
+initVault(initialN);
+
+// ====== 3D CUBOID RECTANGLE RENDERER ======
+
+// Extrusion direction modes for testing
+window.extrusionMode = 3;  // Default: -75° (building-like)
+window.animationState = {rects: [], GRID: 0, cellSize: 0, gap: 0, targetHeight: 0};
+
+const EXTRUSION_MODES = {
+  1: {name: "-60° Diagonal", hx: (h) => h * 0.50, hy: (h) => -h * 0.90},
+  2: {name: "Straight Up (-90°)", hx: (h) => h * 0.00, hy: (h) => -h * 1.10},
+  3: {name: "-75° Diagonal", hx: (h) => h * 0.26, hy: (h) => -h * 1.00}
+};
+
+const TILT_ANGLES = {
+  60: "rotateX(60deg) rotateZ(-18deg) scale(0.92)",
+  65: "rotateX(65deg) rotateZ(-18deg) scale(0.92)",
+  70: "rotateX(70deg) rotateZ(-18deg) scale(0.92)",
+  75: "rotateX(75deg) rotateZ(-18deg) scale(0.92)"
+};
+window.currentTiltAngle = 65;
+
+// Draw a single cuboid (extruded rectangle) in 3D space using painter's algorithm
+// Grid coordinates map to canvas space; fixed extrusion vector creates 3D effect
+function drawCuboid(ctx, rect, cellSize, gap, heightPx, mode=1){
+  // Floor plane corners in canvas space
+  const x0 = rect.x * (cellSize + gap);
+  const y0 = rect.y * (cellSize + gap);
+  const x1 = x0 + rect.w * cellSize + (rect.w - 1) * gap;
+  const y1 = y0 + rect.h * cellSize + (rect.h - 1) * gap;
+  
+  // Get extrusion offset vector based on mode
+  const modeConfig = EXTRUSION_MODES[mode] || EXTRUSION_MODES[1];
+  const hx = modeConfig.hx(heightPx);
+  const hy = modeConfig.hy(heightPx);
+  
+  // Floor corners
+  const A = {x: x0, y: y0};
+  const B = {x: x1, y: y0};
+  const C = {x: x1, y: y1};
+  const D = {x: x0, y: y1};
+  
+  // Raised corners
+  const Ah = {x: A.x + hx, y: A.y + hy};
+  const Bh = {x: B.x + hx, y: B.y + hy};
+  const Ch = {x: C.x + hx, y: C.y + hy};
+  const Dh = {x: D.x + hx, y: D.y + hy};
+  
+  const colors = {
+    top:   "rgba(40, 180, 140, 0.60)",
+    left:  "rgba(20, 100, 80, 0.70)",
+    right: "rgba(25, 120, 100, 0.65)",
+    front: "rgba(35, 150, 120, 0.58)",
+    edge:  "rgba(60, 255, 200, 0.9)"
+  };
+  
+  // LEFT FACE: D → A → Ah → Dh
+  ctx.fillStyle = colors.left;
+  ctx.beginPath();
+  ctx.moveTo(D.x, D.y);
+  ctx.lineTo(A.x, A.y);
+  ctx.lineTo(Ah.x, Ah.y);
+  ctx.lineTo(Dh.x, Dh.y);
+  ctx.closePath();
+  ctx.fill();
+  
+  // RIGHT FACE: B → C → Ch → Bh
+  ctx.fillStyle = colors.right;
+  ctx.beginPath();
+  ctx.moveTo(B.x, B.y);
+  ctx.lineTo(C.x, C.y);
+  ctx.lineTo(Ch.x, Ch.y);
+  ctx.lineTo(Bh.x, Bh.y);
+  ctx.closePath();
+  ctx.fill();
+  
+  // FRONT FACE: A → B → Bh → Ah (solid face closest to viewer)
+  ctx.fillStyle = colors.front;
+  ctx.beginPath();
+  ctx.moveTo(A.x, A.y);
+  ctx.lineTo(B.x, B.y);
+  ctx.lineTo(Bh.x, Bh.y);
+  ctx.lineTo(Ah.x, Ah.y);
+  ctx.closePath();
+  ctx.fill();
+  
+  // TOP FACE: Ah → Bh → Ch → Dh
+  ctx.fillStyle = colors.top;
+  ctx.beginPath();
+  ctx.moveTo(Ah.x, Ah.y);
+  ctx.lineTo(Bh.x, Bh.y);
+  ctx.lineTo(Ch.x, Ch.y);
+  ctx.lineTo(Dh.x, Dh.y);
+  ctx.closePath();
+  ctx.fill();
+  
+  // EDGE STROKES
+  ctx.strokeStyle = colors.edge;
+  ctx.lineWidth = 1.2;
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  
+  // Outline top face
+  ctx.beginPath();
+  ctx.moveTo(Ah.x, Ah.y);
+  ctx.lineTo(Bh.x, Bh.y);
+  ctx.lineTo(Ch.x, Ch.y);
+  ctx.lineTo(Dh.x, Dh.y);
+  ctx.closePath();
+  ctx.stroke();
+  
+  // Vertical edges from floor to top
+  ctx.beginPath();
+  ctx.moveTo(A.x, A.y);
+  ctx.lineTo(Ah.x, Ah.y);
+  ctx.stroke();
+  
+  ctx.beginPath();
+  ctx.moveTo(B.x, B.y);
+  ctx.lineTo(Bh.x, Bh.y);
+  ctx.stroke();
+  
+  ctx.beginPath();
+  ctx.moveTo(C.x, C.y);
+  ctx.lineTo(Ch.x, Ch.y);
+  ctx.stroke();
+  
+  ctx.beginPath();
+  ctx.moveTo(D.x, D.y);
+  ctx.lineTo(Dh.x, Dh.y);
+  ctx.stroke();
+}
+
+// Render all rectangles as extruded cuboids with painter's algorithm
+function renderRectCuboids(ctx, rects, GRID, cellSize, gap, heightPx, mode=1){
+  ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+  
+  // Draw faint floor grid first (underneath extrusions)
+  ctx.strokeStyle = "rgba(17, 75, 95, 0.15)";
+  ctx.lineWidth = 0.5;
+  for(let i = 0; i <= GRID; i++){
+    const pos = i * (cellSize + gap);
+    // Vertical lines
+    ctx.beginPath();
+    ctx.moveTo(pos, 0);
+    ctx.lineTo(pos, ctx.canvas.height);
+    ctx.stroke();
+    // Horizontal lines
+    ctx.beginPath();
+    ctx.moveTo(0, pos);
+    ctx.lineTo(ctx.canvas.width, pos);
+    ctx.stroke();
+  }
+  
+  // Debug: Draw cell indices at corners (remove in production)
+  if(window.debugCellIndices){
+    ctx.fillStyle = "rgba(74, 163, 255, 0.4)";
+    ctx.font = "10px monospace";
+    ctx.textAlign = "left";
+    ctx.textBaseline = "top";
+    for(let y = 0; y < Math.min(3, GRID); y++){
+      for(let x = 0; x < Math.min(3, GRID); x++){
+        const px = x * (cellSize + gap);
+        const py = y * (cellSize + gap);
+        ctx.fillText(`${x},${y}`, px + 2, py + 2);
+      }
+    }
+  }
+  
+  // Sort by painter's algorithm: back to front
+  // Rects further back (higher y + h) draw first
+  const sorted = rects.slice().sort((a, b) => (a.y + a.h) - (b.y + b.h));
+  
+  // Draw each rectangle as a cuboid
+  for(const rect of sorted){
+    drawCuboid(ctx, rect, cellSize, gap, heightPx, mode);
+  }
+}
+
+// Animate rectangle extrusion with painter's algorithm occlusion
+function animateRectExtrusion(canvas, rects, GRID, duration=650){
+  const ctx = canvas.getContext("2d");
+  const dpr = window.devicePixelRatio || 1;
+  
+  // Size canvas to match grid dimensions (with DPR scaling)
+  const gridW = gridEl.clientWidth;
+  const gridH = gridEl.clientHeight;
+  
+  // Calculate cellSize from grid dimensions and gap
+  const gap = parseFloat(getComputedStyle(gridEl).gap) || 0;
+  const cellSize = (gridW - gap * (GRID - 1)) / GRID;
+  
+  // Add padding to canvas for extrusion overflow
+  const verticalPad = cellSize * 1.8;  // Extra space for upward extrusions
+  const horizontalPad = cellSize * 0.6; // Extra space for side extrusions
+  
+  const canvasW = gridW + horizontalPad * 2;
+  const canvasH = gridH + verticalPad;
+  
+  // Set CSS dimensions to prevent clipping
+  canvas.style.width = canvasW + "px";
+  canvas.style.height = canvasH + "px";
+  
+  // DPR-scaled internal resolution
+  canvas.width = Math.floor(canvasW * dpr);
+  canvas.height = Math.floor(canvasH * dpr);
+  
+  // Translate canvas context to account for padding
+  ctx.setTransform(dpr, 0, 0, dpr, horizontalPad * dpr, verticalPad * dpr);
+  
+  console.log("Canvas setup: gridW=", gridW, "gridH=", gridH, "cellSize=", cellSize, "gap=", gap, "GRID=", GRID, "canvasW=", canvasW, "canvasH=", canvasH);
+  console.log("Padding: horizontalPad=", horizontalPad, "verticalPad=", verticalPad);
+  console.log("Rects sample:", rects.slice(0, 3).map(r => ({x: r.x, y: r.y, w: r.w, h: r.h})));
+  
+  // Fixed extrusion height (doubled for building-like appearance)
+  const targetHeight = cellSize * 1.6;
+  
+  // Store animation state for mode switching
+  window.animationState = {rects, GRID, cellSize, gap, targetHeight, ctx, canvas};
+  
+  // Enable debug visualization
+  window.debugCellIndices = true;
+  
+  // Visual reference: draw expected rect bounds for first rect in light color
+  const testRect = rects[0];
+  if(testRect){
+    const x0_test = testRect.x * (cellSize + gap);
+    const y0_test = testRect.y * (cellSize + gap);
+    const x1_test = x0_test + testRect.w * cellSize + (testRect.w - 1) * gap;
+    const y1_test = y0_test + testRect.h * cellSize + (testRect.h - 1) * gap;
+    console.log(`First rect [${testRect.x},${testRect.y}] ${testRect.w}×${testRect.h}: canvas coords (${x0_test}, ${y0_test}) to (${x1_test}, ${y1_test})`);
+  }
+  
+  const start = performance.now();
+  
+  function easeOutCubic(t){ return 1 - Math.pow(1 - t, 3); }
+  
+  function frame(now){
+    const t = Math.min(1, (now - start) / duration);
+    const heightPx = easeOutCubic(t) * targetHeight;
+    
+    renderRectCuboids(ctx, rects, GRID, cellSize, gap, heightPx, window.extrusionMode);
+    
+    if(t < 1) requestAnimationFrame(frame);
+  }
+  
+  requestAnimationFrame(frame);
+}
+
+// Re-render current 3D view with different mode
+function refreshExtrusionMode(){
+  const state = window.animationState;
+  if(!state || !state.rects) return;
+  
+  const {rects, GRID, cellSize, gap, targetHeight, ctx} = state;
+  renderRectCuboids(ctx, rects, GRID, cellSize, gap, targetHeight, window.extrusionMode);
+}
+</script>
+</body>
+</html>

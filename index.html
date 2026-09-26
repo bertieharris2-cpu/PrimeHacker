@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>PRIME NET – HUB</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --bg:#000;
+      --border: rgba(140,255,190,0.35);
+      --text: rgba(240,255,248,0.92);
+      --muted: rgba(240,255,248,0.70);
+      --green: rgba(120,255,170,0.95);
+      --fontSize: 18px;
+      --lineHeight: 1.6;
+    }
+
+    html,body{height:100%;}
+    body{
+      margin:0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Courier Prime", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-size: var(--fontSize);
+      line-height: var(--lineHeight);
+      overflow:hidden;
+    }
+
+    /* Cinematic background: subtle laser lines */
+    .backdrop{
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(1000px 700px at 50% 35%, rgba(120,255,170,0.08), transparent 60%), #000;
+      overflow: hidden;
+      z-index: 0;
+    }
+    .backdrop::before{
+      content:"";
+      position:absolute;
+      inset:-40px;
+      background: repeating-linear-gradient(
+        120deg,
+        rgba(0,255,120,0.06),
+        rgba(0,255,120,0.06) 1px,
+        transparent 2px,
+        transparent 44px
+      );
+      animation: drift 14s linear infinite;
+      opacity: 0.8;
+    }
+    @keyframes drift{
+      from{ transform: translateX(-40px); }
+      to{ transform: translateX(40px); }
+    }
+
+    .shell{
+      position: relative;
+      z-index: 1;
+      height: 100%;
+      display: grid;
+      grid-template-rows: auto 1fr;
+    }
+
+    .topbar{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 12px;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(0,0,0,0.55);
+    }
+
+    .brand{font-weight:700;}
+    .controls{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+    }
+
+    button{
+      border: 1px solid var(--border);
+      background: rgba(0,0,0,0.45);
+      color: var(--text);
+      padding: 8px 10px;
+      font: inherit;
+      cursor:pointer;
+    }
+    button:hover{
+      background: rgba(120,255,170,0.08);
+      border-color: rgba(140,255,190,0.55);
+    }
+
+    .main{
+      height:100%;
+      position: relative;
+    }
+
+    .view{
+      position:absolute;
+      inset:0;
+      display:none;
+    }
+    .view.active{ display:block; }
+
+    /* Make the embedded pages behave nicely */
+    iframe{
+      width:100%;
+      height:100%;
+      border:0;
+      background: transparent;
+    }
+
+    .status{
+      color: var(--muted);
+      display:flex;
+      align-items:center;
+      gap:10px;
+      white-space:nowrap;
+    }
+    .dot{
+      width:10px;height:10px;
+      border:1px solid var(--border);
+      background: rgba(120,255,170,0.18);
+      box-shadow: 0 0 12px rgba(120,255,170,0.20);
+    }
+  </style>
+</head>
+
+<body>
+  <div class="backdrop"></div>
+
+  <div class="shell">
+    <div class="topbar">
+      <div class="brand">PRIME NET – HUB</div>
+
+      <div class="controls">
+        <div class="status"><span class="dot"></span><span id="status">STATUS: TERMINAL</span></div>
+        <button id="btnTerminal" type="button">TERMINAL MODE</button>
+        <button id="btnFactorVault" type="button">FACTOR VAULT</button>
+        <button id="btnScan" type="button">VAULT GRID</button>
+      </div>
+    </div>
+
+    <div class="main">
+      <div class="view active" id="viewTerminal">
+        <iframe src="modules/prime_hack.html" title="Prime Hack"></iframe>
+      </div>
+
+      <div class="view" id="viewFactorVault">
+        <iframe src="modules/factor_vault.html" title="Factor Vault"></iframe>
+      </div>
+
+      <div class="view" id="viewGridDemo">
+        <iframe src="modules/vault_grid_demo.html" title="Vault Grid Demo"></iframe>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const status = document.getElementById("status");
+    const viewTerminal = document.getElementById("viewTerminal");
+    const viewFactorVault = document.getElementById("viewFactorVault");
+    const viewGridDemo = document.getElementById("viewGridDemo");
+
+    const deactivateAll = () => {
+      viewTerminal.classList.remove("active");
+      viewFactorVault.classList.remove("active");
+      viewGridDemo.classList.remove("active");
+    };
+
+    document.getElementById("btnTerminal").addEventListener("click", () => {
+      deactivateAll();
+      viewTerminal.classList.add("active");
+      status.textContent = "STATUS: TERMINAL";
+    });
+
+    document.getElementById("btnFactorVault").addEventListener("click", () => {
+      deactivateAll();
+      viewFactorVault.classList.add("active");
+      status.textContent = "STATUS: VAULT";
+    });
+
+    document.getElementById("btnScan").addEventListener("click", () => {
+      deactivateAll();
+      viewGridDemo.classList.add("active");
+      status.textContent = "STATUS: GRID DEMO";
+    });
+
+    // Keyboard shortcut: D, F, V cycle through views
+    document.addEventListener("keydown", (e) => {
+      const key = e.key.toLowerCase();
+      if (key === "d") {
+        document.getElementById("btnTerminal").click();
+      } else if (key === "f") {
+        document.getElementById("btnFactorVault").click();
+      } else if (key === "v") {
+        document.getElementById("btnScan").click();
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,1650 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Prime Hacker Terminal</title>
+  <link href="https://fonts.googleapis.com/css2?family=Courier+Prime&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#050705;
+      --fg:#43ff6a;
+      --dim:rgba(67,255,106,.65);
+      --faint:rgba(67,255,106,.35);
+      --warn:#ffe66a;
+    }
+    html,body{height:100%;}
+    body{
+      margin:0;
+      background:var(--bg);
+      color:var(--fg);
+      font-family:"Courier Prime","Courier New",monospace;
+      letter-spacing:.2px;
+      overflow:hidden;
+    }
+    .wrap{height:100%; display:flex; flex-direction:column; position:relative; z-index:1;}
+    .topbar{
+      padding:10px 14px;
+      border-bottom:1px solid rgba(67,255,106,.15);
+      display:flex;
+      gap:12px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+    .pill{
+      border:1px solid rgba(67,255,106,.35);
+      padding:4px 8px;
+      border-radius:999px;
+      font-size:12px;
+      color:var(--dim);
+    }
+    .pill strong{color:var(--fg); font-weight:600;}
+    .btn{
+      background:transparent;
+      border:1px solid rgba(67,255,106,.35);
+      color:var(--fg);
+      padding:6px 10px;
+      border-radius:10px;
+      cursor:pointer;
+      font-size:12px;
+    }
+    .btn:hover{border-color:rgba(67,255,106,.7);}
+    .btn:active{transform:translateY(1px);}
+    .btn.alt{color:var(--warn); border-color:rgba(255,230,106,.55)}
+
+    .terminal{
+      flex:1;
+      padding:14px;
+      overflow:auto;
+      scroll-behavior:smooth;
+    }
+    .line{white-space:pre-wrap; word-break:break-word; line-height:1.25rem;}
+    .sys{color:var(--dim);}
+    .hint{color:var(--warn);}
+    .err{color:#ff6b6b;}
+
+    .fxPink{color:#ff4fd8;}
+    .fxYellow{color:#ffe66a;}
+    .fxRed{color:#ff6b6b;}
+
+
+    
+    /* --- Buffer helper hint (top-right) --- */
+    .sideHint{
+      position: fixed;
+      top: 14px;
+      right: 14px;
+      z-index: 5;
+      border: 1px solid var(--faint);
+      background: rgba(0,0,0,0.55);
+      padding: 10px 12px;
+      font-size: 15px;
+      line-height: 1.35;
+      color: rgba(240,255,248,0.86);
+      max-width: 240px;
+      display: none;
+    }
+    .sideHint .k{color: var(--fg); font-weight: 700;}
+    .sideHint .t{color: rgba(240,255,248,0.78);}
+    .sideHint.on{display:block;}
+
+    /* --- Buffer meter subtle pulse --- */
+    .bufferReady{
+      animation: bufferPulse 0.7s ease-in-out infinite;
+    }
+    @keyframes bufferPulse{
+      0%,100%{opacity:1;}
+      50%{opacity:0.55;}
+    }
+
+.promptRow{
+      display:flex;
+      gap:10px;
+      align-items:flex-start;
+      padding:10px 14px;
+      border-top:1px solid rgba(67,255,106,.15);
+      background:rgba(0,0,0,.15);
+    }
+
+    /* --- Buffer dock (cinematic, centred) --- */
+    .bufferDock{
+      position: fixed;
+      left: 50%;
+      top: 54%;
+      transform: translate(-50%, -50%);
+      z-index: 20;
+
+      display: flex;
+      align-items: center;
+      gap: 18px;
+
+      padding: 22px 32px;
+      border: 2px solid rgba(67,255,106,.58);
+      background: rgba(0,0,0,0.92);
+      backdrop-filter: blur(6px);
+
+      /* Wider so the segmented meter never wraps */
+      min-width: 740px;
+      justify-content: center;
+
+      box-shadow: 0 0 0 1px rgba(67,255,106,.18) inset, 0 18px 70px rgba(0,0,0,0.62);
+    }
+    .bufferLabel{
+      font-weight: 700;
+      letter-spacing: 1px;
+      color: rgba(240,255,248,0.88);
+      white-space: nowrap;
+    }
+    .bufferMeterBig{
+      font-size: 34px;
+      letter-spacing: 2px;
+      line-height: 1.2;
+      color: var(--fg);
+      text-shadow: 0 0 16px rgba(67,255,106,0.14);
+      white-space: nowrap;
+    }
+    .bufferCue{
+      font-weight: 800;
+      color: rgba(240,255,248,0.92);
+      white-space: nowrap;
+      margin-left: 12px;
+    }
+    .bufferDock.ready .bufferCue{
+      animation: bufferPulse 0.7s ease-in-out infinite;
+    }
+
+    @media (max-width: 720px){
+      .bufferDock{ min-width: min(740px, 94vw); }
+      .bufferMeterBig{ font-size: 26px; }
+    }
+
+    .prompt{color:var(--dim); white-space:pre; padding-top:6px;}
+    .input{
+      flex:1;
+      min-height:34px;
+      outline:none;
+      border:none;
+      background:transparent;
+      color:var(--fg);
+      font:inherit;
+      padding:6px 0;
+      caret-color:var(--fg);
+    }
+    .cursor{
+      display:inline-block;
+      width:10px;
+      height:1.1em;
+      background:var(--fg);
+      margin-left:2px;
+      animation:blink 1s steps(1,end) infinite;
+      vertical-align:-2px;
+      opacity:.9;
+    }
+    @keyframes blink{50%{opacity:0;}}
+
+    @media (max-width: 650px){
+      .topbar{gap:8px}
+      .terminal{padding:12px}
+    }
+/* ===== PRIME NET terminal readability upgrade ===== */
+
+/* 1) Full-screen cinematic backdrop */
+.hackerBackdrop{
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(1000px 700px at 50% 35%, rgba(0,255,120,0.08), transparent 60%), #000;
+  overflow: hidden;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* Subtle animated “laser” lines */
+.hackerBackdrop::before{
+  content:"";
+  position:absolute;
+  inset:-60px;
+  background: repeating-linear-gradient(
+    120deg,
+    rgba(0,255,120,0.06),
+    rgba(0,255,120,0.06) 1px,
+    transparent 2px,
+    transparent 46px
+  );
+  opacity: 0.8;
+  animation: laserDrift 14s linear infinite;
+}
+
+@keyframes laserDrift{
+  from{ transform: translateX(-50px); }
+  to{ transform: translateX(50px); }
+}
+
+/* 2) Terminal “window” that sits above the backdrop */
+.terminalWindow{
+  position: relative;
+  z-index: 1;
+  width: min(1020px, 92vw);
+  margin: 7vh auto;
+  border: 1px solid rgba(0,255,120,0.35);
+  background: rgba(0,0,0,0.86);
+  box-shadow: 0 0 0 1px rgba(0,255,120,0.10) inset, 0 18px 60px rgba(0,0,0,0.55);
+  padding: 28px 44px;
+
+  /* readability */
+  font-size: 19px;
+  line-height: 1.65;
+
+  display: flex;
+  flex-direction: column;
+  max-height: 82vh;
+}
+
+/* Optional: if you want a left-anchored gutter rather than centred */
+.terminalWindow.leftGutter{
+  margin-left: 8vw;
+  margin-right: auto;
+}
+
+/* 3) Ensure the page background is truly black behind everything */
+body{
+  background: #000;
+}
+
+/* ===== PRIME NET: Code Flood Overlay ===== */
+.codeFloodOverlay{
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(0,0,0,0.78);
+  display: grid;
+  place-items: center;
+}
+
+.codeFloodBox{
+  width: min(980px, 92vw);
+  border: 1px solid rgba(0,255,120,0.35);
+  background: rgba(0,0,0,0.86);
+  box-shadow: 0 0 0 1px rgba(0,255,120,0.10) inset, 0 18px 60px rgba(0,0,0,0.60);
+  padding: 18px 18px 16px;
+  display: grid;
+  gap: 12px;
+}
+
+.codeFloodHeader{
+  display:flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 1px solid rgba(0,255,120,0.25);
+  padding-bottom: 10px;
+}
+
+.codeFloodTitle{
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.codeFloodClose{
+  border: 1px solid rgba(0,255,120,0.35);
+  background: rgba(0,0,0,0.35);
+  color: rgba(240,255,248,0.92);
+  font: inherit;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+
+.codeFloodClose:hover{
+  background: rgba(0,255,120,0.08);
+  border-color: rgba(0,255,120,0.55);
+}
+
+.codeFloodStream{
+  height: 210px;
+  overflow: hidden;
+  border: 1px solid rgba(0,255,120,0.22);
+  background: rgba(0,0,0,0.35);
+  padding: 10px 12px;
+  color: rgba(240,255,248,0.72);
+  font-size: 0.95rem;
+  line-height: 1.35;
+  white-space: pre;
+}
+
+.codeFloodBarWrap{
+  height: 14px;
+  border: 1px solid rgba(0,255,120,0.35);
+  background: rgba(0,0,0,0.35);
+  position: relative;
+}
+
+.codeFloodBarFill{
+  height: 100%;
+  width: 0%;
+  background: rgba(0,255,120,0.22);
+  border-right: 1px solid rgba(0,255,120,0.55);
+  transition: width 0.08s linear;
+}
+
+.codeFloodBarSweep{
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(0,255,120,0.12), transparent);
+  transform: translateX(-100%);
+  animation: codeSweep 1.4s linear infinite;
+  pointer-events:none;
+  opacity: 0.7;
+}
+
+@keyframes codeSweep{
+  0%{ transform: translateX(-100%); }
+  100%{ transform: translateX(100%); }
+}
+
+.codeFloodResult{
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  font-size: 1.35rem;
+  text-align: center;
+  padding-top: 2px;
+}
+
+.codeFloodOk{ color: rgba(0,255,120,0.95); }
+.codeFloodWarn{ color: rgba(255,185,90,0.95); }
+.codeFloodBad{ color: rgba(255,90,90,0.92); }
+
+.codeFloodStream .cfPink{color:#ff4fd8;}
+.codeFloodStream .cfYellow{color:#ffe66a;}
+.codeFloodStream .cfRed{color:#ff6b6b;}
+
+
+
+  </style>
+</head>
+<body>
+
+<div class="hackerBackdrop"></div>
+<div class="sideHint" id="sideHint"><div class="k">HELP</div><div class="t">Type any <span class="k">16</span> keys<br>Then press <span class="k">SPACE</span></div></div>
+
+<div class="bufferDock" id="bufferDock" style="display:none;">
+  <div class="bufferLabel">BUFFER</div>
+  <div class="bufferMeterBig" id="bufferMeterBig">[□|□|□|□|□|□|□|□]</div>
+  <div class="bufferCue" id="bufferCue"></div>
+</div>
+
+
+<div class="wrap">
+  <div class="topbar">
+    <span class="pill"><strong>PRIME</strong> HACK // training terminal</span>
+    <span class="pill">Mode: <strong id="modeName">Roleplay</strong></span>
+    <span class="pill">Objective: <strong id="objective">Warm up</strong></span>
+<button class="btn" id="btnFlood">CODE FLOOD</button>
+
+
+    <button class="btn" id="btnRole">Roleplay mode</button>
+    <button class="btn" id="btnMath">Math mode</button>
+    <button class="btn alt" id="btnNew">New target</button>
+    <button class="btn" id="btnHelp">HELP</button>
+
+
+    <span class="pill">Tip: hit <strong>Enter</strong> to “send”</span>
+    <button class="btn" id="btnMission">Mission: Prime</button>
+    <button class="btn" id="btnPair">Pair keyword: ON</button>
+    <button class="btn" id="btnSound">Key sound: OFF</button>
+  </div>
+
+<div class="terminalWindow leftGutter">  
+<div class="terminal" id="term" aria-label="terminal output" role="log"></div>
+
+  <div class="promptRow">
+    <div class="prompt" id="prompt">student@lifehouse:~$</div>
+    <div style="flex:1">
+      <div class="line" id="live"><span id="liveText"></span><span class="cursor"></span></div>
+      <input class="input" id="hiddenInput" autocomplete="off" autocapitalize="off" spellcheck="false" />
+    </div>
+  </div>
+</div>
+</div>
+</div>
+
+<script>
+  const term = document.getElementById('term');
+  const modeName = document.getElementById('modeName');
+  const objective = document.getElementById('objective');
+  const liveText = document.getElementById('liveText');
+  const hiddenInput = document.getElementById('hiddenInput');
+
+  const btnRole = document.getElementById('btnRole');
+  const btnMath = document.getElementById('btnMath');
+  const btnNew  = document.getElementById('btnNew');
+  const btnHelp = document.getElementById('btnHelp');
+  const btnMission = document.getElementById('btnMission');
+  const btnPair = document.getElementById('btnPair');
+  const btnSound = document.getElementById('btnSound');
+  const btnFlood = document.getElementById('btnFlood');
+
+  // ---------- sticky settings
+  let MODE = 'roleplay'; // 'roleplay' | 'math'
+  let MISSION = localStorage.getItem('ph_mission') || 'prime'; // 'prime' | 'factors'
+  let pairKeywordOn = JSON.parse(localStorage.getItem('ph_pair_keyword') ?? 'true');
+  let soundOn = JSON.parse(localStorage.getItem('ph_sound_on') ?? 'false');
+
+  function syncMissionBtn(){
+    btnMission.textContent = `Mission: ${MISSION === 'prime' ? 'Prime' : 'Factors'}`;
+    localStorage.setItem('ph_mission', MISSION);
+  }
+  function syncPairBtn(){
+    btnPair.textContent = `Pair keyword: ${pairKeywordOn ? 'ON' : 'OFF'}`;
+    localStorage.setItem('ph_pair_keyword', JSON.stringify(pairKeywordOn));
+  }
+  function syncSoundBtn(){
+    btnSound.textContent = `Key sound: ${soundOn ? 'ON' : 'OFF'}`;
+    localStorage.setItem('ph_sound_on', JSON.stringify(soundOn));
+  }
+
+  // ---------- subtle click sound (no files)
+  const audioCtx = (window.AudioContext || window.webkitAudioContext)
+    ? new (window.AudioContext || window.webkitAudioContext)()
+    : null;
+
+  function playKeyClick(){
+    if(!audioCtx) return;
+    const t = audioCtx.currentTime;
+    const o = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    o.type = 'square';
+    o.frequency.setValueAtTime(680, t);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.015, t + 0.002);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.02);
+    o.connect(g);
+    g.connect(audioCtx.destination);
+    o.start(t);
+    o.stop(t + 0.03);
+  }
+
+  // ---------- utilities
+  const rand = (min,max) => Math.floor(Math.random()*(max-min+1))+min;
+
+  function addLine(text, cls=''){
+    const div = document.createElement('div');
+    div.className = 'line ' + cls;
+    div.textContent = text;
+    term.appendChild(div);
+    term.scrollTop = term.scrollHeight;
+    return div;
+  }
+  function addBlank(){ addLine(''); }
+
+  function typeOut(lines, cls='sys', delay=18){
+    return new Promise(resolve => {
+      let li = 0;
+      function nextLine(){
+        if(li >= lines.length){ resolve(); return; }
+        const text = lines[li];
+        const div = document.createElement('div');
+        div.className = 'line ' + cls;
+        term.appendChild(div);
+        term.scrollTop = term.scrollHeight;
+        let i = 0;
+        const t = setInterval(()=>{
+          div.textContent = text.slice(0,i);
+          term.scrollTop = term.scrollHeight;
+          i++;
+          if(i > text.length){
+            clearInterval(t);
+            li++;
+            setTimeout(nextLine, 45);
+          }
+        }, delay);
+      }
+      nextLine();
+    });
+  }
+
+  function normalise(s){
+    return (s||'').trim().replace(/\s+/g,' ');
+  }
+
+  function focusInput(){
+    hiddenInput.focus({preventScroll:true});
+  }
+
+  // ---------- number helpers
+  function isPrime(n){
+    n = Number(n);
+    if(!Number.isFinite(n) || n%1!==0) return false;
+    if(n < 2) return false;
+    if(n === 2 || n === 3) return true;
+    if(n%2===0 || n%3===0) return false;
+    for(let i=5; i*i<=n; i+=6){
+      if(n%i===0 || n%(i+2)===0) return false;
+    }
+    return true;
+  }
+
+  function factorPair(n){
+    n = Number(n);
+    if(!Number.isFinite(n) || n%1!==0 || n<2) return null;
+    for(let i=2; i*i<=n; i++){
+      if(n%i===0) return [i, n/i];
+    }
+    return null;
+  }
+
+  function primesUpTo(n){
+    n = Number(n);
+    if(!Number.isFinite(n) || n%1!==0) return [];
+    const out = [];
+    for(let i=2;i<=n;i++) if(isPrime(i)) out.push(i);
+    return out;
+  }
+
+  // ---------- PRIME mission lock state
+  let lock = { p: 13, q: 17, n: 221, attempts: 0, solved: false, seed: 0 };
+
+  function newPrimeLock(){
+    const pool = [11,13,17,19,23,29,31,37,41,43,47,53,59,61,67,71,73,79,83,89,97];
+    const p = pool[rand(0,pool.length-1)];
+    let q = pool[rand(0,pool.length-1)];
+    while(q===p) q = pool[rand(0,pool.length-1)];
+    lock.p = Math.min(p,q);
+    lock.q = Math.max(p,q);
+    lock.n = lock.p * lock.q;
+    lock.attempts = 0;
+    lock.solved = false;
+    lock.seed = rand(1000,9999);
+  }
+
+  function lockHint(){
+    const n = lock.n;
+    const clues = [];
+    if(n%2===0) clues.push('Even number: divisible by 2.');
+    if(n%3===0) clues.push('Sum of digits divisible by 3.');
+    if(n%5===0) clues.push('Ends in 0 or 5.');
+    if(n%9===0) clues.push('Sum of digits divisible by 9.');
+    const root = Math.floor(Math.sqrt(n));
+    clues.push(`If N = p×q, at least one factor is ≤ √N. Here √${n} ≈ ${root}.`);
+    const mod = [7,11,13][rand(0,2)];
+    clues.push(`Pattern clue: N mod ${mod} = ${n % mod}.`);
+    clues.push('Try prime candidates in order. Stop when you pass √N.');
+    return clues;
+  }
+
+  // ---------- FACTORS mission state
+  let factorGate = { n: 24, pairs: [], found: new Set(), fails: 0, solved: false };
+
+  function factorPairsOf(n){
+    const out = [];
+    for(let i=1; i*i<=n; i++){
+      if(n%i===0) out.push([i, n/i]);
+    }
+    return out;
+  }
+
+  function newFactorTarget(){
+    const pool = [
+      12,14,15,16,18,20,21,22,24,25,26,27,28,30,
+      32,33,34,35,36,38,39,40,42,44,45,46,48,49,
+      50,51,52,54,55,56,57,58,60,62,63,64,65,66,
+      68,69,70,72,74,75,76,77,78,80,81,82,84,85,
+      86,87,88,90,91,92,93,94,95,96,98,99,100
+    ];
+    factorGate.n = pool[rand(0,pool.length-1)];
+    factorGate.pairs = factorPairsOf(factorGate.n);
+    factorGate.found = new Set();
+    factorGate.fails = 0;
+    factorGate.solved = false;
+  }
+
+  async function finalFactorsHack(){
+    const n = factorGate.n;
+    await typeOut([
+      'PAIR SET COMPLETE ✅',
+      `Divisor combos compiled for N=${n}`,
+      'Generating access table…'
+    ], 'sys', 12);
+
+    const burst = [];
+    for(let i=0;i<18;i++){
+      const hex = Array.from({length: 10}, ()=>rand(0,15).toString(16)).join('').toUpperCase();
+      burst.push(`0x${hex}  build_combo_table(N=${n})  // ok`);
+    }
+    await typeOut(burst, 'sys', 5);
+
+    addBlank();
+    const barLine = document.createElement('div');
+    barLine.className = 'line sys';
+    term.appendChild(barLine);
+    term.scrollTop = term.scrollHeight;
+
+    for(let p=0; p<=100; p+=rand(9,18)){
+      const blocks = Math.min(20, Math.round((p/100)*20));
+      const bar = '█'.repeat(blocks) + '░'.repeat(20-blocks);
+      barLine.textContent = `[${bar}] ${Math.min(100,p)}%`;
+      term.scrollTop = term.scrollHeight;
+      await new Promise(r => setTimeout(r, rand(80,160)));
+    }
+    barLine.textContent = `[${'█'.repeat(20)}] 100%`;
+
+    addBlank();
+    await typeOut([
+      'ACCESS LEVEL: GRANTED',
+      `FILE: vault://secure/factor_table_${n}.dat`,
+      'NEXT MISSION: PRIME LOCK'
+    ], 'hint', 14);
+    addBlank();
+  }
+
+  // ---------- roleplay engine
+  const fakeJobs = [
+    'Decrypting handshake…','Enumerating ports…','Mapping subnet…','Brute forcing token…',
+    'Injecting payload…','Parsing packet stream…','Bypassing firewall rule…','Compiling exploit…',
+    'Dumping hashes…','Tracing route…'
+  ];
+
+  function fakeResponse(userText){
+    const t = (userText||'').toLowerCase();
+    const job = fakeJobs[rand(0,fakeJobs.length-1)];
+    const pct = rand(12,98);
+    const ms  = rand(12,240);
+    const hex = Array.from({length: 8}, ()=>rand(0,15).toString(16)).join('').toUpperCase();
+
+    if(/prime|factor|lock|rsa|code|decrypt|pair/.test(t)){
+      return [
+        `${job} (${pct}%)`,
+        `Signature: OK  |  Entropy: ${rand(71,99)}%  |  Hash: ${hex}`,
+        `Result: potential weak-point detected. Recommend: HELP.`,
+        `Latency: ${ms}ms  |  Trace: clean`
+      ];
+    }
+    return [
+      `${job} (${pct}%)`,
+      `Signature: OK  |  Hash: ${hex}`,
+      `Result: request accepted. Queueing next step…`,
+      `Latency: ${ms}ms`
+    ];
+  }
+
+  // ---------- mission + mode UI
+  function setObjectiveText(){
+    if(MODE !== 'math'){ objective.textContent = 'Warm up'; return; }
+    if(MISSION === 'prime') objective.textContent = `Crack N = ${lock.n}`;
+    else objective.textContent = `Collect PAIRS for N = ${factorGate.n}`;
+  }
+
+  function printHelp(){
+    addLine('Available commands (math mode):', 'hint');
+    addLine('  HELP                     show this list', 'hint');
+    addLine('  STATUS                   show current mission + target', 'hint');
+    addLine('  NEWTARGET                new target for current mission', 'hint');
+    addLine('  MISSION PRIME            switch to prime lock mission', 'hint');
+    addLine('  MISSION FACTORS          switch to factor pairs mission', 'hint');
+    addBlank();
+    addLine('Prime mission:', 'hint');
+    addLine('  PRIME? <n>               test if n is prime', 'hint');
+    addLine('  FACTOR <n>               find a factor pair (if composite)', 'hint');
+    addLine('  PRIMES <n>               list primes up to n', 'hint');
+    addLine('  HINT                     get a clue about the lock number', 'hint');
+    addLine('  UNLOCK <p> <q>           attempt to crack the lock (p×q)', 'hint');
+    addBlank();
+    addLine('Factors mission:', 'hint');
+    addLine('  TARGET                   show the current N + progress', 'hint');
+    addLine('  PAIR <a> <b>             submit a factor pair', 'hint');
+    addLine('  PROGRESS                 show fragments found', 'hint');
+    addBlank();
+    addLine('You can still type nonsense. The terminal will “respond” anyway.', 'sys');
+  }
+
+  function setMission(next){
+    MISSION = next;
+    syncMissionBtn();
+    setObjectiveText();
+
+    if(MODE === 'math'){
+      if(MISSION === 'prime'){
+        typeOut([
+          'MISSION SET // PRIME_LOCK',
+          `LOCK ACTIVE // N = ${lock.n}`,
+          'Goal: find p and q such that p×q = N and p, q are prime.'
+        ], 'sys');
+      } else {
+        typeOut([
+          'MISSION SET // FACTOR_PAIRS',
+          '==========================',
+          `TARGET NUMBER (N): ${factorGate.n}`,
+          `FRAGMENTS NEEDED: ${factorGate.pairs.length}`,
+          'Type: TARGET  (to show this again)',
+          'Submit: PAIR a b  (e.g., PAIR 3 8)',
+          '=========================='
+        ], 'hint');
+      }
+      addBlank();
+    } else {
+      addLine(`SYSTEM // mission set to ${MISSION.toUpperCase()}`, 'sys');
+      addBlank();
+    }
+focusInput(); 
+  }
+
+  function setMode(next){
+    MODE = next;
+    modeName.textContent = (MODE === 'math') ? 'Math' : 'Roleplay';
+    setObjectiveText();
+
+    if(MODE === 'roleplay'){
+      typeOut([
+        'ROLEPLAY MODE ENABLED',
+        'Type anything. Press Enter. The terminal will respond like a hacker film.',
+        'When you are ready, switch to MATH MODE for missions.'
+      ], 'sys');
+      addBlank();
+    } else {
+      if(MISSION === 'prime'){
+        typeOut([
+          'MATH MODE ENABLED',
+          `LOCK ACTIVE // N = ${lock.n}`,
+          'Try: HELP, HINT, PRIME? <n>, FACTOR <n>, UNLOCK <p> <q>'
+        ], 'sys');
+      } else {
+        typeOut([
+          'MATH MODE ENABLED',
+          `GATE ACTIVE // N = ${factorGate.n}`,
+          `FRAGMENTS NEEDED: ${factorGate.pairs.length}`,
+          'Submit factor pairs. Example: PAIR 3 8',
+          'Strict mode: after 2 wrong pairs you get a nudge.'
+        ], 'sys');
+      }
+      addBlank();
+    }
+focusInput();
+  }
+
+  // ---------- command parsing
+  async function handleMathCommand(raw){
+    const text = normalise(raw);
+    if(!text) return true;
+
+    const maybeBarePair = (!pairKeywordOn && /^\d+\s+\d+$/.test(text));
+    const parts = text.split(' ');
+    const cmd = maybeBarePair ? 'PAIR' : (parts[0]||'').toUpperCase();
+
+    if(cmd === 'TESTBUFFER'){
+      addLine('DEV MODE // FULL BREACH SIM', 'sys');
+      await runBankBreachPrelude(9000, lock.p, lock.q); // shorter in dev
+      await runBufferSequence(4, 16);
+      Effects.codeFlood({
+        title: "VAULT CHANNEL OPEN",
+        durationMs: 15000,
+        outcome: "granted",
+        onDone: focusInput
+      });
+      return true;
+    }
+
+    if(cmd === 'HELP' || cmd === '?'){ printHelp(); return true; }
+
+    if(cmd === 'STATUS'){
+      if(MISSION === 'prime'){
+        addLine(`MISSION // PRIME_LOCK  | N=${lock.n} | attempts=${lock.attempts} | solved=${lock.solved ? 'YES' : 'NO'}`, 'sys');
+      } else {
+        addLine(`MISSION // FACTOR_PAIRS | N=${factorGate.n} | fragments=${factorGate.found.size}/${factorGate.pairs.length} | solved=${factorGate.solved ? 'YES' : 'NO'}`, 'sys');
+      }
+      return true;
+    }
+
+    if(cmd === 'MISSION'){
+      const which = (parts[1]||'').toLowerCase();
+      if(which === 'prime'){ setMission('prime'); return true; }
+      if(which === 'factors'){ setMission('factors'); return true; }
+      addLine('Usage: MISSION PRIME  |  MISSION FACTORS', 'err');
+      return true;
+    }
+
+    if(cmd === 'NEWTARGET' || cmd === 'NEWLOCK'){
+      if(MISSION === 'prime'){
+        newPrimeLock();
+        setObjectiveText();
+        await typeOut([
+          'Generating new lock…',
+          `LOCK READY // N = ${lock.n}`,
+          'Objective: find the two prime factors.'
+        ], 'sys');
+      } else {
+        newFactorTarget();
+        setObjectiveText();
+        await typeOut([
+          'Spawning new factor gate…',
+          `GATE READY // N = ${factorGate.n}`,
+          `FRAGMENTS NEEDED: ${factorGate.pairs.length}`,
+          'Objective: submit every factor pair.'
+        ], 'sys');
+      }
+      return true;
+    }
+
+    if(MISSION === 'prime' && cmd === 'PAIR'){
+      addLine('PAIR is for the FACTORS mission. Click Mission: Factors, or type: MISSION FACTORS', 'hint');
+      return true;
+    }
+
+    // ----- FACTORS mission commands
+    if(MISSION === 'factors'){
+      if(cmd === 'TARGET'){
+        addLine(`TARGET NUMBER (N) = ${factorGate.n}`, 'hint');
+        addLine(`FRAGMENTS: ${factorGate.found.size}/${factorGate.pairs.length}`, 'hint');
+        return true;
+      }
+
+      if(cmd === 'PROGRESS'){
+        const frag = factorGate.found.size;
+        const total = factorGate.pairs.length;
+        const pct = total ? Math.floor((frag / total) * 100) : 0;
+        addLine(`FRAGMENTS // ${frag}/${total}  (${pct}% COMPLETE)`, 'hint');
+        return true;
+      }
+
+      if(cmd === 'PAIR'){
+        const aStr = maybeBarePair ? parts[0] : parts[1];
+        const bStr = maybeBarePair ? parts[1] : parts[2];
+        const a = Number(aStr);
+        const b = Number(bStr);
+
+        if(!Number.isFinite(a) || !Number.isFinite(b) || a%1!==0 || b%1!==0){
+          addLine('Usage: PAIR <a> <b> (whole numbers)', 'err');
+          return true;
+        }
+
+        const n = factorGate.n;
+        const lo = Math.min(a,b);
+        const hi = Math.max(a,b);
+        const key = `${lo}x${hi}`;
+        const valid = (lo > 0 && hi > 0 && lo * hi === n);
+
+        if(!valid){
+          factorGate.fails++;
+          addLine('REJECTED // invalid pair for N', 'err');
+
+          if(factorGate.fails >= 2){
+            if(lo > 0 && n % lo === 0){
+              addLine(`NUDGE // ${lo} works. Partner is ${n/lo}.`, 'hint');
+            } else {
+              addLine('NUDGE // try: N ÷ first number. It must be a whole number.', 'hint');
+            }
+          }
+          return true;
+        }
+
+        if(factorGate.found.has(key)){
+          addLine('DUPLICATE KEY // fragment already exists', 'sys');
+          return true;
+        }
+
+        factorGate.found.add(key);
+        const frag = factorGate.found.size;
+        const total = factorGate.pairs.length;
+        const pct = Math.floor((frag / total) * 100);
+
+        const hex = Array.from({length: 6}, ()=>rand(0,15).toString(16)).join('').toUpperCase();
+        addLine(`KEY_FRAGMENT ${frag}/${total} :: 0x${hex}`, 'sys');
+        addLine(`pair(${lo},${hi}) => commit`, 'sys');
+        addLine(`PROGRESS // ${pct}% COMPLETE`, 'hint');
+
+        const remaining = total - frag;
+        addLine(`REMAINING // ${remaining} PAIR${remaining === 1 ? '' : 'S'} LEFT`, 'hint');
+
+        if(remaining > 0 && remaining <= 2){
+          addLine('Reminder: the list includes 1×N, and if N is a square it includes √N×√N.', 'hint');
+        }
+
+        if(frag >= total){
+          factorGate.solved = true;
+          await finalFactorsHack();
+        }
+        return true;
+      }
+
+      return false;
+    }
+
+    // ----- PRIME mission commands
+    if(cmd === 'PRIME?' || cmd === 'PRIME'){
+      const n = parts[1];
+      if(n===undefined){ addLine('Usage: PRIME? <n>', 'err'); return true; }
+      const ok = isPrime(n);
+      addLine(`PRIME_TEST // n=${n} => ${ok ? 'PRIME ✅' : 'NOT PRIME ❌'}`, ok ? 'sys' : 'err');
+      if(!ok){
+        const fp = factorPair(Number(n));
+        if(fp) addLine(`Evidence: ${fp[0]} × ${fp[1]} = ${n}`, 'sys');
+      }
+      return true;
+    }
+
+    if(cmd === 'FACTOR'){
+      const n = parts[1];
+      if(n===undefined){ addLine('Usage: FACTOR <n>', 'err'); return true; }
+      const fp = factorPair(Number(n));
+      if(!fp){
+        addLine(`FACTOR // n=${n} => no factor pair found (n might be prime).`, 'sys');
+      } else {
+        addLine(`FACTOR // n=${n} => ${fp[0]} × ${fp[1]}`, 'sys');
+      }
+      return true;
+    }
+
+    if(cmd === 'PRIMES'){
+      const n = parts[1];
+      if(n===undefined){ addLine('Usage: PRIMES <n>', 'err'); return true; }
+      const list = primesUpTo(Number(n));
+      addLine(`PRIMES_UP_TO ${n} // count=${list.length}`, 'sys');
+      addLine(list.join(', '), 'sys');
+      return true;
+    }
+
+    if(cmd === 'HINT'){
+      const clues = lockHint();
+      addLine('HINT_PACKET //', 'hint');
+      clues.forEach(c => addLine('• ' + c, 'hint'));
+      return true;
+    }
+
+    if(cmd === 'UNLOCK'){
+      const p = Number(parts[1]);
+      const q = Number(parts[2]);
+      if(!Number.isFinite(p) || !Number.isFinite(q)){
+        addLine('Usage: UNLOCK <p> <q>', 'err');
+        return true;
+      }
+
+      lock.attempts++;
+      const n = p*q;
+
+      if(n !== lock.n){
+        addLine(`UNLOCK_FAIL // ${p}×${q} = ${n} (expected ${lock.n})`, 'err');
+        if(n < lock.n) addLine('Hint: your product is too small. Try a larger factor.', 'sys');
+        if(n > lock.n) addLine('Hint: your product is too large. Try a smaller factor.', 'sys');
+        return true;
+      }
+
+      const pPrime = isPrime(p);
+      const qPrime = isPrime(q);
+
+      if(pPrime && qPrime){
+        lock.solved = true;
+        await typeOut([
+          `UNLOCK_SUCCESS // N=${lock.n}`,
+          `Factors verified: ${p} and ${q} are prime.`
+        ], 'sys');
+        addBlank();
+
+        // 10s typed breach chatter (bank theme)
+        await runBankBreachPrelude(16000, p, q);
+
+        // 4x gobbledegook buffer charge (SPACE to commit)
+        await runBufferSequence(4, 16);
+
+        // Final 15s cinematic reward (loading bar + grant)
+        Effects.codeFlood({
+          title: "VAULT CHANNEL OPEN",
+          durationMs: 15000,
+          outcome: "granted",
+          onDone: focusInput
+        });addBlank();
+      } else {
+        addLine(`UNLOCK_PARTIAL // ${p}×${q} matches N, but one factor is not prime.`, 'err');
+        if(!pPrime) addLine(`  ${p} is not prime. Try factoring ${p}.`, 'sys');
+        if(!qPrime) addLine(`  ${q} is not prime. Try factoring ${q}.`, 'sys');
+      }
+      return true;
+    }
+
+    return false;
+  }
+
+
+  function randChatterLine(){
+    const tags = ["TRACE","AUTH","ROUTE","LEDGER","GATE","VAULT","NET","MUX","IO","PROC"];
+    const chars = "0123456789ABCDEF";
+    let hex = "";
+    for(let i=0;i<10;i++) hex += chars[Math.floor(Math.random()*chars.length)];
+    const msg = [
+      "probe_gate()",
+      "sync_ledger()",
+      "mask_account()",
+      "open_channel()",
+      "shuffle_route()",
+      "checksum_ok()",
+      "rate_limit_bypass()"
+    ][Math.floor(Math.random()*7)];
+    return `[${tags[Math.floor(Math.random()*tags.length)]}] ${hex} :: ${msg}`;
+  }
+  function clsPickChatter(){
+    const r = Math.random();
+    if (r < 0.05) return "fxPink";
+    if (r < 0.10) return "fxYellow";
+    if (r < 0.13) return "fxRed";
+    return "sys";
+  }
+
+
+  
+  // ---------- buffer capture (gobbledegook) ----------
+  const sideHint = document.getElementById('sideHint');
+  const bufferDock = document.getElementById('bufferDock');
+  const bufferMeterBig = document.getElementById('bufferMeterBig');
+  const bufferCue = document.getElementById('bufferCue');
+
+  const InputCapture = {
+    mode: 'normal', // 'normal' | 'buffer'
+    buffer: {
+      stagesTotal: 4,
+      stageIndex: 0,
+      requiredKeys: 16,
+      typedKeys: 0,
+      ready: false,
+      resolveStage: null,
+    }
+  };
+
+  function setBufferHint(on){
+    if(!sideHint) return;
+    if(on) sideHint.classList.add('on');
+    else sideHint.classList.remove('on');
+  }
+
+  function updateSideHintKeys(n){
+    if(!sideHint) return;
+    sideHint.innerHTML = `<div class="k">HELP</div><div class="t">Type any <span class="k">${n}</span> keys<br>Then press <span class="k">SPACE</span></div>`;
+  }
+
+  function setBufferDock(on){
+    if(!bufferDock) return;
+    bufferDock.style.display = on ? 'flex' : 'none';
+    bufferDock.classList.remove('ready');
+    if(bufferCue) bufferCue.textContent = '';
+  }
+
+  function renderSegmentedMeter(filled, total=8){
+    const parts = [];
+    for(let i=0;i<total;i++){
+      parts.push(i < filled ? '■' : '□');
+    }
+    return '[' + parts.join('|') + ']';
+  }
+
+  function resetBufferStageUI(){
+    const b = InputCapture.buffer;
+    b.typedKeys = 0;
+    b.ready = false;
+
+    hiddenInput.value = '';
+    liveText.textContent = '';
+
+    if(bufferDock){
+      bufferDock.classList.remove('ready');
+    }
+    if(bufferMeterBig){
+      bufferMeterBig.textContent = renderSegmentedMeter(0, 8);
+    }
+    if(bufferCue){
+      bufferCue.textContent = '';
+    }
+  }
+
+  function updateBufferMeter(){
+    const b = InputCapture.buffer;
+
+    const totalSegs = 8;
+    const progress = Math.min(1, b.typedKeys / b.requiredKeys);
+    const filled = Math.max(0, Math.min(totalSegs, Math.ceil(progress * totalSegs)));
+
+    if(bufferMeterBig){
+      bufferMeterBig.textContent = renderSegmentedMeter(filled, totalSegs);
+    }
+
+    if(b.ready){
+      if(bufferCue) bufferCue.textContent = 'PRESS SPACE';
+      if(bufferDock) bufferDock.classList.add('ready');
+    } else {
+      if(bufferCue) bufferCue.textContent = '';
+      if(bufferDock) bufferDock.classList.remove('ready');
+    }
+  }
+
+  function markBufferReady(){
+    const b = InputCapture.buffer;
+    b.ready = true;
+    updateBufferMeter();
+  }
+
+  function commitBufferStage(){
+    const b = InputCapture.buffer;
+    if(typeof b.resolveStage === 'function'){
+      const r = b.resolveStage;
+      b.resolveStage = null;
+      r(true);
+    }
+  }
+
+  async function runBufferSequence(stages=4, requiredKeys=16){
+    const b = InputCapture.buffer;
+    b.stagesTotal = stages;
+    b.requiredKeys = requiredKeys;
+    b.stageIndex = 0;
+
+    InputCapture.mode = 'buffer';
+    updateSideHintKeys(requiredKeys);
+    setBufferHint(true);
+    setBufferDock(true);
+
+    await typeOut([
+      'BUFFER SEQUENCE // interactive charge required',
+      'Type any keys to fill the buffer, then press SPACE.'
+    ], 'sys');
+    addBlank();
+
+    for(let i=0;i<stages;i++){
+      b.stageIndex = i + 1;
+      await typeOut([`BUFFER CHARGE ${b.stageIndex}/${b.stagesTotal}`,'TYPE TO BUILD SIGNAL…'], 'sys');
+      resetBufferStageUI();
+      updateBufferMeter();
+
+      // Wait for commit (SPACE/ENTER once ready)
+      await new Promise((resolve) => { b.resolveStage = resolve; });
+
+      await typeOut(['BUFFER ACCEPTED'], 'sys');
+      addBlank();
+
+      // Small chatter burst between stages
+      await new Promise((res) => {
+        const start = performance.now();
+        const t = setInterval(() => {
+          addLine(randChatterLine(), clsPickChatter());
+          if(performance.now() - start > 5000){
+            clearInterval(t);
+            res();
+          }
+        }, 55);
+      });
+    }
+
+    // cleanup
+    setBufferHint(false);
+    setBufferDock(false);
+    InputCapture.mode = 'normal';
+  }
+
+
+// ---------- input handling
+  hiddenInput.addEventListener('input', () => {
+    liveText.textContent = hiddenInput.value;
+  });
+
+  hiddenInput.addEventListener('keydown', async (e) => {
+    if(soundOn && e.key.length === '1'.length && e.key.length === 1){
+      try{
+        if(audioCtx && audioCtx.state === 'suspended') await audioCtx.resume();
+        playKeyClick();
+      }catch(_){}
+    }
+
+    if(e.key === 'Tab'){
+      e.preventDefault();
+      addLine('Autocomplete: disabled (training sandbox).', 'sys');
+      return;
+    }
+
+
+    // Buffer mode: gobbledegook typing + SPACE commit
+    if(InputCapture.mode === 'buffer'){
+      const b = InputCapture.buffer;
+
+      // Count printable keys (any keys allowed) but ignore modifier combos
+      const printable = (!e.ctrlKey && !e.metaKey && !e.altKey && e.key && e.key.length === 1);
+
+      if(e.key === ' ' || e.code === 'Space'){
+        if(b.ready){
+          e.preventDefault();
+          hiddenInput.value = '';
+          liveText.textContent = '';
+          commitBufferStage();
+        }
+        return;
+      }
+
+      if(e.key === 'Enter'){
+        // allow Enter as a safety fallback
+        if(b.ready){
+          e.preventDefault();
+          hiddenInput.value = '';
+          liveText.textContent = '';
+          commitBufferStage();
+        } else {
+          e.preventDefault();
+        }
+        return;
+      }
+
+      if(printable){
+        b.typedKeys += 1;
+        if(!b.ready && b.typedKeys >= b.requiredKeys){
+          markBufferReady();
+        } else {
+          updateBufferMeter();
+        }
+      }
+      return;
+    }
+
+    if(e.key === 'Enter'){
+      e.preventDefault();
+      const raw = hiddenInput.value;
+      hiddenInput.value = '';
+      liveText.textContent = '';
+
+      addLine(`student@lifehouse:~$ ${raw}`);
+      const trimmed = normalise(raw);
+      if(!trimmed){ addBlank(); return; }
+
+      if(MODE === 'math'){
+        const handled = await handleMathCommand(raw);
+        if(handled){ addBlank(); return; }
+      }
+
+      const lines = fakeResponse(raw);
+      await typeOut(lines, 'sys');
+      addBlank();
+    }
+
+    if((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'l'){
+      e.preventDefault();
+      term.innerHTML = '';
+      addLine('Screen cleared.', 'sys');
+      addBlank();
+    }
+  });
+
+  document.addEventListener('mousedown', () => focusInput());
+
+  // ---------- buttons
+  btnRole.addEventListener('click', () => setMode('roleplay'));
+  btnMath.addEventListener('click', () => setMode('math'));
+
+  btnHelp.addEventListener('click', () => {
+    addLine('student@lifehouse:~$ HELP');
+    if(MODE==='math') printHelp();
+    else {
+      addLine('Roleplay mode help:', 'hint');
+      addLine('• Type anything, press Enter, the system replies.', 'hint');
+      addLine('• Switch to Math mode when you want real missions.', 'hint');
+      addLine('• Ctrl+L clears the screen.', 'hint');
+    }
+    addBlank();
+    focusInput();
+  });
+
+  btnNew.addEventListener('click', async () => {
+    addLine('student@lifehouse:~$ NEWTARGET');
+    if(MISSION === 'prime'){
+      newPrimeLock();
+      setObjectiveText();
+      await typeOut([`LOCK RESET // N=${lock.n}`], 'sys');
+    } else {
+      newFactorTarget();
+      setObjectiveText();
+      await typeOut([`GATE RESET // N=${factorGate.n}`], 'sys');
+      await typeOut([`FRAGMENTS NEEDED: ${factorGate.pairs.length}`], 'sys');
+    }
+    addBlank();
+    focusInput();
+  });
+
+  btnMission.addEventListener('click', () => {
+    setMission(MISSION === 'prime' ? 'factors' : 'prime');
+    focusInput();
+  });
+
+  btnPair.addEventListener('click', () => {
+    pairKeywordOn = !pairKeywordOn;
+    syncPairBtn();
+    addLine(`SYSTEM // pair keyword is now ${pairKeywordOn ? 'REQUIRED' : 'OPTIONAL'}`, 'sys');
+    addBlank();
+    focusInput();
+  });
+
+  btnSound.addEventListener('click', () => {
+    soundOn = !soundOn;
+    syncSoundBtn();
+    addLine(`SYSTEM // key sound ${soundOn ? 'ON' : 'OFF'}`, 'sys');
+    addBlank();
+    focusInput();
+  });
+
+  
+  
+  // ---------- cinematic prelude (terminal chatter burst) ----------
+
+  // ---------- cinematic bank-breach prelude (typed in main terminal)
+  function randomPrimeBurst(){
+    const pool = [2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61,67,71,73,79,83,89,97,101,103,107,109,113];
+    const out = [];
+    const count = 4 + Math.floor(Math.random()*5); // 4–8 primes
+    for(let i=0;i<count;i++){
+      out.push(pool[rand(0,pool.length-1)]);
+    }
+    return out.join(' ');
+  }
+
+  function randomDigits(len){
+    let s = '';
+    for(let i=0;i<len;i++) s += String(rand(0,9));
+    return s;
+  }
+
+  function bankBreachLine(p, q){
+    const tags = [
+      "VAULT SAFE WALL",
+      "BANK ACCOUNT",
+      "LEDGER CHANNEL",
+      "AUTH GATE",
+      "ROUTING LANE",
+      "SECURITY LATCH",
+      "FRAUD FLAG",
+      "TRANSFER RAIL",
+      "CHECKSUM",
+      "KEYRING"
+    ];
+    const actions = [
+      "cracking",
+      "breaching",
+      "mapping",
+      "bypassing",
+      "unlocking",
+      "scrambling",
+      "masking",
+      "opening",
+      "piercing",
+      "syncing"
+    ];
+    const tag = tags[rand(0,tags.length-1)];
+    const act = actions[rand(0,actions.length-1)].toUpperCase();
+    const primeBurst = randomPrimeBurst();
+
+    const variants = [
+      `${act} ${tag} // primes ${primeBurst}`,
+      `VAULT WALL: ${act}  |  p=${p} q=${q}  |  primes ${primeBurst}`,
+      `ACCOUNT NODE ${randomDigits(2)}-${randomDigits(2)} BREACHED  |  primes ${primeBurst}`,
+      `LEDGER PAGE ${randomDigits(3)}  TX ${randomDigits(4)}  |  primes ${primeBurst}`,
+      `AUTH GATE ${randomDigits(2)}  |  CHECKSUM ${randomDigits(4)}  |  primes ${primeBurst}`,
+      `ROUTING LANE ${randomDigits(2)}.${randomDigits(2)}  |  KEY ${randomDigits(3)}  |  primes ${primeBurst}`,
+      `FRAUD FLAG SCAN ${randomDigits(2)}%  |  primes ${primeBurst}`,
+      `SAFE CRACK RATE ${randomDigits(2)}%  |  primes ${primeBurst}`,
+      `VAULT PIN MASK ${randomDigits(2)}${randomDigits(2)}  |  primes ${primeBurst}`
+    ];
+
+    return variants[rand(0, variants.length-1)];
+  }
+
+  async function runBankBreachPrelude(durationMs, p, q){
+    const start = performance.now();
+    // Keep the delay fast so it feels alive, but still readable.
+    const baseDelay = 9;
+
+    await typeOut([
+      'BREACH SEQUENCE ARMED',
+      'Spooling prime noise…'
+    ], 'sys', baseDelay);
+    addBlank();
+
+    while(performance.now() - start < durationMs){
+      const line = bankBreachLine(p, q);
+      const cls = clsPickChatter(); // occasionally pink/yellow/red
+      await typeOut([line], cls, baseDelay);
+      // tiny pause to stop it feeling like a wall of text
+      await new Promise(res => setTimeout(res, 8 + rand(0, 35)));
+    }
+
+    addBlank();
+  }
+
+  function runHackPrelude(done, durationMs = 1200){
+    const start = performance.now();
+    const tags = ["TRACE","AUTH","KEYX","HASH","NET","MUX","IO","MEM","PROC","TLS","LEDGER","VAULT"];
+    const chars = "0123456789ABCDEF";
+    function hackLine(){
+      let hex = "";
+      for(let i=0;i<12;i++) hex += chars[Math.floor(Math.random()*chars.length)];
+      const t = tags[Math.floor(Math.random()*tags.length)];
+      const msg = [
+        "handshake_init()",
+        "probe_ports()",
+        "bypass_check()",
+        "inject_payload()",
+        "sync_node()",
+        "resolve_route()",
+        "commit_keypair()",
+        "open_vault_channel()",
+        "mask_account()"
+      ][Math.floor(Math.random()*9)];
+      return `[${t}] ${hex} :: ${msg}`;
+    }
+    function clsPick(){
+      const r = Math.random();
+      if (r < 0.08) return "fxPink";
+      if (r < 0.14) return "fxYellow";
+      if (r < 0.18) return "fxRed";
+      return "sys";
+    }
+
+    const timer = setInterval(() => {
+      addLine(hackLine(), clsPick());
+      if (performance.now() - start > durationMs){
+        clearInterval(timer);
+        setTimeout(() => { if (typeof done === "function") done(); }, 180);
+      }
+    }, 38);
+  }
+
+// ---------- dev: code flood button
+  if (btnFlood){
+    btnFlood.addEventListener('click', () => {
+      // Cinematic prelude: flood the actual terminal first
+      runHackPrelude(() => {
+        Effects.codeFlood({
+          title: "ENCRYPTION HANDSHAKE",
+          durationMs: 3600,
+          outcome: "granted",
+          onDone: focusInput
+        });
+      });
+    });
+  }
+
+// ---------- boot
+  function boot(){
+    syncMissionBtn();
+    syncPairBtn();
+    syncSoundBtn();
+
+    newPrimeLock();
+    newFactorTarget();
+
+    addLine('PRIME HACK TRAINING TERMINAL v2.1', 'sys');
+    addLine('Status: sandboxed, safe, classroom ready.', 'sys');
+    addBlank();
+    addLine('Warm up: bash the keyboard. Press Enter. Watch it “work”.', 'sys');
+    addLine('Then switch to MATH MODE. Use Mission to choose PRIME or FACTORS.', 'sys');
+    addBlank();
+    addLine('Quick start: click the screen, type, press Enter.', 'hint');
+    addBlank();
+
+    setObjectiveText();
+    focusInput();
+  }
+
+  boot();
+
+// ===== PRIME NET: Effects =====
+const Effects = (() => {
+  let floodTimer = null;
+  let barTimer = null;
+
+  function randLine(len = 66){
+    const chars = "0123456789ABCDEFabcdef/\\|_-=+*~<>[]{}():;.,";
+    let s = "";
+    for (let i = 0; i < len; i++){
+      s += chars[Math.floor(Math.random() * chars.length)];
+    }
+    return s;
+  }
+
+  function buildOverlay(titleText){
+    const overlay = document.createElement("div");
+    overlay.className = "codeFloodOverlay";
+
+    const box = document.createElement("div");
+    box.className = "codeFloodBox";
+
+    const header = document.createElement("div");
+    header.className = "codeFloodHeader";
+
+    const title = document.createElement("div");
+    title.className = "codeFloodTitle";
+    title.textContent = titleText;
+
+    const close = document.createElement("button");
+    close.className = "codeFloodClose";
+    close.type = "button";
+    close.textContent = "CLOSE";
+    close.addEventListener("click", () => cleanup(overlay));
+
+    header.append(title, close);
+
+    const stream = document.createElement("div");
+    stream.className = "codeFloodStream";
+    stream.textContent = "INITIALISING STREAM…\n";
+
+    const barWrap = document.createElement("div");
+    barWrap.className = "codeFloodBarWrap";
+    const barFill = document.createElement("div");
+    barFill.className = "codeFloodBarFill";
+    const barSweep = document.createElement("div");
+    barSweep.className = "codeFloodBarSweep";
+    barWrap.append(barFill, barSweep);
+
+    const result = document.createElement("div");
+    result.className = "codeFloodResult";
+    result.textContent = "";
+
+    box.append(header, stream, barWrap, result);
+    overlay.append(box);
+
+    return { overlay, stream, barFill, result };
+  }
+
+  function cleanup(overlay){
+    if (floodTimer) clearInterval(floodTimer);
+    if (barTimer) clearInterval(barTimer);
+    floodTimer = null;
+    barTimer = null;
+    overlay?.remove();
+  }
+
+  /**
+   * Show a code flood overlay.
+   * opts:
+   * - title: header text
+   * - durationMs: total time
+   * - outcome: "granted" | "denied" | "noise"
+   * - onDone: callback after close
+   */
+  function codeFlood(opts = {}){
+    const {
+      title = "SYSTEM ACTIVITY",
+      durationMs = 2400,
+      outcome = "granted",
+      onDone = null,
+    } = opts;
+
+    const { overlay, stream, barFill, result } = buildOverlay(title);
+    document.body.appendChild(overlay);
+
+    // Pre-generate a pool of lines with varied lengths
+    const lines = [];
+    for (let i = 0; i < 140; i++){
+      const len = 28 + Math.floor(Math.random() * 96); // 28–123
+      lines.push(randLine(len));
+    }
+// Stream update (HTML with occasional coloured characters)
+    function colourize(line){
+      const colours = ['cfPink','cfYellow','cfRed'];
+      // sprinkle 2–5 coloured characters into the line
+      const n = 2 + Math.floor(Math.random()*4);
+      let chars = line.split('');
+      for(let i=0;i<n;i++){
+        const idx = Math.floor(Math.random()*chars.length);
+        const c = chars[idx] || '';
+        const cls = colours[Math.floor(Math.random()*colours.length)];
+        chars[idx] = `<span class="${cls}">${c}</span>`;
+      }
+      return chars.join('');
+    }
+
+    let htmlLines = [colourize("INITIALISING STREAM…")];
+
+    floodTimer = setInterval(() => {
+      const line = lines[Math.floor(Math.random() * lines.length)];
+      htmlLines.push(colourize(line));
+      htmlLines = htmlLines.slice(-60);
+      stream.innerHTML = htmlLines.slice(-32).join("<br>");
+    }, 35);
+
+    // Progress bar
+    let p = 0;
+    const steps = Math.max(1, Math.floor(durationMs / 80));
+    const inc = 100 / steps;
+
+    barTimer = setInterval(() => {
+      p = Math.min(100, p + inc);
+      barFill.style.width = `${p}%`;
+
+      if (p >= 100){
+        clearInterval(barTimer);
+        barTimer = null;
+
+        // Outcome text
+        if (outcome === "granted"){
+          result.textContent = "ACCESS GRANTED";
+          result.classList.add("codeFloodOk");
+        } else if (outcome === "denied"){
+          result.textContent = "ACCESS DENIED";
+          result.classList.add("codeFloodBad");
+        } else {
+          result.textContent = "NOISE DETECTED";
+          result.classList.add("codeFloodWarn");
+        }
+
+        // Auto-close after short pause
+        setTimeout(() => {
+          cleanup(overlay);
+          if (typeof onDone === "function") onDone();
+        }, 900);
+      }
+    }, 80);
+
+    // ESC closes instantly
+    function escHandler(e){
+      if (e.key === "Escape"){
+        document.removeEventListener("keydown", escHandler);
+        cleanup(overlay);
+      }
+    }
+    document.addEventListener("keydown", escHandler);
+  }
+
+  return { codeFlood };
+})();
+
+
+</script>
+</body>
+</html>
