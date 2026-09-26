@@ -874,8 +874,8 @@ async function triggerIsometricMorph(placements){
       const gridH = gridEl.clientHeight;
       const gap = parseFloat(getComputedStyle(gridEl).gap) || 0;
       const cellSize = (gridW - gap * (GRID - 1)) / GRID;
-      const verticalPad = cellSize * 1.8;
-      const horizontalPad = cellSize * 0.6;
+      const verticalPad = buildingHeight(cellSize, gridW) * 1.2 + cellSize;
+      const horizontalPad = buildingHeight(cellSize, gridW) * 0.3 + cellSize * 0.6;
       
       const canvasW = gridW + horizontalPad * 2;
       const canvasH = gridH + verticalPad;
@@ -1098,6 +1098,12 @@ document.querySelector(".title div:first-child").insertAdjacentHTML("afterend",
 
 // ====== 3D CUBOID RECTANGLE RENDERER ======
 
+// Building height grows with the number. A bigger N means a wider grid and smaller cells,
+// so a fixed height looked flatter and flatter; this keeps big floors looking like real buildings.
+function buildingHeight(cellSize, gridW){
+  return Math.max(cellSize * 1.6, gridW * (0.10 + 0.0012 * GRID));
+}
+
 // Extrusion direction modes for testing
 window.extrusionMode = 3;  // Default: -75° (building-like)
 window.animationState = {rects: [], GRID: 0, cellSize: 0, gap: 0, targetHeight: 0};
@@ -1288,8 +1294,8 @@ function animateRectExtrusion(canvas, rects, GRID, duration=650){
   const cellSize = (gridW - gap * (GRID - 1)) / GRID;
   
   // Add padding to canvas for extrusion overflow
-  const verticalPad = cellSize * 1.8;  // Extra space for upward extrusions
-  const horizontalPad = cellSize * 0.6; // Extra space for side extrusions
+  const verticalPad = buildingHeight(cellSize, gridW) * 1.2 + cellSize;  // room for the buildings to rise
+  const horizontalPad = buildingHeight(cellSize, gridW) * 0.3 + cellSize * 0.6; // room for the slant
   
   const canvasW = gridW + horizontalPad * 2;
   const canvasH = gridH + verticalPad;
@@ -1310,7 +1316,7 @@ function animateRectExtrusion(canvas, rects, GRID, duration=650){
   console.log("Rects sample:", rects.slice(0, 3).map(r => ({x: r.x, y: r.y, w: r.w, h: r.h})));
   
   // Fixed extrusion height (doubled for building-like appearance)
-  const targetHeight = cellSize * 1.6;
+  const targetHeight = buildingHeight(cellSize, gridW);
   
   // Store animation state for mode switching
   window.animationState = {rects, GRID, cellSize, gap, targetHeight, ctx, canvas};

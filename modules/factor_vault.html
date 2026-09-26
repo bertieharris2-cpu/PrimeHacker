@@ -260,8 +260,9 @@
       background:rgba(var(--accent-rgb),.08);
       min-width:40px;
     }
-    td[contenteditable]:focus{
-      outline:1px solid rgba(var(--accent-rgb),.55);
+    td[contenteditable]:focus, td[contenteditable]:focus-visible{
+      outline:none;   /* one clean highlight inside the cell, not a double box */
+      box-shadow: inset 0 0 0 2px rgba(var(--accent-rgb),.75);
       background:rgba(var(--accent-rgb),.15);
     }
     td.found{
@@ -273,7 +274,7 @@
       letter-spacing:.06em;
     }
     td.empty{
-      color: rgba(235, 255, 248, 0.25);
+      color: var(--text-primary);   /* typed digits are bright, not greyed out */
     }
 
     .status-line{
@@ -1249,83 +1250,45 @@ body{ font-size: var(--font-size); }
     // Store unsaved input temporarily
     const unsavedInput = {};
 
+    // Found pairs fill the table from the top in the order they were found; empty rows follow.
+    // Anything still being typed stays in the empty rows, in order.
     function renderTable(){
-      // Preserve unsaved input from editable cells before clearing
-      const currentRows = Array.from(pairsTable.querySelectorAll("tr"));
-      currentRows.forEach(row => {
-        const idx = Number(row.dataset.index);
+      const pending = [];
+      pairsTable.querySelectorAll("tr").forEach(row => {
         const cells = row.querySelectorAll("td");
         if(cells.length === 2 && cells[0].contentEditable === "true"){
-          const a = cells[0].textContent?.trim() || "";
-          const b = cells[1].textContent?.trim() || "";
-          if(a || b){
-            unsavedInput[idx] = {a, b};
-          }
+          const a = cells[0].textContent.trim(), b = cells[1].textContent.trim();
+          if(a || b) pending.push({ a, b });
         }
       });
 
       pairsTable.innerHTML = "";
-      allPairs.forEach(([a, b], idx) => {
-        const key = keyOf(a, b);
-        const isFound = found.has(key);
-        const tr = document.createElement("tr");
-        tr.dataset.index = idx;
+      const foundPairs = [...found].map(k => k.split(",").map(Number));
+      const makeRow = () => { const tr = document.createElement("tr"); const td1 = document.createElement("td"); const td2 = document.createElement("td"); tr.append(td1, td2); pairsTable.appendChild(tr); return [td1, td2]; };
 
-        const td1 = document.createElement("td");
-        const td2 = document.createElement("td");
-
-        if(isFound){
-          td1.textContent = String(a);
-          td2.textContent = String(b);
-          td1.className = "found";
-          td2.className = "found";
-        } else {
-          td1.contentEditable = "true";
-          td2.contentEditable = "true";
-          td1.className = "empty";
-          td2.className = "empty";
-
-          // Restore unsaved input if exists
-          if(unsavedInput[idx]){
-            td1.textContent = unsavedInput[idx].a;
-            td2.textContent = unsavedInput[idx].b;
-          }
-
-          const handleKeyDown = (e) => {
-            if(e.key === "Tab"){
-              return; // Let browser handle
-            }
-            
-            if(e.key === "Enter"){
-              e.preventDefault();
-              // Submit all pairs at once when Enter is pressed
-              validateAll();
-              return;
-            }
-          };
-
-          td1.addEventListener("keydown", handleKeyDown);
-          td2.addEventListener("keydown", handleKeyDown);
-
-          td1.addEventListener("blur", () => {
-            const v = td1.textContent.trim();
-            if(v && (!Number.isInteger(Number(v)) || Number(v) <= 0)){
-              td1.textContent = "";
-            }
-          });
-
-          td2.addEventListener("blur", () => {
-            const v = td2.textContent.trim();
-            if(v && (!Number.isInteger(Number(v)) || Number(v) <= 0)){
-              td2.textContent = "";
-            }
-          });
-        }
-
-        tr.appendChild(td1);
-        tr.appendChild(td2);
-        pairsTable.appendChild(tr);
+      foundPairs.forEach(([a, b]) => {
+        const [td1, td2] = makeRow();
+        td1.textContent = String(a); td2.textContent = String(b);
+        td1.className = "found"; td2.className = "found";
       });
+
+      for(let i = 0; i < allPairs.length - foundPairs.length; i++){
+        const [td1, td2] = makeRow();
+        td1.contentEditable = "true"; td2.contentEditable = "true";
+        td1.className = "empty"; td2.className = "empty";
+        if(pending[i]){ td1.textContent = pending[i].a; td2.textContent = pending[i].b; }
+
+        const handleKeyDown = (e) => {
+          if(e.key === "Enter"){ e.preventDefault(); validateAll(); }   // Enter submits everything
+        };
+        [td1, td2].forEach(td => {
+          td.addEventListener("keydown", handleKeyDown);
+          td.addEventListener("blur", () => {
+            const v = td.textContent.trim();
+            if(v && (!Number.isInteger(Number(v)) || Number(v) <= 0)) td.textContent = "";
+          });
+        });
+      }
 
       progress.textContent = `${found.size}/${allPairs.length}`;
     }
@@ -1422,7 +1385,9 @@ body{ font-size: var(--font-size); }
             return;
           }
 
-          // Valid pair!
+          // Valid pair! Clear the row it was typed in; it moves up into the found list.
+          cells[0].textContent = "";
+          cells[1].textContent = "";
           found.add(key);
           validCount++;
           audioManager.playCorrectTone();
@@ -1771,6 +1736,7 @@ body{ font-size: var(--font-size); }
       
       allPairs = factorPairsFor(N);
       found = new Set();
+      pairsTable.innerHTML = "";   // don't carry typed input over to a new number
       gameStage = 0;
       setMode("Vault Analysis Terminal");
       const floor = Math.min(getCompletedLevels().length + 1, FLOORS_NEEDED);

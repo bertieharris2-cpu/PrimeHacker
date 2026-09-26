@@ -47,3 +47,7 @@ The values are in `shared/primenet.css`, which every screen loads. Each screen s
 ## Sound
 
 All sounds live in `shared/sound.js`, generated in code. One on/off switch (title screen) and one volume (teacher controls → Sound check) cover the whole game. Big moments share a family: a heavy clunk followed by a chord for a cracked lock or a finished stage, and a climbing bell for each correct answer in a row.
+
+## Neon highlights (Prime Hack)
+
+Used only for the student's own working, so they can look back at what they tried: **pink** `#ff4fd8` for the pair they typed, **cyan** `#3ff0ff` for its product, **orange** `#ff9f43` for TOO HIGH / TOO LOW, **yellow** `#ffe14d` for the target, **green** `#6dffb0` for a cracked lock, **red** `#ff6b6b` for a number that isn't prime.

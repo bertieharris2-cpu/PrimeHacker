@@ -991,11 +991,11 @@ html,body{ font-family: var(--font-ui); }
 
 
 /* New lock banner */
-.lockBanner{ margin:16px 0 8px; display:flex; align-items:center; gap:14px 22px; flex-wrap:wrap; padding:10px 16px; border:1px solid rgba(var(--accent-rgb),.55); border-left:5px solid var(--accent); background:rgba(var(--accent-rgb),.09); animation:lbIn .45s cubic-bezier(.2,.9,.3,1); }
+.lockBanner{ margin:12px 0 6px; display:flex; align-items:center; gap:10px 18px; flex-wrap:wrap; padding:6px 14px; border:1px solid rgba(var(--accent-rgb),.55); border-left:5px solid var(--accent); background:rgba(var(--accent-rgb),.09); animation:lbIn .45s cubic-bezier(.2,.9,.3,1); }
 .lockBanner .lb-top{ font-family:var(--font-ui); font-weight:800; font-size:13px; letter-spacing:.18em; color:var(--accent); }
-.lockBanner .lb-n{ font-family:var(--font-mono); font-size:28px; font-weight:700; color:var(--text-primary); letter-spacing:.04em; }
+.lockBanner .lb-n{ font-family:var(--font-mono); font-size:21px; font-weight:700; color:var(--text-primary); letter-spacing:.04em; }
 .lockBanner .lb-pips{ display:flex; gap:5px; }
-.lockBanner .lb-pips span{ width:14px; height:14px; border:1px solid rgba(var(--accent-rgb),.6); }
+.lockBanner .lb-pips span{ width:11px; height:11px; border:1px solid rgba(var(--accent-rgb),.6); }
 .lockBanner .lb-pips span.done{ background:var(--accent); }
 .lockBanner .lb-pips span.cur{ border-color:var(--warning); box-shadow:0 0 8px rgba(242,193,78,.5); animation:lbPulse 1.2s ease-in-out infinite; }
 .lockBanner .lb-note{ font-family:var(--font-ui); font-size:13px; color:var(--text-muted); }
@@ -1013,6 +1013,22 @@ html,body{ font-family: var(--font-ui); }
 .infoBlock code{ font-family:var(--font-mono); font-weight:700; color:var(--accent); }
 .infoBlock .ib-tip{ font-size:14px; color:var(--text-muted); padding-top:6px; border-top:1px solid rgba(242,193,78,.15); }
 @media (max-width:700px){ .infoBlock .ib-row{ grid-template-columns:1fr; } }
+
+
+/* Neon highlights: the student's tries and their results stand out so they can look back at them */
+.nx{ font-weight:700; }
+.n-pink{ color:#ff4fd8; text-shadow:0 0 10px rgba(255,79,216,.45); }
+.n-cyan{ color:#3ff0ff; text-shadow:0 0 10px rgba(63,240,255,.4); }
+.n-yellow{ color:#ffe14d; text-shadow:0 0 10px rgba(255,225,77,.35); }
+.n-orange{ color:#ff9f43; }
+.n-green{ color:#6dffb0; text-shadow:0 0 10px rgba(109,255,176,.45); }
+.n-red{ color:#ff6b6b; }
+.n-dim{ color:var(--text-faint); }
+
+/* Buffer charge: each key types out real-looking code */
+.bufCode{ font-family:var(--font-mono); font-size:16px; line-height:1.5; height:calc(1.5em * 6 + 20px); overflow:hidden; white-space:pre; text-align:left; background:rgba(0,0,0,.55); border:1px solid rgba(var(--accent-rgb),.25); padding:10px 14px; margin-bottom:14px; color:rgba(235,255,248,.88); display:flex; flex-direction:column; justify-content:flex-end; }
+.bufCode .c-cmd{ color:#6dffb0; } .bufCode .c-flag{ color:#3ff0ff; } .bufCode .c-str{ color:#ff4fd8; } .bufCode .c-num{ color:#ffe14d; } .bufCode .c-com{ color:var(--text-faint); }
+.bufCode .caret{ display:inline-block; width:.6em; height:1.05em; background:var(--accent); vertical-align:-.15em; animation:blink 1.1s infinite; }
 
 /* Always-visible hint strip */
 .hintStrip[hidden]{ display:none !important; }
@@ -1325,6 +1341,17 @@ function addLine(text, cls="sys"){
   term.scrollTop = term.scrollHeight;
 }
 function addBlank(){ addLine(" ", "sys"); }
+// A line with coloured parts: addRich(["TRY // ", ["19 × 13","pink"], " = ", ["247","cyan"]])
+function addRich(parts, cls="sys"){
+  const div = document.createElement("div");
+  div.className = `lineRow ${cls}`;
+  parts.forEach(pt => {
+    if(typeof pt === "string"){ div.appendChild(document.createTextNode(pt)); return; }
+    const sp = document.createElement("span"); sp.className = "nx n-" + pt[1]; sp.textContent = pt[0]; div.appendChild(sp);
+  });
+  term.appendChild(div);
+  term.scrollTop = term.scrollHeight;
+}
 function addBlock(html, cls){
   const div = document.createElement("div");
   div.className = cls;
@@ -1359,6 +1386,7 @@ function setHint(html){
   if(el) el.innerHTML = html;
   const strip = document.getElementById("hintStrip");
   if(strip) strip.hidden = false;
+  term.scrollTop = term.scrollHeight;   // the strip takes space; keep the latest line in view
 }
 function hideHint(){
   const strip = document.getElementById("hintStrip");
@@ -1378,8 +1406,7 @@ function lockHint(){
   hintIntro.math = true;
   const root = Math.floor(Math.sqrt(Run.n));
   const cands = primesUpTo(root);
-  setHint(`Find two primes that multiply to make <b>${Run.n}</b>. Type both numbers with a space between them. ` +
-    (cands.length ? `One of them is ${cands.length === 1 ? "" : "at most "}√${Run.n} ≈ ${root}, so try <b>${cands.join(", ")}</b> first.` : ""));
+  setHint(`Two primes make <b>${Run.n}</b>. Type them with a space.` + (cands.length ? ` Start with <b>${cands.join(", ")}</b>.` : ""));
 }
 
 function setDiff(next){
@@ -1694,13 +1721,67 @@ function buildBufferDock(){
   const press = document.createElement("div");
   press.className="pressSpace";
   press.textContent="PRESS SPACE";
-  box.append(row, press);
+  const code = document.createElement("div");
+  code.className = "bufCode";
+  code.setAttribute("aria-hidden", "true");
+  box.append(code, row, press);
+  Buffer.codeEl = code;
+  renderBufferCode();
   dock.append(box);
 
   Buffer.dock=dock;
   Buffer.press=press;
   Buffer.segs=segs;
   document.body.append(dock);
+}
+
+// Real-looking commands that appear a few characters per key press
+function bufferScript(){
+  const acct = Bank.getCurrentAccount();
+  const slug = (acct ? acct.name : "target bank").toLowerCase().replace(/[^a-z]+/g, "-").replace(/(^-|-$)/g, "");
+  const agent = PN && PN.getAgent() ? PN.getAgent().codename.toLowerCase() : "agent";
+  const locks = (Run.cracked && Run.cracked.length) ? Run.cracked : [{ p: Run.p, q: Run.q, n: Run.n }];
+  const k = locks[locks.length - 1];
+  return [
+    `$ ssh ${agent}@vault.${slug}.net -p 443`,
+    `> auth --key "prime:${k.p}x${k.q}" --verify ${k.n}`,
+    `# ${locks.length} lock${locks.length === 1 ? "" : "s"} cracked, proceeding to vault layer`,
+    `$ sudo ./bypass_firewall.sh --rate-limit=off --stealth`,
+    `$ for p in primes(sqrt(${k.n})): if ${k.n} % p == 0: unlock(p, ${k.n} / p)`,
+    `$ mount /dev/vault0 /mnt/ledger --force --read-write`,
+    ...locks.map((c, i) => `$ echo "OPEN" > /sys/vault/bolt_${i + 1}/latch   # ${c.p} x ${c.q} = ${c.p * c.q}`),
+    `$ tail -f /var/log/security/trace.log | grep -v "${agent}"`,
+    `$ ./transfer --from "${acct ? acct.name : "TARGET"}" --to wallet://${agent} --amount ALL`,
+    `$ sudo rm -rf /var/log/security/trace.log   # cover tracks`,
+    `$ ./vault_door --unlock --override --confirm`,
+  ].join("\n") + "\n";
+}
+function highlightCode(t){
+  const esc = x => x.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  return t.split("\n").map(line => {
+    const hash = line.indexOf("#");
+    const code = hash >= 0 ? line.slice(0, hash) : line, com = hash >= 0 ? line.slice(hash) : "";
+    let h = esc(code)
+      .replace(/(&quot;|")([^"]*)("?)/g, '<span class="c-str">"$2$3</span>')
+      .replace(/(\s)(--?[a-z][a-z-]*)/g, '$1<span class="c-flag">$2</span>')
+      .replace(/\b(\d+)\b/g, '<span class="c-num">$1</span>')
+      .replace(/^(\$|&gt;)\s(\S+)/, '$1 <span class="c-cmd">$2</span>');
+    return h + (com ? `<span class="c-com">${esc(com)}</span>` : "");
+  });
+}
+function renderBufferCode(){
+  if(!Buffer.codeEl) return;
+  if(!Buffer.script) Buffer.script = bufferScript();
+  const shown = Buffer.script.slice(0, Buffer.codePos || 0);
+  const lines = highlightCode(shown).slice(-6);
+  lines[lines.length - 1] += '<span class="caret"></span>';
+  Buffer.codeEl.innerHTML = lines.map(l => `<div>${l || "&nbsp;"}</div>`).join("");
+}
+function typeBufferCode(){
+  if(!Buffer.script) Buffer.script = bufferScript();
+  Buffer.codePos = Math.min(Buffer.script.length, (Buffer.codePos || 0) + 3 + Math.floor(Math.random() * 3));
+  if(Buffer.codePos >= Buffer.script.length){ Buffer.script += Buffer.script; }   // loop if they keep typing
+  renderBufferCode();
 }
 
 function updateBufferUI(){
@@ -1737,6 +1818,7 @@ function commitBufferStage(){
 }
 
 async function runBufferSequence(){
+  Buffer.script = null; Buffer.codePos = 0;
   Buffer.stage=1;
   Buffer.stages = PRIME_NET_EFFECTS.bufferStages;
   Buffer.required = PRIME_NET_EFFECTS.keysPerStage;
@@ -2187,9 +2269,9 @@ async function handleMath(text){
 
   if(prod !== Run.n){
     const dir = prod < Run.n ? "TOO LOW" : "TOO HIGH";
-    addLine(`TRY // ${p}×${q} = ${prod}  (${dir})  target=${Run.n}`, "warn");
+    addRich(["TRY // ", [`${p} × ${q}`, "pink"], " = ", [String(prod), "cyan"], "   ", [dir, "orange"], "   target ", [String(Run.n), "yellow"]], "sys");
     // Tiny pattern nudge (last digit) without giving the answer away
-    addLine(`Pattern check: ${p} ends ${String(p).slice(-1)}, ${q} ends ${String(q).slice(-1)} ⇒ product ends ${String(prod).slice(-1)}`, "sys");
+    addRich(["Pattern check: ", [`${p}`, "pink"], ` ends ${String(p).slice(-1)}, `, [`${q}`, "pink"], ` ends ${String(q).slice(-1)} ⇒ product ends `, [String(prod).slice(-1), "cyan"], ` (target ends `, [String(Run.n).slice(-1), "yellow"], ")"], "n-dim");
     Run.tries = (Run.tries || 0) + 1;
     Run.wrongTotal = (Run.wrongTotal || 0) + 1;
     if(window.PNSound) PNSound.play("wrong");
@@ -2199,9 +2281,8 @@ async function handleMath(text){
     return;
   }
   if(!isPrime(p) || !isPrime(q)){
-    addLine(`UNLOCK_PARTIAL // ${p}×${q} matches N, but one factor is not prime.`, "bad");
-    if(!isPrime(p)) addLine(`${p} is not prime.`, "bad");
-    if(!isPrime(q)) addLine(`${q} is not prime.`, "bad");
+    addRich(["UNLOCK_PARTIAL // ", [`${p} × ${q}`, "pink"], " = ", [String(prod), "cyan"], " matches, but ", [!isPrime(p) ? String(p) : String(q), "red"], " is not prime."], "sys");
+    if(!isPrime(p) && !isPrime(q)) addRich(["Neither is ", [String(q), "red"], "."], "sys");
     Run.tries = (Run.tries || 0) + 1;
     Run.wrongTotal = (Run.wrongTotal || 0) + 1;
     if(window.PNSound) PNSound.play("denied");
@@ -2211,7 +2292,7 @@ async function handleMath(text){
     return;
   }
 
-  addLine(`UNLOCK_OK // primes verified: ${p}, ${q}`, "ok");
+  addRich(["UNLOCK_OK // ", [`${p} × ${q}`, "pink"], " = ", [String(Run.n), "green"], "  ✓ primes verified"], "ok");
   setHint(`Lock cracked: <b>${p} × ${q} = ${Run.n}</b>.`);
   Run.cracked.push({ lock: Run.index, n: Run.n, p: Math.min(p,q), q: Math.max(p,q), tries: Run.tries || 0 });
   Run.solved = true;
@@ -2353,6 +2434,7 @@ hiddenInput.addEventListener("keydown", async (e)=>{
     }
     if(printable){
       Buffer.typed += 1;
+      typeBufferCode();
       if(!Buffer.ready && Buffer.typed >= Buffer.required) markBufferReady();
       updateBufferUI();
     } else {
@@ -2368,7 +2450,8 @@ hiddenInput.addEventListener("keydown", async (e)=>{
     const raw = hiddenInput.value;
     hiddenInput.value="";
     liveText.textContent="";
-    addLine(`student@lifehouse:~$ ${raw}`, "sys");
+    if(/^\s*\d+\s+\d+\s*$/.test(raw)) addRich(["student@lifehouse:~$ ", [raw.trim().split(/\s+/).join(" "), "pink"]], "sys");
+    else addLine(`student@lifehouse:~$ ${raw}`, "sys");
     if(MODE==="math") await handleMath(raw);
     else await handleRoleplay(raw);
     return;
