@@ -65,7 +65,10 @@
 - **The teacher can see a record** of each codename: which levels they chose, how far they got and when. This lets the teacher encourage a harder level.
 - The game can also nudge students itself. Higher levels already pay far more in the bank, and the game could suggest moving up after a strong run.
 
-Open question: does each student use the same computer every lesson? Records and settings are saved in the browser, so they belong to one computer.
+**Different computers, occasional play.** Students move between computers and won't play often, so losing their level between sessions doesn't matter. Instead:
+- At the end of a session, the teacher downloads the record from each computer as a JSON file (teacher key → Download record).
+- If the class plays again, the teacher can upload earlier records (teacher key → Load record). Several files can be loaded at once and are combined into one class list.
+- No online saving is needed.
 
 ## Success screens (first pass)
 
