@@ -15,6 +15,7 @@
     device: "primenet_device_v1",
     teacher: "primenet_teacher_unlocked",   // sessionStorage: cleared when the browser tab closes
     floors: "blueprintProgress",            // numbers finished in Factor Vault this mission
+    textSize: "primenet_textsize_v1",       // { CODENAME: "M" }, each learner's text size on this computer
   };
 
   const LEVELS = {
@@ -105,6 +106,28 @@
     write(KEYS.agent, { sessionId: session.id, codename: session.codename, level });
     try{ localStorage.removeItem(KEYS.floors); }catch(e){}   // a new mission starts with no floors built
     return session;
+  }
+
+  /* Text size, chosen per learner on the title screen. Pages are scaled with CSS zoom
+     because the games use fixed pixel sizes. */
+  const TEXT_SIZES = { S:{ id:"S", label:"Small", zoom:.9 }, M:{ id:"M", label:"Medium", zoom:1 }, L:{ id:"L", label:"Large", zoom:1.15 }, XL:{ id:"XL", label:"Extra large", zoom:1.3 } };
+  const TEXT_ORDER = ["S","M","L","XL"];
+  const cleanName = n => String(n).trim().toUpperCase().slice(0, 20);
+  function textSizeFor(codename){
+    const map = read(KEYS.textSize, {});
+    const k = map[cleanName(codename || (getAgent() || {}).codename || "")];
+    return TEXT_SIZES[k] ? k : "M";
+  }
+  function setTextSize(codename, size){
+    if(!TEXT_SIZES[size]) return;
+    const map = read(KEYS.textSize, {});
+    const name = cleanName(codename || "");
+    if(name){ map[name] = size; write(KEYS.textSize, map); }
+    applyTextSize(size);
+  }
+  function applyTextSize(size){
+    const z = (TEXT_SIZES[size || textSizeFor()] || TEXT_SIZES.M).zoom;
+    document.documentElement.style.zoom = z === 1 ? "" : String(z);
   }
 
   // The level for this mission. Games fall back to L1 when opened without the title screen.
@@ -247,5 +270,7 @@
     exportData, downloadRecord, importRecords, clearRecords,
     randomCodename,
     agentRank, rankFor, currentSession,
+    TEXT_SIZES, TEXT_ORDER, textSizeFor, setTextSize, applyTextSize,
   };
+  applyTextSize();   // every page opens at the current agent's text size
 })();

@@ -3,7 +3,7 @@
 <head>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Inter:wght@400;600;700;800&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../shared/primenet.css">
 
   <meta charset="utf-8" />
@@ -397,13 +397,13 @@
 html, body{ background: var(--bg-primary) !important; }
 body{ color: var(--text-primary); }
 body::before{
-  content: "" !important; position: fixed !important; inset: 0 !important; pointer-events: none !important;
-  z-index: 0; filter: none !important; opacity: 1 !important; animation: none !important; transform: none !important;
+  content: "" !important; position: fixed !important; inset: -60px !important; pointer-events: none !important;
+  z-index: 0; filter: none !important; opacity: 1 !important; mix-blend-mode: normal !important; transform: none;
+  animation: pnDrift 16s linear infinite alternate !important;
   background:
-    radial-gradient(1100px 700px at 30% 15%, rgba(var(--accent-rgb), .07), transparent 60%),
-    radial-gradient(1400px 900px at 75% 85%, rgba(20,120,130,.22), transparent 65%),
-    repeating-linear-gradient(0deg, rgba(255,255,255,.022) 0 1px, transparent 1px 7px),
-    repeating-linear-gradient(90deg, rgba(255,255,255,.014) 0 1px, transparent 1px 30px) !important;
+    radial-gradient(1100px 700px at 30% 15%, rgba(var(--accent-rgb), .08), transparent 60%),
+    radial-gradient(1400px 900px at 75% 85%, rgba(20,120,130,.18), transparent 65%),
+    repeating-linear-gradient(120deg, rgba(var(--accent-rgb), .06) 0 1px, transparent 2px 44px) !important;
 }
 button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [class*="Title"]{ font-family: var(--font-ui); }
 .cell{ font-family: var(--font-mono) !important; min-width: 0 !important; }  /* the general button min-width squashed the number grid */
@@ -780,7 +780,7 @@ button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [clas
       style: `
         position: fixed; inset: 0; display: grid; place-items: center;
         background: rgba(0,0,0,0.72);
-        border: 1px solid rgba(67,229,138,0.35);
+        border: 1px solid rgba(47,191,138,0.35);
         z-index: 9999;
       `
     });
@@ -788,7 +788,7 @@ button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [clas
     const box = el("div", {
       style: `
         width: min(760px, 92vw);
-        border: 1px solid rgba(67,229,138,0.35);
+        border: 1px solid rgba(47,191,138,0.35);
         background: rgba(6,14,10,0.85);
         padding: 22px;
         display: grid;
@@ -799,7 +799,7 @@ button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [clas
 
     const code = el("div", {
       style: `
-        height: 120px; overflow: hidden; border: 1px solid rgba(67,229,138,0.25);
+        height: 120px; overflow: hidden; border: 1px solid rgba(47,191,138,0.25);
         background: rgba(0,0,0,0.35);
         padding: 10px; text-align: left; color: rgba(240,255,248,0.70);
         font-size: 0.95rem;
@@ -897,7 +897,7 @@ button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [clas
     const box = document.createElement("div");
     box.style.cssText = `
       width: min(760px, 92vw);
-      border: 1px solid rgba(67,229,138,0.35);
+      border: 1px solid rgba(47,191,138,0.35);
       background: rgba(6,14,10,0.85);
       padding: 22px;
       display: grid;

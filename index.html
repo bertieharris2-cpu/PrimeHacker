@@ -6,7 +6,7 @@
 <title>PRIMENET</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Inter:wght@400;600;700;800&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="shared/primenet.css">
 <style>
   .shell{ position:relative; z-index:1; min-height:100%; display:flex; flex-direction:column; align-items:center; padding:24px 16px 20px; gap:22px; }
@@ -98,7 +98,7 @@
 </head>
 <body>
 <div class="shell">
-  <div class="topline"><span><span class="dot"></span>SECURE UPLINK</span><span class="row" style="gap:14px"><button class="pn-btn small" type="button" id="soundBtn" aria-pressed="true">Sound: on</button><span id="clock"></span></span></div>
+  <div class="topline"><span><span class="dot"></span>SECURE UPLINK</span><span class="row" style="gap:14px"><button class="pn-btn small" type="button" id="textBtn" title="Text size for this agent">Text: Medium</button><button class="pn-btn small" type="button" id="soundBtn" aria-pressed="true">Sound: on</button><span id="clock"></span></span></div>
 
   <div class="hero">
     <h1 class="logo"><span class="p">PRIME</span><span class="n">NET</span></h1>
@@ -282,6 +282,7 @@
     const name = codename.value.trim();
     if(!name || !chosen || !P.allowedLevels().includes(chosen)) return;
     P.startSession(name, chosen);
+    P.setTextSize(name, textSize);
     PNSound.play("start");
     startBtn.disabled = true;
     $("#status").textContent = "Mission starting…";
@@ -377,6 +378,18 @@
   });
 
   /* Sound switch and the teacher's sound check */
+  // Text size: saved per codename, so each learner gets their own size back
+  const textBtn = $("#textBtn");
+  let textSize = P.textSizeFor(codename.value);
+  const syncText = () => { textBtn.textContent = `Text: ${P.TEXT_SIZES[textSize].label}`; P.applyTextSize(textSize); };
+  textBtn.addEventListener("click", () => {
+    textSize = P.TEXT_ORDER[(P.TEXT_ORDER.indexOf(textSize) + 1) % P.TEXT_ORDER.length];
+    if(codename.value.trim()) P.setTextSize(codename.value, textSize);
+    syncText(); PNSound.play("click");
+  });
+  codename.addEventListener("change", () => { const k = P.textSizeFor(codename.value); if(k !== "M" || !codename.value.trim()) textSize = k; else P.setTextSize(codename.value, textSize); syncText(); });
+  syncText();
+
   const soundBtn = $("#soundBtn");
   const syncSound = () => { soundBtn.textContent = `Sound: ${PNSound.isOn() ? "on" : "off"}`; soundBtn.setAttribute("aria-pressed", PNSound.isOn() ? "true" : "false"); };
   soundBtn.addEventListener("click", () => { PNSound.setOn(!PNSound.isOn()); syncSound(); PNSound.play("click"); });

@@ -2,31 +2,31 @@
    Values come from docs/STYLE.md. Change them here, never inside a game file. */
 
 :root{
-  --bg-primary: #0b2227;
-  --bg-panel: rgba(9,32,38,.78);
-  --bg-panel-solid: #0d2a30;
-  --line: rgba(30,110,125,.55);
+  --bg-primary: #071418;
+  --bg-panel: rgba(6,18,22,.78);
+  --bg-panel-solid: #0a1c21;
+  --line: rgba(17,90,110,.6);
   --line-strong: rgba(40,120,140,.75);
 
   --accent-build: #4aa3ff;          /* factor stages: Factor Vault, Vault Grid, Blueprint */
   --accent-build-rgb: 74,163,255;
-  --accent-hack: #43e58a;           /* prime stages: Frequency Scan, Prime Hack, finale */
-  --accent-hack-rgb: 67,229,138;
+  --accent-hack: #2fbf8a;           /* steel green. Prime stages: Frequency Scan, Prime Hack, finale */
+  --accent-hack-rgb: 47,191,138;
   --accent: var(--accent-hack);     /* each screen sets its phase with class="phase-build" or "phase-hack" on <html> */
   --accent-rgb: var(--accent-hack-rgb);
 
   --text-primary: rgba(235,255,248,.94);
   --text-muted: rgba(235,255,248,.64);
   --text-faint: rgba(235,255,248,.42);
-  --ok: #43e58a;
+  --ok: #2fbf8a;
   --warning: #f2c14e;
   --danger: #ff6b6b;
 
-  --font-ui: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  --font-ui: "Chakra Petch", "Inter", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
   --font-mono: "Courier Prime", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
   --radius: 0px;
-  --glow-strength: .16;
+  --glow-strength: .28;
   --font-size: 18px;
 
   --transition-fast: 120ms ease;
@@ -48,19 +48,21 @@ body{
   line-height: 1.55;
 }
 
-/* Background texture: scanlines + micro-grid */
+/* Background texture: drifting laser lines, with a soft teal glow */
+@keyframes pnDrift{ from{ transform: translateX(-40px); } to{ transform: translateX(40px); } }
 body::before{
   content: "";
   position: fixed;
-  inset: 0;
+  inset: -60px;
   pointer-events: none;
   z-index: 0;
   background:
-    radial-gradient(1100px 700px at 30% 15%, rgba(var(--accent-rgb), .07), transparent 60%),
-    radial-gradient(1400px 900px at 75% 85%, rgba(20,120,130,.22), transparent 65%),
-    repeating-linear-gradient(0deg, rgba(255,255,255,.022) 0 1px, transparent 1px 7px),
-    repeating-linear-gradient(90deg, rgba(255,255,255,.014) 0 1px, transparent 1px 30px);
+    radial-gradient(1100px 700px at 30% 15%, rgba(var(--accent-rgb), .08), transparent 60%),
+    radial-gradient(1400px 900px at 75% 85%, rgba(20,120,130,.18), transparent 65%),
+    repeating-linear-gradient(120deg, rgba(var(--accent-rgb), .06) 0 1px, transparent 2px 44px);
+  animation: pnDrift 16s linear infinite alternate;
 }
+@media (prefers-reduced-motion: reduce){ body::before{ animation: none; } }
 
 .pn-panel{
   position: relative;

@@ -70,6 +70,32 @@
 - If the class plays again, the teacher can upload earlier records (teacher key → Load record). Several files can be loaded at once and are combined into one class list.
 - No online saving is needed.
 
+## Round 3
+
+Style (see `STYLE.md`):
+- Deep teal background `#071418`, soft glow kept
+- Steel green `#2fbf8a` for the prime stages; blue stays for the build stages
+- Neon highlights: pink and yellow only
+- Chakra Petch for headings
+- Medium glow
+- Drifting laser-line texture
+- Text size: 18px, plus a size choice for each learner on the title screen
+- Kept: slim banner, amber hint box, sharp corners, red header, green-and-blue logo, green-and-blue build mix
+- The roleplay terminal's look (its SCAN output) is liked for a code-flood success screen in the real game
+
+Ideas voted yes (from `IDEAS.md`), grouped into a build order:
+
+1. **Whole-game feel:** one continuous heist, the ORACLE handler, mission briefing, glitch transitions, agent ID card, identity scan, a settings screen (text size is done)
+2. **Frequency Scan:** show mistakes, bands that match the level, signal strength, jammer sieve, oscilloscope version
+3. **Factor Vault and Vault Grid:** pairs-remaining scanner, reinforced (square) floors, security camera, named rooms, drone flythrough, drag to build
+4. **Blueprint:** weak point, hidden room (common factor), plotter print, explore it
+5. **Prime Hack:** combination-lock dial, trace meter
+6. **Finale and rewards:** finales that match the stage, getaway, badges, loot shop, Most Wanted poster, target map
+
+- Maybe: streak bonus. Concern: big prime pairs are hard, so a lost streak could frustrate
+- No: nudge after two misses, three-prime locks, `TRY` command
+- Roleplay ideas: parked for now
+
 ## Build progress
 
 - [x] Title screen (`index.html`): codename, level choice, teacher level rule, mission record, download and load records
@@ -86,7 +112,8 @@
 - [x] Agent ranks by vaults breached per codename: Rookie, Field Agent, Senior Agent, Handler, Mastermind, Ghost
 - [x] Prime Hack starts in Math mode. Roleplay is its own screen (`modules/roleplay_terminal.html`), opened from the title screen
 - [x] Play-test feedback 2: Factor Vault input has one clean highlight, typed digits are bright, and found pairs move to the top so a correct pair in the "wrong" row never lingers; Vault Grid buildings get taller as N grows; Prime Hack lock banner and first hint are smaller; the student's tried pairs are neon pink, products cyan, TOO HIGH/LOW orange, the target yellow, a cracked lock green; buffer charge key presses type out real-looking commands that use the target bank, codename and cracked primes
-- [ ] Next round of improvements: see `IDEAS.md`
+- [x] Round 3 style: deep background, steel green, Chakra Petch, medium glow, drifting laser lines, pink and yellow neon only, text size per learner
+- [ ] Round 3 ideas: see the build order under Round 3
 
 ## Success screens (first pass)
 

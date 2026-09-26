@@ -3,7 +3,7 @@
 <head>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Inter:wght@400;600;700;800&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../shared/primenet.css">
 
 <meta charset="UTF-8" />
@@ -201,13 +201,13 @@
 html, body{ background: var(--bg-primary) !important; }
 body{ color: var(--text-primary); }
 body::before{
-  content: "" !important; position: fixed !important; inset: 0 !important; pointer-events: none !important;
-  z-index: 0; filter: none !important; opacity: 1 !important; animation: none !important; transform: none !important;
+  content: "" !important; position: fixed !important; inset: -60px !important; pointer-events: none !important;
+  z-index: 0; filter: none !important; opacity: 1 !important; mix-blend-mode: normal !important; transform: none;
+  animation: pnDrift 16s linear infinite alternate !important;
   background:
-    radial-gradient(1100px 700px at 30% 15%, rgba(var(--accent-rgb), .07), transparent 60%),
-    radial-gradient(1400px 900px at 75% 85%, rgba(20,120,130,.22), transparent 65%),
-    repeating-linear-gradient(0deg, rgba(255,255,255,.022) 0 1px, transparent 1px 7px),
-    repeating-linear-gradient(90deg, rgba(255,255,255,.014) 0 1px, transparent 1px 30px) !important;
+    radial-gradient(1100px 700px at 30% 15%, rgba(var(--accent-rgb), .08), transparent 60%),
+    radial-gradient(1400px 900px at 75% 85%, rgba(20,120,130,.18), transparent 65%),
+    repeating-linear-gradient(120deg, rgba(var(--accent-rgb), .06) 0 1px, transparent 2px 44px) !important;
 }
 button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [class*="Title"]{ font-family: var(--font-ui); }
 .proceed-btn{ color: var(--accent-hack) !important; border-color: rgba(var(--accent-hack-rgb),.7) !important; background: rgba(var(--accent-hack-rgb),.12) !important; }

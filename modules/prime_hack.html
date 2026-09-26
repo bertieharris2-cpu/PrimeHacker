@@ -3,12 +3,12 @@
 <head>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Inter:wght@400;600;700;800&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../shared/primenet.css">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Inter:wght@400;600;700&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <title>FINANCIAL SYSTEMS INTERFACE</title>
@@ -30,7 +30,7 @@
   --glow-accent: rgba(var(--accent-rgb),0.16);
   --glow-system: rgba(17,75,95,0.18);
 
-  --font-ui: "Inter", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  --font-ui: "Chakra Petch", "Inter", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
   --font-mono: "Courier Prime", ui-monospace, monospace;
 
   --radius: 0px;
@@ -1018,10 +1018,10 @@ html,body{ font-family: var(--font-ui); }
 /* Neon highlights: the student's tries and their results stand out so they can look back at them */
 .nx{ font-weight:700; }
 .n-pink{ color:#ff4fd8; text-shadow:0 0 10px rgba(255,79,216,.45); }
-.n-cyan{ color:#3ff0ff; text-shadow:0 0 10px rgba(63,240,255,.4); }
+.n-cyan{ color:inherit; }   /* round 3: neon is pink and yellow only */
 .n-yellow{ color:#ffe14d; text-shadow:0 0 10px rgba(255,225,77,.35); }
-.n-orange{ color:#ff9f43; }
-.n-green{ color:#6dffb0; text-shadow:0 0 10px rgba(109,255,176,.45); }
+.n-orange{ color:inherit; }
+.n-green{ color:inherit; }
 .n-red{ color:#ff6b6b; }
 .n-dim{ color:var(--text-faint); }
 
@@ -1119,13 +1119,13 @@ html,body{ font-family: var(--font-ui); }
 html, body{ background: var(--bg-primary) !important; }
 body{ color: var(--text-primary); }
 body::before{
-  content: "" !important; position: fixed !important; inset: 0 !important; pointer-events: none !important;
-  z-index: 0; filter: none !important; opacity: 1 !important; animation: none !important; transform: none !important;
+  content: "" !important; position: fixed !important; inset: -60px !important; pointer-events: none !important;
+  z-index: 0; filter: none !important; opacity: 1 !important; mix-blend-mode: normal !important; transform: none;
+  animation: pnDrift 16s linear infinite alternate !important;
   background:
-    radial-gradient(1100px 700px at 30% 15%, rgba(var(--accent-rgb), .07), transparent 60%),
-    radial-gradient(1400px 900px at 75% 85%, rgba(20,120,130,.22), transparent 65%),
-    repeating-linear-gradient(0deg, rgba(255,255,255,.022) 0 1px, transparent 1px 7px),
-    repeating-linear-gradient(90deg, rgba(255,255,255,.014) 0 1px, transparent 1px 30px) !important;
+    radial-gradient(1100px 700px at 30% 15%, rgba(var(--accent-rgb), .08), transparent 60%),
+    radial-gradient(1400px 900px at 75% 85%, rgba(20,120,130,.18), transparent 65%),
+    repeating-linear-gradient(120deg, rgba(var(--accent-rgb), .06) 0 1px, transparent 2px 44px) !important;
 }
 button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [class*="Title"]{ font-family: var(--font-ui); }
 :root{ --text-size: 17px; --mono-size: 18px; }
