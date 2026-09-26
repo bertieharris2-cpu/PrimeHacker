@@ -145,7 +145,10 @@ Ideas voted yes (from `IDEAS.md`), grouped into a build order:
   - Hidden vault: if the three numbers share a factor above 1, a gold basement vault rises, with the highest common factor explained
   - Explore: drag to turn the building, hover a room for its name and windows, click a floor to pull it out and list its pairs
   - Floor quiz: one question (most rooms, weak point, odd number of factors, highest common factor or rooms on a floor) before Prime Hack. A right answer adds 10% to the first heist's haul
-- [ ] Round 3 groups 5–6: see the build order under Round 3
+- [x] Round 3 group 5, Prime Hack:
+  - Combination dial beside the terminal: a correct pair spins the dial right to the first prime and left to the second, sets both tumblers with a click, and the shackle springs open. A wrong pair turns the dial, the tumblers show red and the lock jams
+  - Trace meter: +15% (L1), +18% (L2) or +20% (L3) for a wrong product, two thirds of that for a non-prime, and +1% every 5 seconds on a lock. A cracked lock takes 15% off. At 50% ORACLE warns, at 75% the meter pulses with an alarm, and at 100% security swaps the lock for a new number and trace drops to 30%. No money or progress is lost. HINT and PRIME? never add trace
+- [ ] Round 3 group 6: see the build order under Round 3
 
 ## Success screens (first pass)
 

@@ -313,6 +313,37 @@
   }
 
 
+/* ===== Round 3 group 5: combination dial and trace meter ===== */
+.lockRig{ position:absolute; top:18px; right:18px; width:210px; z-index:4; display:flex; flex-direction:column; gap:10px; align-items:center;
+  background:rgba(3,12,14,.82); border:1px solid rgba(var(--accent-rgb),.35); padding:12px 12px 14px; font-family:var(--font-ui); }
+.terminalWindow.hasRig .terminal{ padding-right:236px; }
+.lockRig .rigTitle{ font-size:11px; letter-spacing:.2em; color:var(--muted, rgba(235,255,248,.6)); align-self:stretch; display:flex; justify-content:space-between; }
+.lockRig .rigTitle b{ color:#ffe14d; font-family:var(--font-mono); letter-spacing:.04em; font-size:14px; }
+.lockRig svg{ width:176px; height:196px; overflow:visible; }
+.lockRig .shackle{ transition:transform .35s cubic-bezier(.3,1.6,.5,1); }
+.lockRig.open .shackle{ transform:translateY(-16px); }
+.lockRig.jam{ animation:rigJam .45s ease-in-out; border-color:#ff6b6b; }
+@keyframes rigJam{ 20%{ transform:translateX(-6px); } 40%{ transform:translateX(6px); } 60%{ transform:translateX(-4px); } 80%{ transform:translateX(3px); } }
+.lockRig .tumblers{ display:flex; gap:8px; align-self:stretch; }
+.lockRig .tumbler{ flex:1; border:1px solid rgba(var(--accent-rgb),.35); background:rgba(0,0,0,.35); text-align:center; padding:4px 0 5px; }
+.lockRig .tumbler small{ display:block; font-size:9px; letter-spacing:.18em; color:rgba(235,255,248,.45); }
+.lockRig .tumbler span{ font-family:var(--font-mono); font-size:22px; font-weight:700; color:rgba(235,255,248,.35); }
+.lockRig .tumbler.set{ border-color:#ff4fd8; box-shadow:0 0 14px rgba(255,79,216,.35); }
+.lockRig .tumbler.set span{ color:#ff4fd8; }
+.lockRig .tumbler.bad{ border-color:#ff6b6b; } .lockRig .tumbler.bad span{ color:#ff6b6b; }
+.lockRig.open .tumbler.set{ border-color:#2fbf8a; box-shadow:0 0 14px rgba(47,191,138,.45); } .lockRig.open .tumbler.set span{ color:#2fbf8a; }
+.trace{ align-self:stretch; display:flex; flex-direction:column; gap:4px; }
+.trace .tl{ display:flex; justify-content:space-between; font-size:11px; letter-spacing:.18em; color:rgba(235,255,248,.6); }
+.trace .tl b{ font-family:var(--font-mono); letter-spacing:.02em; color:#ffe14d; }
+.trace .bar{ height:12px; border:1px solid rgba(255,107,107,.55); background:rgba(0,0,0,.4); position:relative; overflow:hidden; }
+.trace .bar i{ position:absolute; left:0; top:0; bottom:0; width:0; background:linear-gradient(90deg, #f2c14e, #ff6b6b 70%, #ff2d55); transition:width .5s ease; }
+.trace.hot .bar{ animation:traceHot .8s ease-in-out infinite; }
+.trace.hot .tl b{ color:#ff6b6b; }
+@keyframes traceHot{ 50%{ box-shadow:0 0 14px rgba(255,45,85,.7); } }
+.traceFlash{ position:fixed; inset:0; z-index:6500; pointer-events:none; animation:traceFlash .5s ease-in-out 4; }
+@keyframes traceFlash{ 50%{ background:rgba(255,30,60,.22); } }
+@media (max-width: 980px){ .lockRig{ position:static; width:auto; flex-direction:row; flex-wrap:wrap; justify-content:center; margin-bottom:10px; } .terminalWindow.hasRig .terminal{ padding-right:0; } }
+
 /* ===== PRIMENET override layer (readability + modern B) ===== */
 body{
   font-family: var(--font-ui) !important;
@@ -1495,6 +1526,7 @@ function newRunSameDifficulty(){
   if(!Run.missionBankUsed && PN && PN.getAgent() && PN.getAgent().target){ Run.missionBankUsed = true; Bank.selectAccountByName(DIFF, PN.mission().target); }
   else Bank.selectAccountForRun(DIFF);
   updateRunUI();
+  if(typeof Rig !== "undefined"){ Rig.reset(); Rig.trace = 0; Rig.paintTrace(); Rig.startClock(); }
 }
 
 function newTargetNextLock(){
@@ -1503,6 +1535,7 @@ function newTargetNextLock(){
   Run.p=lock.p; Run.q=lock.q; Run.n=lock.n;
   Run.solved=false;
   updateRunUI();
+  if(typeof Rig !== "undefined") Rig.reset();
 }
 
 function newTargetManual(){
@@ -2019,6 +2052,124 @@ async function breachPrelude(seconds=10){
 }
 
 
+// ===================== COMBINATION DIAL + TRACE METER =====================
+// The lock on screen: each correct prime turns the dial and sets a tumbler with a click.
+// Trace rises with wrong answers (and slowly with time). At 100% security swaps the lock
+// for a new number: stakes without a game over.
+const Rig = (() => {
+  const win = document.querySelector(".terminalWindow");
+  const el = document.createElement("div"); el.className = "lockRig"; el.setAttribute("aria-hidden", "true");
+  const NS = "http://www.w3.org/2000/svg", C = 88, CY = 108;
+  let ticks = "";
+  for(let v = 0; v < 100; v += 2){
+    const a = v * 3.6 * Math.PI / 180, long = v % 10 === 0, r1 = 74, r2 = long ? 62 : 67;
+    ticks += `<line x1="${C + r1 * Math.sin(a)}" y1="${CY - r1 * Math.cos(a)}" x2="${C + r2 * Math.sin(a)}" y2="${CY - r2 * Math.cos(a)}" stroke="rgba(235,255,248,${long ? .8 : .35})" stroke-width="${long ? 2 : 1}"/>`;
+    if(long) ticks += `<text x="${C + 52 * Math.sin(a)}" y="${CY - 52 * Math.cos(a) + 4}" text-anchor="middle" font-size="11" fill="rgba(235,255,248,.75)" font-family="Courier Prime, monospace">${v}</text>`;
+  }
+  el.innerHTML = `<div class="rigTitle"><span>LOCK</span><b class="rigN">N = ?</b></div>
+    <svg viewBox="0 0 176 196">
+      <path class="shackle" d="M52 34 V20 a36 36 0 0 1 72 0 V34" fill="none" stroke="#9fb7bb" stroke-width="9" stroke-linecap="round"/>
+      <circle cx="${C}" cy="${CY}" r="84" fill="#0d2327" stroke="rgba(var(--accent-rgb),.6)" stroke-width="2"/>
+      <g class="dial">${ticks}<circle cx="${C}" cy="${CY}" r="30" fill="#081a1e" stroke="rgba(235,255,248,.25)"/></g>
+      <text class="dialRead" x="${C}" y="${CY + 6}" text-anchor="middle" font-size="18" font-weight="700" fill="#ffe14d" font-family="Courier Prime, monospace">00</text>
+      <path d="M${C - 7} 16 L${C + 7} 16 L${C} 28 Z" fill="#ff4f6d"/>
+    </svg>
+    <div class="tumblers"><div class="tumbler t1"><small>TUMBLER 1</small><span>--</span></div><div class="tumbler t2"><small>TUMBLER 2</small><span>--</span></div></div>
+    <div class="trace"><div class="tl"><span>TRACE</span><b class="tv">0%</b></div><div class="bar"><i></i></div></div>`;
+  if(win){ win.appendChild(el); win.classList.add("hasRig"); }
+  const dial = el.querySelector(".dial"), read = el.querySelector(".dialRead"), t1 = el.querySelector(".t1"), t2 = el.querySelector(".t2");
+  let angle = 0;   // degrees; number v sits under the pointer when angle = -v * 3.6
+  let gen = 0;     // each new answer bumps this, so an older animation stops where it is
+  const fast = () => (window.PNTest ? PNTest.speed() : 1) * speed();
+  const wait = ms => new Promise(r => setTimeout(r, ms / fast()));
+  function spinTo(v, dir, my = gen){
+    // Turn a full extra rotation in the given direction, then settle on v, clicking as it passes numbers
+    const target = -((v % 100) * 3.6);
+    let end = target;
+    if(dir > 0){ while(end <= angle) end += 360; end += 360; } else { while(end >= angle) end -= 360; end -= 360; }
+    const from = angle, ms = 900 / fast(), t0 = performance.now();
+    let lastStep = Math.round(from / 7.2);
+    return new Promise(done => {
+      (function step(now){
+        if(my !== gen) return done(false);
+        const k = Math.min(1, (now - t0) / ms), e = 1 - Math.pow(1 - k, 3);
+        angle = from + (end - from) * e;
+        dial.setAttribute("transform", `rotate(${angle} ${C} ${CY})`);
+        const shown = ((Math.round(-angle / 3.6) % 100) + 100) % 100;
+        read.textContent = String(shown).padStart(2, "0");
+        const st = Math.round(angle / 7.2);
+        if(st !== lastStep){ lastStep = st; if(window.PNSound) PNSound.play("key"); }
+        if(k < 1) requestAnimationFrame(step); else { angle = ((end % 360) + 360) % 360 - 360; dial.setAttribute("transform", `rotate(${angle} ${C} ${CY})`); read.textContent = String(v % 100).padStart(2, "0"); done(true); }
+      })(t0);
+    });
+  }
+  function setTumbler(t, v, cls){ t.classList.remove("set", "bad"); if(cls) t.classList.add(cls); t.querySelector("span").textContent = v == null ? "--" : String(v); }
+  const api = {
+    trace: 0, traceOuts: 0, timer: null,
+    setN(n){ el.querySelector(".rigN").textContent = `N = ${n}`; },
+    reset(){ gen++; clearTimeout(api.jamTimer); el.classList.remove("open", "jam"); setTumbler(t1, null); setTumbler(t2, null); api.setN(Run.n); },
+    // Correct pair: right to the first prime, left to the second, shackle springs
+    async open(p, q){
+      const my = ++gen;
+      clearTimeout(api.jamTimer); el.classList.remove("jam");
+      setTumbler(t1, null); setTumbler(t2, null);
+      await spinTo(p, 1, my); setTumbler(t1, p, "set"); if(window.PNSound) PNSound.play("seal");
+      await spinTo(q, -1, my); setTumbler(t2, q, "set"); if(window.PNSound) PNSound.play("seal");
+      await wait(150);
+      el.classList.add("open"); if(window.PNSound) PNSound.play("dock");
+      await wait(500);
+    },
+    // Wrong pair: the dial turns, the tumblers won't catch, it jams
+    async jam(p, q){
+      const my = ++gen;
+      if(!await spinTo(p, 1, my)) return; setTumbler(t1, p, "bad");
+      if(!await spinTo(q, -1, my)) return; setTumbler(t2, q, "bad");
+      el.classList.remove("jam"); void el.offsetWidth; el.classList.add("jam");
+      clearTimeout(api.jamTimer);
+      api.jamTimer = setTimeout(() => { setTumbler(t1, null); setTumbler(t2, null); el.classList.remove("jam"); }, 900 / fast());
+    },
+    paintTrace(){
+      const tr = el.querySelector(".trace");
+      tr.querySelector("i").style.width = api.trace + "%";
+      tr.querySelector(".tv").textContent = Math.round(api.trace) + "%";
+      tr.classList.toggle("hot", api.trace >= 75);
+    },
+    raise(n){
+      if(Run.index > Run.locksPerRun || FF.active || api.busy) return;
+      const before = api.trace;
+      api.trace = Math.min(100, api.trace + n); api.paintTrace();
+      if(before < 50 && api.trace >= 50 && window.PNHandler) PNHandler.say("Careful, {agent}. They're starting to trace the signal.");
+      if(before < 75 && api.trace >= 75 && window.PNSound) PNSound.play("alarm");
+      if(api.trace >= 100) api.traced();
+    },
+    lower(n){ api.trace = Math.max(0, api.trace - n); api.paintTrace(); },
+    // Trace complete: alarm, the lock is swapped for a new number, trace drops back. Nothing else is lost.
+    async traced(){
+      api.busy = true; api.traceOuts++;
+      const flash = document.createElement("div"); flash.className = "traceFlash"; document.body.appendChild(flash);
+      if(window.PNSound) PNSound.play("alarm");
+      addLine("TRACE COMPLETE // SECURITY HAS ROTATED THIS LOCK", "warn");
+      if(window.PNHandler) PNHandler.say("They traced us and swapped the lock. Stay calm: new number, same method.");
+      await new Promise(r => setTimeout(r, 1600));
+      flash.remove();
+      const lock = generatePairForLock(Run.index);
+      Run.p = lock.p; Run.q = lock.q; Run.n = lock.n; Run.tries = 0; Run.solved = false;
+      updateRunUI(); api.reset();
+      api.trace = 30; api.paintTrace();
+      lockBanner("Trace complete: they changed the lock");
+      api.busy = false;
+    },
+    startClock(){
+      clearInterval(api.timer);
+      // Slow background rise: 1% every 5 seconds while a lock is open
+      api.timer = setInterval(() => { if(!document.hidden && !FF.active && Run.index <= Run.locksPerRun && !Run.solved) api.raise(1); }, 5000);
+    },
+  };
+  api.paintTrace();
+  return api;
+})();
+const TRACE_STEP = { L1: 15, L2: 18, L3: 20 };   // trace added by a wrong product; a non-prime adds two thirds of this
+
 // ===================== SUCCESS SCREENS =====================
 // Hold ENTER to fast-forward the cinematic parts (not the parts students play).
 const FF = { active:false, held:false, el:null };
@@ -2383,6 +2534,7 @@ async function handleMath(text){
     Run.tries = (Run.tries || 0) + 1;
     Run.wrongTotal = (Run.wrongTotal || 0) + 1;
     if(window.PNSound) PNSound.play("wrong");
+    Rig.jam(p, q); Rig.raise(TRACE_STEP[DIFF] || 15);
     if(window.PNHandler && Run.tries === 3) PNHandler.once(`hack-tip-${Run.n}`, `Try dividing ${Run.n} by the small primes: 2, 3, 5, 7, 11. If one goes in exactly, you've found half the pair.`);
     setHint(Run.tries >= 3
       ? `Stuck? Type <b>HINT</b> for clues, or test a number with <b>PRIME? 91</b>.`
@@ -2395,6 +2547,7 @@ async function handleMath(text){
     Run.tries = (Run.tries || 0) + 1;
     Run.wrongTotal = (Run.wrongTotal || 0) + 1;
     if(window.PNSound) PNSound.play("denied");
+    Rig.jam(p, q); Rig.raise(Math.round((TRACE_STEP[DIFF] || 15) * 2 / 3));
     const bad = !isPrime(p) ? p : q;
     let split = ""; for(let i=2;i*i<=bad;i++){ if(bad%i===0){ split = ` It's ${i} × ${bad/i}.`; break; } }
     setHint(`Right product, but <b>${bad}</b> isn't prime.${split} Break it down and try again.`);
@@ -2405,6 +2558,8 @@ async function handleMath(text){
   setHint(`Lock cracked: <b>${p} × ${q} = ${Run.n}</b>.`);
   Run.cracked.push({ lock: Run.index, n: Run.n, p: Math.min(p,q), q: Math.max(p,q), tries: Run.tries || 0 });
   Run.solved = true;
+  await Rig.open(Math.min(p, q), Math.max(p, q));
+  Rig.lower(15);
   await onLockSolved();
 }
 
