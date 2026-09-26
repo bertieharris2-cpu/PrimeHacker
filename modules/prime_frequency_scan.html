@@ -429,6 +429,70 @@
 .bonusCard .perk{ color:#ffe14d; }
 body{ overflow:auto !important; }
 
+/* ===== Modern restyle (feedback: match the identity scan) ===== */
+.scanlines::after{ display:none !important; }
+.app{ padding:28px 16px !important; }
+.frame{ width:min(920px,100%) !important; border:0 !important; background:transparent !important; box-shadow:none !important; overflow:visible !important; }
+.topbar{ background:transparent !important; border:0 !important; padding:0 2px 12px !important; }
+.brand{ font-family:var(--font-ui) !important; font-weight:700; letter-spacing:.24em; font-size:13px; color:var(--accent) !important; text-transform:uppercase; }
+.status{ font-size:13px; letter-spacing:.14em; color:rgba(235,255,248,.5) !important; }
+.dot{ width:8px !important; height:8px !important; border-radius:50%; border:0 !important; background:var(--accent) !important; box-shadow:0 0 10px var(--accent) !important; animation:dotPulse 1.6s ease-in-out infinite; }
+@keyframes dotPulse{ 50%{ opacity:.35; } }
+.content{ padding:0 !important; min-height:0 !important; gap:12px !important; }
+.main{ position:relative; background:rgba(6,18,22,.78) !important; border:1px solid rgba(17,90,110,.6) !important; padding:34px 30px !important; min-height:380px !important; gap:18px !important; }
+.main::before, .main::after{ content:""; position:absolute; width:22px; height:22px; border:2px solid var(--accent); pointer-events:none; }
+.main::before{ top:-2px; left:-2px; border-right:0; border-bottom:0; }
+.main::after{ bottom:-2px; right:-2px; border-left:0; border-top:0; }
+.titleBig{ font-family:var(--font-ui) !important; font-size:clamp(24px,3.4vw,34px) !important; letter-spacing:.12em !important; font-weight:700 !important; }
+.titleBig.ok{ color:var(--accent) !important; text-shadow:0 0 24px rgba(var(--accent-rgb),.4); }
+.gridTitle{ font-family:var(--font-ui) !important; font-size:20px !important; letter-spacing:.14em; font-weight:700; }
+.sub, .instruction, .small{ color:rgba(235,255,248,.66) !important; line-height:1.55; }
+.btnRow{ gap:10px !important; margin-top:10px !important; }
+.main button:not(.cell):not(.blip){ font-family:var(--font-ui) !important; text-transform:uppercase; letter-spacing:.12em; font-weight:700; font-size:15px; padding:12px 22px !important; min-width:0 !important;
+  background:transparent !important; border:1px solid rgba(var(--accent-rgb),.5) !important; color:rgba(235,255,248,.92) !important; transition:background .15s, box-shadow .15s, border-color .15s; }
+.main button:not(.cell):not(.blip):hover{ background:rgba(var(--accent-rgb),.12) !important; box-shadow:0 0 18px rgba(var(--accent-rgb),.25); border-color:var(--accent) !important; }
+.btnRow button:first-child{ background:rgba(var(--accent-rgb),.14) !important; border-color:var(--accent) !important; color:var(--accent) !important; }
+.numGrid{ gap:10px !important; width:min(640px,100%) !important; }
+.cell{ font-size:21px !important; padding:15px 0 !important; background:rgba(0,0,0,.35) !important; border:1px solid rgba(var(--accent-rgb),.22) !important; transition:transform .12s ease, border-color .15s, background .15s, box-shadow .15s !important; }
+.cell:hover{ transform:translateY(-2px); border-color:rgba(var(--accent-rgb),.8) !important; }
+.cell.selected{ background:rgba(var(--accent-rgb),.2) !important; border-color:var(--accent) !important; color:#fff; box-shadow:0 0 18px rgba(var(--accent-rgb),.35), inset 0 0 0 1px rgba(var(--accent-rgb),.4) !important; }
+.barWrap{ height:10px !important; border:1px solid rgba(30,150,170,.55) !important; background:rgba(0,0,0,.35) !important; }
+.barFill{ background:var(--accent) !important; box-shadow:0 0 14px rgba(var(--accent-rgb),.6) !important; border:0 !important; }
+.barPulse{ display:none !important; }
+.segments{ gap:6px !important; }
+.seg{ width:56px !important; height:6px !important; border:0 !important; background:rgba(255,255,255,.08) !important; }
+.seg.on{ background:var(--accent) !important; box-shadow:0 0 10px rgba(var(--accent-rgb),.6) !important; }
+.console{ background:transparent !important; border:0 !important; border-left:2px solid rgba(var(--accent-rgb),.5) !important; padding:4px 0 4px 14px !important; min-height:0 !important; font-size:15px; }
+.consoleTag{ font-family:var(--font-ui); letter-spacing:.16em; font-size:12px; color:var(--accent) !important; }
+.jammer{ border:1px solid rgba(17,90,110,.6) !important; background:rgba(0,0,0,.25); padding:10px 12px !important; }
+.jammer .jl{ font-family:var(--font-ui); letter-spacing:.18em; font-size:13px; color:var(--accent) !important; }
+.jammer button{ padding:6px 14px !important; font-size:14px !important; }
+.bonusCard{ border:1px solid rgba(17,90,110,.6) !important; background:rgba(0,0,0,.25); padding:16px 18px !important; }
+.bonusCard .big{ font-family:var(--font-mono); font-size:40px !important; text-shadow:0 0 22px rgba(var(--accent-rgb),.45); }
+.signal{ font-family:var(--font-ui); letter-spacing:.14em; }
+
+/* ===== Live intercept v2: fast, realistic scope ===== */
+.scope{ height:300px !important; background:#020b0a !important; border:1px solid rgba(var(--accent-rgb),.45) !important; box-shadow:inset 0 0 60px rgba(0,0,0,.9), 0 0 24px rgba(var(--accent-rgb),.08) !important; }
+.scope canvas{ position:absolute; inset:0; width:100%; height:100%; }
+.scope .rx{ position:absolute; left:10px; top:8px; z-index:3; font-family:var(--font-mono); font-size:12px; letter-spacing:.08em; color:rgba(var(--accent-rgb),.8); pointer-events:none; }
+.scope .rx .rec{ color:#ff4f6d; animation:dotPulse 1s steps(2) infinite; }
+.scope .rx2{ left:auto; right:10px; text-align:right; }
+.blip{ position:absolute; left:0; top:0; z-index:4; min-width:0 !important; padding:3px 8px !important; font-family:var(--font-mono) !important; font-size:18px !important; font-weight:700; color:#d9fff0 !important;
+  background:rgba(2,14,12,.75) !important; border:1px solid rgba(var(--accent-rgb),.55) !important; box-shadow:none !important; cursor:crosshair; will-change:transform; transition:none !important; }
+.blip::before, .blip::after{ content:""; position:absolute; width:7px; height:7px; border:2px solid transparent; transition:all .15s; }
+.blip::before{ left:-6px; top:-6px; } .blip::after{ right:-6px; bottom:-6px; }
+.blip:hover{ border-color:#ffe14d !important; color:#ffe14d !important; }
+.blip:hover::before{ border-left-color:#ffe14d; border-top-color:#ffe14d; } .blip:hover::after{ border-right-color:#ffe14d; border-bottom-color:#ffe14d; }
+.blip.locked{ background:rgba(var(--accent-rgb),.35) !important; border-color:#fff !important; color:#fff !important; pointer-events:none; }
+.blip.locked::before{ left:-9px; top:-9px; border-left-color:#fff; border-top-color:#fff; } .blip.locked::after{ right:-9px; bottom:-9px; border-right-color:#fff; border-bottom-color:#fff; }
+.blip.noise{ background:rgba(255,79,109,.3) !important; border-color:#ff4f6d !important; color:#fff !important; pointer-events:none; }
+.blip .tag{ position:absolute; left:50%; top:-20px; transform:translateX(-50%); font-size:11px; letter-spacing:.14em; white-space:nowrap; }
+.blip.locked .tag{ color:#fff; } .blip.noise .tag{ color:#ff9bb0; }
+.escape{ position:absolute; left:6px; z-index:4; font-family:var(--font-mono); font-size:12px; color:#ffb35c; pointer-events:none; animation:escFade 1.2s ease-out forwards; }
+@keyframes escFade{ to{ opacity:0; transform:translateX(-10px); } }
+.scopeFeed{ align-self:stretch; height:4px; background:rgba(255,255,255,.08); }
+.scopeFeed i{ display:block; height:100%; width:0; background:var(--accent); box-shadow:0 0 10px rgba(var(--accent-rgb),.6); }
+
 /* ===== PRIMENET shared style (docs/STYLE.md). Keep this block last. ===== */
 html, body{ background: var(--bg-primary) !important; }
 body{ color: var(--text-primary); }
@@ -489,7 +553,7 @@ button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [clas
 
   // ====== CONFIG (edit safely, no spaghetti) ======
   const CONFIG = {
-    versionLabel: "PRIME NET v1.3",
+    versionLabel: "PRIMENET // FREQUENCY SCAN",
     // Bands for warm-up. Add/remove freely.
     // Example: { start: 40, end: 49 }
     // Three bands of ten, picked at random from the level's range each mission (see pickBands)
@@ -868,81 +932,106 @@ button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [clas
   }
 
   // ====== LIVE INTERCEPT (oscilloscope) ======
-  // Numbers drift across a scope. Click the primes before they escape; leave the noise alone.
+  // Signals ride a live trace across the scope as peaks. Click the prime peaks before they
+  // leave the screen; leave the noise. Fast, and it speeds up as the round goes on.
   const INTERCEPT = {
-    L1: { from: 2, to: 40, count: 12, travel: 9000, gap: 1500 },
-    L2: { from: 20, to: 80, count: 14, travel: 8000, gap: 1300 },
-    L3: { from: 50, to: 150, count: 16, travel: 7000, gap: 1150 },
+    L1: { from: 2, to: 40, count: 16, travel: 3800, gap: 620 },
+    L2: { from: 20, to: 80, count: 18, travel: 3400, gap: 560 },
+    L3: { from: 50, to: 150, count: 20, travel: 3100, gap: 520 },
   };
   let interceptDone = null, interceptPerfect = false;
   function renderIntercept(){
     state = State.INTERCEPT;
     const cfg = INTERCEPT[LEVEL_ID] || INTERCEPT.L1;
     const slow = (PN && PN.reducedMotion && PN.reducedMotion()) ? 1.4 : 1;
+    const sp = () => (window.PNTest ? PNTest.speed() : 1);
     setStatus("LIVE INTERCEPT");
-    setConsole("Live traffic detected.", "Click the prime signals before they leave the scope.");
+    setConsole("Live traffic detected.", "Click the prime peaks before they leave the scope.");
     clearMain();
-    if(window.PNHandler) PNHandler.once("scan-intercept", "Live traffic from {target}. Grab the primes as they pass. Leave the noise alone.", { delay: 300 });
+    if(window.PNHandler) PNHandler.once("scan-intercept", "Live traffic from {target}. Grab the prime peaks as they pass. Leave the noise.", { delay: 200 });
 
-    // Half primes, half not, in a random order
     const pool = []; for(let n = cfg.from; n <= cfg.to; n++) pool.push(n);
     const pr = pool.filter(isPrime).sort(() => Math.random() - .5), co = pool.filter(n => !isPrime(n)).sort(() => Math.random() - .5);
     const half = Math.ceil(cfg.count / 2);
     const queue = [...pr.slice(0, half), ...co.slice(0, cfg.count - half)].sort(() => Math.random() - .5);
 
     const heading = el("div", { class: "scanHead" }, [el("div", { class: "gridTitle", text: "LIVE INTERCEPT" }), signalMeter()]);
-    const scope = el("div", { class: "scope", role: "application", "aria-label": "Oscilloscope. Numbers drift from right to left; click the primes." });
-    const canvas = el("canvas");
-    scope.append(canvas);
+    const scope = el("div", { class: "scope", role: "application", "aria-label": "Oscilloscope. Numbered peaks move right to left; click the primes." });
+    const bg = el("canvas"), fg = el("canvas");
+    const rx = el("div", { class: "rx", html: `<span class="rec">●</span> RX-04 · LIVE` });
+    const rx2 = el("div", { class: "rx rx2", html: `GAIN <span class="gain">38</span> dB<br><span class="freq">0.00</span> MHz` });
+    scope.append(bg, fg, rx, rx2);
+    const feed = el("div", { class: "scopeFeed", html: "<i></i>" });
     const hud = el("div", { class: "scopeHud" });
-    const wrap = el("div", { class: "intercept" }, [heading, el("div", { class: "instruction", text: "Primes are stable signals. Click them before they escape. Leave the noise." }), scope, hud]);
-    main.append(wrap);
+    main.append(el("div", { class: "intercept" }, [heading, el("div", { class: "instruction", text: "Primes are stable signals. Click their peaks before they escape. Leave the noise." }), scope, feed, hud]));
 
     const stats = { locked: 0, missed: 0, noise: 0, left: queue.length };
-    const paintHud = () => { hud.innerHTML = `Locked <b>${stats.locked}</b> · Missed <b>${stats.missed}</b> · Noise clicked <b>${stats.noise}</b> · Incoming <b>${stats.left}</b>`; };
+    const paintHud = () => { hud.innerHTML = `Locked <b>${stats.locked}</b> · Missed <b>${stats.missed}</b> · Noise clicked <b>${stats.noise}</b> · Incoming <b>${stats.left}</b>`; feed.firstChild.style.width = ((queue.length - stats.left) / queue.length * 100) + "%"; };
     paintHud();
 
-    const blips = []; let spawned = 0, lastSpawn = -1e9, t0 = performance.now(), running = true, finishing = false;
-    const g = canvas.getContext("2d");
-    function drawScope(now){
-      const w = canvas.width = scope.clientWidth, h = canvas.height = scope.clientHeight;
-      g.strokeStyle = "rgba(47,191,138,.12)"; g.lineWidth = 1;
-      for(let x = 0; x < w; x += 40){ g.beginPath(); g.moveTo(x, 0); g.lineTo(x, h); g.stroke(); }
-      for(let y = 0; y < h; y += 30){ g.beginPath(); g.moveTo(0, y); g.lineTo(w, y); g.stroke(); }
-      g.strokeStyle = "rgba(47,191,138,.55)"; g.lineWidth = 2; g.shadowColor = "rgba(47,191,138,.8)"; g.shadowBlur = 8;
-      g.beginPath();
-      for(let x = 0; x <= w; x += 4){ const y = h / 2 + Math.sin(x / 38 + now / 380) * 22 + Math.sin(x / 11 + now / 150) * 4; x ? g.lineTo(x, y) : g.moveTo(x, y); }
-      g.stroke(); g.shadowBlur = 0;
+    // Background grid once; the trace draws on top with phosphor persistence
+    let W = 0, H = 0; const dpr = window.devicePixelRatio || 1;
+    const gb = bg.getContext("2d"), g = fg.getContext("2d");
+    function size(){
+      W = scope.clientWidth; H = scope.clientHeight;
+      [bg, fg].forEach(c => { c.width = W * dpr; c.height = H * dpr; c.getContext("2d").setTransform(dpr, 0, 0, dpr, 0, 0); });
+      gb.clearRect(0, 0, W, H);
+      for(let x = 0; x <= W; x += W / 10){ gb.strokeStyle = "rgba(47,191,138,.16)"; gb.beginPath(); gb.moveTo(x, 0); gb.lineTo(x, H); gb.stroke(); }
+      for(let y = 0; y <= H; y += H / 8){ gb.strokeStyle = "rgba(47,191,138,.16)"; gb.beginPath(); gb.moveTo(0, y); gb.lineTo(W, y); gb.stroke(); }
+      gb.strokeStyle = "rgba(47,191,138,.35)"; gb.beginPath(); gb.moveTo(0, H * .62); gb.lineTo(W, H * .62); gb.stroke();
+      for(let x = 0; x <= W; x += W / 50){ gb.beginPath(); gb.moveTo(x, H * .62 - 3); gb.lineTo(x, H * .62 + 3); gb.stroke(); }
     }
+    size();
+
+    const blips = []; let spawned = 0, lastSpawn = -1e9, running = true, finishing = false;
+    const base = () => H * .62;
     function spawn(n){
-      const b = el("button", { class: "blip", type: "button", text: String(n), "aria-label": `Signal ${n}` });
-      const lane = 30 + Math.random() * (scope.clientHeight - 90);
-      const blip = { n, el: b, born: performance.now(), lane, phase: Math.random() * 6, done: false };
+      const b = el("button", { class: "blip", type: "button", "aria-label": `Signal ${n}` });
+      b.innerHTML = `${n}<span class="tag"></span>`;
+      const blip = { n, el: b, born: performance.now(), amp: 60 + Math.random() * 70, width: 14 + Math.random() * 8, done: false, state: "live", x: W + 40, fade: 1 };
       b.addEventListener("click", () => hitBlip(blip));
       scope.append(b); blips.push(blip);
     }
-    function retire(blip, cls, ms = 600){ blip.done = true; blip.el.classList.add(cls); setTimeout(() => blip.el.remove(), ms); }
+    function retire(blip, state, tag){ blip.done = true; blip.state = state; blip.el.classList.add(state); blip.el.querySelector(".tag").textContent = tag; setTimeout(() => blip.el.remove(), 650); }
     function hitBlip(blip){
       if(blip.done || !running) return;
-      if(isPrime(blip.n)){ stats.locked++; retire(blip, "locked"); SND("correct", Math.min(8, stats.locked - 1)); setConsole("SIGNAL LOCKED", `${blip.n} is prime: only 1 and ${blip.n} go into it.`); }
-      else { stats.noise++; retire(blip, "noise"); SND("wrong"); loseSignal(4); let f = ""; for(let i = 2; i * i <= blip.n; i++) if(blip.n % i === 0){ f = `${i} × ${blip.n / i}`; break; } setConsole("NOISE", blip.n === 1 ? "1 is not prime: it has only one factor." : `${blip.n} = ${f}, so it isn't prime.`); }
+      if(isPrime(blip.n)){ stats.locked++; retire(blip, "locked", "LOCKED"); SND("correct", Math.min(8, stats.locked - 1)); setConsole("SIGNAL LOCKED", `${blip.n} is prime: only 1 and ${blip.n} go into it.`); }
+      else { stats.noise++; let f = ""; for(let i = 2; i * i <= blip.n; i++) if(blip.n % i === 0){ f = `${i}×${blip.n / i}`; break; } retire(blip, "noise", blip.n === 1 ? "1: NOT PRIME" : `= ${f}`); SND("wrong"); loseSignal(4); setConsole("NOISE", blip.n === 1 ? "1 is not prime: it has only one factor." : `${blip.n} = ${f.replace("×", " × ")}, so it isn't prime.`); }
       paintHud();
     }
+    const t0 = performance.now();
     function frame(now){
       if(!running) return;
-      drawScope(now);
-      const travel = cfg.travel * slow / (window.PNTest ? PNTest.speed() : 1), w = scope.clientWidth;
-      if(spawned < queue.length && now - lastSpawn > cfg.gap * slow / (window.PNTest ? PNTest.speed() : 1)){ spawn(queue[spawned++]); lastSpawn = now; stats.left = queue.length - spawned; paintHud(); }
+      const prog = spawned / queue.length;                 // later signals move faster
+      const travel = cfg.travel * slow * (1 - .22 * prog) / sp();
+      if(spawned < queue.length && now - lastSpawn > cfg.gap * slow * (1 - .2 * prog) / sp()){ spawn(queue[spawned++]); lastSpawn = now; stats.left = queue.length - spawned; paintHud(); }
+      blips.forEach(b => { if(b.state === "live") b.x = W + 40 - ((now - b.born) / travel) * (W + 100); });
+
+      // Phosphor persistence: fade the last frame instead of clearing it
+      g.fillStyle = "rgba(2,11,10,.38)"; g.fillRect(0, 0, W, H);
+      const t = (now - t0) / 1000;
+      const yAt = x => {
+        let y = base() + Math.sin(x / 23 + t * 9) * 3 + Math.sin(x / 7 + t * 23) * 1.5 + (Math.random() - .5) * 2.2;
+        blips.forEach(b => { if(b.state === "live" || b.fade > 0){ const d = (x - b.x) / b.width; y -= b.amp * (b.state === "live" ? 1 : b.fade) * Math.exp(-d * d) * (1 + .06 * Math.sin(t * 30 + b.n)); } });
+        return y;
+      };
+      g.lineWidth = 2; g.strokeStyle = "rgba(120,255,200,.95)"; g.shadowColor = "rgba(47,191,138,.9)"; g.shadowBlur = 10;
+      g.beginPath(); for(let x = 0; x <= W; x += 2){ const y = yAt(x); x ? g.lineTo(x, y) : g.moveTo(x, y); } g.stroke();
+      g.shadowBlur = 0;
+      // Labels sit on their peaks
       blips.forEach(b => {
-        if(b.done && !b.el.classList.contains("locked") && !b.el.classList.contains("noise")) return;
-        const k = (now - b.born) / travel, x = w + 10 - k * (w + 90), y = b.lane + Math.sin(now / 420 + b.phase) * 10;
-        if(!b.el.classList.contains("locked") && !b.el.classList.contains("noise")) b.el.style.transform = `translate(${x}px, ${y}px)`;
-        if(!b.done && x < -70){
-          b.done = true; b.el.remove();
-          if(isPrime(b.n)){ stats.missed++; loseSignal(4); SND("untag"); setConsole("SIGNAL ESCAPED", `${b.n} was prime. It got away.`); paintHud(); }
+        if(b.state !== "live"){ b.fade = Math.max(0, b.fade - .06); return; }
+        const peak = base() - b.amp;
+        b.el.style.transform = `translate(${b.x - b.el.offsetWidth / 2}px, ${peak - 38}px)`;
+        if(b.x < -30){
+          b.done = true; b.state = "gone"; b.el.remove();
+          if(isPrime(b.n)){ stats.missed++; loseSignal(4); SND("untag"); setConsole("SIGNAL ESCAPED", `${b.n} was prime. It got away.`); const e = el("div", { class: "escape", text: `◀ MISSED ${b.n}` }); e.style.top = (peak - 10) + "px"; scope.append(e); setTimeout(() => e.remove(), 1300); paintHud(); }
         }
       });
-      if(spawned >= queue.length && blips.every(b => b.done) && !finishing){ finishing = true; setTimeout(finish, 700); }
+      const live = blips.find(b => b.state === "live");
+      rx2.querySelector(".freq").textContent = live ? (live.n * 1.37 + Math.random() * .05).toFixed(2) : "0.00";
+      rx2.querySelector(".gain").textContent = String(36 + Math.round(Math.random() * 4));
+      if(spawned >= queue.length && blips.every(b => b.done) && !finishing){ finishing = true; setTimeout(finish, 600); }
       requestAnimationFrame(frame);
     }
     function finish(){

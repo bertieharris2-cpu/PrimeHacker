@@ -313,19 +313,30 @@
   }
 
 
+/* Code burst between locks */
+.keyRotate{ font-family:var(--font-mono); font-size:15px; line-height:1.5; white-space:pre-wrap; word-break:break-word; background:rgba(0,0,0,.45); border:1px solid rgba(var(--accent-rgb),.25); border-left:3px solid var(--accent); padding:8px 12px; margin:6px 0 10px; color:rgba(235,255,248,.85); }
+.keyRotate .c-cmd{ color:#6dffb0; } .keyRotate .c-flag{ color:#3ff0ff; } .keyRotate .c-str{ color:#ff4fd8; } .keyRotate .c-num{ color:#ffe14d; } .keyRotate .c-com{ color:rgba(235,255,248,.45); }
+
 /* ===== Round 3 group 6: getaway, server blackout, shop skins ===== */
 .fxOverlay.gaOverlay{ background:rgba(2,8,10,.97) !important; }
 .getaway{ width:min(760px, 94vw); display:flex; flex-direction:column; gap:14px; align-items:stretch; }
 .ga-title{ font-family:var(--font-ui); font-weight:800; letter-spacing:.2em; color:var(--warning); text-align:center; font-size:18px; }
-.road{ position:relative; height:110px; background:linear-gradient(#0a1417, #121c1f 40%, #121c1f 60%, #0a1417); border-top:2px solid #2a3a3e; border-bottom:2px solid #2a3a3e; overflow:hidden; }
-.road .lane{ position:absolute; left:0; right:0; top:52px; height:4px; background:repeating-linear-gradient(90deg, #d8c16a 0 40px, transparent 40px 80px); animation:lane .5s linear infinite; }
-@keyframes lane{ from{ background-position:0 0; } to{ background-position:-80px 0; } }
-.road .veh{ position:absolute; top:26px; width:92px; height:56px; transition:left .8s cubic-bezier(.3,1,.4,1); }
-.road .van{ left:30%; } .road .cops{ left:4%; }
-.road .cops .bar{ animation:copLights .4s steps(2) infinite; }
-@keyframes copLights{ 0%{ fill:#ff2d55; } 100%{ fill:#3a8dff; } }
-.road .safe{ position:absolute; right:8px; top:8px; bottom:8px; width:70px; border:2px dashed rgba(47,191,138,.6); color:#2fbf8a; font-size:11px; letter-spacing:.14em; display:flex; align-items:center; justify-content:center; text-align:center; font-family:var(--font-ui); font-weight:700; }
-.ga-q{ border:1px solid var(--line); background:rgba(0,0,0,.35); padding:16px; display:flex; flex-direction:column; align-items:center; gap:10px; }
+.ga-head{ display:flex; justify-content:space-between; align-items:baseline; gap:12px; font-family:var(--font-ui); font-weight:700; letter-spacing:.2em; font-size:13px; color:rgba(235,255,248,.6); }
+.ga-head b{ font-family:var(--font-mono); letter-spacing:.04em; font-size:18px; color:#2fbf8a; }
+.ga-head b.close{ color:#ff4f6d; }
+.ga-map{ position:relative; border:1px solid rgba(47,191,138,.35); background:#030b0d; }
+.ga-map svg{ display:block; width:100%; height:auto; }
+.ga-map .unit{ animation:unitBlink .5s steps(2) infinite; }
+.ga-map .unit.b{ animation-delay:-.25s; }
+@keyframes unitBlink{ 0%{ fill:#ff2d55; } 100%{ fill:#3a8dff; } }
+.ga-map .halo{ fill:none; stroke:rgba(255,45,85,.6); animation:halo 1.2s ease-out infinite; transform-box:fill-box; transform-origin:center; }
+@keyframes halo{ from{ transform:scale(.4); opacity:1; } to{ transform:scale(2.4); opacity:0; } }
+.ga-map .me{ filter:drop-shadow(0 0 6px #2fbf8a); }
+.ga-radio{ font-family:var(--font-mono); font-size:14px; color:#ffb35c; min-height:1.4em; margin-top:-6px; }
+.ga-radio::before{ content:"◉ RADIO  "; color:#ff4f6d; }
+.ga-corner{ position:absolute; top:8px; left:10px; font-family:var(--font-mono); font-size:12px; letter-spacing:.08em; color:rgba(47,191,138,.8); }
+.ga-corner .rec{ color:#ff4f6d; }
+.ga-q{ border:1px solid rgba(17,90,110,.6); background:rgba(0,0,0,.4); padding:16px; display:flex; flex-direction:column; align-items:center; gap:10px; }
 .ga-q small{ letter-spacing:.2em; color:var(--text-faint, rgba(235,255,248,.5)); font-size:12px; }
 .ga-n{ font-family:var(--font-mono); font-size:64px; font-weight:700; color:#ffe14d; line-height:1; text-shadow:0 0 24px rgba(255,225,77,.35); }
 .ga-ask{ font-size:18px; color:rgba(235,255,248,.85); }
@@ -2103,13 +2114,71 @@ async function breachPrelude(seconds=10){
 }
 
 
+// ===================== BETWEEN LOCKS: key rotation code =====================
+// After a lock is cracked, a burst of generated code runs while the next lock is set up.
+async function lockTransition(prev){
+  const acct = Bank.getCurrentAccount();
+  const host = (acct ? acct.name : "target").toLowerCase().replace(/[^a-z]+/g, "-").replace(/(^-|-$)/g, "");
+  const hex = n => Array.from({ length: n }, () => "0123456789abcdef"[randInt(16)]).join("");
+  const next = Run.index;
+  const pools = [
+    () => `$ ./vault_ctl --release lock_${next - 1} --key "${prev.p}x${prev.q}"`,
+    () => `> bolt_${next - 1} retracted   # ${prev.p} x ${prev.q} = ${prev.p * prev.q}`,
+    () => `$ ssh relay-${String(randInt(90) + 10)}.${host}.net "rotate --next-lock"`,
+    () => `0x${hex(4)} 0x${hex(4)} 0x${hex(4)} 0x${hex(4)} 0x${hex(4)} 0x${hex(4)}`,
+    () => `$ ./sieve --range 2..${Math.floor(Math.sqrt(Run.n))} --target lock_${next}`,
+    () => `[AUTH] session ${hex(6).toUpperCase()} :: handshake ok`,
+    () => `$ ./probe --lock ${next} --read-modulus`,
+    () => `> modulus loaded: N=${Run.n}   # find the two primes`,
+    () => `$ tail -n 3 /var/log/vault/${host}.log | grep "lock_${next}"`,
+    () => `[${hex(8).toUpperCase()}] rekey ${next}/${Run.locksPerRun} :: ${["ok", "ok", "pending", "ok"][randInt(4)]}`,
+  ];
+  // Always start with the release, always end with the new modulus; random middle
+  const middle = [2, 3, 4, 5, 8, 9].sort(() => Math.random() - .5).slice(0, 3 + randInt(2)).map(i => pools[i]());
+  const lines = [pools[0](), pools[1](), ...middle, pools[6](), pools[7]()];
+  const box = addBlock("", "keyRotate");
+  const html = highlightCode(lines.join("\n"));
+  for(let i = 0; i < lines.length; i++){
+    const row = document.createElement("div"); box.appendChild(row);
+    const plain = lines[i];
+    for(let c = 0; c <= plain.length; c += 3){ row.textContent = plain.slice(0, c); term.scrollTop = term.scrollHeight; if(c % 9 === 0) SFX("key"); await sleep(8); }
+    row.innerHTML = html[i];
+    SFX("chatter");
+    await sleep(60);
+  }
+}
+
 // ===================== GETAWAY =====================
 // After the vault opens: three quick "prime or not?" calls while the police close in.
 // Always escapes. 3 out of 3 is a clean getaway (+5% and the Wheelman badge).
 const GETAWAY = { L1: { from: 2, to: 50, secs: 8 }, L2: { from: 20, to: 100, secs: 7 }, L3: { from: 50, to: 200, secs: 6 } };
 const Getaway = { answer: null };
-function vanSVG(){ return `<svg viewBox="0 0 92 56"><rect x="4" y="10" width="62" height="30" rx="3" fill="#1d3a34" stroke="#2fbf8a" stroke-width="2"/><path d="M66 18 h14 l8 10 v12 h-22z" fill="#1d3a34" stroke="#2fbf8a" stroke-width="2"/><rect x="70" y="21" width="9" height="7" fill="#6ec8ff" opacity=".7"/><circle cx="20" cy="44" r="7" fill="#0b1214" stroke="#9fb7bb" stroke-width="2"/><circle cx="72" cy="44" r="7" fill="#0b1214" stroke="#9fb7bb" stroke-width="2"/><text x="35" y="30" font-size="9" fill="#2fbf8a" text-anchor="middle" font-family="monospace">PRIMENET</text></svg>`; }
-function copSVG(){ return `<svg viewBox="0 0 92 56"><rect class="bar" x="34" y="4" width="22" height="7" rx="2" fill="#ff2d55"/><path d="M8 26 l12 -12 h44 l14 12 h8 v14 h-80z" fill="#e8eef0" stroke="#223" stroke-width="2"/><rect x="8" y="30" width="80" height="5" fill="#3a8dff"/><circle cx="24" cy="44" r="7" fill="#0b1214" stroke="#9fb7bb" stroke-width="2"/><circle cx="72" cy="44" r="7" fill="#0b1214" stroke="#9fb7bb" stroke-width="2"/></svg>`; }
+// A live tracking map: your car is the green arrow, police units are the flashing dots.
+// Streets and the route are generated each time.
+function pursuitMap(){
+  const W = 760, H = 250, streets = [];
+  let g = `<defs><pattern id="gaGrid" width="20" height="20" patternUnits="userSpaceOnUse"><path d="M20 0H0V20" fill="none" stroke="rgba(47,191,138,.05)"/></pattern></defs><rect width="${W}" height="${H}" fill="url(#gaGrid)"/>`;
+  // Blocks of streets, a river and a park, then the escape route along the streets
+  g += `<path d="M0 ${H * .72} C 200 ${H * .6}, 380 ${H * .95}, ${W} ${H * .78}" fill="none" stroke="#0c3550" stroke-width="18"/>`;
+  g += `<rect x="${W * .44}" y="18" width="70" height="46" fill="rgba(47,191,138,.06)" stroke="rgba(47,191,138,.15)"/>`;
+  for(let x = 30; x < W; x += 50 + randInt(30)) streets.push(`<line x1="${x}" y1="0" x2="${x + randInt(20) - 10}" y2="${H}" stroke="rgba(158,190,196,.16)" stroke-width="${randInt(4) === 0 ? 4 : 1.5}"/>`);
+  for(let y = 20; y < H; y += 34 + randInt(20)) streets.push(`<line x1="0" y1="${y}" x2="${W}" y2="${y + randInt(16) - 8}" stroke="rgba(158,190,196,.16)" stroke-width="${randInt(4) === 0 ? 4 : 1.5}"/>`);
+  g += streets.join("");
+  let x = 30, y = H - 50, d = `M${x} ${y}`;
+  while(x < W - 90){ x += 70 + randInt(60); d += ` L${x} ${y}`; if(x < W - 90){ y = Math.max(40, Math.min(H - 40, y + (randInt(2) ? -1 : 1) * (30 + randInt(40)))); d += ` L${x} ${y}`; } }
+  x = W - 60; d += ` L${x} ${y}`;
+  g += `<path id="gaRoute" d="${d}" fill="none" stroke="rgba(47,191,138,.28)" stroke-width="3" stroke-dasharray="6 6"/>`;
+  g += `<path id="gaDone" d="${d}" fill="none" stroke="#2fbf8a" stroke-width="3"/>`;
+  g += `<g transform="translate(${x},${y})"><rect x="-10" y="-10" width="20" height="20" fill="none" stroke="#2fbf8a" stroke-width="2"/><text x="0" y="-16" text-anchor="middle" font-size="11" fill="#2fbf8a" font-family="monospace" letter-spacing="2">SAFEHOUSE</text></g>`;
+  g += [0, 1].map(i => `<g class="cop" id="gaCop${i}"><circle class="halo" r="8"/><circle class="unit${i ? " b" : ""}" r="5"/></g>`).join("");
+  g += `<g id="gaMe" class="me"><path d="M9 0 L-7 -6 L-4 0 L-7 6 Z" fill="#2fbf8a"/></g>`;
+  return `<svg viewBox="0 0 ${W} ${H}">${g}</svg>`;
+}
+const RADIO = {
+  start: ["All units: suspect vehicle leaving the vault district, heading east.", "Control to all units: silent alarm triggered. Vehicle on the move.", "Units 7 and 12, respond. Suspect vehicle eastbound."],
+  right: ["Unit 7: lost visual. Where did they go?", "Unit 12: they took the side streets. Gap widening.", "Control: suspect speed increasing. Keep up.", "Unit 7: blocked at the junction. Can't follow."],
+  wrong: ["Unit 12: got them. Closing the gap.", "Unit 7: right behind them now. Closing fast.", "Control: suspect slowing. Close in.", "Unit 12: we're on them. Lights on."],
+};
 async function getaway(){
   const cfg = GETAWAY[DIFF] || GETAWAY.L1;
   const primes = [], tricky = [], other = [];
@@ -2118,15 +2187,26 @@ async function getaway(){
   const nums = [pickOne(primes), pickOne(tricky.length ? tricky : other), Math.random() < .5 ? pickOne(primes) : pickOne(tricky.length ? tricky : other)].sort(() => Math.random() - .5);
   const o = overlay("gaOverlay");
   o.innerHTML = `<div class="getaway" role="dialog" aria-label="Getaway">
-    <div class="ga-title">GETAWAY // LOSE THE TRACE</div>
-    <div class="road"><div class="lane"></div><div class="safe">SAFE<br>HOUSE</div><div class="veh cops">${copSVG()}</div><div class="veh van">${vanSVG()}</div></div>
-    <div class="ga-q"><small class="ga-count">SIGNAL 1 OF 3</small><div class="ga-n">?</div><div class="ga-ask">Prime or not? Answer fast to stay ahead.</div>
+    <div class="ga-head"><span>PURSUIT // LIVE TRACKING</span><span>GAP <b class="ga-gap">0 m</b></span></div>
+    <div class="ga-map">${pursuitMap()}<div class="ga-corner"><span class="rec">●</span> SAT-LINK 3 · ${new Date().toLocaleTimeString("en-GB")}</div></div>
+    <div class="ga-radio"></div>
+    <div class="ga-q"><small class="ga-count">SIGNAL 1 OF 3</small><div class="ga-n">?</div><div class="ga-ask">Prime or not? Every right call puts distance between you and the police.</div>
       <div class="ga-btns"><button type="button" data-a="p">PRIME<kbd>P</kbd></button><button type="button" data-a="n">NOT PRIME<kbd>N</kbd></button></div>
       <div class="ga-timer"><i></i></div><div class="ga-fb"></div></div></div>`;
-  const van = o.querySelector(".van"), cops = o.querySelector(".cops"), bar = o.querySelector(".ga-timer i"), fb = o.querySelector(".ga-fb");
-  SFX("engine"); SFX("siren");
-  let score = 0, vanX = 30, copX = 4;
-  const move = () => { van.style.left = vanX + "%"; cops.style.left = copX + "%"; };
+  const route = o.querySelector("#gaRoute"), done = o.querySelector("#gaDone"), me = o.querySelector("#gaMe"), cops = [o.querySelector("#gaCop0"), o.querySelector("#gaCop1")];
+  const L = route.getTotalLength(), bar = o.querySelector(".ga-timer i"), fb = o.querySelector(".ga-fb"), radio = o.querySelector(".ga-radio"), gapEl = o.querySelector(".ga-gap");
+  done.setAttribute("stroke-dasharray", `0 ${L}`);
+  let car = .16, gap = .14;
+  const place = (el, f, rot) => { const pt = route.getPointAtLength(Math.max(0, Math.min(1, f)) * L); if(rot){ const p2 = route.getPointAtLength(Math.min(L, Math.max(0, f) * L + 2)); const a = Math.atan2(p2.y - pt.y, p2.x - pt.x) * 180 / Math.PI; el.setAttribute("transform", `translate(${pt.x},${pt.y}) rotate(${a})`); } else el.setAttribute("transform", `translate(${pt.x},${pt.y})`); };
+  const draw = () => {
+    place(me, car, true); place(cops[0], car - gap); place(cops[1], car - gap - .05);
+    done.setAttribute("stroke-dasharray", `${car * L} ${L}`);
+    const m = Math.round(gap * 2600 / 10) * 10; gapEl.textContent = `${m} m`; gapEl.classList.toggle("close", m < 200);
+  };
+  const glide = (toCar, toGap, ms = 900) => new Promise(res => { const c0 = car, g0 = gap, t0 = performance.now(); (function f(now){ const k = Math.min(1, (now - t0) / ms), e = 1 - Math.pow(1 - k, 3); car = c0 + (toCar - c0) * e; gap = g0 + (toGap - g0) * e; draw(); if(k < 1) requestAnimationFrame(f); else res(); })(t0); });
+  const say = t => { radio.textContent = t; SFX("chatter"); };
+  draw(); say(pickOne(RADIO.start)); SFX("engine"); SFX("siren");
+  let score = 0;
   for(let i = 0; i < nums.length; i++){
     const n = nums[i], prime = isPrime(n);
     o.querySelector(".ga-count").textContent = `SIGNAL ${i + 1} OF 3`;
@@ -2134,26 +2214,32 @@ async function getaway(){
     fb.textContent = ""; fb.className = "ga-fb";
     Getaway.answer = prime ? "p" : "n";
     const ans = await new Promise(resolve => {
-      const ms = cfg.secs * 1000, t0 = performance.now(); let done = false;
-      const finish = a => { if(done) return; done = true; document.removeEventListener("keydown", onKey, true); o.querySelectorAll(".ga-btns button").forEach(b => b.onclick = null); resolve(a); };
+      const ms = cfg.secs * 1000, t0 = performance.now(); let fin = false;
+      const finish = a => { if(fin) return; fin = true; document.removeEventListener("keydown", onKey, true); o.querySelectorAll(".ga-btns button").forEach(b => b.onclick = null); resolve(a); };
       const onKey = e => { const k = e.key.toLowerCase(); if(k === "p" || k === "n"){ e.preventDefault(); e.stopPropagation(); finish(k); } };
       document.addEventListener("keydown", onKey, true);
       o.querySelectorAll(".ga-btns button").forEach(b => b.onclick = () => finish(b.dataset.a));
-      (function tick(now){ if(done) return; const k = Math.min(1, (now - t0) / ms); bar.style.width = (100 - k * 100) + "%"; if(k >= 1) finish(null); else requestAnimationFrame(tick); })(t0);
+      (function tick(now){ if(fin) return; const k = Math.min(1, (now - t0) / ms); bar.style.width = (100 - k * 100) + "%"; if(k >= 1) finish(null); else requestAnimationFrame(tick); })(t0);
     });
     let f = ""; for(let d = 2; d * d <= n; d++) if(n % d === 0){ f = `${d} × ${n / d}`; break; }
-    const right = ans === Getaway.answer;
-    if(right){ score++; vanX = Math.min(72, vanX + 14); copX = Math.min(vanX - 20, copX + 6); SFX("correct", score); fb.className = "ga-fb ok"; fb.textContent = prime ? `✓ ${n} is prime. Foot down!` : `✓ ${n} = ${f}. Not prime. Foot down!`; }
-    else { copX = Math.min(vanX - 6, copX + 16); SFX("siren"); fb.className = "ga-fb bad"; fb.textContent = `${ans ? "✗" : "Too slow!"} ${prime ? `${n} is prime: only 1 and ${n} go into it.` : `${n} = ${f}, so it isn't prime.`}`; }
-    move();
-    await sleep(1400);
+    if(ans === Getaway.answer){
+      score++; SFX("correct", score); SFX("engine");
+      fb.className = "ga-fb ok"; fb.textContent = prime ? `✓ ${n} is prime.` : `✓ ${n} = ${f}. Not prime.`;
+      say(pickOne(RADIO.right)); await glide(Math.min(.82, car + .22), Math.min(.3, gap + .05));
+    } else {
+      SFX("siren");
+      fb.className = "ga-fb bad"; fb.textContent = `${ans ? "✗" : "Too slow."} ${prime ? `${n} is prime: only 1 and ${n} go into it.` : `${n} = ${f}, so it isn't prime.`}`;
+      say(pickOne(RADIO.wrong)); await glide(Math.min(.82, car + .1), Math.max(.03, gap - .06));
+    }
+    await sleep(700);
   }
   Getaway.answer = null;
-  vanX = 88; move(); SFX("engine");
+  say(score === 3 ? "Control: we've lost them. All units stand down." : score === 2 ? "Unit 7: lost them at the last junction." : "Unit 12: they ditched the car in the tunnels. Search the area.");
+  await glide(1, score === 3 ? .34 : gap, 1100);
   const q = o.querySelector(".ga-q");
-  q.innerHTML = score === 3 ? `<div class="ga-result">CLEAN GETAWAY<small>3 out of 3. Not a siren in sight. +5% on the haul.</small></div>`
+  q.innerHTML = score === 3 ? `<div class="ga-result">CLEAN GETAWAY<small>3 out of 3. No one followed you home. +5% on the haul.</small></div>`
     : score === 2 ? `<div class="ga-result" style="color:var(--warning)">CLOSE CALL<small>2 out of 3. You lost them at the last junction.</small></div>`
-    : `<div class="ga-result" style="color:#ff6b6b">SIRENS ALL THE WAY<small>${score} out of 3. You ditched the van in the tunnels and walked home.</small></div>`;
+    : `<div class="ga-result" style="color:#ff6b6b">SIRENS ALL THE WAY<small>${score} out of 3. You ditched the car in the tunnels and walked home.</small></div>`;
   SFX(score === 3 ? "success" : "commit");
   await sleep(2200);
   o.remove();
@@ -2539,6 +2625,7 @@ async function onLockSolved(){
     }
     Run.index += 1;
     newTargetNextLock();
+    await lockTransition(last);
     lockBanner(Run.index === Run.locksPerRun ? "Final lock: crack it to breach the vault" : "");
     return;
   }

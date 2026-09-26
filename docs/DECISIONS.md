@@ -164,3 +164,11 @@ Every idea is a "maybe until I see it". Build these as prototypes to look at bef
 
 - Yes, if it looks right: vault door that opens, bank balance draining, tension before the release (alarm), rank-up stamp and codename, case file at the end, fast-forward on repeat plays
 - Maybe: different finales each run (they must still match the stage the student is at), more doing and less watching, a proper sound sting, a real ending for Factor Vault
+
+## Play-test feedback 3
+
+- [x] Frequency Scan restyled to match the identity scan: a heading strip above the panel, corner brackets, Chakra Petch titles, glowing meters, larger number tiles and a slim log line instead of the boxed console
+- [x] Live intercept rebuilt: numbers ride the scope's trace as peaks, with phosphor trails, a live frequency and gain readout, and lock-on brackets. 16 to 20 signals in about 12 seconds, getting faster as the round goes on (it was about 25 seconds)
+- [x] Getaway: the cartoon van and police car are replaced by a live tracking map (generated streets and route, police units flashing behind, the gap in metres, radio chatter)
+- [x] Between cracked locks, a short burst of generated code (bolt released with the student's primes, key rotation, hex, the next lock's modulus) runs before the next lock's banner
+
