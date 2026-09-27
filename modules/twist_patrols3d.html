@@ -29,7 +29,6 @@
   .cctv .lost{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-family:var(--font-ui); letter-spacing:.3em; font-size:30px; color:#ff4f6d; background:rgba(2,8,10,.55); opacity:0; pointer-events:none; transition:opacity .4s; }
   .cctv .lost.on{ opacity:1; }
   .task{ padding:14px 16px; display:flex; flex-direction:column; gap:12px; }
-  .ask{ font-size:19px; color:var(--text-primary); } .ask b{ color:var(--warning); }
   .rowlab{ font-family:var(--font-ui); font-size:12px; letter-spacing:.14em; color:var(--text-faint); margin-bottom:4px; display:flex; align-items:center; gap:8px; }
   .rowlab i{ width:10px; height:10px; border-radius:50%; display:inline-block; }
   .tl{ display:grid; grid-template-columns:repeat(var(--n), minmax(0,1fr)); gap:3px; }
@@ -51,7 +50,6 @@
     <div class="top"><span class="rec">● REC</span> CAM 04 · FIRE DOOR · <span id="floorName">WEAK FLOOR</span></div><div class="clock" id="clock">00:00</div>
     <div class="legend" id="legend"></div><div class="log" id="log"></div><div class="lost" id="lost">FEED LOST</div></section>
   <section class="pn-panel task" id="task">
-    <div class="ask" id="ask"></div>
     <div id="rows"></div>
     <div class="ans" id="ansRow" hidden><label for="ansIn">They're both at the door together first at minute</label><input class="pn-input" id="ansIn" inputmode="numeric" maxlength="3"><button class="pn-btn small primary" type="button" id="ansBtn">Check on the feed</button></div>
     <div class="choices" id="choices" hidden></div>
@@ -152,7 +150,7 @@
     const dt = Math.min(0.1, (now - last) / 1000); last = now;
     const sp = window.PNTest ? PNTest.speed() : 1;
     if(target != null){ minute = Math.min(target, minute + dt * Math.max(4, target / 3) * sp); if(minute >= target){ const f = onArrive; target = null; onArrive = null; if(f) f(); } }
-    else minute += dt * rate * sp;
+    else if(!T.briefOpen()) minute += dt * rate * sp;   // the feed holds while the brief is up
     $("clock").textContent = `00:${String(Math.floor(minute) % 60).padStart(2, "0")}`;
     guards.forEach(g => { const pt = g.path.getPointAt(Math.min(0.999, (minute % g.p) / g.p)); if(pt) g.dot.set(pt.x, pt.z); });
     const n = guards.filter(atDoor).length;
@@ -174,23 +172,23 @@
     if(MODE === "A"){
       $("cctv").classList.add("small");
       const maxT = Math.min(36, Math.max(M + 2, 18));
-      $("ask").innerHTML = `Mark every minute <b>guard A</b> passes the door (every ${periods[0]} minutes).`;
+      T.step(`Mark every minute <b>guard A</b> passes the door (every ${periods[0]} minutes).`);
       $("rows").innerHTML = periods.map((p, i) => `<div class="row" data-g="${i}" ${i ? "hidden" : ""}><div class="rowlab"><i style="background:${CSS[i]}"></i>GUARD ${NAMES[i]} · EVERY ${p} MIN</div><div class="tl" style="--n:${maxT}">${T.range(1, maxT).map(t => `<button type="button" data-t="${t}">${t}</button>`).join("")}</div></div>`).join("");
       let g = 0, need = new Set(T.range(1, maxT).filter(t => t % periods[0] === 0));
       $("rows").onclick = e => {
         const b = e.target.closest("button[data-t]"); if(!b || b.disabled || over) return;
         const t = +b.dataset.t, gi = +b.closest(".row").dataset.g, p = periods[gi];
         if(t % p === 0){ b.style.background = CSS[gi] + "55"; b.style.borderColor = CSS[gi]; b.disabled = true; need.delete(t); T.SND("tag");
-          if(!need.size){ g++; if(g < periods.length){ $("rows").querySelector(`[data-g="${g}"]`).hidden = false; need = new Set(T.range(1, maxT).filter(x => x % periods[g] === 0)); $("ask").innerHTML = `Now <b>guard ${NAMES[g]}</b> (every ${periods[g]} minutes).`; }
+          if(!need.size){ g++; if(g < periods.length){ $("rows").querySelector(`[data-g="${g}"]`).hidden = false; need = new Set(T.range(1, maxT).filter(x => x % periods[g] === 0)); T.step(`Now <b>guard ${NAMES[g]}</b> (every ${periods[g]} minutes).`); }
             else { // the grid goes away; the camera takes over
               setTimeout(() => { $("rows").innerHTML = ""; $("cctv").classList.remove("small"); askAnswer(periods); }, 600);
             } }
         } else { b.classList.add("bad"); setTimeout(() => b.classList.remove("bad"), 800); wrong++; alarm.hit(); say(`${t} isn't in guard ${NAMES[gi]}'s timetable: ${p} doesn't go into ${t}.`, "bad"); }
       };
-      say("The camera is live. Mark each guard's timetable first.");
+      
     } else if(MODE === "B"){
       const watchTo = Math.max(...periods) * 2 + 1;
-      $("ask").innerHTML = `Watch the feed. Note when each guard reaches the door.`;
+      T.step(`Watch the feed. Note when each guard reaches the door.`);
       say("The feed is live. It won't last long.");
       const iv = setInterval(() => { if(minute >= watchTo){ clearInterval(iv); rate = 0; $("lost").classList.add("on"); T.SND("radio"); setTimeout(() => { $("lost").classList.remove("on"); minute = 0; askAnswer(periods); }, 1400); } }, 100);
     } else {
@@ -200,7 +198,7 @@
   function askAnswer(periods){
     const M = lcmAll(periods), who = periods.length === 3 ? "all three guards" : "both guards";
     rate = 0; minute = 0;
-    $("ask").innerHTML = `When are ${who} at the door <b>together</b> for the first time?${MODE === "B" ? "" : ` (${periods.map((p, i) => `${NAMES[i]} every ${p} min`).join(", ")})`}`;
+    T.step(`When are ${who} at the door <b>together</b> for the first time?${MODE === "B" ? "" : ` (${periods.map((p, i) => `${NAMES[i]} every ${p} min`).join(", ")})`}`);
     if(MODE === "C"){
       const opts = T.shuffle([...new Set([M, periods.reduce((a, b) => a * b), periods.reduce((a, b) => a + b), M * 2, Math.max(...periods) * 2].filter(v => v !== M))]).slice(0, 2).concat(M);
       $("choices").hidden = false; $("choices").innerHTML = T.shuffle(opts).map(v => `<button type="button" data-v="${v}">${v} min</button>`).join("");

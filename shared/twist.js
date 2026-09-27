@@ -1,7 +1,9 @@
 /* PRIMENET twists: the rotating bank-heist tasks. Each twist is its own page so it can be tested
    away from the mission (open modules/twist_lab.html). This file gives every twist the same frame:
    a header with the level switch, an alarm meter, ORACLE, number helpers and the result screen.
-   PNTwist.init({ id, stage, title, goal, story }) then PNTwist.level(), .alarm(max, onTrip), .finish({...}). */
+   PNTwist.init({ id, stage, title, goal, story }) then PNTwist.level(), .alarm(max, onTrip), .finish({...}).
+   Instructions: the goal opens as a hologram brief; PNTwist.step(html) shows each new step there (H hides/shows it).
+   Anything timed should wait while PNTwist.briefOpen() is true (a "pn-brief" event fires on window when it opens or closes). */
 (function(){
   "use strict";
   const PN = window.Primenet;
@@ -16,19 +18,53 @@
   .tw-lv{ display:flex; gap:4px; }
   .tw-lv a{ font-family:var(--font-ui); font-weight:700; font-size:13px; letter-spacing:.1em; text-decoration:none; color:var(--text-muted); border:1px solid var(--line); padding:6px 10px; }
   .tw-lv a[aria-current="true"]{ color:var(--accent); border-color:var(--accent); box-shadow:inset 0 0 0 1px rgba(var(--accent-rgb),.35); }
-  /* Feedback: instructions must be quick to take in. One goal line on the page; the story goes to ORACLE. */
-  .tw-goal{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; font-family:var(--font-ui); font-size:clamp(19px,2.2vw,24px); letter-spacing:.03em; color:var(--text-primary); }
-  .tw-goal .g{ font-size:12px; letter-spacing:.22em; color:#1a1405; background:var(--warning); padding:3px 8px; font-weight:700; }
-  .tw-goal b{ color:var(--warning); }
-  .tw-ex{ font-size:15px; color:var(--text-muted); border-left:2px solid var(--line-strong); padding-left:10px; }
-  .tw-ex b{ color:var(--text-primary); }
+  /* Round 13 (Bertie): no worksheet-style GOAL line. Instructions arrive as a hologram brief that zooms in over the
+     game, then folds away into a small BRIEF tab once they've got it. H (or tapping the tab) zooms it back out. */
+  .twb-layer{ position:fixed; inset:0; z-index:8600; pointer-events:none; perspective:1200px; }
+  .twb-dim{ position:absolute; inset:0; background:radial-gradient(ellipse at 50% 40%, rgba(0,20,26,.25), rgba(0,4,6,.62)); opacity:0; transition:opacity .3s; pointer-events:none; }
+  .twb-layer.open .twb-dim{ opacity:1; pointer-events:auto; cursor:pointer; }
+  .twb-win{ position:absolute; left:50%; top:42%; width:min(640px, calc(100vw - 32px)); pointer-events:auto;
+    transform:translate(-50%,-50%) translate(var(--dx,0px), var(--dy,0px)) scale(.04); opacity:0; filter:blur(4px);
+    transition:transform .42s cubic-bezier(.2,1.1,.35,1), opacity .3s, filter .3s; }
+  .twb-layer.open .twb-win{ transform:translate(-50%,-50%); opacity:1; filter:none; }
+  .twb-win .hw{ position:relative; color:#dff8ff; font-family:var(--font-mono, "Courier Prime", monospace);
+    background:linear-gradient(160deg, rgba(110,220,255,.20), rgba(110,220,255,.07) 60%, rgba(110,220,255,.13));
+    border:1px solid rgba(140,235,255,.8); box-shadow:0 0 34px rgba(110,220,255,.4), inset 0 0 40px rgba(110,220,255,.14);
+    clip-path:polygon(0 14px, 14px 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%);
+    backdrop-filter:blur(5px); -webkit-backdrop-filter:blur(5px); animation:twbFlick 5s infinite; }
+  .twb-win .hw::before{ content:""; position:absolute; inset:0; pointer-events:none; background:repeating-linear-gradient(0deg, rgba(160,240,255,.07) 0 1px, transparent 1px 3px); }
+  .twb-win .hw::after{ content:""; position:absolute; left:0; right:0; height:40%; top:-40%; pointer-events:none; background:linear-gradient(transparent, rgba(160,240,255,.12), transparent); animation:twbSweep 2.6s ease-in-out infinite; }
+  @keyframes twbSweep{ to{ top:100%; } }
+  @keyframes twbFlick{ 0%,100%,92%,94%{ opacity:1; } 93%{ opacity:.6; } 97%{ opacity:.85; } }
+  .twb-t{ display:flex; justify-content:space-between; gap:12px; padding:8px 16px; border-bottom:1px solid rgba(140,235,255,.45); font-family:var(--font-ui, sans-serif); font-weight:700; font-size:12px; letter-spacing:.24em; color:#8feaff; }
+  .twb-t i{ font-style:normal; color:#ff6b8a; animation:twbBlink 1s steps(2) infinite; } @keyframes twbBlink{ 50%{ opacity:.2; } }
+  .twb-b{ padding:16px 18px 14px; display:flex; flex-direction:column; gap:10px; }
+  .twb-step{ font-family:var(--font-ui, sans-serif); font-size:clamp(20px,2.6vw,27px); line-height:1.3; letter-spacing:.02em; color:#f2fdff; text-shadow:0 0 16px rgba(120,230,255,.55); }
+  .twb-step b{ color:#ffe68a; text-shadow:0 0 14px rgba(255,220,120,.6); }
+  .twb-goal{ font-size:15px; color:rgba(223,248,255,.78); } .twb-goal b{ color:#ffe68a; }
+  .twb-goal:empty, .twb-ex:empty{ display:none; }
+  .twb-ex{ font-size:14px; color:rgba(223,248,255,.72); border-left:2px solid rgba(140,235,255,.55); padding-left:10px; } .twb-ex b{ color:#dff8ff; }
+  .twb-f{ display:flex; justify-content:space-between; align-items:center; gap:10px; padding:0 18px 14px; font-size:13px; color:rgba(160,235,255,.75); letter-spacing:.08em; }
+  .twb-f kbd, .twb-chip kbd{ font-family:var(--font-ui, sans-serif); font-weight:700; font-size:12px; color:#062027; background:#8feaff; padding:1px 6px; box-shadow:0 0 10px rgba(140,235,255,.6); }
+  .twb-go{ font:inherit; font-family:var(--font-ui, sans-serif); font-weight:700; font-size:13px; letter-spacing:.18em; color:#062027; background:#8feaff; border:0; padding:9px 16px; cursor:pointer; box-shadow:0 0 18px rgba(140,235,255,.55); }
+  .twb-go:focus-visible, .twb-chip:focus-visible{ outline:2px solid #ffe68a; outline-offset:3px; }
+  .twb-chip{ position:fixed; right:18px; top:16px; z-index:8601; display:flex; align-items:center; gap:8px; font:inherit; font-family:var(--font-ui, sans-serif); font-weight:700; font-size:12px; letter-spacing:.22em;
+    color:#8feaff; background:rgba(110,220,255,.12); border:1px solid rgba(140,235,255,.7); padding:8px 12px; cursor:pointer; box-shadow:0 0 16px rgba(110,220,255,.3);
+    clip-path:polygon(0 8px, 8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%); transition:opacity .25s, transform .25s; }
+  .twb-chip.hide{ opacity:0; transform:scale(.8); pointer-events:none; }
+  .twb-chip.ping{ animation:twbPing 1s ease-in-out 3; }
+  @keyframes twbPing{ 50%{ background:rgba(140,235,255,.4); box-shadow:0 0 30px rgba(140,235,255,.8); } }
+  .twb-sr{ position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); }
+  @media (prefers-reduced-motion: reduce){ .twb-win{ transition:opacity .2s; } .twb-win .hw, .twb-win .hw::after, .twb-chip.ping{ animation:none; } }
   .tw-bar{ display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:10px 18px; font-size:15px; color:var(--text-muted); }
   .tw-bar b{ color:var(--text-primary); }
   .tw-meter{ display:inline-flex; align-items:center; gap:6px; font-family:var(--font-ui); letter-spacing:.14em; font-size:12px; }
   .tw-meter i{ width:22px; height:9px; border:1px solid rgba(255,107,107,.7); display:inline-block; }
   .tw-meter i.on{ background:#ff4f6d; box-shadow:0 0 10px #ff4f6d; }
-  .tw-msg{ min-height:1.6em; font-size:17px; color:var(--text-muted); }
-  .tw-msg.ok{ color:var(--ok); } .tw-msg.bad{ color:var(--danger); } .tw-msg.warn{ color:var(--warning); }
+  /* Feedback reads as a comms readout rather than worksheet text */
+  .tw-msg{ min-height:1.6em; font-family:var(--font-mono); font-size:16px; letter-spacing:.03em; color:#9fe9ff; text-shadow:0 0 10px rgba(110,220,255,.35); }
+  .tw-msg:not(:empty)::before{ content:"› "; color:#8feaff; }
+  .tw-msg.ok{ color:#7dffc4; } .tw-msg.bad{ color:#ff8aa0; } .tw-msg.warn{ color:#ffe68a; }
   /* Number tiles, shared by the scan twists */
   .tw-grid{ display:grid; gap:6px; }
   .tw-tile{ position:relative; font:inherit; font-family:var(--font-mono); font-size:20px; font-weight:700; color:rgba(235,255,248,.86); aspect-ratio:1.25; min-width:0;
@@ -75,8 +111,7 @@
       <div class="r"><nav class="tw-lv" aria-label="Level">${lv}</nav><button class="pn-btn small" type="button" id="twNew">New round</button><a class="pn-btn small" href="twist_lab.html" style="text-decoration:none">Twist Lab</a></div>`;
     wrap.prepend(head);
     if(!MISSION) head.querySelector("#twNew").addEventListener("click", () => location.reload());
-    const g = document.createElement("div"); g.className = "tw-goal"; g.innerHTML = `<span class="g">GOAL</span><span class="gt">${goal || brief || ""}</span>`; head.after(g);
-    if(example){ const e = document.createElement("div"); e.className = "tw-ex"; e.innerHTML = `Example: ${example}`; g.after(e); }
+    buildBrief(goal || brief || "", example);
     if(story && window.PNHandler && !EMBED) setTimeout(() => PNHandler.say(story), 500);   // in a mission the stage's ORACLE introduces it
     if(PN) PN.log("twist", { id, level });
     return level;
@@ -103,6 +138,7 @@
 
   function finish({ ok = true, title, lines = [], note = "", effect = "", auto = 0 }){   // auto: in a mission, carry on by itself after this many ms   // effect: something the stage shows afterwards (e.g. "dark")
     if(document.querySelector(".tw-result")) return;   // one result screen only (a twist could end twice)
+    hideBrief(); if(B) B.chip.classList.add("hide");
     const ov = document.createElement("div"); ov.className = "tw-result" + (ok ? "" : " fail");
     const next = qs.get("next");
     ov.innerHTML = `<div class="card" role="dialog" aria-modal="true" aria-labelledby="twResT"><h2 id="twResT">${title || (ok ? "TWIST CLEARED" : "ALARM TRIPPED")}</h2>
@@ -121,7 +157,65 @@
     if(PN) PN.log("twist-done", { ok, level });
   }
 
-  function setGoal(html){ const el = document.querySelector(".tw-goal .gt"); if(el) el.innerHTML = html; }
+  // ---------- Hologram brief ----------
+  // The brief holds the goal (and an example). step() puts the current instruction on top and zooms it back in,
+  // because it's new; step(html, { quiet: true }) just updates it. H, the GOT IT button or a click outside folds it away.
+  let B = null;
+  function buildBrief(goal, example){
+    const layer = document.createElement("div"); layer.className = "twb-layer";
+    layer.innerHTML = `<div class="twb-dim"></div><div class="twb-win" role="dialog" aria-label="Brief"><div class="hw">
+      <div class="twb-t"><span>BRIEF</span><span><i>●</i> LIVE</span></div>
+      <div class="twb-b"><div class="twb-step"></div><div class="twb-goal"></div><div class="twb-ex"></div></div>
+      <div class="twb-f"><span>Press <kbd>H</kbd> to hide or show this</span><button class="twb-go" type="button">GOT IT ▸</button></div></div></div>
+      <div class="twb-sr" aria-live="polite"></div>`;
+    const chip = document.createElement("button"); chip.type = "button"; chip.className = "twb-chip hide"; chip.innerHTML = `BRIEF <kbd>H</kbd>`; chip.setAttribute("aria-label", "Show the brief (H)");
+    document.body.append(layer, chip);
+    B = { layer, chip, win: layer.querySelector(".twb-win"), step: layer.querySelector(".twb-step"), goal: layer.querySelector(".twb-goal"), ex: layer.querySelector(".twb-ex"), sr: layer.querySelector(".twb-sr"), open: false, goalHTML: goal, stepHTML: "" };
+    B.ex.innerHTML = example ? `Example: ${example}` : "";
+    render();
+    layer.querySelector(".twb-go").addEventListener("click", () => hideBrief());
+    layer.querySelector(".twb-dim").addEventListener("click", () => hideBrief());
+    chip.addEventListener("click", () => showBrief());
+    document.addEventListener("keydown", e => {
+      if(e.key !== "h" && e.key !== "H") return;
+      if(e.ctrlKey || e.metaKey || e.altKey) return;
+      const t = e.target, typing = t && (t.isContentEditable || t.tagName === "TEXTAREA" || (t.tagName === "INPUT" && !/numeric|decimal/.test(t.inputMode || "") && t.type !== "number"));
+      if(typing) return;
+      e.preventDefault(); toggleBrief();
+    });
+    setTimeout(() => showBrief(), 350);
+  }
+  function render(){
+    if(!B) return;
+    // With no step yet, the goal is the headline; once there's a step, the goal sits underneath it
+    B.step.innerHTML = B.stepHTML || B.goalHTML;
+    B.goal.innerHTML = B.stepHTML ? B.goalHTML : "";
+    B.sr.textContent = B.step.textContent;
+  }
+  function aimAtChip(){   // the window zooms out of / back into the BRIEF tab
+    const r = B.chip.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+    B.win.style.setProperty("--dx", (cx - innerWidth * 0.5) + "px"); B.win.style.setProperty("--dy", (cy - innerHeight * 0.42) + "px");
+  }
+  function showBrief(){
+    if(!B || B.open || document.querySelector(".tw-result")) return;
+    aimAtChip(); B.open = true; B.layer.classList.add("open"); window.dispatchEvent(new CustomEvent("pn-brief", { detail: { open: true } })); B.chip.classList.add("hide"); B.chip.classList.remove("ping");
+    SND("holo");
+    setTimeout(() => { if(B.open) B.layer.querySelector(".twb-go").focus({ preventScroll: true }); }, 60);
+  }
+  function hideBrief(){
+    if(!B || !B.open) return;
+    aimAtChip(); B.open = false; B.layer.classList.remove("open"); window.dispatchEvent(new CustomEvent("pn-brief", { detail: { open: false } })); B.chip.classList.remove("hide");
+    SND("click");
+  }
+  function toggleBrief(){ if(B && B.open) hideBrief(); else showBrief(); }
+  function step(html, opts = {}){
+    if(!B) return;
+    if(B.stepHTML === html) return;
+    B.stepHTML = html; render();
+    if(opts.quiet){ if(!B.open){ B.chip.classList.remove("ping"); void B.chip.offsetWidth; B.chip.classList.add("ping"); } }
+    else showBrief();
+  }
+  function setGoal(html, opts = {}){ if(!B) return; B.goalHTML = html; B.stepHTML = ""; render(); if(!opts.quiet) showBrief(); }
   function say(text, opts){ if(EMBED){ window.parent.postMessage({ type: "pn-twist-say", text }, "*"); return; } if(window.PNHandler) PNHandler.say(text, opts); }
   const target = () => (PN && PN.mission && PN.mission().target) || "Sentinel Finance";
   const targets = () => { const t = target(); return /s$/i.test(t) ? t + "'" : t + "'s"; };   // possessive: "Rivercross Utilities'"
@@ -138,5 +232,5 @@
   const gcd = (a, b) => b ? gcd(b, a % b) : a;
   const lcm = (a, b) => a * b / gcd(a, b);
 
-  window.PNTwist = { init, peekLevel, setGoal, alarm, finish, say, target, targets, level: () => level, SND, isPrime, isSquare, isCube, pairs, smallestFactor, shuffle, pick, range, gcd, lcm };
+  window.PNTwist = { init, peekLevel, setGoal, step, showBrief, hideBrief, briefOpen: () => !!(B && B.open), alarm, finish, say, target, targets, level: () => level, SND, isPrime, isSquare, isCube, pairs, smallestFactor, shuffle, pick, range, gcd, lcm };
 })();
