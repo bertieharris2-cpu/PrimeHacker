@@ -626,7 +626,18 @@ function powerUpPrompt(title){
         }
         card('i-win', `<b>LIGHTS ON</b>Every room has a × b ceiling lights, so every room on a floor has exactly N lights. A 4 × 6 office has 24.`);
         // Round 11: with the lights on, the ceiling relays (cubes) twist fits here
-        if(window.PNTwistSlot){ await wait(1200); await PNTwistSlot.run("lights"); }
+        if(window.PNTwistSlot){
+          await wait(1200);
+          const tw = await PNTwistSlot.run("lights");
+          // Round 12: the relays twist ends with the whole building going dark
+          if(tw && tw.effect === "dark"){
+            SND("rise");
+            await tween(900, e => floorGroups.forEach(f => f.boxes.forEach(b => { const w = b.userData.win; w.draw(Math.round((1 - e) * w.a * w.b)); })));
+            card('i-dark', `<b>CAMERAS DARK</b>Every ceiling relay powered: the lights and cameras on the target floor are off.`);
+            if(window.PNHandler) PNHandler.say("Lights out. Their cameras are blind. Let's find our way in.");
+            await wait(900);
+          }
+        }
 
         // Weak point: the floor with the fewest rooms (factor pairs)
         const pairsOf = n => getFactorPairs(n).length;

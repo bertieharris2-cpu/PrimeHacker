@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="en" class="phase-hack">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PRIMENET · Key Room Door (keypad)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Inter:wght@400;600;700;800&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../shared/primenet.css">
+<style>
+  /* Round 12 prototype: the key room door with a keypad. Break each bolt's number into primes with a factor
+     tree, then key the primes in. Scaffolding fades: the first tree has prime buttons, the next doesn't. */
+  .scene{ display:grid; grid-template-columns:minmax(0,1fr) 300px; gap:16px; align-items:stretch; }
+  .doorview{ position:relative; min-height:300px; padding:0; overflow:hidden; background:linear-gradient(180deg, #06161b, #020a0c); display:flex; align-items:flex-end; justify-content:center; }
+  .doorview .floorline{ position:absolute; left:0; right:0; bottom:46px; height:1px; background:rgba(var(--accent-rgb),.4); }
+  .bigdoor{ position:relative; width:230px; height:250px; margin-bottom:46px; border:3px solid #3a5a62; border-bottom:0; background:#01080a; overflow:hidden; box-shadow:0 0 40px rgba(0,0,0,.6) inset; }
+  .bigdoor .leaf{ position:absolute; top:0; bottom:0; width:50%; background:repeating-linear-gradient(0deg, #16323a 0 14px, #10282f 14px 28px); transition:transform 1.8s cubic-bezier(.6,0,.3,1); }
+  .bigdoor .leaf.l{ left:0; border-right:2px solid #2c4c55; } .bigdoor .leaf.r{ right:0; }
+  .bigdoor.open .leaf.l{ transform:translateX(-100%); } .bigdoor.open .leaf.r{ transform:translateX(100%); }
+  .bigdoor .inside{ position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; background:radial-gradient(circle at 50% 60%, rgba(255,201,77,.35), transparent 60%); font-family:var(--font-ui); letter-spacing:.2em; color:#ffe14d; }
+  .bigdoor .inside .keyicon{ font-size:48px; filter:drop-shadow(0 0 12px #ffc94d); }
+  .bolt{ position:absolute; left:50%; width:60px; height:12px; margin-left:-30px; background:#ff4f6d; box-shadow:0 0 10px #ff4f6d; border-radius:2px; transition:all .6s; z-index:3; }
+  .bolt.b0{ top:80px; } .bolt.b1{ top:160px; }
+  .bolt.off{ background:#2fbf8a; box-shadow:0 0 10px #2fbf8a; width:14px; margin-left:-7px; }
+  .doorview .sign{ position:absolute; top:12px; left:14px; font-family:var(--font-ui); font-size:12px; letter-spacing:.2em; color:var(--text-faint); }
+  .keypad{ padding:14px; display:flex; flex-direction:column; gap:10px; }
+  .kp-screen{ font-family:var(--font-mono); font-size:22px; min-height:44px; padding:8px 10px; background:#021d12; color:#7dffc4; border:1px solid rgba(47,191,138,.6); letter-spacing:.06em; box-shadow:inset 0 0 18px rgba(47,191,138,.15); overflow-wrap:anywhere; }
+  .kp-screen.bad{ color:#ff8aa0; border-color:#ff6b8a; background:#1d0208; }
+  .kp-keys{ display:grid; grid-template-columns:repeat(4, 1fr); gap:6px; }
+  .kp-keys button{ font:inherit; font-family:var(--font-mono); font-size:19px; font-weight:700; padding:10px 0; background:#0b1d22; color:#dff8ff; border:1px solid #2c4c55; cursor:pointer; }
+  .kp-keys button:hover:not(:disabled){ border-color:var(--warning); }
+  .kp-keys button:disabled{ opacity:.35; cursor:default; }
+  .kp-keys .enter{ background:#113a2a; border-color:#2fbf8a; }
+  .kp-lab{ font-family:var(--font-ui); font-size:12px; letter-spacing:.16em; color:var(--text-faint); }
+  .why{ padding:12px 14px; font-size:15px; color:var(--text-muted); border-left:3px solid var(--warning); }
+  .why b{ color:var(--text-primary); }
+  .work{ display:grid; grid-template-columns:minmax(0,1fr); gap:10px; }
+  .treehead{ display:flex; justify-content:space-between; align-items:baseline; padding:0 4px; font-family:var(--font-ui); font-size:12px; letter-spacing:.18em; color:var(--text-faint); }
+  .treehead b{ font-size:26px; color:var(--accent); letter-spacing:.06em; }
+  .treebox{ padding:16px 12px; background:#020a0c; border:1px solid rgba(var(--accent-rgb),.5); overflow-x:auto; min-height:200px; }
+  .node{ display:flex; flex-direction:column; align-items:center; gap:8px; }
+  .kids{ display:flex; gap:24px; position:relative; padding-top:10px; }
+  .kids::before{ content:""; position:absolute; top:0; left:25%; right:25%; border-top:1px solid rgba(var(--accent-rgb),.5); }
+  .val{ font-family:var(--font-mono); font-size:21px; font-weight:700; min-width:60px; text-align:center; padding:7px 11px; background:rgba(8,26,31,.95); border:1px dashed rgba(var(--accent-rgb),.6); color:var(--text-primary); }
+  .val.prime{ border-style:solid; border-color:#ffc94d; color:#fff3cf; background:rgba(255,201,77,.18); box-shadow:0 0 12px rgba(255,201,77,.3); }
+  .val.split{ border-style:solid; opacity:.8; }
+  .chips{ display:flex; gap:4px; flex-wrap:wrap; justify-content:center; max-width:230px; }
+  .chip{ font:inherit; font-family:var(--font-mono); font-size:15px; font-weight:700; padding:5px 8px; background:rgba(0,0,0,.35); color:#9fffd4; border:1px solid rgba(var(--accent-rgb),.5); cursor:pointer; }
+  .chip.no{ border-color:#ff6b6b; color:#ff6b6b; }
+  .splitf{ display:flex; gap:6px; align-items:center; font-size:18px; }
+  .splitf input{ width:56px; font-size:18px; text-align:center; padding:5px; }
+  @media (max-width:880px){ .scene{ grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<main class="tw">
+  <div class="tw-bar"><span>Bolt <b id="k">1</b> of 2</span><span id="scaf"></span></div>
+  <div class="why" id="why"><b>Why primes?</b> Bank cards and websites lock their messages with a huge number made by multiplying two primes. Multiplying is easy; splitting the number back into its primes is so hard that computers can't do it for the big ones. This door uses small ones, so you can.</div>
+  <div class="scene">
+    <section class="pn-panel doorview"><span class="sign">KEY ROOM · <span id="floor">WEAK FLOOR</span></span><div class="floorline"></div>
+      <div class="bigdoor" id="door"><div class="inside"><span class="keyicon">🔑</span>KEY ROOM</div><div class="leaf l"></div><div class="leaf r"></div><div class="bolt b0" id="bolt0"></div><div class="bolt b1" id="bolt1"></div></div>
+    </section>
+    <section class="pn-panel keypad"><span class="kp-lab">KEYPAD · ENTER THE PRIME FACTORS, SMALLEST FIRST</span>
+      <div class="kp-screen" id="screen">LOCKED</div>
+      <div class="kp-keys" id="keys"></div>
+    </section>
+  </div>
+  <div class="work">
+    <div class="treehead"><span>FACTOR TREE FOR BOLT <span id="bn">1</span></span><b id="nLab"></b></div>
+    <section class="treebox" id="tree" aria-live="polite"></section>
+  </div>
+  <div class="tw-msg" id="msg" aria-live="polite"></div>
+</main>
+
+<script src="../shared/sound.js"></script>
+<script src="../shared/primenet.js"></script>
+<script src="../shared/testtools.js"></script>
+<script src="../shared/handler.js"></script>
+<script src="../shared/twist.js"></script>
+<script>
+(() => {
+  "use strict";
+  const T = window.PNTwist, $ = id => document.getElementById(id);
+  const L = T.peekLevel();
+  T.init({ id: "door2", stage: "PRIME HACK", title: "KEY ROOM DOOR",
+    goal: L === "L3" ? "Break each bolt's number into <b>primes</b>, then key them in with powers (like 2^3 × 5)." : "Break each bolt's number into <b>primes</b> with a factor tree, then key the primes into the keypad.",
+    example: "12 splits into 2 × 6, and 6 splits into 2 × 3. So 12 = 2 × 2 × 3: key in 2 × 2 × 3, then ENTER.",
+    story: "Crew's at the key room door. Two bolts, each locked with a number. Break the numbers into primes and key them in." });
+  const a0 = window.Primenet && Primenet.getAgent();
+  if(a0 && a0.weakFloor) $("floor").textContent = a0.weakFloor.toUpperCase();
+  const POOL = { L1: [[12, 18, 20, 28, 30], [42, 45, 50, 60, 36]], L2: [[36, 48, 60, 72, 84], [90, 100, 126, 108, 120]], L3: [[120, 144, 168, 180], [210, 240, 252, 360]] }[L];
+  const locks = [T.pick(POOL[0]), T.pick(POOL[1])];
+  // Scaffolding by level: bolt 1 at L1 has prime buttons; after that, split by typing a pair (buttons appear after a wrong try)
+  const chipsFor = k => (L === "L1" && k === 0) ? "always" : "afterWrong";
+  const CHIPS = L === "L3" ? [2, 3, 5, 7, 11, 13] : [2, 3, 5, 7];
+  let k = 0, over = false, splits = 0, slips = 0, typed = "";
+  const alarm = T.alarm(3, () => end(false));
+  const primeFactors = n => { const out = []; let m = n; for(let d = 2; d * d <= m; d++) while(m % d === 0){ out.push(d); m /= d; } if(m > 1) out.push(m); return out; };
+  function say(t, cls){ const m = $("msg"); m.textContent = t; m.className = "tw-msg" + (cls ? " " + cls : ""); }
+
+  // ----- Keypad -----
+  const KEYS = ["7", "8", "9", "×", "4", "5", "6", "^", "1", "2", "3", "⌫", "0", "C", "ENTER"];
+  $("keys").innerHTML = KEYS.map(k2 => `<button type="button" data-k="${k2}" class="${k2 === "ENTER" ? "enter" : ""}" style="${k2 === "ENTER" ? "grid-column:span 2" : ""}">${k2}</button>`).join("");
+  const screen = $("screen");
+  let keypadOn = false;
+  function setKeypad(on){ keypadOn = on; $("keys").querySelectorAll("button").forEach(b => b.disabled = !on || (b.dataset.k === "^" && L !== "L3")); screen.classList.remove("bad"); screen.textContent = on ? "_" : "LOCKED"; typed = ""; }
+  setKeypad(false);
+  function press(k2){
+    if(!keypadOn || over) return;
+    T.SND("key");
+    screen.classList.remove("bad");
+    if(k2 === "C"){ typed = ""; }
+    else if(k2 === "⌫"){ typed = typed.replace(/\s*[×^]\s*$|.$/, ""); }
+    else if(k2 === "ENTER"){ return check(); }
+    else if(k2 === "×"){ if(typed && !/[×^]\s*$/.test(typed)) typed += " × "; }
+    else if(k2 === "^"){ if(typed && /\d$/.test(typed)) typed += "^"; }
+    else typed += k2;
+    screen.textContent = typed || "_";
+  }
+  $("keys").addEventListener("click", e => { const b = e.target.closest("button"); if(b) press(b.dataset.k); });
+  document.addEventListener("keydown", e => {
+    if(!keypadOn) return;
+    if(/^[0-9]$/.test(e.key)) press(e.key);
+    else if(e.key === "*" || e.key.toLowerCase() === "x") press("×");
+    else if(e.key === "^") press("^");
+    else if(e.key === "Backspace") press("⌫");
+    else if(e.key === "Enter"){ e.preventDefault(); press("ENTER"); }
+  });
+  // The code for a number: its primes smallest first (L3 with powers: 2^3 × 3^2 × 5)
+  function codeFor(n){
+    const pf = primeFactors(n);
+    if(L !== "L3") return pf.join(" × ");
+    return [...new Set(pf)].map(p => { const c = pf.filter(x => x === p).length; return c > 1 ? `${p}^${c}` : `${p}`; }).join(" × ");
+  }
+  function check(){
+    const want = codeFor(locks[k]), got = typed.replace(/\s+/g, " ").trim();
+    if(got === want){
+      screen.textContent = `${locks[k]} = ${want} ✓`; T.SND("verified");
+      $("bolt" + k).classList.add("off"); T.SND("clamp");
+      setKeypad(false); screen.textContent = `BOLT ${k + 1} RELEASED`;
+      k++;
+      if(k === locks.length) return openDoor();
+      setTimeout(() => { if(!over) show(); }, 1200 / (window.PNTest ? PNTest.speed() : 1));
+      return;
+    }
+    slips++;
+    screen.classList.add("bad");
+    const pf = primeFactors(locks[k]);
+    const hint = got.split(/[×\s]+/).filter(Boolean).map(s => +s.split("^")[0]).some(v => !T.isPrime(v)) ? "Only primes go in the code." : (L === "L3" && !got.includes("^") && pf.length !== new Set(pf).size) ? "Use powers for repeated primes, like 2^2." : "Check your tree: smallest prime first, and every prime counted.";
+    screen.textContent = "DENIED"; say(hint, "bad"); T.SND("denied"); alarm.hit();
+    setTimeout(() => { if(!over){ screen.classList.remove("bad"); screen.textContent = typed || "_"; } }, 900);
+  }
+  function end(ok){
+    if(ok) return openDoor();
+    over = true; setKeypad(false);
+    T.finish({ ok: false, title: "TRACE COMPLETE", lines: [`Bolts released: <b>${k}</b> of ${locks.length}`, `${locks[Math.min(k, locks.length - 1)]} = ${primeFactors(locks[Math.min(k, locks.length - 1)]).join(" × ")}`, "Split with small primes first: 2, 3, 5, 7."] });
+    T.say("Too many wrong codes. They've traced the keypad.");
+  }
+  async function openDoor(){
+    over = true;
+    say("Both bolts released. The key room door is open.", "ok");
+    $("door").classList.add("open"); T.SND("dock");
+    T.say("Door's open. There's the key.");
+    setTimeout(() => T.finish({ ok: true, title: "KEY ROOM OPEN",
+      lines: locks.map(n => `${n} = ${primeFactors(n).join(" × ")}${L === "L3" ? ` = ${codeFor(n)}` : ""}`).concat([`Splits: <b>${splits}</b> · Wrong tries: <b>${slips}</b>`, "Every whole number above 1 breaks into primes in exactly one way. That's what makes the code unique."]) }), 2200 / (window.PNTest ? PNTest.speed() : 1));
+  }
+
+  // ----- Factor tree (from the current key room door, with fading scaffolding) -----
+  function makeNode(n, mode){
+    const wrap = document.createElement("div"); wrap.className = "node"; wrap.dataset.n = n;
+    const b = document.createElement("div"); b.className = "val"; b.textContent = n; wrap.appendChild(b);
+    if(T.isPrime(n)){ b.classList.add("prime"); return wrap; }
+    if(mode === "always") addChips(wrap, n);
+    else addPairForm(wrap, n, mode);
+    return wrap;
+  }
+  function addChips(wrap, n){
+    if(wrap.querySelector(".chips")) return;
+    const chips = document.createElement("div"); chips.className = "chips";
+    chips.innerHTML = CHIPS.map(p => `<button type="button" class="chip" data-p="${p}">÷${p}</button>`).join("");
+    chips.querySelectorAll("[data-p]").forEach(c => c.addEventListener("click", () => {
+      if(over) return;
+      const p = +c.dataset.p;
+      if(n % p === 0) return split(wrap, n, p, n / p);
+      slips++; c.classList.add("no"); setTimeout(() => c.classList.remove("no"), 700);
+      say(`${n} ÷ ${p} = ${Math.floor(n / p)} remainder ${n % p}. ${p} doesn't go into ${n}.`, "bad"); alarm.hit();
+    }));
+    wrap.appendChild(chips);
+  }
+  function addPairForm(wrap, n, mode){
+    const f = document.createElement("form"); f.className = "splitf"; f.autocomplete = "off";
+    f.innerHTML = `<input class="pn-input" inputmode="numeric" maxlength="3" aria-label="First factor of ${n}"> × <input class="pn-input" inputmode="numeric" maxlength="3" aria-label="Second factor of ${n}"><button class="pn-btn small primary" type="submit">Split</button>`;
+    let wrong = 0;
+    f.addEventListener("submit", e => {
+      e.preventDefault(); if(over) return;
+      const [x, y] = [...f.querySelectorAll("input")].map(i => parseInt(i.value, 10));
+      if(!Number.isInteger(x) || !Number.isInteger(y)){ say(`Type two numbers that multiply to make ${n}.`, "warn"); return; }
+      if(x === 1 || y === 1){ say(`1 × ${n} doesn't break it down. Use two numbers bigger than 1.`, "warn"); T.SND("untag"); return; }
+      if(x * y !== n){ slips++; wrong++; say(`${x} × ${y} = ${x * y}, not ${n}.`, "bad"); alarm.hit(); if(wrong >= 1 && mode === "afterWrong"){ addChips(wrap, n); say(`${x} × ${y} = ${x * y}, not ${n}. Prime buttons unlocked for ${n}: try dividing by a small prime.`, "warn"); } return; }
+      split(wrap, n, x, y);
+    });
+    wrap.appendChild(f);
+  }
+  function split(wrap, n, a, c){
+    wrap.querySelectorAll(".chips, .splitf").forEach(x => x.remove());
+    wrap.querySelector(".val").classList.add("split");
+    splits++;
+    const mode = chipsFor(k);
+    const kids = document.createElement("div"); kids.className = "kids";
+    kids.append(makeNode(Math.min(a, c), mode), makeNode(Math.max(a, c), mode));
+    wrap.appendChild(kids);
+    T.SND("tag");
+    const primes = [a, c].filter(T.isPrime);
+    say(`${n} = ${a} × ${c}.${primes.length ? ` ${primes.join(" and ")} ${primes.length === 1 ? "is" : "are"} prime.` : ""}`, "ok");
+    if(!$("tree").querySelector(".val:not(.prime):not(.split)")){
+      say("Every branch ends in a prime. Now key them into the keypad, smallest first.", "ok");
+      setKeypad(true); T.SND("ready");
+      $("keys").scrollIntoView({ block: "nearest", behavior: "smooth" });
+    }
+  }
+  function show(){
+    const n = locks[k], mode = chipsFor(k);
+    $("k").textContent = k + 1; $("bn").textContent = k + 1; $("nLab").textContent = `N = ${n}`;
+    $("scaf").textContent = mode === "always" ? "Prime buttons on" : "Type a factor pair (buttons unlock after a wrong try)";
+    const tree = $("tree"); tree.innerHTML = ""; tree.appendChild(makeNode(n, mode));
+    say(mode === "always" ? `Press a prime under ${n} that divides into it.` : `Split ${n} into any factor pair, then keep going.`);
+  }
+  show();
+  if(window.PNTest) PNTest.skip("Open this bolt", () => {
+    let guard = 0;
+    while(guard++ < 20){ const v = [...$("tree").querySelectorAll(".val:not(.prime):not(.split)")][0]; if(!v) break; const wrap = v.parentElement, n = +wrap.dataset.n, d = T.smallestFactor(n); split(wrap, n, d, n / d); }
+    typed = codeFor(locks[k]); screen.textContent = typed; check();
+  });
+})();
+</script>
+</body>
+</html>

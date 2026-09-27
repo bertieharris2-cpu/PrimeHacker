@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en" class="phase-build">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PRIMENET · Guard Patrols (3D)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Inter:wght@400;600;700;800&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../shared/primenet.css">
+<style>
+  /* Round 12 prototype: guard patrols on the student's floor in 3D. Guards walk loops past the door at their
+     own intervals. When are they at the door together? (The lowest common multiple.) Then slip in after them. */
+  .stage3d{ position:relative; height:320px; padding:0; overflow:hidden; background:radial-gradient(ellipse at 50% 40%, rgba(20,60,70,.35), rgba(2,8,10,.9)); }
+  .hud{ position:absolute; left:12px; top:10px; right:12px; display:flex; justify-content:space-between; font-family:var(--font-ui); font-size:12px; letter-spacing:.18em; color:#dff8ff; pointer-events:none; text-shadow:0 0 8px #000; }
+  .hud .clock{ font-family:var(--font-mono); font-size:22px; color:#ffe14d; letter-spacing:.06em; }
+  .legend{ position:absolute; left:12px; bottom:10px; display:flex; gap:14px; font-size:13px; color:var(--text-muted); pointer-events:none; }
+  .legend i{ display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:5px; vertical-align:middle; }
+  .task{ padding:14px 16px; display:flex; flex-direction:column; gap:12px; }
+  .ask{ font-size:19px; color:var(--text-primary); } .ask b{ color:var(--warning); }
+  .rowlab{ font-family:var(--font-ui); font-size:12px; letter-spacing:.14em; color:var(--text-faint); margin-bottom:4px; display:flex; align-items:center; gap:8px; }
+  .rowlab i{ width:10px; height:10px; border-radius:50%; display:inline-block; }
+  .tl{ display:grid; grid-template-columns:repeat(var(--n), minmax(0,1fr)); gap:3px; }
+  .tl button{ font:inherit; font-family:var(--font-mono); font-size:13px; padding:7px 0; background:rgba(8,26,31,.9); border:1px solid var(--line); color:rgba(235,255,248,.8); cursor:pointer; }
+  .tl button:hover:not(:disabled){ border-color:var(--accent); }
+  .tl button.on{ color:#fff; }
+  .tl button.bad{ background:rgba(255,79,109,.3); border-color:#ff4f6d; }
+  .tl button.both{ background:rgba(255,201,77,.35); border-color:#ffc94d; color:#fff3cf; }
+  .tl button:disabled{ cursor:default; }
+  .ans{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; font-size:18px; }
+  .ans input{ width:80px; font-size:20px; text-align:center; padding:6px; }
+  .rows[hidden], .ans[hidden]{ display:none; }
+</style>
+</head>
+<body>
+<main class="tw">
+  <div class="tw-bar"><span>Door <b id="round">1</b> of 2</span></div>
+  <section class="pn-panel stage3d" id="stage"><div class="hud"><span>FIRE DOOR · <span id="floorName">WEAK FLOOR</span></span><span class="clock" id="clock">00:00</span></div><div class="legend" id="legend"></div></section>
+  <section class="pn-panel task">
+    <div class="ask" id="ask"></div>
+    <div class="rows" id="rows"></div>
+    <div class="ans" id="ansRow" hidden><label for="ansIn">They're at the door together first at minute</label><input class="pn-input" id="ansIn" inputmode="numeric" maxlength="3"><button class="pn-btn small primary" type="button" id="ansBtn">Check</button></div>
+  </section>
+  <div class="tw-msg" id="msg" aria-live="polite"></div>
+</main>
+
+<script src="../shared/vendor/three.min.js"></script>
+<script src="../shared/sound.js"></script>
+<script src="../shared/primenet.js"></script>
+<script src="../shared/testtools.js"></script>
+<script src="../shared/handler.js"></script>
+<script src="../shared/twist.js"></script>
+<script src="../shared/floor3d.js"></script>
+<script>
+(() => {
+  "use strict";
+  const T = window.PNTwist, $ = id => document.getElementById(id);
+  const L = T.peekLevel();
+  T.init({ id: "patrols3d", stage: "GETTING IN", title: "GUARD PATROLS",
+    goal: L === "L1" ? "Mark the minutes each guard passes the door. Then find when they're both there <b>together</b>." : L === "L2" ? "Each guard passes the door on a timetable. When are they <b>both</b> at the door together first?" : "Three guards, three timetables. When are <b>all three</b> at the door together first?",
+    example: "Guard A passes every 4 minutes (4, 8, 12…), guard B every 6 (6, 12…). Both at minute 12: the lowest common multiple of 4 and 6.",
+    story: "Guards walk loops past the fire door. They meet there at the same moment, then both walk away: that's our gap. Work out when." });
+  const a0 = window.Primenet && Primenet.getAgent();
+  if(a0 && a0.weakFloor) $("floorName").textContent = a0.weakFloor.toUpperCase();
+  const SETS = { L1: [[3, 4], [4, 6], [2, 5], [4, 5], [3, 5]], L2: [[4, 6], [6, 8], [6, 9], [4, 10], [8, 12], [6, 10]], L3: [[4, 6, 9], [3, 4, 10], [6, 8, 9], [4, 6, 10], [5, 6, 8]] }[L];
+  const rounds = T.shuffle(SETS).slice(0, 2);
+  const COLS = [0xff4f6d, 0x6ec8ff, 0xc77dff], CSS = ["#ff4f6d", "#6ec8ff", "#c77dff"], NAMES = ["A", "B", "C"];
+  let r = 0, over = false, wrong = 0;
+  const alarm = T.alarm(3, () => end(false));
+  function say(t, cls){ const m = $("msg"); m.textContent = t; m.className = "tw-msg" + (cls ? " " + cls : ""); }
+  const lcmAll = arr => arr.reduce((a, b) => T.lcm(a, b));
+
+  // ----- 3D: the floor, the fire door, guard loops -----
+  const F = PNFloor3D.create($("stage"), {});
+  const TH = F.THREE;
+  F.lightsOn(700);
+  const ex = F.layout.exit || { x: 0, y: Math.floor(F.layout.grid / 2) };
+  const D = F.cellToWorld(ex.x, ex.y);
+  const doorMark = new TH.Mesh(new TH.BoxGeometry(F.cell * 1.4, 10, 1.2), new TH.MeshBasicMaterial({ color: 0x2fbf8a, transparent: true, opacity: 0.75 }));
+  doorMark.position.set(D.x, 5, D.z); F.root.add(doorMark);
+  F.camera.position.set(D.x * 0.4 + 40, 150, D.z * 0.4 + 150); F.look.set(D.x * 0.5, 0, D.z * 0.5);
+  // A loop for guard i: out from the door into the corridors and back, a different size for each guard
+  function loopFor(i){
+    const P = F.PLATE / 2 - 4, s = 26 + i * 16;
+    const dirX = D.x < 0 ? 1 : -1, dirZ = D.z < 0 ? 1 : -1;
+    const c = (x, z) => new TH.Vector3(Math.max(-P, Math.min(P, x)), 0, Math.max(-P, Math.min(P, z)));
+    return [c(D.x, D.z), c(D.x + dirX * s, D.z), c(D.x + dirX * s, D.z + dirZ * s), c(D.x, D.z + dirZ * s), c(D.x, D.z)];
+  }
+  let guards = [], minute = 0, running = true, MPS = 1.1;   // minutes per second of the clock
+  const agent = F.dot(0x6ec8ff, 2.6); agent.set(D.x + (D.x < 0 ? -10 : 10), D.z);
+  function setupGuards(periods){
+    guards.forEach(g => g.dot.remove());
+    guards = periods.map((p, i) => {
+      const dot = F.dot(COLS[i], 2.2), pts = loopFor(i), path = new TH.CurvePath();
+      for(let j = 1; j < pts.length; j++) if(pts[j].distanceTo(pts[j - 1]) > 0.5) path.add(new TH.LineCurve3(pts[j - 1], pts[j]));
+      if(!path.curves.length){ const q = [D.clone(), D.clone().add(new TH.Vector3(12, 0, 0)), D.clone().add(new TH.Vector3(12, 0, 12)), D.clone()]; for(let j = 1; j < q.length; j++) path.add(new TH.LineCurve3(q[j - 1], q[j])); }
+      return { p, dot, path, i };
+    });
+    $("legend").innerHTML = periods.map((p, i) => `<span><i style="background:${CSS[i]}"></i>Guard ${NAMES[i]}: every ${p} min</span>`).join("") + `<span><i style="background:#6ec8ff;border:2px solid #fff"></i>You</span>`;
+  }
+  let last = performance.now();
+  F.onTick(now => {
+    const dt = Math.min(0.1, (now - last) / 1000); last = now;
+    if(running) minute += dt * MPS * (window.PNTest ? PNTest.speed() : 1);
+    $("clock").textContent = `00:${String(Math.floor(minute) % 60).padStart(2, "0")}`;
+    let atDoor = 0;
+    guards.forEach(g => { const k = (minute % g.p) / g.p, pt = g.path.getPointAt(Math.min(0.999, k)); if(pt) g.dot.set(pt.x, pt.z); if(k < 0.06 || k > 0.97) atDoor++; });
+    doorMark.material.color.setHex(atDoor === guards.length && guards.length ? 0xffc94d : atDoor ? 0xff4f6d : 0x2fbf8a);
+  });
+
+  // ----- The task -----
+  function deal(){
+    const periods = rounds[r], M = lcmAll(periods);
+    $("round").textContent = r + 1;
+    setupGuards(periods); minute = 0; running = true;
+    const maxT = Math.min(40, Math.max(M + 4, 20));
+    const guardText = periods.map((p, i) => `guard ${NAMES[i]} every <b>${p}</b> min`).join(", ");
+    if(L === "L1"){
+      $("ask").innerHTML = `Mark the minutes when <b>guard A</b> passes the door (every ${periods[0]} minutes).`;
+      $("rows").hidden = false; $("ansRow").hidden = true;
+      $("rows").innerHTML = periods.map((p, i) => `<div class="row" data-g="${i}" ${i ? "hidden" : ""}><div class="rowlab"><i style="background:${CSS[i]}"></i>GUARD ${NAMES[i]} · EVERY ${p} MIN</div><div class="tl" style="--n:${maxT}">${T.range(1, maxT).map(t => `<button type="button" data-t="${t}">${t}</button>`).join("")}</div></div>`).join("")
+        + `<div class="row" data-g="both" hidden><div class="rowlab">BOTH AT THE DOOR · TAP THE FIRST MINUTE</div><div class="tl" style="--n:${maxT}">${T.range(1, maxT).map(t => `<button type="button" data-t="${t}">${t}</button>`).join("")}</div></div>`;
+      wireL1(periods, maxT, M);
+    } else {
+      $("ask").innerHTML = `On this floor ${guardText}. They start together at minute 0. When are ${periods.length === 3 ? "all three" : "both"} at the door together next?`;
+      $("rows").hidden = true; $("ansRow").hidden = false; $("ansIn").value = ""; $("ansIn").focus();
+    }
+    say("Watch the dots: each guard's loop brings them back past the green door.");
+  }
+  function wireL1(periods, maxT, M){
+    let g = 0, need = new Set(T.range(1, maxT).filter(t => t % periods[0] === 0));
+    const rowEl = i => $("rows").querySelector(`[data-g="${i}"]`);
+    $("rows").onclick = e => {
+      const b = e.target.closest("button[data-t]"); if(!b || b.disabled || over) return;
+      const t = +b.dataset.t, row = b.closest(".row").dataset.g;
+      if(row === "both"){
+        if(t === M){ b.classList.add("both"); return met(M); }
+        b.classList.add("bad"); setTimeout(() => b.classList.remove("bad"), 800); wrong++; alarm.hit();
+        say(`At minute ${t}: ${periods.map((p, i) => `guard ${NAMES[i]} ${t % p === 0 ? "is" : "isn't"} there`).join(", ")}. Look for a minute marked in every row.`, "bad"); return;
+      }
+      const p = periods[+row];
+      if(t % p === 0){ b.classList.add("on"); b.style.background = CSS[+row] + "55"; b.style.borderColor = CSS[+row]; b.disabled = true; need.delete(t); T.SND("tag");
+        if(!need.size){
+          g++;
+          if(g < periods.length){ rowEl(g).hidden = false; need = new Set(T.range(1, maxT).filter(x => x % periods[g] === 0)); $("ask").innerHTML = `Now <b>guard ${NAMES[g]}</b> (every ${periods[g]} minutes).`; }
+          else { rowEl("both").hidden = false; $("ask").innerHTML = `When are they <b>both</b> at the door for the first time? Tap it on the bottom row.`; }
+        }
+      } else { b.classList.add("bad"); setTimeout(() => b.classList.remove("bad"), 800); wrong++; alarm.hit(); say(`${t} isn't in guard ${NAMES[+row]}'s timetable: ${p} doesn't go into ${t}. Count on in ${p}s.`, "bad"); }
+    };
+  }
+  $("ansBtn").addEventListener("click", () => {
+    if(over) return;
+    const periods = rounds[r], M = lcmAll(periods), v = parseInt($("ansIn").value, 10);
+    if(!Number.isInteger(v)){ say("Type a minute.", "warn"); return; }
+    if(v === M) return met(M);
+    wrong++; alarm.hit();
+    const who = periods.map((p, i) => `${NAMES[i]} ${v % p === 0 ? "✓" : "✗"}`).join(" ");
+    say(periods.every(p => v % p === 0) ? `Yes, they're all there at ${v}, but earlier too. Find the first time.` : `At minute ${v}: ${who}. Try counting on in ${Math.max(...periods)}s and checking the others.`, "bad");
+  });
+  $("ansIn").addEventListener("keydown", e => { if(e.key === "Enter") $("ansBtn").click(); });
+  // They meet: the clock runs to that minute, both dots hit the door, then the agent slips in behind them
+  let meeting = false;
+  async function met(M){
+    if(meeting) return; meeting = true;
+    running = false; T.SND("verified");
+    say(`Minute ${M}: ${rounds[r].map(p => `${M} ÷ ${p} = ${M / p}`).join(", ")}. They're all at the door together, then walk away.`, "ok");
+    const from = minute % M, t0 = performance.now(), dur = 1800 / (window.PNTest ? PNTest.speed() : 1);
+    await new Promise(res => { (function f(now){ const k = Math.min(1, (now - t0) / dur); minute = from + (M - from) * k; if(k < 1) requestAnimationFrame(f); else res(); })(t0); });
+    minute = M; T.SND("alarm");
+    await new Promise(res => setTimeout(res, 500));
+    running = true; MPS = 1.6;
+    await new Promise(res => setTimeout(res, 700 / (window.PNTest ? PNTest.speed() : 1)));
+    await agent.walk([agent.at(), new TH.Vector3(D.x, 0, D.z), new TH.Vector3(D.x * 0.6, 0, D.z * 0.6)], 1100);
+    T.SND("success"); MPS = 1.1;
+    r++;
+    meeting = false;
+    if(r < rounds.length){ setTimeout(() => { agent.set(D.x + (D.x < 0 ? -10 : 10), D.z); deal(); }, 900); }
+    else end(true);
+  }
+  function end(ok){
+    over = true;
+    T.finish({ ok, title: ok ? "IN WITHOUT BEING SEEN" : "SPOTTED",
+      lines: rounds.slice(0, Math.max(1, r)).map(ps => `Every ${ps.join(", ")} min → together at <b>${lcmAll(ps)}</b>`).concat([`Wrong calls: <b>${wrong}</b>`, "The first time they're all together is the lowest common multiple (LCM) of their times."]) });
+    T.say(ok ? "We're in. They never saw us." : "Too many wrong calls. A guard spotted the door moving.");
+  }
+  deal();
+  if(window.PNTest) PNTest.skip("Solve this door", () => { const ps = rounds[r]; met(lcmAll(ps)); });
+})();
+</script>
+</body>
+</html>

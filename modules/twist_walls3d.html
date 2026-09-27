@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="en" class="phase-build">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PRIMENET · Deposit-Box Room</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Inter:wght@400;600;700;800&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../shared/primenet.css">
+<style>
+  /* Round 12 prototype: the deposit-box walls, inside the room. A laser-lit vault in one-point perspective,
+     deposit boxes down both sides, and the empty back wall where the key's bank of boxes goes. */
+  .room{ padding:0; overflow:hidden; background:#010608; }
+  .room svg{ display:block; width:100%; height:auto; }
+  .room .cell{ fill:rgba(8,30,36,.9); stroke:rgba(74,163,255,.55); stroke-width:1; }
+  .room .cell.box{ fill:hsla(var(--h),60%,42%,.9); stroke:hsla(var(--h),80%,72%,1); }
+  .room .cell.key{ fill:#ffc94d; stroke:#fff3cf; filter:drop-shadow(0 0 8px #ffc94d); }
+  .room .side{ fill:#0c1f25; stroke:#2c4c55; stroke-width:.8; }
+  .room .handle{ fill:#6b8a90; }
+  .room .laser{ stroke:#ff3355; stroke-width:1.5; opacity:.8; filter:drop-shadow(0 0 4px #ff3355); }
+  .room .sweep{ stroke:#ff3355; stroke-width:2.5; filter:drop-shadow(0 0 6px #ff3355); }
+  .room .drawer{ fill:#ffe14d; stroke:#fff3cf; filter:drop-shadow(0 0 12px #ffc94d); }
+  .room .note{ font:600 14px "Chakra Petch", sans-serif; letter-spacing:.14em; fill:#dff8ff; }
+  .under{ display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.1fr); gap:16px; align-items:start; }
+  .wallinfo{ padding:14px; display:flex; flex-direction:column; gap:8px; }
+  .wallinfo .big{ font-family:var(--font-ui); font-size:26px; letter-spacing:.08em; color:var(--accent); }
+  .wallinfo .note{ font-size:15px; color:var(--text-muted); min-height:2.8em; }
+  .pairs{ padding:14px; display:flex; flex-direction:column; gap:8px; }
+  .pairs .lab{ font-family:var(--font-ui); font-size:12px; letter-spacing:.14em; color:var(--text-muted); }
+  .pair{ display:grid; grid-template-columns:1fr auto auto; gap:8px; align-items:center; border:1px solid var(--line); padding:7px 10px; background:rgba(0,0,0,.2); }
+  .pair b{ font-size:21px; }
+  .pair .v{ font-size:14px; color:var(--text-muted); grid-column:1 / -1; }
+  .pair.fit{ border-color:var(--accent); } .pair.fit .v{ color:var(--accent); }
+  .pair.base{ border-color:#9fb7bb; }
+  .pair.done button{ display:none; }
+  @media (max-width:820px){ .under{ grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<main class="tw">
+  <div class="tw-bar"><span>Wall <b id="round">1</b> of 3</span><span><b id="nLab"></b></span></div>
+  <section class="pn-panel room" id="room"></section>
+  <div class="under">
+    <section class="pn-panel wallinfo"><span class="big" id="wallSize"></span><span class="note" id="wallNote"></span></section>
+    <section class="pn-panel pairs"><span class="lab">RECTANGLES OF BOXES (FACTOR PAIRS) · DO THEY FIT THE BACK WALL?</span><div id="pairs" style="display:flex;flex-direction:column;gap:8px"></div></section>
+  </div>
+  <div class="tw-msg" id="msg" aria-live="polite"></div>
+</main>
+
+<script src="../shared/sound.js"></script>
+<script src="../shared/primenet.js"></script>
+<script src="../shared/testtools.js"></script>
+<script src="../shared/handler.js"></script>
+<script src="../shared/twist.js"></script>
+<script>
+(() => {
+  "use strict";
+  const T = window.PNTwist, $ = id => document.getElementById(id);
+  const L = T.init({ id: "walls3d", stage: "FACTOR VAULT", title: "DEPOSIT-BOX ROOM",
+    goal: T.peekLevel() === "L1" ? "Which rectangles of boxes fit on the <b>back wall</b>? Tap a rectangle to try it, or drag boxes out on the wall." : "Which rectangles of boxes fit on the <b>back wall</b>? They can be turned round.",
+    example: "On a back wall 8 wide and 6 high, 4 × 6 fits. 2 × 12 doesn't: 12 is too wide and too tall.",
+    story: `We're in ${T.targets()} deposit-box room. The key's box is in a bank on the back wall, and the bank has to fit the wall. Work out which rectangles fit.` });
+  const SETS = {
+    L1: [[24, 8, 6], [18, 6, 4], [20, 5, 5], [16, 8, 4], [12, 4, 4]],
+    L2: [[36, 8, 6], [48, 8, 8], [40, 10, 5], [30, 6, 6], [45, 9, 5]],
+    L3: [[72, 9, 8], [60, 10, 6], [84, 12, 7], [90, 10, 9], [96, 12, 8]],
+  }[L];
+  const rounds = T.shuffle(SETS).slice(0, 3);
+  let r = 0, over = false, right = 0, total = 0, hue = 150;
+  const alarm = T.alarm(3, () => end(false));
+  const fits = (a, b, W, H) => (a <= H && b <= W) || (b <= H && a <= W);
+  function say(t, cls){ const m = $("msg"); m.textContent = t; m.className = "tw-msg" + (cls ? " " + cls : ""); }
+
+  // ----- The room in one-point perspective (SVG). Walls at X = ±1, floor/ceiling at Y = ±0.75, back wall at Z = 3.2 -----
+  const VW = 900, VH = 400, CX = VW / 2, CY = VH / 2 - 10, FOC = 450, ZB = 3.2;
+  const P = (X, Y, Z) => [CX + X / Z * FOC, CY + Y / Z * FOC];
+  const poly = (pts, cls, extra = "") => `<polygon class="${cls}" ${extra} points="${pts.map(p => p.map(v => v.toFixed(1)).join(",")).join(" ")}"/>`;
+  function sideWall(sx){
+    let g = "";
+    const zs = [1.05, 1.3, 1.6, 1.95, 2.35, 2.75, ZB], ys = [-0.62, -0.36, -0.1, 0.16, 0.42, 0.68];
+    for(let i = 0; i < zs.length - 1; i++) for(let j = 0; j < ys.length - 1; j++){
+      const z0 = zs[i] + 0.02, z1 = zs[i + 1] - 0.02, y0 = ys[j] + 0.02, y1 = ys[j + 1] - 0.02;
+      g += poly([P(sx, y0, z0), P(sx, y0, z1), P(sx, y1, z1), P(sx, y1, z0)], "side");
+      const hz = (z0 + z1) / 2, hy = (y0 + y1) / 2; const [hx1, hy1] = P(sx, hy, hz);
+      g += `<circle class="handle" cx="${hx1.toFixed(1)}" cy="${hy1.toFixed(1)}" r="${(3.2 / hz).toFixed(1)}"/>`;
+    }
+    return g;
+  }
+  let backCells = [];
+  function drawRoom(W, H){
+    // The back wall holds a W × H grid of box spaces, centred and scaled to fit
+    const bx0 = -0.82, bx1 = 0.82, by0 = -0.6, by1 = 0.62, cw = Math.min((bx1 - bx0) / W, (by1 - by0) / H);
+    const gx0 = -cw * W / 2, gy0 = by0 + ((by1 - by0) - cw * H) / 2;
+    let cells = "";
+    for(let row = 0; row < H; row++) for(let col = 0; col < W; col++){
+      const x0 = gx0 + col * cw + 0.004, x1 = x0 + cw - 0.008, y0 = gy0 + row * cw + 0.004, y1 = y0 + cw - 0.008;
+      cells += poly([P(x0, y0, ZB), P(x1, y0, ZB), P(x1, y1, ZB), P(x0, y1, ZB)], "cell", `data-r="${row}" data-c="${col}"`);
+    }
+    const floorLines = [1, 1.4, 1.9, 2.5].map(z => { const [a1, b1] = P(-1, 0.75, z), [a2, b2] = P(1, 0.75, z); return `<line x1="${a1}" y1="${b1}" x2="${a2}" y2="${b2}" stroke="#16323a" stroke-width="1"/>`; }).join("");
+    const lasers = [0.5, 0.2].map((y, i) => { const [a1, b1] = P(-1, y, 1.8 + i * 0.6), [a2, b2] = P(1, y, 1.8 + i * 0.6); return `<line class="laser" x1="${a1}" y1="${b1}" x2="${a2}" y2="${b2}"><animate attributeName="opacity" values=".8;.15;.8" dur="${1.4 + i * 0.5}s" repeatCount="indefinite"/></line>`; }).join("");
+    $("room").innerHTML = `<svg viewBox="0 0 ${VW} ${VH}" aria-label="Deposit-box room">
+      <rect width="${VW}" height="${VH}" fill="#010608"/>
+      ${poly([P(-1, 0.75, 1), P(1, 0.75, 1), P(1, 0.75, ZB), P(-1, 0.75, ZB)], "", 'fill="#04161b"')}
+      ${poly([P(-1, -0.75, 1), P(1, -0.75, 1), P(1, -0.75, ZB), P(-1, -0.75, ZB)], "", 'fill="#030d10"')}
+      ${floorLines}
+      ${sideWall(-1)}${sideWall(1)}
+      ${poly([P(-1, -0.75, ZB), P(1, -0.75, ZB), P(1, 0.75, ZB), P(-1, 0.75, ZB)], "", 'fill="#061418" stroke="#2c4c55"')}
+      <g id="back">${cells}</g>
+      ${lasers}
+      <line class="sweep" id="sweep" x1="0" y1="0" x2="0" y2="0" opacity="0"/>
+      <g id="fx"></g>
+      <text class="note" x="${CX}" y="${P(0, -0.66, ZB)[1] - 8}" text-anchor="middle">BACK WALL · ${W} WIDE × ${H} HIGH</text>
+    </svg>`;
+    backCells = [...$("room").querySelectorAll(".cell")];
+    backCells.forEach(c => c.style.setProperty("--h", 200));
+    return { gx0, gy0, cw };
+  }
+  let geo = null;
+  // A laser sweep across the room when a wall is dealt
+  function sweep(){
+    const s = $("sweep"), t0 = performance.now(), dur = 1300 / (window.PNTest ? PNTest.speed() : 1);
+    s.setAttribute("opacity", "1"); T.SND("scan", 1.3);
+    (function f(now){ const k = Math.min(1, (now - t0) / dur), z = 1 + k * (ZB - 1); const [a1, b1] = P(-1, 0.75, z), [a2, b2] = P(1, 0.75, z), [a3, b3] = P(-1, -0.75, z); s.setAttribute("x1", a1); s.setAttribute("y1", b1); s.setAttribute("x2", a2); s.setAttribute("y2", b2); if(k < 1) requestAnimationFrame(f); else s.setAttribute("opacity", "0"); })(t0);
+  }
+  const cellEl = (row, col) => backCells.find(c => +c.dataset.r === row && +c.dataset.c === col);
+  function paintRect(rows, cols, h){ backCells.forEach(c => { const on = +c.dataset.r < rows && +c.dataset.c < cols; c.classList.toggle("box", on); if(on) c.style.setProperty("--h", h); }); }
+
+  function deal(){
+    const [N, W, H] = rounds[r];
+    $("round").textContent = r + 1; $("nLab").textContent = `N = ${N} boxes`;
+    $("wallSize").textContent = `${W} WIDE × ${H} HIGH`; $("wallNote").textContent = "";
+    geo = drawRoom(W, H); sweep();
+    const box = $("pairs"); box.innerHTML = "";
+    T.pairs(N).forEach(([a, b]) => {
+      total++;
+      const el = document.createElement("div"); el.className = "pair";
+      el.innerHTML = `<b>${a} × ${b}</b><button class="pn-btn small" type="button" data-a="fit">Fits</button><button class="pn-btn small" type="button" data-a="base">Doesn't fit</button><span class="v"></span>`;
+      if(L === "L1"){ const lab = el.querySelector("b"); lab.style.cursor = "pointer"; lab.title = "Try it on the back wall"; let turned = false;
+        lab.addEventListener("click", () => { if(el.classList.contains("done")) return; preview(turned ? b : a, turned ? a : b); turned = !turned; }); }
+      el.querySelector('[data-a="fit"]').addEventListener("click", () => answer(el, a, b, true));
+      el.querySelector('[data-a="base"]').addEventListener("click", () => answer(el, a, b, false));
+      box.appendChild(el);
+    });
+    if(L === "L1") wireDrag();
+    say(`${N} boxes to fit. The back wall is ${W} boxes wide and ${H} high.`);
+  }
+  function preview(rows, cols){
+    const [N, W, H] = rounds[r];
+    hue = (hue + 55) % 360; paintRect(rows, cols, hue);
+    const o = rows > H || cols > W;
+    $("wallNote").textContent = `${rows} high × ${cols} wide${o ? `: too ${rows > H && cols > W ? "tall and too wide" : rows > H ? "tall" : "wide"} for this wall` : ": it fits"}. Tap it again to turn it round.`;
+    T.SND("plot");
+  }
+  function wireDrag(){
+    const svg = $("room").querySelector("svg"); svg.style.touchAction = "none";
+    let anchor = null, cur = null;
+    const at = e => { const t = document.elementFromPoint(e.clientX, e.clientY); return t && t.classList && t.classList.contains("cell") ? { r: +t.dataset.r, c: +t.dataset.c } : null; };
+    const paint = () => { const r0 = Math.min(anchor.r, cur.r), r1 = Math.max(anchor.r, cur.r), c0 = Math.min(anchor.c, cur.c), c1 = Math.max(anchor.c, cur.c), h = r1 - r0 + 1, w = c1 - c0 + 1, N = rounds[r][0];
+      backCells.forEach(c => { const on = +c.dataset.r >= r0 && +c.dataset.r <= r1 && +c.dataset.c >= c0 && +c.dataset.c <= c1; c.classList.toggle("box", on); if(on) c.style.setProperty("--h", 200); });
+      $("wallNote").textContent = `${h} high × ${w} wide = ${h * w} boxes${h * w === N ? ` ✓ that's all ${N}` : ` (need ${N})`}`; };
+    svg.addEventListener("pointerdown", e => { if(over) return; const c = at(e); if(!c) return; e.preventDefault(); svg.setPointerCapture(e.pointerId); anchor = cur = c; paint(); T.SND("tag"); });
+    svg.addEventListener("pointermove", e => { if(!anchor) return; const c = at(e); if(c && (c.r !== cur.r || c.c !== cur.c)){ cur = c; paint(); T.SND("plot"); } });
+    svg.addEventListener("pointerup", () => { anchor = cur = null; });
+  }
+  function answer(el, a, b, saidFit){
+    if(over || el.classList.contains("done")) return;
+    const [N, W, H] = rounds[r], f = fits(a, b, W, H), ok = f === saidFit, v = el.querySelector(".v");
+    const why = f ? (a <= H && b <= W ? `${a} high and ${b} wide fits.` : `Turned round, ${b} high and ${a} wide fits.`) : `${Math.max(a, b)} is bigger than the wall's width (${W}) and height (${H}), so it can't go on either way.`;
+    el.classList.add("done", f ? "fit" : "base");
+    v.textContent = (ok ? "✓ " : "✗ ") + why;
+    if(f){ const rows = a <= H && b <= W ? a : b, cols = a <= H && b <= W ? b : a; hue = (hue + 55) % 360; paintRect(rows, cols, hue); }
+    if(ok){ right++; T.SND("correct", right % 8); say(f ? "It fits on the back wall." : "It doesn't fit, either way round.", "ok"); }
+    else { T.SND("wrong"); say(why, "bad"); alarm.hit(); }
+    if(!over && [...$("pairs").children].every(p => p.classList.contains("done"))){
+      const wait = complete();
+      setTimeout(() => { if(over) return; r++; if(r < rounds.length){ T.SND("newlock"); deal(); } else end(true); }, wait / (window.PNTest ? PNTest.speed() : 1));
+    }
+  }
+  // The wall is sorted: each bank that fits slides into the back wall in turn; the key's bank stays,
+  // and the key box's drawer slides out towards you, glowing
+  const keys = [];
+  function complete(){
+    const [N, W, H] = rounds[r], sp = window.PNTest ? PNTest.speed() : 1;
+    const fp = T.pairs(N).filter(([a, b]) => fits(a, b, W, H)).map(([a, b]) => (a <= H && b <= W) ? { rows: a, cols: b, turned: false } : { rows: b, cols: a, turned: true });
+    if(!fp.length) return 1500;
+    const tr = fp.filter(p => p.turned), kp = tr.length === 1 ? tr[0] : fp[fp.length - 1];
+    const why = tr.length === 1 ? "the only one that fits turned round" : "the one closest to a square";
+    $("wallNote").textContent = "Wall sorted. Trying each bank on the back wall…";
+    const order = [...fp.filter(p => p !== kp), kp];
+    order.forEach((p, k) => setTimeout(() => { if(over) return; paintRect(p.rows, p.cols, (160 + k * 60) % 360); T.SND("clamp"); $("wallNote").textContent = `${p.rows} × ${p.cols} bank${p === kp ? `: this is the one. ${why[0].toUpperCase() + why.slice(1)}.` : ""}`; }, (300 + k * 700) / sp));
+    const tKey = 300 + order.length * 700 + 200;
+    setTimeout(() => {
+      if(over) return;
+      // Key box: a cell near the middle of the key bank; its drawer slides out of the wall
+      const kr = Math.floor((kp.rows - 1) / 2), kc = Math.floor((kp.cols - 1) / 2), c = cellEl(kr, kc);
+      if(c) c.classList.add("key");
+      const x0 = geo.gx0 + kc * geo.cw, x1 = x0 + geo.cw, y0 = geo.gy0 + kr * geo.cw, y1 = y0 + geo.cw;
+      const fx = $("fx"), t0 = performance.now(), dur = 900 / sp;
+      (function f(now){ const k = Math.min(1, (now - t0) / dur), z = ZB - k * 0.5;
+        fx.innerHTML = poly([P(x0, y0, z), P(x1, y0, z), P(x1, y1, z), P(x0, y1, z)], "drawer") + poly([P(x0, y1, ZB), P(x1, y1, ZB), P(x1, y1, z), P(x0, y1, z)], "", 'fill="#b8860b"');
+        if(k < 1) requestAnimationFrame(f); })(t0);
+      T.SND("success");
+      $("wallNote").textContent = `Key box found in the ${kp.rows} × ${kp.cols} bank (${why}).`;
+      keys.push(`${N} boxes: the ${kp.rows} × ${kp.cols} bank (${why})`);
+    }, tKey / sp);
+    return tKey + 2400;
+  }
+  function end(ok){
+    over = true;
+    T.finish({ ok, title: ok ? "KEY BOX OPEN" : "ALARM TRIPPED",
+      lines: [`Pairs sorted correctly: <b>${right}</b> of ${total}`, ...(ok && keys.length ? [`Key box: <b>${keys[keys.length - 1]}</b>`] : []), `A pair fits if its smaller number fits one side and its larger number fits the other.`] });
+    T.say(ok ? "Drawer's open. That's our key." : "Too many wrong calls. The lasers caught us.");
+  }
+  deal();
+  if(window.PNTest) PNTest.skip("Sort this wall", () => {
+    const [N, W, H] = rounds[r];
+    [...$("pairs").children].forEach(el => { if(el.classList.contains("done")) return; const [a, b] = el.querySelector("b").textContent.split("×").map(s => +s.trim()); el.querySelector(fits(a, b, W, H) ? '[data-a="fit"]' : '[data-a="base"]').click(); });
+  });
+})();
+</script>
+</body>
+</html>

@@ -58,6 +58,16 @@
   const lv = (page, extra = () => "") => ["L1", "L2", "L3"].map(l => `<a href="${page}?level=${l}${extra(l)}">${l}</a>`).join("");
   const CORR = { L1: [12, 18, 20, 24], L2: [36, 40, 48, 60], L3: [72, 84, 90, 96] };
   const POINTS = [
+    // Round 12: new versions that happen in the building (3D floor, the room, the door). Separate pages, so the main game is untouched.
+    { name: "Prototypes (round 12)", when: "In the building, not on a grid. Try them here, or switch missions over to them with the switch at the top.", items: [
+      { id: "corrupt", t: "Corrupted blueprint (replaces the fake floor)", d: "The stolen blueprint is corrupted on one floor. Drag the rooms (the factor pairs of N as arrays) onto the squared grid so they all fit. Tap a room to turn it. No 1 × N; lift and stairs block squares at L2 and L3. When it fits, the strongroom is found.", m: "factors", mn: "Factor pairs as arrays", page: "twist_corrupt.html", isNew: 1, other: 1 },
+      { id: "cubes3d", t: "Ceiling relays in 3D", d: "Their own floor in 3D with its ceiling lights. Each cube sends electricity from the junction box to a room. When every relay is powered the floor goes black, and in a mission the whole blueprint goes dark.", m: "cubes", mn: "Cube numbers", page: "twist_cubes3d.html", isNew: 1, other: 1 },
+      { id: "door2", t: "Key room door with keypad", d: "A big door with two bolts and a keypad, and why primes matter (card encryption). Split each number with a factor tree, then key its primes in, smallest first. L1: prime buttons on the first tree only; after that, type a pair (buttons unlock after a wrong try). L3 keys in powers.", m: "pfact", mn: "Prime factorisation", page: "twist_door2.html", isNew: 1, other: 1 },
+      { id: "patrols3d", t: "Guard patrols in 3D", d: "Guards (dots) walk loops past the fire door on their floor, with a clock. L1 marks each timetable, then finds when they meet. L2 just finds the first time they meet (the LCM). L3 has three guards. Then you slip in behind them.", m: "lcm", mn: "Multiples and LCM", page: "twist_patrols3d.html", isNew: 1, other: 1 },
+      { id: "walls3d", t: "Deposit-box room", d: "A laser-lit room in perspective with boxes down both sides. Fits or doesn't fit on the back wall. At the end each bank slides in, and the key box's drawer slides out, glowing.", m: "factors", mn: "Factor pairs", page: "twist_walls3d.html", isNew: 1, other: 1 },
+      { id: "sieve2", t: "Motion-sensor sieve (v2)", d: "Opens with what a sieve is and why it finds primes. A corridor of sensors: you choose each prime yourself (no step line). The sensors switch off its multiples at L1; at L2/L3 you tap them. Say when only primes are left, and a path lights through them.", m: "primes", mn: "Primes and multiples", page: "twist_sieve2.html", isNew: 1, other: 1 },
+      { id: "strongroom3d", t: "The strongroom, in the building", d: "Zooms in on the strongroom on their 3D floor. Stage 1 lays its square floor from the tiles delivered. Stage 2 puts the pressure plates in perspective: mark the square-numbered live plates, and the agent walks round them to the safe.", m: "squares", mn: "Square numbers", page: "twist_strongroom3d.html", isNew: 1, other: 1 },
+    ] },
     { name: "Frequency Scan", when: "After the scan, before the vault", items: [
       { id: "sieve", t: "Motion-sensor sieve", d: "Knock out every number that isn't prime, a prime at a time. The last prime's multiples are found by hand.", m: "primes", mn: "Primes and multiples", page: "twist_sieve.html", isNew: 1 },
       { id: "jammer", t: "Jammer", d: "Already in every band of the Frequency Scan. In the rotation it will only appear in band 2.", m: "multiples", mn: "Multiples", link: `<a href="prime_frequency_scan.html">Open the scan</a><small>uses the title-screen level</small>` },
@@ -97,6 +107,14 @@
     }
   }
   paintTeach();
+  // Round 12: a switch to make missions use the prototypes (and add the corrupted blueprint to the rotation)
+  if(PN && PN.setTwistProtos){
+    const sw = document.createElement("label");
+    sw.className = "pn-panel"; sw.style.cssText = "display:flex;gap:10px;align-items:center;padding:10px 14px;margin:0 0 14px;font-size:15px;cursor:pointer";
+    sw.innerHTML = `<input type="checkbox" id="protoSw" ${PN.twistProtos() ? "checked" : ""} style="accent-color:var(--warning);width:18px;height:18px"> <span><b>Use the round 12 prototypes in missions.</b> Twists in a mission open the new versions, and the corrupted blueprint joins the Factor Vault rotation.</span>`;
+    teach.after(sw);
+    sw.querySelector("input").addEventListener("change", e => PN.setTwistProtos(e.target.checked));
+  }
   const box = document.getElementById("points");
   POINTS.forEach(pt => {
     const sec = document.createElement("section"); sec.className = "point";

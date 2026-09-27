@@ -30,7 +30,7 @@
   function run(point){
     if(!PN || !PN.twistAt || qs.get("notwist")) return Promise.resolve(null);
     let t = PN.twistAt(point);
-    const force = qs.get("twist") && PN.TWISTS.find(x => x.id === qs.get("twist") && x.point === point && x.page);
+    const force = qs.get("twist") && PN.TWISTS.find(x => x.id === qs.get("twist") && x.point === point && (x.page || x.proto));
     if(force) t = force;
     if(!t) return Promise.resolve(null);
     if(!styled){ const st = document.createElement("style"); st.textContent = css; document.head.appendChild(st); styled = true; }
@@ -44,7 +44,9 @@
     return new Promise(resolve => {
       setTimeout(() => {
         const f = document.createElement("iframe");
-        f.src = `${t.page}?level=${lv}&mission=1`; f.title = t.name;
+        // Round 12: the teacher can switch missions to the prototype versions (Twist Lab / teacher controls)
+        const page = (t.proto && (!t.page || qs.get("proto") || (PN.twistProtos && PN.twistProtos()))) ? t.proto : t.page;
+        f.src = `${page}?level=${lv}&mission=1`; f.title = t.name;
         o.appendChild(f);
         f.addEventListener("load", () => { f.classList.add("on"); try{ f.contentWindow.focus(); }catch(e){} });
       }, 1600);
@@ -55,7 +57,7 @@
         window.removeEventListener("message", onMsg);
         PN.log("twist-end", { id: t.id, point, ok: !!d.ok });
         o.style.transition = "opacity .35s"; o.style.opacity = "0";
-        setTimeout(() => { o.remove(); document.body.classList.remove("pnts-on"); resolve({ id: t.id, ok: !!d.ok }); }, 380);
+        setTimeout(() => { o.remove(); document.body.classList.remove("pnts-on"); resolve({ id: t.id, ok: !!d.ok, effect: d.effect || "" }); }, 380);
       };
       window.addEventListener("message", onMsg);
     });

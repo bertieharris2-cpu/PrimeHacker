@@ -332,5 +332,13 @@ Direction: twists should happen in the building itself (the 3D floor, the room, 
   - CCTV shows a clear moving guard.
   - More plain hacker lines between locks.
   - Sieve wording: "switched on" (not "glowing"), and a line explaining what a sieve does.
-  - The fake floor is parked, out of the rotation. Its slot becomes the corrupted-blueprint array puzzle.
-- Next: the ceiling relays on a real 3D floor, with the blueprint going dark at the end; the key room door with a keypad, a real-life reason for prime factors and scaffolding that fades; guard patrols on a 3D floor with walking guards (L2 just finds the LCM); the walls in a perspective room; the corrupted-blueprint puzzle; a sieve rework; ideas for the strongroom.
+  - The old fake-floor page leaves the rotation. Bertie then asked for it to be rebuilt as the "fit the arrays onto a squared grid" puzzle rather than parked: that is the corrupted blueprint below.
+- Prototypes (built one after another while Bertie was away; separate pages, so the main game is untouched):
+  - `twist_corrupt.html`, the corrupted blueprint: fit the factor-pair arrays (no 1 × N) onto a squared grid, turning them as needed. The lift and stairs block squares at L2 and L3. Each puzzle is checked solvable by a small solver, which SKIP also uses.
+  - `twist_cubes3d.html`: the ceiling relays on the student's own weak floor in 3D (`shared/floor3d.js`). Electricity pulses from a junction box to each room, and the floor goes black at the end. In a mission it returns `effect: "dark"`, and the blueprint dims every light.
+  - `twist_door2.html`: the key room door with a keypad and a "why primes" line (card encryption). Scaffolding fades: L1's first tree has prime buttons; after that you type a pair, and buttons unlock after a wrong try. L3 keys in powers.
+  - `twist_patrols3d.html`: guards as dots walking loops past the fire door, with a clock. L1 marks the timetables then finds the meeting time; L2 just gives the LCM; L3 has three guards. The agent slips in afterwards.
+  - `twist_walls3d.html`: a deposit-box room in one-point perspective. The banks slide into the back wall, and the key box's drawer slides out.
+  - `twist_sieve2.html`: an explainer screen, then a corridor of sensors where you choose each prime. Multiples are switched off by the sensors (L1) or by you (L2/L3). You declare when only primes are left, then a path lights up.
+  - `twist_strongroom3d.html`: zooms to the strongroom on the 3D floor, lays its square floor, then shows the pressure plates in perspective. Mark the square-numbered live plates, and the agent walks round them to the safe.
+- The Twist Lab has a "Prototypes (round 12)" section and a switch to make missions use them (`primenet_twists_v1.protos`). That also adds the corrupted blueprint to the vault rotation. `?proto=1` on a stage does the same for one twist.

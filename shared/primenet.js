@@ -405,14 +405,15 @@
   // the others are built into their stage and only use the tick box.
   const TWIST_POINTS = { scan:"After the Frequency Scan", vault:"Factor Vault (after floor 2)", lights:"Blueprint (after the lights)", getin:"Getting in", hack:"Prime Hack (before lock 3)", finale:"Finale" };
   const TWISTS = [
-    { id:"sieve",      point:"scan",   name:"Motion-sensor sieve",    maths:"Primes and multiples", page:"twist_sieve.html" },
+    { id:"sieve",      point:"scan",   name:"Motion-sensor sieve",    maths:"Primes and multiples", page:"twist_sieve.html", proto:"twist_sieve2.html" },
     { id:"jammer",     point:"scan",   name:"Jammer",                 maths:"Multiples" },
-    { id:"strongroom", point:"vault",  name:"Square strongroom",      maths:"Square numbers", page:"twist_strongroom.html" },
-    { id:"walls",      point:"vault",  name:"Deposit-box walls",      maths:"Factor pairs", page:"twist_walls.html" },
-    { id:"cubes",      point:"lights", name:"Ceiling relays (cubes)", maths:"Cube numbers", page:"twist_cubes.html" },
-    { id:"patrols",    point:"getin",  name:"Guard patrols",          maths:"Multiples and LCM", page:"twist_patrols.html" },
+    { id:"strongroom", point:"vault",  name:"Square strongroom",      maths:"Square numbers", page:"twist_strongroom.html", proto:"twist_strongroom3d.html" },
+    { id:"walls",      point:"vault",  name:"Deposit-box walls",      maths:"Factor pairs", page:"twist_walls.html", proto:"twist_walls3d.html" },
+    { id:"corrupt",    point:"vault",  name:"Corrupted blueprint",    maths:"Factor pairs as arrays", proto:"twist_corrupt.html" },
+    { id:"cubes",      point:"lights", name:"Ceiling relays (cubes)", maths:"Cube numbers", page:"twist_cubes.html", proto:"twist_cubes3d.html" },
+    { id:"patrols",    point:"getin",  name:"Guard patrols",          maths:"Multiples and LCM", page:"twist_patrols.html", proto:"twist_patrols3d.html" },
     { id:"corridor",   point:"getin",  name:"Laser corridor",         maths:"Factors" },
-    { id:"factortree", point:"hack",   name:"Key room door (factor tree)", maths:"Prime factorisation", page:"twist_factortree.html" },
+    { id:"factortree", point:"hack",   name:"Key room door (factor tree)", maths:"Prime factorisation", page:"twist_factortree.html", proto:"twist_door2.html" },
     { id:"blackout",   point:"finale", name:"Server blackout",        maths:"Primes" },
     { id:"getaway",    point:"finale", name:"Getaway chase",          maths:"Primes, squares, cubes" },
   ];
@@ -424,6 +425,11 @@
   // The teacher can make one twist turn up in every mission (e.g. the whole class on square numbers)
   const twistPin = () => readTw().pin || "";
   function setTwistPin(id){ const d = readTw(); d.pin = id || ""; writeTw(d); }
+  // Round 12: missions can use the prototype pages (3D, in-the-building versions) instead of the current ones.
+  // A twist with only a prototype (the corrupted blueprint) joins the rotation only while this is on.
+  const twistProtos = () => !!readTw().protos;
+  function setTwistProtos(on){ const d = readTw(); d.protos = !!on; writeTw(d); }
+  const playable = t => !!(t.page || (t.proto && twistProtos()));
   // How many rotating twists a mission gets
   const TWISTS_PER_MISSION = 2;
   // The mission's twist plan: made once per session, then every stage asks it "is there a twist here?".
@@ -434,11 +440,11 @@
     let st; try{ st = JSON.parse(localStorage.getItem(PLAN_KEY) || "{}") || {}; }catch(e){ st = {}; }
     if(st.session === a.sessionId && st.picks) return st.picks;
     const hist = (st.history || {})[a.codename] || [];
-    const pool = TWISTS.filter(t => t.page && twistOn(t.id));
+    const pool = TWISTS.filter(t => playable(t) && twistOn(t.id));
     const shuffle = arr => arr.map(v => [Math.random(), v]).sort((x, y) => x[0] - y[0]).map(x => x[1]);
     const fresh = shuffle(pool.filter(t => !hist.includes(t.id))), stale = shuffle(pool.filter(t => hist.includes(t.id)));
     const picks = {};
-    const pin = TWISTS.find(t => t.id === twistPin() && t.page && twistOn(t.id));
+    const pin = TWISTS.find(t => t.id === twistPin() && playable(t) && twistOn(t.id));
     if(pin) picks[pin.point] = pin.id;
     for(const t of [...fresh, ...stale]){ if(Object.keys(picks).length >= TWISTS_PER_MISSION) break; if(!picks[t.point]) picks[t.point] = t.id; }
     st.session = a.sessionId; st.picks = picks; st.history = st.history || {}; st.history[a.codename] = Object.values(picks);
@@ -447,7 +453,7 @@
   }
   const twistAt = point => { const id = twistPlan()[point]; return id ? TWISTS.find(t => t.id === id) : null; };
   function setTwistPlan(picks){ const a = getAgent(); if(!a) return; let st; try{ st = JSON.parse(localStorage.getItem(PLAN_KEY) || "{}") || {}; }catch(e){ st = {}; } st.session = a.sessionId; st.picks = picks; try{ localStorage.setItem(PLAN_KEY, JSON.stringify(st)); }catch(e){} }
-  Object.assign(window.Primenet, { TWISTS, TWIST_POINTS, twistsOff, setTwistOn, twistOn, twistPin, setTwistPin, twistPlan, twistAt, setTwistPlan });
+  Object.assign(window.Primenet, { TWISTS, TWIST_POINTS, twistsOff, setTwistOn, twistOn, twistPin, setTwistPin, twistPlan, twistAt, setTwistPlan, twistProtos, setTwistProtos });
 
   applyPrefs();   // every page opens with the current agent's settings
 

@@ -1,0 +1,295 @@
+<!doctype html>
+<html lang="en" class="phase-hack">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PRIMENET · Ceiling Relays (3D)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Inter:wght@400;600;700;800&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../shared/primenet.css">
+<style>
+  /* Round 12 prototype: the ceiling relays on the student's own floor in 3D. Each cube sends electricity
+     through the ceiling to a room; with every relay powered, the floor (and the blueprint) goes dark. */
+  .stage3d{ position:relative; height:330px; padding:0; overflow:hidden; background:radial-gradient(ellipse at 50% 40%, rgba(20,60,70,.35), rgba(2,8,10,.9)); }
+  .stage3d .hud{ position:absolute; left:12px; top:10px; font-family:var(--font-ui); font-size:12px; letter-spacing:.18em; color:#ffe14d; pointer-events:none; text-shadow:0 0 8px rgba(0,0,0,.8); }
+  .stage3d .hud b{ font-size:18px; }
+  .stage3d .blackout{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-family:var(--font-ui); font-weight:700; letter-spacing:.3em; font-size:clamp(22px,4vw,40px); color:#ff4f6d; text-shadow:0 0 24px rgba(255,60,90,.8); opacity:0; pointer-events:none; transition:opacity .6s; }
+  .stage3d .blackout.on{ opacity:1; }
+  .layout{ display:grid; grid-template-columns:minmax(0,1fr) 260px; gap:16px; align-items:start; }
+  .board{ padding:16px; }
+  .spot .tw-grid{ grid-template-columns:repeat(6, minmax(0,1fr)); }
+  .log{ padding:12px; display:flex; flex-direction:column; gap:6px; font-size:14px; color:var(--text-muted); }
+  .log h2{ margin:0 0 4px; font-family:var(--font-ui); font-size:13px; letter-spacing:.18em; color:var(--accent); }
+  .log b{ color:#fff3cf; }
+  .table{ font-size:14px; color:var(--text-muted); border-top:1px solid var(--line); padding-top:8px; }
+  .table[hidden], .build[hidden], .spot[hidden], .draw[hidden], .rootq[hidden]{ display:none; }
+  .steps{ display:flex; gap:6px; font-family:var(--font-ui); font-size:12px; letter-spacing:.16em; }
+  .steps span{ border:1px solid var(--line); padding:3px 8px; color:var(--text-faint); }
+  .steps span.on{ color:var(--warning); border-color:var(--warning); }
+  .steps span.done{ color:var(--ok); border-color:rgba(61,220,151,.5); }
+  .build{ padding:16px; display:grid; grid-template-columns:200px minmax(0,1fr); gap:16px; align-items:center; }
+  .ctrls{ display:flex; flex-direction:column; gap:12px; }
+  .ctrl{ display:flex; align-items:center; gap:10px; font-size:17px; }
+  .ctrl span.l{ width:150px; color:var(--text-muted); }
+  .ctrl button{ width:40px; height:40px; font-size:22px; padding:0; }
+  .ctrl b{ font-family:var(--font-mono); font-size:24px; min-width:34px; text-align:center; }
+  .count{ font-family:var(--font-mono); font-size:20px; } .count b{ color:var(--warning); }
+  .need{ font-family:var(--font-ui); font-size:19px; } .need b{ color:var(--accent); font-size:28px; }
+  .draw{ padding:16px; display:grid; grid-template-columns:auto minmax(0,1fr); gap:16px; align-items:start; }
+  .dg{ display:grid; gap:2px; touch-action:none; user-select:none; cursor:crosshair; grid-template-columns:repeat(8, 26px); }
+  .dg i{ width:26px; height:26px; background:rgba(var(--accent-rgb),.08); border:1px solid rgba(var(--accent-rgb),.25); }
+  .dg i.sel{ background:rgba(255,201,77,.45); border-color:#ffc94d; }
+  .dg.bad i.sel{ background:rgba(255,107,107,.4); border-color:#ff6b6b; }
+  .dside{ display:flex; flex-direction:column; gap:10px; }
+  .dside .row{ display:flex; gap:8px; flex-wrap:wrap; }
+  #stackArt svg, #boxArt svg{ max-width:190px !important; }
+  .rootq{ padding:16px; display:flex; flex-direction:column; gap:10px; }
+  .rootq .answer{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; font-size:17px; }
+  .rootq input{ width:80px; font-size:20px; text-align:center; padding:6px; }
+  .strip .cells{ display:grid; grid-template-columns:repeat(12, 1fr); gap:1px; touch-action:none; user-select:none; cursor:crosshair; max-width:440px; }
+  .strip .cells i{ height:22px; background:rgba(var(--accent-rgb),.08); border:1px solid rgba(var(--accent-rgb),.25); }
+  .strip .cells i.on{ background:rgba(255,201,77,.5); border-color:#ffc94d; }
+  .strip .sr{ font-family:var(--font-mono); font-size:14px; color:var(--text-muted); }
+  .lab{ font-family:var(--font-ui); font-size:12px; letter-spacing:.16em; color:var(--text-faint); }
+  @media (max-width:880px){ .layout, .build, .draw{ grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<main class="tw">
+  <div class="tw-bar"><span class="steps"><span id="st1" class="on">1 · POWER THE RELAYS</span><span id="st2">2 · FIND THE CUBE RELAYS</span></span><span>Relays powered: <b id="count">0</b> of <b id="total">0</b></span></div>
+  <section class="pn-panel stage3d" id="stage"><div class="hud">CEILING OF <span id="floorName">THE TARGET FLOOR</span> · <b id="hudN">0</b> RELAYS LIVE</div><div class="blackout" id="blackout">CAMERAS DARK</div></section>
+  <div class="layout">
+    <div>
+      <section class="pn-panel build" id="build" hidden>
+        <div id="boxArt"></div>
+        <div class="ctrls">
+          <div class="need">Relay needs <b class="needN"></b> blocks</div>
+          <div class="ctrl"><span class="l">Blocks along each side</span><button class="pn-btn" type="button" data-c="side" data-d="-1" aria-label="Fewer blocks along each side">−</button><b id="sideV">1</b><button class="pn-btn" type="button" data-c="side" data-d="1" aria-label="More blocks along each side">+</button></div>
+          <div class="ctrl"><span class="l">Layers</span><button class="pn-btn" type="button" data-c="lay" data-d="-1" aria-label="Fewer layers">−</button><b id="layV">1</b><button class="pn-btn" type="button" data-c="lay" data-d="1" aria-label="More layers">+</button></div>
+          <div class="count" id="countLine"></div>
+          <button class="pn-btn primary" type="button" id="lockBtn">Power the relay</button>
+        </div>
+      </section>
+      <section class="pn-panel draw" id="draw" hidden>
+        <div><span class="lab">DRAW ONE LAYER</span><div class="dg" id="dg"></div></div>
+        <div class="dside">
+          <div class="need">Relay needs <b class="needN"></b> blocks</div>
+          <div id="stackArt"></div>
+          <div class="count" id="stackLine">Draw a square layer on the grid.</div>
+          <div class="row"><button class="pn-btn small" type="button" id="stackBtn" disabled>Stack a layer</button><button class="pn-btn small" type="button" id="unstackBtn" disabled>Take one off</button><button class="pn-btn small primary" type="button" id="drawLock" disabled>Power the relay</button></div>
+        </div>
+      </section>
+      <section class="pn-panel rootq" id="rootq" hidden>
+        <div class="need">Relay has <b class="needN"></b> blocks</div>
+        <span class="lab">IT'S A CUBE. HOW MANY BLOCKS ALONG EACH SIDE?</span>
+        <div class="strip"><div class="cells" id="cells"></div><span class="sr" id="stripRead">Drag along the strip, or type it.</span></div>
+        <div class="answer"><label for="rootIn">Blocks along each side:</label><input class="pn-input" id="rootIn" inputmode="numeric" maxlength="2"><button class="pn-btn small primary" type="button" id="rootBtn">Check</button><button class="pn-btn small" type="button" id="noCube">It can't be a cube</button></div>
+      </section>
+      <section class="pn-panel board spot" id="spot" hidden><div class="tw-grid" id="grid"></div></section>
+    </div>
+    <aside class="pn-panel log"><h2>RELAY LOG</h2><div id="log"></div><div class="table" id="table" hidden></div></aside>
+  </div>
+  <div class="tw-msg" id="msg" aria-live="polite"></div>
+</main>
+
+<script src="../shared/vendor/three.min.js"></script>
+<script src="../shared/sound.js"></script>
+<script src="../shared/primenet.js"></script>
+<script src="../shared/testtools.js"></script>
+<script src="../shared/handler.js"></script>
+<script src="../shared/twist.js"></script>
+<script src="../shared/floor3d.js"></script>
+<script>
+(() => {
+  "use strict";
+  const T = window.PNTwist, $ = id => document.getElementById(id);
+  const L = T.peekLevel();
+  const GOALS = {
+    L1: "Build each relay as a <b>cube</b>: the same number of blocks along each side, and that many layers.",
+    L2: "Draw a <b>square layer</b>, then stack layers until it's a <b>cube</b> with the right number of blocks.",
+    L3: "Give each relay's <b>cube root</b>: how many blocks along each side. Or say it can't be a cube.",
+  };
+  const GOAL2 = "Find every <b>cube number</b> on the relay board. Each one powers another room.";
+  T.init({ id: "cubes3d", stage: "BLUEPRINT", title: "CEILING RELAYS", goal: GOALS[L],
+    example: "<b>27</b> is a cube number: 3 blocks along each side and 3 layers, 3 × 3 × 3 = 27.",
+    story: `This is the target floor of ${T.target()}. The lights you can see run through relays in the ceiling, and so do the cameras. Power every relay and we can drop the whole floor into darkness.` });
+
+  // ----- The 3D floor: the student's own weak floor -----
+  const F = PNFloor3D.create($("stage"), {});
+  const TH = F.THREE;
+  const a0 = window.Primenet && Primenet.getAgent();
+  $("floorName").textContent = (a0 && a0.weakFloor ? a0.weakFloor : "FLOOR N=" + F.n).toUpperCase();
+  F.camera.position.set(0, 170, 150); F.look.set(0, 0, 10);
+  F.lightsOn(1000);
+  F.setSpin(0.0008);
+  // Junction box at the fire exit corner; a relay box above every room
+  const J = new TH.Vector3(-F.PLATE / 2 + 4, F.H + 2, -F.PLATE / 2 + 4);
+  const jb = new TH.Mesh(new TH.BoxGeometry(6, 3, 6), new TH.MeshBasicMaterial({ color: 0xffb347 })); jb.position.copy(J); F.root.add(jb);
+  const relayBoxes = F.rooms.map(r => { const m = new TH.Mesh(new TH.BoxGeometry(3.2, 1.6, 3.2), new TH.MeshBasicMaterial({ color: 0x3a4a4e })); m.position.set(r.x, F.H + 1.2, r.z); F.root.add(m); return m; });
+  // Cameras: red lights on the floor corners
+  const cams = [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([sx, sz]) => { const m = new TH.Mesh(new TH.SphereGeometry(1.8, 10, 10), new TH.MeshBasicMaterial({ color: 0xff3355 })); m.position.set(sx * (F.PLATE / 2 - 3), F.H - 2, sz * (F.PLATE / 2 - 3)); F.root.add(m); return m; });
+  F.onTick(now => cams.forEach((c, i) => { if(!c.userData.off) c.material.color.setHex(Math.sin(now / 220 + i) > 0 ? 0xff3355 : 0x661122); }));
+
+  function boxSVG(a, h, px = 64){
+    const u = Math.min(0.5 * px / a, 0.9 * px / (a + h)), c30 = 0.866, cx = px / 2, cy = px / 2;
+    const P = (x, y, z) => [(cx + (x - z) * c30 * u).toFixed(1), (cy + (x + z - a) * 0.5 * u - (y - h / 2) * u).toFixed(1)];
+    const poly = (pts, f) => `<polygon points="${pts.map(p => P(...p).join(",")).join(" ")}" fill="${f}" stroke="#ffe7a8" stroke-width="1"/>`;
+    const line = (a1, b1) => { const [x1, y1] = P(...a1), [x2, y2] = P(...b1); return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#ffe7a8" stroke-width=".6" opacity=".75"/>`; };
+    let g = poly([[0,h,0],[a,h,0],[a,h,a],[0,h,a]], "rgba(255,201,77,.55)") + poly([[a,0,0],[a,h,0],[a,h,a],[a,0,a]], "rgba(255,201,77,.3)") + poly([[0,0,a],[a,0,a],[a,h,a],[0,h,a]], "rgba(255,201,77,.18)");
+    for(let k = 1; k < a; k++){ g += line([k,h,0],[k,h,a]) + line([0,h,k],[a,h,k]) + line([a,0,k],[a,h,k]) + line([k,0,a],[k,h,a]); }
+    for(let k = 1; k < h; k++){ g += line([a,k,0],[a,k,a]) + line([0,k,a],[a,k,a]); }
+    return `<svg viewBox="0 0 ${px} ${px}" aria-hidden="true" style="width:100%;max-width:190px">${g}</svg>`;
+  }
+  const cubeRoot = n => Math.round(Math.cbrt(n));
+  const STEP1 = { L1: () => [8, 27, 64], L2: () => T.shuffle([27, 64, 125]), L3: () => T.shuffle([...T.shuffle([216, 343, 512, 729, 1000]).slice(0, 3), T.pick([100, 200, 300, 400, 500])]) };
+  const s1 = STEP1[L]();
+  const BOARD = { L1: { max: 70, size: 16 }, L2: { max: 130, size: 20 }, L3: { max: 1000, size: 24 } }[L];
+  const s2all = T.range(1, 10).map(k => k ** 3).filter(c => c <= BOARD.max && !(L === "L3" && c < 8));
+  const s2 = L === "L3" ? T.shuffle(s2all).slice(0, 6) : s2all;
+  const RELAYS = [...s1.filter(T.isCube), ...s2];
+  $("total").textContent = RELAYS.length;
+
+  let found = 0, over = false;
+  const alarm = T.alarm(3, () => end(false));
+  function say(t, cls){ const m = $("msg"); m.textContent = t; m.className = "tw-msg" + (cls ? " " + cls : ""); }
+  const between = n => { let a = 1; while((a + 1) ** 3 <= n) a++; return `${a} × ${a} × ${a} = ${a ** 3} and ${a + 1} × ${a + 1} × ${a + 1} = ${(a + 1) ** 3}`; };
+  // Each powered relay: electricity runs from the junction box to the next room's relay, and that room's lights flare
+  async function light(n){
+    const room = F.rooms[found % F.rooms.length], box = relayBoxes[found % F.rooms.length];
+    found++; $("count").textContent = found; $("hudN").textContent = found;
+    const r = cubeRoot(n);
+    if(!$("log").querySelector(`[data-n="${n}"]`)) $("log").insertAdjacentHTML("beforeend", `<div data-n="${n}"><b>${n}</b> = ${r} × ${r} × ${r} · ${room.name.toLowerCase()}</div>`);
+    T.SND("correct", found);
+    await F.pulse(J, new TH.Vector3(room.x, F.H + 1.2, room.z), 0xffe14d, 650);
+    box.material.color.setHex(0xffe14d);
+    room.lights.draw(room.a * room.b, "rgba(255,240,120,1)");
+    if(found === RELAYS.length) blackout();
+  }
+  async function blackout(){
+    await new Promise(r => setTimeout(r, 500));
+    T.SND("clamp"); T.SND("rise");
+    cams.forEach(c => { c.userData.off = true; c.material.color.setHex(0x222222); });
+    await F.dark(900);
+    jb.material.color.setHex(0x333333); relayBoxes.forEach(b => b.material.color.setHex(0x222222));
+    $("blackout").classList.add("on");
+  }
+  let i1 = 0;
+  const setNeed = () => document.querySelectorAll(".needN").forEach(b => b.textContent = s1[i1]);
+  function nextRelay(){
+    i1++;
+    if(i1 === s1.length) return setTimeout(() => { if(!over) step2(); }, 1000);
+    setNeed(); if(L === "L1") resetBuild(); else if(L === "L2") resetDraw(); else resetRoot();
+  }
+  // L1 build
+  let side = 1, lay = 1;
+  function paintBuild(){ $("sideV").textContent = side; $("layV").textContent = lay; $("boxArt").innerHTML = boxSVG(side, lay, 200); $("countLine").innerHTML = `${side} × ${side} × ${lay} = <b>${side * side * lay}</b> blocks`; }
+  function resetBuild(){ side = 1; lay = 1; paintBuild(); }
+  document.querySelectorAll(".ctrl button").forEach(b => b.addEventListener("click", () => { if(over) return; const d = +b.dataset.d; if(b.dataset.c === "side") side = Math.max(1, Math.min(5, side + d)); else lay = Math.max(1, Math.min(5, lay + d)); T.SND("plot"); paintBuild(); }));
+  $("lockBtn").addEventListener("click", () => {
+    if(over) return;
+    const n = side * side * lay, want = s1[i1];
+    if(n === want && side === lay){ light(want); say(`${side} × ${side} × ${side} = ${want}. A cube: power to the ceiling.`, "ok"); return nextRelay(); }
+    if(n === want){ say(`${n} blocks, but ${side} along each side and ${lay} layers isn't a cube. Make them match.`, "warn"); T.SND("untag"); return; }
+    say(`${side} × ${side} × ${lay} = ${n}. The relay needs ${want}.`, "bad"); alarm.hit();
+  });
+  // L2 draw a layer and stack it
+  const dg = $("dg"); let base = 0, layers = 0, anchor = null, cur = null;
+  dg.innerHTML = Array.from({ length: 64 }, (_, i) => `<i data-r="${Math.floor(i / 8)}" data-c="${i % 8}"></i>`).join("");
+  function paintStack(){
+    $("stackArt").innerHTML = base && layers ? boxSVG(base, layers, 200) : "";
+    $("stackLine").innerHTML = base ? `${layers} layer${layers === 1 ? "" : "s"} of ${base} × ${base}: ${Array(layers).fill(base * base).join(" + ")} = <b>${base * base * layers}</b>` : "Draw a square layer on the grid.";
+    $("stackBtn").disabled = !base || layers >= 8; $("unstackBtn").disabled = layers <= 1; $("drawLock").disabled = !base;
+  }
+  function resetDraw(){ base = 0; layers = 0; dg.querySelectorAll("i").forEach(i => i.classList.remove("sel")); dg.classList.remove("bad"); paintStack(); }
+  const cellFrom = e => { const t = document.elementFromPoint(e.clientX, e.clientY); return t && t.parentElement === dg ? { r: +t.dataset.r, c: +t.dataset.c } : null; };
+  function paintSel(){ const r0 = Math.min(anchor.r, cur.r), r1 = Math.max(anchor.r, cur.r), c0 = Math.min(anchor.c, cur.c), c1 = Math.max(anchor.c, cur.c); dg.querySelectorAll("i").forEach(i => { const r = +i.dataset.r, c = +i.dataset.c; i.classList.toggle("sel", r >= r0 && r <= r1 && c >= c0 && c <= c1); }); const h = r1 - r0 + 1, w = c1 - c0 + 1; dg.classList.toggle("bad", h !== w); return { h, w }; }
+  dg.addEventListener("pointerdown", e => { if(over) return; const c = cellFrom(e); if(!c) return; e.preventDefault(); dg.setPointerCapture(e.pointerId); anchor = cur = c; paintSel(); T.SND("tag"); });
+  dg.addEventListener("pointermove", e => { if(!anchor) return; const c = cellFrom(e); if(c && (c.r !== cur.r || c.c !== cur.c)){ cur = c; paintSel(); T.SND("plot"); } });
+  dg.addEventListener("pointerup", () => { if(!anchor) return; const { h, w } = paintSel(); anchor = cur = null; if(h !== w){ base = 0; layers = 0; paintStack(); say(`${h} × ${w} isn't square. A cube's layers are squares.`, "warn"); T.SND("untag"); return; } base = h; layers = 1; paintStack(); T.SND("clamp"); say(`One layer of ${h} × ${h} = ${h * h} blocks. Now stack layers.`); });
+  $("stackBtn").addEventListener("click", () => { if(over || !base) return; layers++; paintStack(); T.SND("pop", layers); });
+  $("unstackBtn").addEventListener("click", () => { if(over || layers <= 1) return; layers--; paintStack(); T.SND("untag"); });
+  $("drawLock").addEventListener("click", () => {
+    if(over || !base) return;
+    const n = base * base * layers, want = s1[i1];
+    if(n === want && base === layers){ light(want); say(`${base} layers of ${base} × ${base} = ${want}. Power to the ceiling.`, "ok"); return nextRelay(); }
+    if(n === want){ say(`${n} blocks, but ${layers} layers of ${base} × ${base} isn't a cube.`, "warn"); T.SND("untag"); return; }
+    say(`${base} × ${base} × ${layers} = ${n}. The relay needs ${want}.`, "bad"); alarm.hit();
+  });
+  // L3 cube root
+  (function strip(){
+    const cells = $("cells"); cells.innerHTML = Array.from({ length: 12 }, (_, i) => `<i data-i="${i}"></i>`).join("");
+    let dragging = false;
+    const set = len => { cells.querySelectorAll("i").forEach(i => i.classList.toggle("on", +i.dataset.i < len)); $("rootIn").value = len; $("stripRead").textContent = `side ${len}: ${len} × ${len} × ${len} = ${len ** 3} blocks`; };
+    const at = e => { const t = document.elementFromPoint(e.clientX, e.clientY); return t && t.parentElement === cells ? +t.dataset.i + 1 : null; };
+    cells.addEventListener("pointerdown", e => { const v = at(e); if(!v) return; e.preventDefault(); dragging = true; cells.setPointerCapture(e.pointerId); set(v); T.SND("plot"); });
+    cells.addEventListener("pointermove", e => { if(!dragging) return; const v = at(e); if(v) set(v); });
+    cells.addEventListener("pointerup", () => { dragging = false; });
+  })();
+  function resetRoot(){ $("rootIn").value = ""; $("cells").querySelectorAll("i").forEach(i => i.classList.remove("on")); $("stripRead").textContent = "Drag along the strip, or type it."; }
+  $("rootBtn").addEventListener("click", () => {
+    if(over) return;
+    const n = s1[i1], v = parseInt($("rootIn").value, 10);
+    if(!Number.isInteger(v)){ say("Give the side length, or press \"It can't be a cube\".", "warn"); return; }
+    if(v ** 3 === n){ light(n); say(`${v} × ${v} × ${v} = ${n}. Power to the ceiling.`, "ok"); return nextRelay(); }
+    say(T.isCube(n) ? `${v} × ${v} × ${v} = ${v ** 3}, not ${n}.` : `${v} × ${v} × ${v} = ${v ** 3}. In fact ${n} isn't a cube: ${between(n)}.`, "bad"); alarm.hit();
+  });
+  $("rootIn").addEventListener("keydown", e => { if(e.key === "Enter") $("rootBtn").click(); });
+  $("noCube").addEventListener("click", () => {
+    if(over) return;
+    const n = s1[i1];
+    if(T.isCube(n)){ const r = cubeRoot(n); say(`It can: ${r} × ${r} × ${r} = ${n}.`, "bad"); alarm.hit(); return; }
+    T.SND("correct", i1); say(`Right: ${between(n)}, so ${n} is a dummy relay.`, "ok"); $("log").insertAdjacentHTML("beforeend", `<div>${n}: dummy, not a cube</div>`);
+    nextRelay();
+  });
+  // Stage 2: the relay board
+  const tile = n => $("grid").querySelector(`[data-n="${n}"]`);
+  let s2found = 0;
+  function step2(){
+    ["build", "draw", "rootq"].forEach(id => $(id).hidden = true); $("spot").hidden = false;
+    $("st1").className = "done"; $("st2").className = "on";
+    T.setGoal(GOAL2);
+    const pool = new Set();
+    s2.forEach(c => { if(c > 2){ pool.add(c - 1); pool.add(c + 1); } });
+    [4, 9, 16, 25, 32, 36, 49, 81, 100, 121, 128, 144, 169, 196, 12, 18, 24, 30, 45, 54, 60, 72, 90, 96, 108, 120, 150, 180, 200, 256, 300, 400, 500, 600, 800, 900].forEach(n => pool.add(n));
+    const decoys = T.shuffle([...pool].filter(n => n <= BOARD.max && !T.isCube(n))).slice(0, BOARD.size - s2.length);
+    $("grid").innerHTML = T.shuffle([...s2, ...decoys]).map(n => `<button type="button" class="tw-tile" data-n="${n}">${n}</button>`).join("");
+    $("grid").addEventListener("click", e => { const b = e.target.closest(".tw-tile"); if(b) tap(+b.dataset.n); });
+    T.say("Those rooms are wired. The rest of the relays are on this board: find every cube number.");
+    say("Tap every cube number.");
+  }
+  function tap(n){
+    if(over) return;
+    const b = tile(n); if(b.disabled) return;
+    if(T.isCube(n)){
+      const r = cubeRoot(n); b.classList.add("gold"); b.innerHTML = `${n}<small>${r}×${r}×${r}</small>`; b.disabled = true;
+      light(n); s2found++; say(`${r} × ${r} × ${r} = ${n}. Power to the ceiling.`, "ok");
+      if(s2found === s2.length) setTimeout(() => end(true), 3400 / (window.PNTest ? PNTest.speed() : 1));
+      return;
+    }
+    b.classList.add("bad"); b.disabled = true;
+    say(`${n} isn't a cube: ${between(n)}.${T.isSquare(n) ? ` It's a square (${Math.sqrt(n)} × ${Math.sqrt(n)}), not a cube.` : ""}`, "bad");
+    if(alarm.hit() === 2){ $("table").hidden = false; $("table").innerHTML = "CUBE TABLE: " + T.range(1, 10).map(k => `${k}³ = ${k ** 3}`).join(" · "); T.say("I've sent you the cube table."); }
+  }
+  function end(ok){
+    over = true;
+    if(!ok) s2.forEach(n => { const b = tile(n); if(b && !b.disabled) b.classList.add("missed"); });
+    T.finish({ ok, title: ok ? "FLOOR DARK" : "RELAY ALARM", effect: ok ? "dark" : "",
+      lines: [`Relays powered: <b>${found}</b> of ${RELAYS.length}`, `Cube numbers: <b>${[...new Set(RELAYS)].sort((a, b) => a - b).join(", ")}</b>`, "A cube number is a number times itself, times itself again: the blocks in a cube."] });
+    T.say(ok ? "Whole floor's dark. Their cameras can't see a thing." : "Too many wrong relays. The lights stay on.");
+  }
+  $("build").hidden = L !== "L1"; $("draw").hidden = L !== "L2"; $("rootq").hidden = L !== "L3";
+  setNeed(); paintBuild(); paintStack();
+  if(window.PNTest) PNTest.skip("Solve this step", () => {
+    if(!$("spot").hidden){ s2.forEach(n => { if(!tile(n).disabled) tap(n); }); return; }
+    const n = s1[i1]; if(n === undefined) return;
+    if(!T.isCube(n)) return $("noCube").click();
+    const r = cubeRoot(n);
+    if(L === "L1"){ side = r; lay = r; $("lockBtn").click(); }
+    else if(L === "L2"){ base = r; layers = r; paintStack(); $("drawLock").click(); }
+    else { $("rootIn").value = r; $("rootBtn").click(); }
+  });
+})();
+</script>
+</body>
+</html>

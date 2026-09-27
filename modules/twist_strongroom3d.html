@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en" class="phase-build">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PRIMENET · Strongroom (in the building)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Inter:wght@400;600;700;800&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../shared/primenet.css">
+<style>
+  /* Round 12 prototype: the square strongroom in context. We zoom in on the strongroom on the student's own
+     3D floor, lay its square floor (stage 1), then cross its pressure plates: the square-numbered plates are
+     live, so mark them and the agent walks to the safe on the safe plates (stage 2). */
+  .stage3d{ position:relative; height:250px; padding:0; overflow:hidden; background:radial-gradient(ellipse at 50% 40%, rgba(40,60,20,.25), rgba(2,8,10,.95)); }
+  .stage3d .hud{ position:absolute; left:12px; top:10px; font-family:var(--font-ui); font-size:12px; letter-spacing:.18em; color:#ffe14d; pointer-events:none; text-shadow:0 0 8px #000; }
+  .steps{ display:flex; gap:6px; font-family:var(--font-ui); font-size:12px; letter-spacing:.16em; }
+  .steps span{ border:1px solid var(--line); padding:3px 8px; color:var(--text-faint); }
+  .steps span.on{ color:var(--warning); border-color:var(--warning); }
+  .steps span.done{ color:var(--ok); border-color:rgba(61,220,151,.5); }
+  .build{ display:grid; grid-template-columns:minmax(0,1fr) 280px; gap:16px; align-items:start; }
+  .gridbox{ padding:14px; display:flex; flex-direction:column; gap:8px; align-items:center; }
+  .dg{ display:grid; gap:2px; touch-action:none; user-select:none; cursor:crosshair; }
+  .dg i{ width:var(--c); height:var(--c); background:rgba(var(--accent-rgb),.08); border:1px solid rgba(var(--accent-rgb),.25); }
+  .dg i.sel{ background:rgba(var(--accent-rgb),.45); border-color:var(--accent); }
+  .dg.bad i.sel{ background:rgba(255,107,107,.4); border-color:#ff6b6b; }
+  .dg i.done{ background:rgba(255,201,77,.45); border-color:#ffc94d; }
+  .read{ font-family:var(--font-mono); font-size:19px; min-height:1.4em; }
+  .side{ padding:14px; display:flex; flex-direction:column; gap:10px; }
+  .side .lab{ font-family:var(--font-ui); font-size:12px; letter-spacing:.16em; color:var(--text-faint); }
+  .target{ font-family:var(--font-ui); font-size:40px; font-weight:700; color:var(--accent); line-height:1; }
+  .target small{ display:block; font-size:14px; color:var(--text-muted); font-weight:400; margin-top:4px; }
+  .answer{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; } .answer input{ width:80px; font-size:20px; text-align:center; padding:6px; }
+  .rooms{ display:flex; flex-direction:column; gap:3px; font-size:14px; color:var(--text-muted); } .rooms .ok{ color:#ffc94d; }
+  .plates{ padding:0; overflow:hidden; background:#010608; }
+  .plates svg{ display:block; width:100%; height:auto; }
+  .plate{ fill:#0b1d22; stroke:#2c4c55; cursor:pointer; }
+  .plate:hover{ stroke:var(--accent); }
+  .plate.live{ fill:rgba(255,60,90,.55); stroke:#ff6b8a; }
+  .plate.bad{ fill:rgba(255,160,60,.5); }
+  .plate.step{ fill:rgba(110,200,255,.35); stroke:#6ec8ff; }
+  .pnum{ font-family:var(--font-mono); font-weight:700; fill:#dff8ff; pointer-events:none; text-anchor:middle; dominant-baseline:middle; }
+  [hidden]{ display:none !important; }
+  @media (max-width:820px){ .build{ grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<main class="tw">
+  <div class="tw-bar"><span class="steps"><span id="st1" class="on">1 · LAY THE STRONGROOM FLOOR</span><span id="st2">2 · CROSS THE PRESSURE PLATES</span></span><span id="bar"></span></div>
+  <section class="pn-panel stage3d" id="stage"><div class="hud" id="hud">STRONGROOM · ZOOMING IN…</div></section>
+  <div class="build" id="build">
+    <section class="pn-panel gridbox"><div class="dg" id="dg"></div><div class="read" id="read">&nbsp;</div></section>
+    <aside class="pn-panel side">
+      <span class="lab">FLOOR TILES DELIVERED</span><div class="target" id="target"></div>
+      <div class="answer" id="answer" hidden><label for="sideIn">Side length:</label><input class="pn-input" id="sideIn" inputmode="numeric" maxlength="3"><button class="pn-btn small primary" type="button" id="sideBtn">Check</button></div>
+      <button class="pn-btn small" type="button" id="noBtn" hidden>It can't be a square</button>
+      <span class="lab">DELIVERIES</span><div class="rooms" id="rooms"></div>
+    </aside>
+  </div>
+  <section class="pn-panel plates" id="plates" hidden></section>
+  <div class="tw-msg" id="msg" aria-live="polite"></div>
+</main>
+
+<script src="../shared/vendor/three.min.js"></script>
+<script src="../shared/sound.js"></script>
+<script src="../shared/primenet.js"></script>
+<script src="../shared/testtools.js"></script>
+<script src="../shared/handler.js"></script>
+<script src="../shared/twist.js"></script>
+<script src="../shared/floor3d.js"></script>
+<script>
+(() => {
+  "use strict";
+  const T = window.PNTwist, $ = id => document.getElementById(id);
+  const L = T.peekLevel();
+  const GOALS = {
+    L1: "The strongroom's floor is square. Lay a <b>square</b> of exactly the tiles delivered.",
+    L2: "Can each delivery make the <b>square</b> floor? Lay it, or say it can't be done.",
+    L3: "Give the square floor's <b>side length</b>, or say it can't be a square.",
+  };
+  T.init({ id: "strongroom3d", stage: "FACTOR VAULT", title: "THE STRONGROOM", goal: GOALS[L],
+    example: "16 tiles make a 4 × 4 square floor. 12 tiles can't: 3 × 3 = 9 is too few and 4 × 4 = 16 too many.",
+    story: `There's the strongroom on ${T.targets()} floor. Its floor is square and pressure-plated. Work out its tiles, then we'll cross the plates.` });
+
+  // ----- 3D: fly in to the strongroom (the square room, or the most nearly square one) -----
+  const F = PNFloor3D.create($("stage"), {});
+  const TH = F.THREE;
+  F.lightsOn(600);
+  const target = F.rooms.slice().sort((p, q) => (p.a === p.b ? -1 : 0) - (q.a === q.b ? -1 : 0) || (q.a / q.b) - (p.a / p.b))[0];
+  target.lineMat.color.setHex(0xffe14d); target.mesh.material.color.setHex(0xffc94d); target.mesh.material.emissive.setHex(0xffc94d);
+  const beacon = new TH.Mesh(new TH.RingGeometry(Math.max(target.w, target.d) * 0.6, Math.max(target.w, target.d) * 0.68, 40), new TH.MeshBasicMaterial({ color: 0xffe14d, side: TH.DoubleSide, transparent: true }));
+  beacon.rotation.x = -Math.PI / 2; beacon.position.set(target.x, 0.4, target.z); F.root.add(beacon);
+  F.onTick(now => { beacon.material.opacity = 0.4 + 0.4 * Math.sin(now / 260); });
+  F.flyTo({ pos: new TH.Vector3(target.x + 30, 70, target.z + 60), look: new TH.Vector3(target.x, 4, target.z) }, 2200).then(() => { $("hud").textContent = `STRONGROOM · ${target.name} ${target.a} × ${target.b}`; });
+
+  // ----- Stage 1: the square floor (from the square strongroom twist) -----
+  const SETS = { L1: () => T.shuffle([9, 16, 25, 36]).slice(0, 3), L2: () => T.shuffle([...T.shuffle([36, 49, 64, 81]).slice(0, 2), ...T.shuffle([40, 45, 50, 60, 72, 30]).slice(0, 2)]), L3: () => T.shuffle([...T.shuffle([121, 144, 169, 196, 225, 256, 289, 324]).slice(0, 2), ...T.shuffle([120, 150, 200, 250, 300, 180]).slice(0, 2)]) };
+  const counts = SETS[L]();
+  let k = 0, over = false, right = 0;
+  const alarm = T.alarm(3, () => end(false));
+  const SIZE = 10, dg = $("dg"), read = $("read");
+  function say(t, cls){ const m = $("msg"); m.textContent = t; m.className = "tw-msg" + (cls ? " " + cls : ""); }
+  function buildGrid(){ const c = 30; dg.style.gridTemplateColumns = `repeat(${SIZE}, ${c}px)`; dg.style.setProperty("--c", c + "px"); dg.innerHTML = Array.from({ length: SIZE * SIZE }, (_, i) => `<i data-r="${Math.floor(i / SIZE)}" data-c="${i % SIZE}"></i>`).join(""); }
+  function show(){ const n = counts[k]; $("bar").textContent = `Delivery ${k + 1} of ${counts.length}`; $("target").innerHTML = `${n}<small>tiles</small>`; read.innerHTML = "&nbsp;"; buildGrid(); dg.parentElement.hidden = L === "L3"; $("answer").hidden = L !== "L3"; $("noBtn").hidden = L === "L1"; if(L === "L3"){ $("sideIn").value = ""; $("sideIn").focus(); } }
+  const between = n => { const r0 = Math.floor(Math.sqrt(n)); return `${r0} × ${r0} = ${r0 * r0} and ${r0 + 1} × ${r0 + 1} = ${(r0 + 1) * (r0 + 1)}`; };
+  function next(ok, n, s){ $("rooms").insertAdjacentHTML("beforeend", s ? `<span class="ok">${n} tiles: ${s} × ${s} ✓</span>` : `<span>${n} tiles: not square</span>`); if(ok) right++; k++; if(ok && s) F.pulse(new TH.Vector3(target.x, 40, target.z), new TH.Vector3(target.x, F.H, target.z), 0xffe14d, 500); if(k === counts.length) return setTimeout(() => { if(!over) step2(); }, 900); setTimeout(() => { if(!over) show(); }, 800); }
+  let anchor = null, cur = null;
+  const cellFrom = e => { const t = document.elementFromPoint(e.clientX, e.clientY); return t && t.parentElement === dg ? { r: +t.dataset.r, c: +t.dataset.c } : null; };
+  function paint(){ const r0 = Math.min(anchor.r, cur.r), r1 = Math.max(anchor.r, cur.r), c0 = Math.min(anchor.c, cur.c), c1 = Math.max(anchor.c, cur.c), h = r1 - r0 + 1, w = c1 - c0 + 1; dg.querySelectorAll("i").forEach(i => { const r = +i.dataset.r, c = +i.dataset.c; i.classList.toggle("sel", r >= r0 && r <= r1 && c >= c0 && c <= c1); }); dg.classList.toggle("bad", h !== w || h * w > counts[k]); read.textContent = `${h} × ${w} = ${h * w}`; return { h, w }; }
+  dg.addEventListener("pointerdown", e => { if(over) return; const c = cellFrom(e); if(!c) return; e.preventDefault(); dg.setPointerCapture(e.pointerId); anchor = cur = c; paint(); T.SND("tag"); });
+  dg.addEventListener("pointermove", e => { if(!anchor) return; const c = cellFrom(e); if(c && (c.r !== cur.r || c.c !== cur.c)){ cur = c; paint(); T.SND("plot"); } });
+  dg.addEventListener("pointerup", () => { if(!anchor) return; const { h, w } = paint(); anchor = cur = null; const n = counts[k];
+    if(h !== w){ say(`${h} × ${w} isn't square: the sides must match.`, "warn"); T.SND("untag"); return; }
+    if(h * w !== n){ say(`${h} × ${h} = ${h * h}. You need ${n} tiles.`, "warn"); T.SND("untag"); return; }
+    dg.querySelectorAll("i.sel").forEach(i => { i.classList.remove("sel"); i.classList.add("done"); }); T.SND("correct", k); say(`${h} × ${h} = ${n}. That's the strongroom floor.`, "ok"); next(true, n, h); });
+  $("noBtn").addEventListener("click", () => { if(over) return; const n = counts[k]; if(T.isSquare(n)){ const r0 = Math.sqrt(n); say(`It can: ${r0} × ${r0} = ${n}.`, "bad"); alarm.hit(); if(!over) next(false, n, r0); return; } T.SND("correct", k); say(`Right: ${between(n)}, so ${n} sits between two square numbers.`, "ok"); next(true, n, 0); });
+  $("sideBtn").addEventListener("click", () => { if(over) return; const n = counts[k], v = parseInt($("sideIn").value, 10); if(!Number.isInteger(v)){ say("Type a side length, or press \"It can't be a square\".", "warn"); return; } if(v * v === n){ T.SND("correct", k); say(`${v} × ${v} = ${n}. Side length ${v}.`, "ok"); return next(true, n, v); } say(T.isSquare(n) ? `${v} × ${v} = ${v * v}, not ${n}.` : `${v} × ${v} = ${v * v}. In fact ${n} isn't square: ${between(n)}.`, "bad"); alarm.hit(); });
+  $("sideIn").addEventListener("keydown", e => { if(e.key === "Enter") $("sideBtn").click(); });
+
+  // ----- Stage 2: the pressure plates, in perspective. Square numbers are live; mark them, then the agent crosses -----
+  const PC = { L1: { cols: 8, rows: 6, lo: 1, hi: 48 }, L2: { cols: 8, rows: 5, lo: 40, hi: 150 }, L3: { cols: 8, rows: 5, lo: 100, hi: 400 } }[L];
+  let plates = [], live = [], found = 0;
+  const VW = 900, VH = 360, CX = VW / 2, CY = 40, FOC = 520;
+  const P = (X, Z) => [CX + X / Z * FOC, CY + 1.1 / Z * FOC];   // the floor at Y = 1.1, seen from above the doorway
+  const quad = (x0, x1, z0, z1) => [P(x0, z0), P(x1, z0), P(x1, z1), P(x0, z1)].map(p => p.map(v => v.toFixed(1)).join(",")).join(" ");
+  function step2(){
+    $("build").hidden = true; $("plates").hidden = false; $("st1").className = "done"; $("st2").className = "on";
+    T.setGoal("The <b>square-numbered</b> plates are live. Tap every one so the agent can walk round them to the safe.");
+    F.flyTo({ pos: new TH.Vector3(target.x, 26, target.z + 18), look: new TH.Vector3(target.x, 0, target.z - 4) }, 1400);
+    $("hud").textContent = "INSIDE THE STRONGROOM";
+    // Numbers: L1 is every number 1–48 in order; L2/L3 hide squares among near misses
+    let ns;
+    if(L === "L1") ns = T.range(PC.lo, PC.hi);
+    else { const sq = T.shuffle(T.range(1, 20).map(k2 => k2 * k2).filter(n => n >= PC.lo && n <= PC.hi)).slice(0, L === "L2" ? 5 : 6); const near = new Set(); sq.forEach(n => { near.add(n - 1); near.add(n + 1); near.add(n + 2); }); T.range(PC.lo, PC.hi).filter(n => n % 10 === 0).forEach(n => near.add(n)); let dec = T.shuffle([...near].filter(n => n >= PC.lo && n <= PC.hi && !T.isSquare(n))); if(dec.length < PC.cols * PC.rows - sq.length) dec = dec.concat(T.shuffle(T.range(PC.lo, PC.hi).filter(n => !T.isSquare(n) && !dec.includes(n)))); ns = T.shuffle([...sq, ...dec.slice(0, PC.cols * PC.rows - sq.length)]); }
+    plates = ns.slice(0, PC.cols * PC.rows); live = plates.filter(T.isSquare);
+    // Build the floor: rows run from the door (near) to the safe (far)
+    const zs = Array.from({ length: PC.rows + 1 }, (_, i) => 1.15 + i * (2.2 / PC.rows)), xw = 1.6 / PC.cols;
+    let g = `<rect width="${VW}" height="${VH}" fill="#010608"/>`;
+    plates.forEach((n, i) => {
+      const row = PC.rows - 1 - Math.floor(i / PC.cols), col = i % PC.cols;
+      const x0 = -0.8 + col * xw + 0.01, x1 = x0 + xw - 0.02, z0 = zs[row] + 0.01, z1 = zs[row + 1] - 0.01;
+      const [tx, ty] = P((x0 + x1) / 2, (z0 + z1) / 2);
+      g += `<polygon class="plate" data-n="${n}" data-r="${row}" data-c="${col}" points="${quad(x0, x1, z0, z1)}"/><text class="pnum" x="${tx}" y="${ty}" font-size="${(15 / ((z0 + z1) / 2) * 1.2).toFixed(1)}">${n}</text>`;
+    });
+    const [sx, sy] = P(0, zs[PC.rows] + 0.25);
+    g += `<g transform="translate(${sx},${sy - 18})"><rect x="-26" y="-14" width="52" height="30" fill="#2a2a2a" stroke="#ffc94d" stroke-width="2"/><circle cx="0" cy="1" r="8" fill="none" stroke="#ffc94d" stroke-width="2"/><text x="0" y="-20" text-anchor="middle" fill="#ffc94d" font-size="12" font-family="Chakra Petch" letter-spacing="2">SAFE</text></g>`;
+    const [dx, dy] = P(0, 1.1);
+    g += `<circle id="agent" cx="${dx}" cy="${dy + 8}" r="9" fill="#6ec8ff" stroke="#fff" stroke-width="2"/>`;
+    $("plates").innerHTML = `<svg viewBox="0 0 ${VW} ${VH}">${g}</svg>`;
+    $("plates").querySelector("svg").addEventListener("click", e => { const p = e.target.closest(".plate"); if(p) tapPlate(p); });
+    $("bar").textContent = `Live plates found: 0 of ${live.length}`;
+    T.say("We're in. The square-numbered plates trigger the alarm. Mark them all.");
+    say("Tap every plate with a square number on it.");
+  }
+  function tapPlate(el){
+    if(over || el.classList.contains("live")) return;
+    const n = +el.dataset.n;
+    if(T.isSquare(n)){ el.classList.add("live"); found++; T.SND("correct", found); say(`${n} = ${Math.sqrt(n)} × ${Math.sqrt(n)}. Live plate marked.`, "ok"); $("bar").textContent = `Live plates found: ${found} of ${live.length}`; if(found === live.length) cross(); return; }
+    el.classList.add("bad"); setTimeout(() => el.classList.remove("bad"), 700);
+    say(`${n} isn't square: ${between(n)}. It's safe to step on.`, "bad"); alarm.hit();
+  }
+  // The agent walks from the door to the safe, only on safe plates (a shortest path round the live ones)
+  async function cross(){
+    over = true;
+    const R = PC.rows, Cn = PC.cols, liveAt = (r0, c0) => T.isSquare(plates[(R - 1 - r0) * Cn + c0]);
+    const start = [0, Math.floor(Cn / 2)], prev = new Map(), q = [];
+    for(let c0 = 0; c0 < Cn; c0++) if(!liveAt(0, c0)){ q.push([0, c0]); prev.set(`0,${c0}`, null); }
+    let endKey = null;
+    while(q.length){ const [r0, c0] = q.shift(); if(r0 === R - 1){ endKey = `${r0},${c0}`; break; } [[1,0],[0,1],[0,-1],[-1,0]].forEach(([dr, dc]) => { const nr = r0 + dr, nc = c0 + dc, key = `${nr},${nc}`; if(nr < 0 || nc < 0 || nr >= R || nc >= Cn || prev.has(key) || liveAt(nr, nc)) return; prev.set(key, `${r0},${c0}`); q.push([nr, nc]); }); }
+    const path = []; for(let key = endKey; key; key = prev.get(key)) path.unshift(key.split(",").map(Number));
+    say("All live plates marked. Walking to the safe on the safe plates…", "ok"); T.SND("verified");
+    const agent = $("plates").querySelector("#agent");
+    for(const [r0, c0] of path){
+      const el = $("plates").querySelector(`.plate[data-r="${r0}"][data-c="${c0}"]`); if(!el) continue; el.classList.add("step");
+      const pts = el.getAttribute("points").split(" ").map(s => s.split(",").map(Number)), cx = pts.reduce((s, p) => s + p[0], 0) / 4, cy = pts.reduce((s, p) => s + p[1], 0) / 4;
+      agent.setAttribute("cx", cx); agent.setAttribute("cy", cy); T.SND("plot");
+      await new Promise(r => setTimeout(r, 180 / (window.PNTest ? PNTest.speed() : 1)));
+    }
+    T.SND("success");
+    setTimeout(() => T.finish({ ok: true, title: "SAFE REACHED",
+      lines: [`Floors laid right: <b>${right}</b> of ${counts.length}`, `Live plates: <b>${live.slice().sort((a, b) => a - b).join(", ")}</b>`, "A square number is a number times itself: the tiles in a square floor."] }), 700);
+  }
+  function end(ok){ if(ok) return; over = true; T.finish({ ok: false, title: "ALARM TRIPPED", lines: [`Floors laid right: <b>${right}</b> of ${counts.length}`, "Square numbers: 1, 4, 9, 16, 25, 36, 49…"] }); }
+  show();
+  if(window.PNTest) PNTest.skip("Solve this stage", () => {
+    if(!$("plates").hidden){ $("plates").querySelectorAll(".plate").forEach(p => { if(T.isSquare(+p.dataset.n) && !p.classList.contains("live")) tapPlate(p); }); return; }
+    const n = counts[k]; if(n === undefined) return;
+    if(T.isSquare(n)){ if(L === "L3"){ $("sideIn").value = Math.sqrt(n); $("sideBtn").click(); } else next(true, n, Math.sqrt(n)); }
+    else $("noBtn").click();
+  });
+})();
+</script>
+</body>
+</html>
