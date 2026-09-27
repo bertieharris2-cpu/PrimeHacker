@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en" class="phase-build">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PRIMENET · Prime Floor Trap</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Inter:wght@400;600;700;800&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../shared/primenet.css">
+<style>
+  /* Factor Vault twist: one floor reading is prime, a decoy floor with a single 1 × N archive */
+  .floors{ display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:14px; }
+  .floor{ padding:16px; display:flex; flex-direction:column; gap:10px; align-items:stretch; }
+  .floor .lab{ font-family:var(--font-ui); font-size:12px; letter-spacing:.18em; color:var(--text-faint); }
+  .floor .n{ font-family:var(--font-ui); font-size:52px; font-weight:700; letter-spacing:.06em; line-height:1; text-align:center; color:var(--text-primary); }
+  .floor .row{ display:flex; gap:6px; align-items:center; justify-content:center; }
+  .floor .row input{ width:64px; text-align:center; font-size:18px; padding:8px 6px; }
+  .floor .res{ min-height:2.6em; font-size:15px; color:var(--text-muted); text-align:center; }
+  .floor.cleared{ border-color:var(--accent); box-shadow:inset 0 0 0 1px rgba(var(--accent-rgb),.35); }
+  .floor.cleared .res{ color:var(--accent); }
+  .floor.decoy{ border-color:#ffc94d; background:rgba(255,201,77,.07); }
+  .floor.decoy .res{ color:#ffe7a8; }
+  .floor.done input, .floor.done button{ display:none; }
+  .floor .or{ text-align:center; font-size:13px; color:var(--text-faint); }
+  .tip{ font-size:15px; color:var(--text-muted); border-left:2px solid var(--warning); padding-left:10px; }
+  .tip[hidden]{ display:none; }
+  @media (max-width:900px){ .floors{ grid-template-columns:repeat(2, minmax(0,1fr)); } }
+  @media (max-width:480px){ .floors{ grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<main class="tw">
+  <div class="tw-bar"><span>Round <b id="round">1</b> of 2</span><span>Floors checked: <b id="done">0</b> of 4</span></div>
+  <div class="floors" id="floors"></div>
+  <div class="tip" id="tip" hidden>Quick checks: even numbers divide by 2. If the digits add up to a multiple of 3, it divides by 3. Ends in 0 or 5: divides by 5. Then try 7, 11 and 13.</div>
+  <div class="tw-msg" id="msg" aria-live="polite">Prove each real floor with a factor pair. Find the decoy.</div>
+</main>
+
+<script src="../shared/sound.js"></script>
+<script src="../shared/primenet.js"></script>
+<script src="../shared/testtools.js"></script>
+<script src="../shared/handler.js"></script>
+<script src="../shared/twist.js"></script>
+<script>
+(() => {
+  "use strict";
+  const T = window.PNTwist, $ = id => document.getElementById(id);
+  const L = T.init({ id: "primefloor", stage: "FACTOR VAULT", title: "PRIME FLOOR TRAP",
+    brief: `${T.target()} faked one of its floor readings. A real floor has rooms, so its number has a factor pair other than 1 × N. The decoy's number is <b>prime</b>: just one long archive, nothing worth breaking into. Prove each real floor with a factor pair, and mark the decoy.` });
+  // Composites that look prime (odd, not ending in 5 where possible) and primes to hide among them
+  const POOLS = {
+    L1: { comp: [9, 15, 21, 25, 27, 33, 35, 39, 49], prime: [13, 17, 19, 23, 29, 31, 37] },
+    L2: { comp: [39, 49, 51, 57, 63, 69, 77, 81, 87, 91], prime: [41, 43, 47, 53, 59, 61, 67, 71, 73] },
+    L3: { comp: [77, 87, 91, 93, 111, 117, 119, 121, 133, 143, 147], prime: [79, 83, 89, 97, 101, 103, 107, 109, 113, 127] },
+  }[L];
+  let round = 1, over = false, cleared = 0, decoyWrong = 0, proofs = 0;
+  const alarm = T.alarm(3, () => end(false));
+  function say(t, cls){ const m = $("msg"); m.textContent = t; m.className = "tw-msg" + (cls ? " " + cls : ""); }
+  function deal(){
+    const nums = T.shuffle([...T.shuffle(POOLS.comp).slice(0, 3), T.pick(POOLS.prime)]);
+    cleared = 0; $("done").textContent = 0; $("round").textContent = round;
+    const box = $("floors"); box.innerHTML = "";
+    nums.forEach((n, i) => {
+      const el = document.createElement("div"); el.className = "pn-panel floor"; el.dataset.n = n;
+      el.innerHTML = `<span class="lab">FLOOR READING ${String.fromCharCode(65 + i)}</span><div class="n">${n}</div>
+        <div class="row"><label class="sr" for="a${i}" style="position:absolute;left:-9999px">First factor</label><input class="pn-input" id="a${i}" inputmode="numeric" maxlength="3"> ×
+          <label for="b${i}" style="position:absolute;left:-9999px">Second factor</label><input class="pn-input" id="b${i}" inputmode="numeric" maxlength="3"></div>
+        <button class="pn-btn small" type="button" data-a="prove">Prove it's a real floor</button>
+        <div class="or">or</div>
+        <button class="pn-btn small" type="button" data-a="decoy">It's prime: the decoy</button>
+        <div class="res"></div>`;
+      el.querySelector('[data-a="prove"]').addEventListener("click", () => prove(el, i));
+      el.querySelector('[data-a="decoy"]').addEventListener("click", () => decoy(el));
+      el.querySelectorAll("input").forEach(inp => inp.addEventListener("keydown", e => { if(e.key === "Enter") prove(el, i); }));
+      box.appendChild(el);
+    });
+  }
+  function resolve(el){ el.classList.add("done"); cleared++; $("done").textContent = cleared; if(cleared === 4) setTimeout(next, 900 / (window.PNTest ? PNTest.speed() : 1)); }
+  function prove(el, i){
+    if(over || el.classList.contains("done")) return;
+    const n = +el.dataset.n, a = parseInt($("a" + i).value, 10), b = parseInt($("b" + i).value, 10), res = el.querySelector(".res");
+    if(!Number.isInteger(a) || !Number.isInteger(b)){ res.textContent = "Type two numbers."; return; }
+    if(a === 1 || b === 1){ res.textContent = `1 × ${n} works for every number. Find a pair without 1.`; T.SND("untag"); return; }
+    if(a * b !== n){ res.textContent = `${a} × ${b} = ${a * b}, not ${n}.`; T.SND("wrong"); return; }
+    proofs++; el.classList.add("cleared"); res.textContent = `${a} × ${b} = ${n} ✓ Real floor.`; T.SND("correct", cleared); resolve(el);
+  }
+  function decoy(el){
+    if(over || el.classList.contains("done")) return;
+    const n = +el.dataset.n, res = el.querySelector(".res");
+    if(T.isPrime(n)){ el.classList.add("decoy"); res.textContent = `Only 1 × ${n}. Prime: the decoy floor.`; T.SND("verified"); say(`${n} is prime. That's the decoy.`, "ok"); resolve(el); return; }
+    const f = T.smallestFactor(n);
+    decoyWrong++;
+    res.textContent = `Not prime: ${n} = ${f} × ${n / f}.`;
+    el.classList.add("cleared", "done-soon");
+    say(`${n} = ${f} × ${n / f}, so it has rooms. That's a real floor.`, "bad");
+    $("tip").hidden = false;
+    if(alarm.hit() === 1) T.say("Check before you call it. Try dividing by 3, 7, 11…");
+    if(!over) resolve(el);
+  }
+  function next(){
+    if(over) return;
+    if(round < 2){ round++; say("Next set of readings.", ""); T.SND("newlock"); deal(); return; }
+    end(true);
+  }
+  function end(ok){
+    over = true;
+    T.finish({ ok, title: ok ? "DECOYS SPOTTED" : "WRONG FLOORS",
+      lines: [`Real floors proved with a factor pair: <b>${proofs}</b>`, `Real floors wrongly called prime: <b>${decoyWrong}</b>`, `A prime number has exactly two factors, 1 and itself, so its floor is one long archive.`] });
+    T.say(ok ? "Good. We won't waste time on a decoy floor." : "We'd have wasted the night on the wrong floors. Try again.");
+  }
+  deal();
+  T.say("One of these floor numbers is fake. Prime means no rooms.", { delay: 600 });
+  if(window.PNTest) PNTest.skip("Solve these readings", () => {
+    document.querySelectorAll(".floor:not(.done)").forEach(el => { const n = +el.dataset.n; if(T.isPrime(n)) el.querySelector('[data-a="decoy"]').click(); else { const f = T.smallestFactor(n), i = [...el.parentNode.children].indexOf(el); $("a" + i).value = f; $("b" + i).value = n / f; el.querySelector('[data-a="prove"]').click(); } });
+  });
+})();
+</script>
+</body>
+</html>

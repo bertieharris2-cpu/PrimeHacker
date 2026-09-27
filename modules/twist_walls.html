@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en" class="phase-build">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PRIMENET · Deposit-Box Walls</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Inter:wght@400;600;700;800&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../shared/primenet.css">
+<style>
+  /* Factor Vault twist: which factor-pair arrays of deposit boxes fit on a wall of a fixed size? */
+  .layout{ display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:16px; align-items:start; }
+  .wallbox{ padding:16px; display:flex; flex-direction:column; gap:10px; align-items:center; }
+  .wallbox .lab{ align-self:stretch; display:flex; justify-content:space-between; font-family:var(--font-ui); font-size:13px; letter-spacing:.14em; color:var(--text-muted); }
+  .wall{ display:grid; gap:3px; padding:10px; border:2px solid rgba(var(--accent-rgb),.6); background:rgba(0,0,0,.3); }
+  .wall i{ width:var(--c); height:var(--c); border:1px solid rgba(var(--accent-rgb),.25); background:rgba(8,26,31,.9); position:relative; }
+  .wall i::after{ content:""; position:absolute; left:50%; top:50%; width:3px; height:3px; margin:-1.5px; border-radius:50%; background:rgba(var(--accent-rgb),.35); }
+  .wall i.box{ background:hsla(var(--h), 70%, 45%, .6); border-color:hsla(var(--h), 80%, 70%, .95); }
+  .wall i.box::after{ background:#fff3cf; }
+  .wall-note{ min-height:1.4em; font-size:15px; color:var(--text-muted); text-align:center; }
+  .pairs{ padding:16px; display:flex; flex-direction:column; gap:8px; }
+  .pairs .lab{ font-family:var(--font-ui); font-size:13px; letter-spacing:.14em; color:var(--text-muted); }
+  .pair{ display:grid; grid-template-columns:1fr auto auto; gap:8px; align-items:center; border:1px solid var(--line); padding:8px 10px; background:rgba(0,0,0,.2); }
+  .pair b{ font-size:22px; }
+  .pair .v{ font-size:14px; color:var(--text-muted); grid-column:1 / -1; }
+  .pair.fit{ border-color:var(--accent); } .pair.fit .v{ color:var(--accent); }
+  .pair.base{ border-color:#9fb7bb; } .pair.base .v{ color:#cfe0e3; }
+  .pair.done button{ display:none; }
+  @media (max-width:820px){ .layout{ grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<main class="tw">
+  <div class="tw-bar"><span>Wall <b id="round">1</b> of 3</span><span><b id="nLab"></b></span></div>
+  <div class="layout">
+    <section class="pn-panel wallbox">
+      <div class="lab"><span>DEPOSIT WALL</span><span id="wallSize"></span></div>
+      <div class="wall" id="wall"></div>
+      <div class="wall-note" id="wallNote"></div>
+    </section>
+    <section class="pn-panel pairs">
+      <span class="lab">FACTOR PAIRS: ON THE WALL, OR IN THE BASEMENT?</span>
+      <div id="pairs" style="display:flex;flex-direction:column;gap:8px"></div>
+    </section>
+  </div>
+  <div class="tw-msg" id="msg" aria-live="polite"></div>
+</main>
+
+<script src="../shared/sound.js"></script>
+<script src="../shared/primenet.js"></script>
+<script src="../shared/testtools.js"></script>
+<script src="../shared/handler.js"></script>
+<script src="../shared/twist.js"></script>
+<script>
+(() => {
+  "use strict";
+  const T = window.PNTwist, $ = id => document.getElementById(id);
+  const L = T.init({ id: "walls", stage: "FACTOR VAULT", title: "DEPOSIT-BOX WALLS",
+    brief: `Floor 2 is the deposit box room. Each factor pair of N is a way to arrange N boxes in a rectangle, but the walls are only so wide and so tall. Decide which arrangements <b>fit on the wall</b> (either way round) and which go down to the <b>basement</b>.` });
+  // [N, wall width, wall height], chosen so some pairs only fit turned round and some don't fit at all
+  const SETS = {
+    L1: [[24, 8, 6], [18, 6, 4], [20, 5, 5], [16, 8, 4], [12, 4, 4]],
+    L2: [[36, 8, 6], [48, 8, 8], [40, 10, 5], [30, 6, 6], [45, 9, 5]],
+    L3: [[72, 9, 8], [60, 10, 6], [84, 12, 7], [90, 10, 9], [96, 12, 8]],
+  }[L];
+  const rounds = T.shuffle(SETS).slice(0, 3);
+  let r = 0, over = false, right = 0, total = 0, hue = 150;
+  const alarm = T.alarm(3, () => end(false));
+  const fits = (a, b, W, H) => (a <= H && b <= W) || (b <= H && a <= W);
+  function say(t, cls){ const m = $("msg"); m.textContent = t; m.className = "tw-msg" + (cls ? " " + cls : ""); }
+  function deal(){
+    const [N, W, H] = rounds[r];
+    $("round").textContent = r + 1; $("nLab").textContent = `N = ${N} boxes`;
+    $("wallSize").textContent = `${W} WIDE × ${H} HIGH`;
+    const wall = $("wall"), c = Math.max(14, Math.min(32, Math.floor(360 / Math.max(W, H))));
+    wall.style.gridTemplateColumns = `repeat(${W}, ${c}px)`; wall.style.setProperty("--c", c + "px");
+    wall.innerHTML = Array.from({ length: W * H }, (_, k) => `<i data-r="${Math.floor(k / W)}" data-c="${k % W}"></i>`).join("");
+    $("wallNote").textContent = "";
+    const box = $("pairs"); box.innerHTML = "";
+    T.pairs(N).forEach(([a, b]) => {
+      total++;
+      const el = document.createElement("div"); el.className = "pair";
+      el.innerHTML = `<b>${a} × ${b}</b><button class="pn-btn small" type="button" data-a="fit">Fits the wall</button><button class="pn-btn small" type="button" data-a="base">Basement</button><span class="v"></span>`;
+      el.querySelector('[data-a="fit"]').addEventListener("click", () => answer(el, a, b, true));
+      el.querySelector('[data-a="base"]').addEventListener("click", () => answer(el, a, b, false));
+      box.appendChild(el);
+    });
+    say(`${N} boxes. The wall is ${W} boxes wide and ${H} high.`);
+  }
+  function show(a, b){
+    const [N, W, H] = rounds[r];
+    let rows = a, cols = b, turned = false;
+    if(!(rows <= H && cols <= W)){ rows = b; cols = a; turned = true; }
+    hue = (hue + 55) % 360;
+    $("wall").querySelectorAll("i").forEach(i => { const on = +i.dataset.r < rows && +i.dataset.c < cols; i.classList.toggle("box", on); if(on) i.style.setProperty("--h", hue); });
+    $("wallNote").textContent = `${rows} rows × ${cols} columns = ${N}${turned ? " (turned round to fit)" : ""}`;
+  }
+  function answer(el, a, b, saidFit){
+    if(over || el.classList.contains("done")) return;
+    const [N, W, H] = rounds[r], ok = fits(a, b, W, H) === saidFit, v = el.querySelector(".v");
+    const why = fits(a, b, W, H)
+      ? (a <= H && b <= W ? `${a} high and ${b} wide fits.` : `Turned round, ${b} high and ${a} wide fits.`)
+      : `${Math.max(a, b)} is bigger than the wall's width (${W}) and height (${H}), so it can't go on either way.`;
+    el.classList.add("done", fits(a, b, W, H) ? "fit" : "base");
+    v.textContent = (ok ? "✓ " : "✗ ") + why;
+    if(fits(a, b, W, H)) show(a, b);
+    if(ok){ right++; T.SND("correct", right % 8); say(fits(a, b, W, H) ? "On the wall." : "Down to the basement.", "ok"); }
+    else { T.SND("wrong"); say(why, "bad"); alarm.hit(); }
+    if(!over && [...$("pairs").children].every(p => p.classList.contains("done"))){
+      setTimeout(() => { if(over) return; r++; if(r < rounds.length){ T.SND("newlock"); deal(); } else end(true); }, 1500 / (window.PNTest ? PNTest.speed() : 1));
+    }
+  }
+  function end(ok){
+    over = true;
+    T.finish({ ok, title: ok ? "BOXES SORTED" : "BOXES DROPPED",
+      lines: [`Pairs sorted correctly: <b>${right}</b> of ${total}`, `A pair fits if its smaller number fits one side and its larger number fits the other.`, `Turning an array round (3 × 8 into 8 × 3) keeps the same number of boxes.`] });
+    T.say(ok ? "Boxes sorted. The basement ones can wait." : "Too many boxes on the floor. Security heard that.");
+  }
+  deal();
+  T.say("Deposit boxes, same number every way round. Will they fit on the wall?", { delay: 600 });
+  if(window.PNTest) PNTest.skip("Sort this wall", () => {
+    const [N, W, H] = rounds[r];
+    [...$("pairs").children].forEach(el => { if(el.classList.contains("done")) return; const [a, b] = el.querySelector("b").textContent.split("×").map(s => +s.trim()); el.querySelector(fits(a, b, W, H) ? '[data-a="fit"]' : '[data-a="base"]').click(); });
+  });
+})();
+</script>
+</body>
+</html>

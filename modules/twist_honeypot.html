@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en" class="phase-hack">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PRIMENET · Honeypot Squares</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Inter:wght@400;600;700;800&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../shared/primenet.css">
+<style>
+  /* Scan twist: tag the primes, but square-number channels are honeypots that trip the alarm */
+  .board{ padding:16px; }
+  .tw-grid{ grid-template-columns:repeat(8, minmax(0,1fr)); }
+  .tw-tile.trap{ background:rgba(255,201,77,.22); border-color:#ffc94d; color:#fff3cf; cursor:default; }
+  .actions{ display:flex; flex-wrap:wrap; gap:10px; justify-content:space-between; align-items:center; }
+  @media (max-width:560px){ .tw-grid{ grid-template-columns:repeat(6, minmax(0,1fr)); } .tw-tile{ font-size:16px; } }
+</style>
+</head>
+<body>
+<main class="tw">
+  <div class="tw-bar"><span>Channels <b id="band"></b></span><span>Primes tagged: <b id="count">0</b></span></div>
+  <section class="pn-panel board"><div class="tw-grid" id="grid"></div></section>
+  <div class="tw-msg" id="msg" aria-live="polite">Tag every prime channel.</div>
+  <div class="actions"><span style="color:var(--text-faint);font-size:14px">Click a channel to tag it; click again to untag.</span><button class="pn-btn primary" type="button" id="verify">Verify the band</button></div>
+</main>
+
+<script src="../shared/sound.js"></script>
+<script src="../shared/primenet.js"></script>
+<script src="../shared/testtools.js"></script>
+<script src="../shared/handler.js"></script>
+<script src="../shared/twist.js"></script>
+<script>
+(() => {
+  "use strict";
+  const T = window.PNTwist, $ = id => document.getElementById(id);
+  const L = T.init({ id: "honeypot", stage: "FREQUENCY SCAN", title: "HONEYPOT SQUARES",
+    brief: `${T.target()} has planted fake servers on every <b>square-number</b> channel. Tag every <b>prime</b> channel. Touch a square number and their security knows we're here: three touches and the scan is blown.` });
+  // Each level scans a band with at least three square numbers in it
+  const BANDS = { L1: [1, 40], L2: [31, 78], L3: [97, 144] };
+  const [lo, hi] = BANDS[L];
+  const nums = T.range(lo, hi);
+  $("band").textContent = `${lo}–${hi}`;
+  const primes = nums.filter(T.isPrime), squares = nums.filter(T.isSquare);
+  const tagged = new Set();
+  let verifies = 0, over = false;
+  const alarm = T.alarm(3, () => end(false));
+
+  const grid = $("grid");
+  nums.forEach(n => {
+    const b = document.createElement("button"); b.type = "button"; b.className = "tw-tile"; b.textContent = n; b.dataset.n = n;
+    b.addEventListener("click", () => tap(n, b));
+    grid.appendChild(b);
+  });
+  function say(t, cls){ const m = $("msg"); m.textContent = t; m.className = "tw-msg" + (cls ? " " + cls : ""); }
+  function tap(n, b){
+    if(over || b.classList.contains("trap")) return;
+    b.classList.remove("bad", "missed");
+    if(T.isSquare(n)){
+      const r = Math.sqrt(n);
+      b.classList.add("trap"); b.innerHTML = `${n}<small>HONEYPOT</small>`; b.disabled = true;
+      say(`Honeypot! ${n} = ${r} × ${r}, a square number.${n === 1 ? " And 1 isn't prime anyway: it only has one factor." : ""}`, "bad");
+      if(alarm.hit() === 1) T.say("Careful. Square numbers are traps on this band. Check each one: is it something times itself?");
+      return;
+    }
+    if(tagged.has(n)){ tagged.delete(n); b.classList.remove("on"); T.SND("untag"); }
+    else { tagged.add(n); b.classList.add("on"); T.SND("tag"); }
+    $("count").textContent = tagged.size;
+  }
+  $("verify").addEventListener("click", () => {
+    if(over) return;
+    verifies++;
+    const wrong = [...tagged].filter(n => !T.isPrime(n)), missed = primes.filter(n => !tagged.has(n));
+    if(!wrong.length && !missed.length) return end(true);
+    T.SND("wrong");
+    wrong.forEach(n => { const b = grid.querySelector(`[data-n="${n}"]`); b.classList.add("bad"); });
+    missed.forEach(n => { const b = grid.querySelector(`[data-n="${n}"]`); b.classList.add("missed"); });
+    const w = wrong[0];
+    say(wrong.length ? `${w} isn't prime: ${w} = ${T.smallestFactor(w)} × ${w / T.smallestFactor(w)}.${missed.length ? ` And ${missed.length} prime${missed.length === 1 ? " is" : "s are"} still untagged (flashing).` : ""}`
+      : `${missed.length} prime${missed.length === 1 ? " is" : "s are"} still untagged: they're flashing.`, "warn");
+  });
+  function end(ok){
+    over = true;
+    const touched = alarm.count;
+    squares.forEach(n => { const b = grid.querySelector(`[data-n="${n}"]`); if(!b.classList.contains("trap")){ b.classList.add("gold"); b.innerHTML = `${n}<small>${Math.sqrt(n)}×${Math.sqrt(n)}</small>`; } });
+    T.finish({ ok, title: ok ? "BAND CLEAN" : "SCAN BLOWN",
+      lines: [ok ? `All <b>${primes.length}</b> primes tagged` : `<b>${tagged.size}</b> channels tagged before the alarm`,
+        `Honeypots touched: <b>${touched}</b> of ${squares.length}`,
+        `The honeypots were the square numbers: <b>${squares.join(", ")}</b>`,
+        ok ? `Verified in <b>${verifies}</b> ${verifies === 1 ? "go" : "goes"}` : "Three honeypots tripped the alarm."] });
+    T.say(ok ? (touched ? "Band clean, but they know someone was poking around." : "Clean band, not a single honeypot touched. Nice.") : "They've spotted us. Try the band again.");
+  }
+  T.say(`New trick from ${T.target()}: honeypot servers on square-number channels. Primes only.`, { delay: 600 });
+  if(window.PNTest){
+    PNTest.skip("Tag the primes and verify", () => { primes.forEach(n => { if(!tagged.has(n)) tap(n, grid.querySelector(`[data-n="${n}"]`)); }); $("verify").click(); });
+  }
+})();
+</script>
+</body>
+</html>

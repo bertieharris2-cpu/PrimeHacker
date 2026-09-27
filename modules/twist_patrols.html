@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en" class="phase-build">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PRIMENET · Guard Patrols</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Inter:wght@400;600;700;800&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../shared/primenet.css">
+<style>
+  /* Getting-in twist: two guards pass the vault door on a timetable; multiples, common multiples, the LCM */
+  .guards{ display:flex; flex-wrap:wrap; gap:14px; }
+  .guard{ display:flex; align-items:center; gap:10px; padding:10px 14px; font-size:17px; }
+  .guard i{ width:28px; height:28px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-style:normal; font-family:var(--font-ui); font-weight:700; color:#041012; }
+  .gA i{ background:#6ec8ff; } .gB i{ background:#ff6b81; }
+  .step{ display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+  .step .n{ font-family:var(--font-ui); font-weight:700; letter-spacing:.16em; font-size:13px; color:var(--accent); border:1px solid rgba(var(--accent-rgb),.6); padding:3px 8px; }
+  .step .t{ font-size:18px; }
+  .board{ padding:14px; }
+  .minutes{ display:grid; grid-template-columns:repeat(12, minmax(0,1fr)); gap:5px; }
+  .min{ position:relative; font:inherit; font-family:var(--font-mono); font-size:16px; color:var(--text-muted); aspect-ratio:1; min-width:0; background:rgba(8,26,31,.9); border:1px solid var(--line); cursor:pointer; padding:0; }
+  .min:hover:not(:disabled){ border-color:var(--accent); }
+  .min:focus-visible{ outline:2px solid var(--warning); outline-offset:2px; }
+  .min .dots{ position:absolute; left:0; right:0; bottom:3px; display:flex; justify-content:center; gap:3px; }
+  .min .dots b{ width:9px; height:9px; border-radius:50%; display:inline-block; }
+  .min .dots .a{ background:#6ec8ff; } .min .dots .b{ background:#ff6b81; }
+  .min.both{ border-color:#ffc94d; box-shadow:inset 0 0 0 2px rgba(255,201,77,.6); color:#fff3cf; }
+  .min.door{ background:rgba(var(--accent-rgb),.3); border-color:var(--accent); color:#fff; }
+  .min.bad{ background:rgba(255,79,109,.28); border-color:#ff4f6d; }
+  .min.hint{ animation:mh 1s ease-in-out 3; }
+  @keyframes mh{ 50%{ border-color:var(--warning); background:rgba(242,193,78,.25); } }
+  @media (max-width:640px){ .minutes{ grid-template-columns:repeat(6, minmax(0,1fr)); } }
+  @media (prefers-reduced-motion: reduce){ .min.hint{ animation:none; } }
+</style>
+</head>
+<body>
+<main class="tw">
+  <div class="guards">
+    <div class="pn-panel guard gA"><i>A</i><span>Guard A passes the vault door every <b id="a"></b> minutes</span></div>
+    <div class="pn-panel guard gB"><i>B</i><span>Guard B passes every <b id="b"></b> minutes</span></div>
+  </div>
+  <div class="step"><span class="n" id="stepN">STEP 1</span><span class="t" id="stepT"></span></div>
+  <section class="pn-panel board"><div class="minutes" id="mins"></div></section>
+  <div class="tw-bar"><span style="font-size:14px;color:var(--text-faint)">Minutes after midnight. Both guards set off from the door at minute 0.</span></div>
+  <div class="tw-msg" id="msg" aria-live="polite"></div>
+</main>
+
+<script src="../shared/sound.js"></script>
+<script src="../shared/primenet.js"></script>
+<script src="../shared/testtools.js"></script>
+<script src="../shared/handler.js"></script>
+<script src="../shared/twist.js"></script>
+<script>
+(() => {
+  "use strict";
+  const T = window.PNTwist, $ = id => document.getElementById(id);
+  const L = T.init({ id: "patrols", stage: "GETTING IN", title: "GUARD PATROLS",
+    brief: `Two guards walk past ${T.targets()} vault door on a timetable. Mark when each one passes, find when they're <b>both</b> at the door, then choose a safe moment for the crew to open it.` });
+  const PAIRS = { L1: [[3, 4], [3, 5], [4, 6], [4, 5]], L2: [[6, 8], [4, 10], [6, 9], [4, 6]], L3: [[8, 12], [9, 12], [10, 15], [6, 10]] }[L];
+  const [a, b] = T.pick(PAIRS), both = T.lcm(a, b);
+  const OPEN = L === "L1" ? 2 : 3;   // minutes the door takes to open
+  const ARRIVE = Math.max(a, b) + 1;   // the crew reaches the door after both guards have passed once
+  const END = Math.min(60, Math.ceil((both + Math.min(a, b) + 1) / 12) * 12);
+  $("a").textContent = a; $("b").textContent = b;
+  const multA = T.range(1, END).filter(m => m % a === 0), multB = T.range(1, END).filter(m => m % b === 0);
+  let stage = "A", foundA = new Set(), foundB = new Set(), over = false, slips = 0;
+  const alarm = T.alarm(3, () => end(false), document.querySelector(".tw-bar"));
+  const mins = $("mins"), cell = m => mins.querySelector(`[data-m="${m}"]`);
+  T.range(1, END).forEach(m => {
+    const b2 = document.createElement("button"); b2.type = "button"; b2.className = "min"; b2.dataset.m = m;
+    b2.innerHTML = `${m}<span class="dots"></span>`;
+    b2.addEventListener("click", () => tap(m));
+    mins.appendChild(b2);
+  });
+  function say(t, cls){ const el = $("msg"); el.textContent = t; el.className = "tw-msg" + (cls ? " " + cls : ""); }
+  function step(k, t){ $("stepN").textContent = `STEP ${k}`; $("stepT").innerHTML = t; }
+  const dot = (m, cls) => cell(m).querySelector(".dots").insertAdjacentHTML("beforeend", `<b class="${cls}"></b>`);
+  function setStage(s){
+    stage = s;
+    if(s === "A") step(1, `Tap every minute when <b style="color:#6ec8ff">Guard A</b> passes the door (every ${a} minutes). <span style="color:var(--text-faint)">${multA.length} to find</span>`);
+    if(s === "B") step(2, `Now <b style="color:#ff6b81">Guard B</b>: every ${b} minutes. <span style="color:var(--text-faint)">${multB.length} to find</span>`);
+    if(s === "both") step(3, "When are <b>both</b> guards at the door together for the first time?");
+    if(s === "open") step(4, `The crew reaches the door at minute <b>${ARRIVE}</b>. The door takes <b>${OPEN} minutes</b> to open. Tap the minute to start, before minute ${both}, so neither guard passes while it's open.`);
+  }
+  function tap(m){
+    if(over) return;
+    const el = cell(m);
+    if(stage === "A" || stage === "B"){
+      const k = stage === "A" ? a : b, set = stage === "A" ? foundA : foundB, list = stage === "A" ? multA : multB;
+      if(set.has(m)) return;
+      if(m % k === 0){ set.add(m); dot(m, stage === "A" ? "a" : "b"); T.SND("tag"); say(`${m} = ${k} × ${m / k}`, "ok");
+        if(set.size === list.length){ T.SND("verified"); setStage(stage === "A" ? "B" : "both"); say(stage === "B" ? `Guard A: ${multA.join(", ")}. Those are the multiples of ${a}.` : `Guard B: ${multB.join(", ")}. The multiples of ${b}.`, "ok"); }
+        return; }
+      slips++; el.classList.add("bad"); setTimeout(() => el.classList.remove("bad"), 600); T.SND("wrong");
+      say(`${m} isn't in the ${k} times table: ${k} × ${Math.floor(m / k)} = ${k * Math.floor(m / k)}, remainder ${m % k}.`, "bad");
+      return;
+    }
+    if(stage === "both"){
+      if(m === both){ el.classList.add("both"); T.SND("correct", 4); say(`Minute ${both}: the first number in both lists. ${both} is the lowest common multiple (LCM) of ${a} and ${b}.`, "ok"); T.say(`Both guards meet at minute ${both}. Every ${both} minutes after that, too.`); setStage("open"); return; }
+      slips++; el.classList.add("bad"); setTimeout(() => el.classList.remove("bad"), 600); T.SND("wrong");
+      const inA = m % a === 0, inB = m % b === 0;
+      say(inA && inB ? `Both are there at ${m}, but there's an earlier minute.` : `At minute ${m}, ${inA ? "only Guard A" : inB ? "only Guard B" : "neither guard"} is at the door. Look for a minute with both dots.`, "bad");
+      if(slips >= 3) cell(both).classList.add("hint");
+      return;
+    }
+    if(stage === "open"){
+      const window_ = T.range(m, m + OPEN - 1);
+      const clash = window_.find(x => x % a === 0 || x % b === 0);
+      if(m < ARRIVE){ say(`The crew isn't at the door until minute ${ARRIVE}.`, "warn"); return; }
+      if(m + OPEN - 1 >= both){ say(`Too late: minute ${both} is when both guards meet. Open the door before then.`, "warn"); return; }
+      if(clash){ el.classList.add("bad"); setTimeout(() => el.classList.remove("bad"), 700); say(`Minutes ${m} to ${m + OPEN - 1}: ${clash % a === 0 ? "Guard A" : "Guard B"} passes at minute ${clash}. Caught.`, "bad"); alarm.hit(); return; }
+      window_.forEach(x => cell(x).classList.add("door")); T.SND("clamp");
+      end(true, m);
+    }
+  }
+  function end(ok, start){
+    over = true;
+    T.finish({ ok, title: ok ? "DOOR OPEN" : "SPOTTED",
+      lines: [`Guard A: every ${a} minutes (multiples of ${a}). Guard B: every ${b} minutes (multiples of ${b}).`, `Both at the door at minute <b>${both}</b>: the lowest common multiple of ${a} and ${b}.`,
+        ok ? `Door opened from minute <b>${start}</b> to ${start + OPEN - 1} with nobody passing.` : "Three times the crew were caught at the door.", `Taps in the wrong place: <b>${slips}</b>`] });
+    T.say(ok ? "Door's open and nobody saw a thing." : "Guards have seen the crew. Abort.");
+  }
+  setStage("A");
+  T.say(`Two guards, two timetables. Find the gap.`, { delay: 600 });
+  if(window.PNTest) PNTest.skip("Finish this step", () => {
+    if(stage === "A") multA.forEach(m => tap(m));
+    else if(stage === "B") multB.forEach(m => tap(m));
+    else if(stage === "both") tap(both);
+    else if(stage === "open"){ const m = T.range(ARRIVE, both - OPEN).find(s => T.range(s, s + OPEN - 1).every(x => x % a && x % b)); if(m) tap(m); else return "No safe gap this time."; }
+  });
+})();
+</script>
+</body>
+</html>

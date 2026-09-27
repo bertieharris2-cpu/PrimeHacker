@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en" class="phase-hack">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PRIMENET · Twist Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Inter:wght@400;600;700;800&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../shared/primenet.css">
+<style>
+  /* The bank heist's rotating tasks, each playable on its own at any level, away from the mission */
+  .lab{ position:relative; z-index:1; width:min(1180px,100%); margin:0 auto; padding:22px 16px 48px; display:flex; flex-direction:column; gap:22px; }
+  .top{ display:flex; flex-wrap:wrap; justify-content:space-between; align-items:flex-end; gap:12px; border-bottom:1px solid var(--line); padding-bottom:14px; }
+  .top .eb{ font-family:var(--font-ui); font-size:12px; font-weight:700; letter-spacing:.22em; color:var(--warning); }
+  h1{ margin:2px 0 6px; font-family:var(--font-ui); font-size:clamp(28px,4vw,40px); letter-spacing:.12em; }
+  .lede{ margin:0; color:var(--text-muted); max-width:70ch; line-height:1.6; font-size:17px; }
+  .point h2{ margin:0 0 2px; font-family:var(--font-ui); font-size:18px; letter-spacing:.14em; color:var(--warning); }
+  .point > p{ margin:0 0 12px; color:var(--text-faint); font-size:15px; }
+  .cards{ display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:12px; }
+  .card{ padding:14px; display:flex; flex-direction:column; gap:8px; border-left:3px solid var(--c, var(--line)); }
+  .card .row{ display:flex; justify-content:space-between; align-items:flex-start; gap:8px; }
+  .card h3{ margin:0; font-family:var(--font-ui); font-size:18px; letter-spacing:.06em; }
+  .card p{ margin:0; font-size:15px; color:var(--text-muted); line-height:1.5; flex:1; }
+  .card .m{ font-family:var(--font-mono); font-size:13px; color:var(--c); }
+  .pill{ font-family:var(--font-mono); font-size:11px; padding:1px 7px; border:1px solid; white-space:nowrap; }
+  .pill.new{ color:#ff9f6b; border-color:#ff9f6b; } .pill.old{ color:var(--ok); border-color:var(--ok); }
+  .go{ display:flex; gap:6px; flex-wrap:wrap; align-items:center; }
+  .go a{ font-family:var(--font-ui); font-weight:700; font-size:13px; letter-spacing:.1em; text-decoration:none; color:var(--text-primary); border:1px solid var(--line-strong); padding:7px 12px; }
+  .go a:hover{ border-color:var(--c, var(--accent)); color:var(--c, var(--accent)); }
+  .go small{ font-size:12px; color:var(--text-faint); }
+</style>
+</head>
+<body>
+<div class="lab">
+  <header class="top">
+    <div>
+      <div class="eb">PRIMENET · BANK HEIST</div>
+      <h1>TWIST LAB</h1>
+      <p class="lede">Every rotating task from the bank heist map, playable on its own. Pick a level to jump straight in. These pages don't change a mission. Once they're right, the mission will pick one twist at each point.</p>
+    </div>
+    <a class="pn-btn small" href="../index.html" style="text-decoration:none">← Title screen</a>
+  </header>
+  <div id="points" style="display:flex;flex-direction:column;gap:30px"></div>
+</div>
+
+<script src="../shared/sound.js"></script>
+<script src="../shared/primenet.js"></script>
+<script>
+(() => {
+  "use strict";
+  const C = { primes: "#2fbf8a", factors: "#4aa3ff", squares: "#f2c14e", cubes: "#ffd27a", multiples: "#ff9f6b", lcm: "#ff4fd8", pfact: "#6ee7ff" };
+  const lv = (page, extra = () => "") => ["L1", "L2", "L3"].map(l => `<a href="${page}?level=${l}${extra(l)}">${l}</a>`).join("");
+  const CORR = { L1: [12, 18, 20, 24], L2: [36, 40, 48, 60], L3: [72, 84, 90, 96] };
+  const POINTS = [
+    { name: "Frequency Scan", when: "Replaces band 2 of the scan", items: [
+      { t: "Honeypot squares", d: "Tag the primes; square-number channels are traps.", m: "squares", mn: "Square numbers", page: "twist_honeypot.html", isNew: 1 },
+      { t: "Cube-number relays", d: "Find every relay on a cube number (3 × 3 × 3 = 27). Each one is drawn as a cube.", m: "cubes", mn: "Cube numbers", page: "twist_cubes.html", isNew: 1 },
+      { t: "Motion-sensor sieve", d: "Sieve 1 to 50, 100 or 150: find each prime and knock out its multiples. The last sensor is broken, so its multiples are found by hand.", m: "primes", mn: "Primes and multiples", page: "twist_sieve.html", isNew: 1 },
+      { t: "Jammer", d: "Already in every band of the Frequency Scan. In the rotation it will only appear in band 2.", m: "multiples", mn: "Multiples", link: `<a href="prime_frequency_scan.html">Open the scan</a><small>uses the title-screen level</small>` },
+    ] },
+    { name: "Factor Vault", when: "A twist on floor 2", items: [
+      { t: "Prime floor trap", d: "Four floor readings, one is prime. Prove the real floors with a factor pair and find the decoy. Two rounds.", m: "primes", mn: "Primes and factor pairs", page: "twist_primefloor.html", isNew: 1 },
+      { t: "Deposit-box walls", d: "Which factor-pair arrays of deposit boxes fit on a wall of a set size? Three walls.", m: "factors", mn: "Factor pairs", page: "twist_walls.html", isNew: 1 },
+    ] },
+    { name: "Getting in", when: "New step between the Blueprint and Prime Hack", items: [
+      { t: "Guard patrols", d: "Mark each guard's timetable, find when both meet (the LCM), then open the door in a safe gap.", m: "lcm", mn: "Multiples and LCM", page: "twist_patrols.html", isNew: 1 },
+      { t: "Laser corridor", d: "Step only on the factors of N, in order.", m: "factors", mn: "Factors", link: null, corridor: 1 },
+    ] },
+    { name: "Prime Hack", when: "Lock 3", items: [
+      { t: "Product-and-clue lock", d: "The product of two primes plus a clue (their sum, difference or range). Three double seals.", m: "pfact", mn: "Primes and products", page: "twist_cluelock.html", isNew: 1 },
+    ] },
+    { name: "Finale", when: "How it ends", items: [
+      { t: "Server blackout", d: "Lights out: shut down the prime servers by torchlight. Opens Prime Hack with the blackout set as this run's finale; SKIP (teacher mode) cracks the locks fast.", m: "primes", mn: "Primes", link: `<a href="prime_hack.html?finale=blackout">Open Prime Hack</a><small>title-screen level</small>` },
+      { t: "Getaway chase", d: "The tracking-map getaway. Opens Prime Hack with the getaway as this run's finale.", m: "pfact", mn: "Story", link: `<a href="prime_hack.html?finale=getaway">Open Prime Hack</a><small>title-screen level</small>` },
+    ] },
+  ];
+  const box = document.getElementById("points");
+  POINTS.forEach(pt => {
+    const sec = document.createElement("section"); sec.className = "point";
+    sec.innerHTML = `<h2>${pt.name}</h2><p>${pt.when}</p><div class="cards"></div>`;
+    pt.items.forEach(it => {
+      const go = it.page ? lv(it.page) : it.corridor ? ["L1", "L2", "L3"].map(l => { const n = CORR[l][Math.floor(Math.random() * 4)]; return `<a href="laser_corridor.html?n=${n}">${l} · N=${n}</a>`; }).join("") : it.link;
+      sec.querySelector(".cards").insertAdjacentHTML("beforeend", `<article class="pn-panel card" style="--c:${C[it.m]}">
+        <div class="row"><h3>${it.t}</h3><span class="pill ${it.isNew ? "new" : "old"}">${it.isNew ? "NEW" : "IN THE GAME"}</span></div>
+        <p>${it.d}</p><span class="m">${it.mn}</span><div class="go">${go}</div></article>`);
+    });
+    box.appendChild(sec);
+  });
+})();
+</script>
+</body>
+</html>

@@ -235,3 +235,18 @@ Every idea is a "maybe until I see it". Build these as prototypes to look at bef
 - [x] Live intercept at L2 slowed (16 signals, about 5 seconds on screen each); L3 slowed a little too
 - [x] Teacher SKIP button next to TEST (and Ctrl+Shift+K): cracks the current prime pair in Prime Hack, fills every factor pair in Factor Vault, solves the scan band, skips the identity scan, shows the next button in Vault Grid
 - [x] Sound board picks: right answer = two flat confirm tones; a room filling = data trickle; a room locking = magnetic clamp; docking, recon scan and wrong answer unchanged. Hologram windows now use a quick zoom beep (from the note: "a higher pitched beep, like a zoomed sound")
+
+## Bank heist rotation: the Twist Lab
+
+- Decided: no new heists yet. The bank heist gets variety instead: Factor Vault and Prime Hack stay, and at five points each mission picks one task (map: scan band 2, Factor Vault floor 2, a new "getting in" step, Prime Hack lock 3, the finale)
+- [x] Built as standalone pages first, so each can be tested away from the mission: `modules/twist_lab.html` (also linked from the teacher controls) opens each at L1, L2 or L3
+  - Honeypot squares (tag primes; square-number channels trip the alarm)
+  - Cube-number relays (find the cubes; each drawn as an n × n × n cube; the cube table appears after two mistakes)
+  - Motion-sensor sieve (Sieve of Eratosthenes 1–50/100/150; the last prime's multiples found by hand)
+  - Prime floor trap (four readings, one prime: prove the others with a factor pair)
+  - Deposit-box walls (which factor-pair arrays fit a wall of a set size, either way round)
+  - Guard patrols (two timetables, the LCM, then a safe gap to open the door)
+  - Product-and-clue lock (product of two primes plus a sum, difference or range clue)
+- [x] Shared frame for every twist (`shared/twist.js`): level switch, alarm meter (three strikes), ORACLE, result screen with Play again / Twist Lab / Continue (for when they join the mission), teacher SKIP
+- [x] Prime Hack accepts `?finale=blackout` or `?finale=getaway` to test a finale
+- [ ] Next: wire the rotation into the mission (one pick per point, no repeat for the same agent, teacher pin, twists logged in the record)

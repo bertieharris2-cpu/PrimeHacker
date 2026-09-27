@@ -3082,6 +3082,8 @@ function boot(){
   addBlank();
   focusInput();
 }
+// Twist Lab: ?finale=blackout or ?finale=getaway picks the finale of the first run
+{ const f = new URLSearchParams(location.search).get("finale"); if(f === "blackout" || f === "getaway") Run.forceFinale = f; }
 boot();
 
 // Teacher test tools (only while unlocked)

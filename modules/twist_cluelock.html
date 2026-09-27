@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en" class="phase-hack">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PRIMENET · Product-and-Clue Lock</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Inter:wght@400;600;700;800&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../shared/primenet.css">
+<style>
+  /* Prime Hack twist: a double seal. The product of two primes, plus a clue about them */
+  .lock{ padding:20px; display:grid; grid-template-columns:auto 1fr; gap:10px 26px; align-items:center; }
+  .lock .lab{ font-family:var(--font-ui); font-size:13px; letter-spacing:.18em; color:var(--text-faint); }
+  .lock .prod{ font-family:var(--font-ui); font-size:clamp(44px,7vw,72px); font-weight:700; letter-spacing:.06em; color:var(--accent); text-shadow:0 0 24px rgba(var(--accent-rgb),.4); line-height:1; }
+  .lock .clue{ font-size:22px; color:#ffe7a8; }
+  .seals{ display:flex; gap:8px; }
+  .seals i{ width:40px; height:12px; border:1px solid rgba(var(--accent-rgb),.6); }
+  .seals i.on{ background:var(--accent); box-shadow:0 0 10px var(--accent); }
+  .term{ background:#020a0c; border:1px solid rgba(var(--accent-rgb),.5); padding:14px 16px; font-size:17px; min-height:220px; display:flex; flex-direction:column; gap:3px; }
+  .term .ln{ white-space:pre-wrap; color:#9fffd4; } .term .ln.me{ color:#ff9ae9; } .term .ln.bad{ color:#ff8aa0; } .term .ln.ok{ color:#7dffc4; } .term .ln.sys{ color:var(--text-faint); }
+  .term form{ display:flex; gap:8px; align-items:center; margin-top:auto; }
+  .term form span{ color:#ff9ae9; }
+  .term input{ flex:1; background:transparent; border:0; color:var(--text-primary); font:inherit; font-size:18px; outline:none; min-width:0; }
+  @media (max-width:560px){ .lock{ grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<main class="tw">
+  <div class="tw-bar"><span>Lock <b id="k">1</b> of 3</span><span class="seals" id="seals" aria-hidden="true"><i></i><i></i><i></i></span></div>
+  <section class="pn-panel lock">
+    <span class="lab">PRODUCT</span><span class="prod" id="prod"></span>
+    <span class="lab">CLUE</span><span class="clue" id="clue"></span>
+  </section>
+  <section class="term" id="term" aria-live="polite">
+    <form id="form" autocomplete="off"><span>agent@sentinel:~$</span><label for="inp" style="position:absolute;left:-9999px">Type the two primes</label><input id="inp" placeholder="type the two primes, e.g. 3 11"></form>
+  </section>
+</main>
+
+<script src="../shared/sound.js"></script>
+<script src="../shared/primenet.js"></script>
+<script src="../shared/testtools.js"></script>
+<script src="../shared/handler.js"></script>
+<script src="../shared/twist.js"></script>
+<script>
+(() => {
+  "use strict";
+  const T = window.PNTwist, $ = id => document.getElementById(id);
+  const L = T.init({ id: "cluelock", stage: "PRIME HACK", title: "PRODUCT-AND-CLUE LOCK",
+    brief: `Lock 3 is double-sealed. You get the <b>product</b> of two primes and a <b>clue</b> about them. Find both primes. Wrong guesses raise the trace.` });
+  const PR = { L1: T.range(2, 19), L2: T.range(3, 37), L3: T.range(5, 53) }[L].filter(T.isPrime);
+  const MAXP = { L1: 150, L2: 700, L3: 2000 }[L];
+  function makeLock(){
+    let p, q;
+    do{ p = T.pick(PR); q = T.pick(PR); } while(p === q || p * q > MAXP || p * q < 15);
+    if(p > q) [p, q] = [q, p];
+    const kinds = L === "L1" ? ["sum", "sum", "diff"] : L === "L2" ? ["sum", "diff", "diff"] : ["sum", "diff", "between"];
+    const kind = T.pick(kinds);
+    let clue;
+    if(kind === "sum") clue = `The two primes add up to ${p + q}.`;
+    else if(kind === "diff") clue = `One prime is ${q - p} more than the other.`;
+    else { const lo = Math.max(2, p - 3 - Math.floor(Math.random() * 3)), hi = q + 2 + Math.floor(Math.random() * 3); clue = `Both primes are between ${lo} and ${hi}.`; }
+    return { p, q, clue, kind };
+  }
+  const locks = [makeLock(), makeLock(), makeLock()];
+  let k = 0, over = false, guesses = 0;
+  const alarm = T.alarm(3, () => end(false));
+  const term = $("term"), form = $("form"), inp = $("inp");
+  function line(t, cls){ const d = document.createElement("div"); d.className = "ln " + (cls || ""); d.textContent = t; term.insertBefore(d, form); while(term.querySelectorAll(".ln").length > 9) term.querySelector(".ln").remove(); }
+  function show(){
+    const lk = locks[k];
+    $("k").textContent = k + 1; $("prod").textContent = lk.p * lk.q; $("clue").textContent = lk.clue;
+    line(`> double seal ${k + 1} online. product ${lk.p * lk.q}. awaiting two primes.`, "sys");
+    inp.value = ""; inp.focus();
+  }
+  form.addEventListener("submit", e => {
+    e.preventDefault();
+    if(over) return;
+    const txt = inp.value.trim(); inp.value = "";
+    if(!txt) return;
+    line(`agent@sentinel:~$ ${txt}`, "me");
+    const nums = (txt.match(/\d+/g) || []).map(Number);
+    if(nums.length !== 2){ line("> type two numbers, like: 3 11", "bad"); return; }
+    guesses++;
+    const [x, y] = nums, lk = locks[k], P = lk.p * lk.q;
+    const notPrime = [x, y].filter(n => !T.isPrime(n));
+    if(x * y === P && !notPrime.length){
+      const a = Math.min(x, y), b = Math.max(x, y);
+      line(`> ${a} × ${b} = ${P} ✓  ${lk.kind === "sum" ? `${a} + ${b} = ${a + b} ✓` : lk.kind === "diff" ? `${b} − ${a} = ${b - a} ✓` : "both in range ✓"}`, "ok");
+      line(`> seal ${k + 1} released.`, "ok");
+      $("seals").children[k].classList.add("on"); T.SND("lock");
+      k++;
+      if(k === locks.length) return end(true);
+      setTimeout(show, 900 / (window.PNTest ? PNTest.speed() : 1));
+      return;
+    }
+    T.SND("wrong");
+    if(notPrime.length) line(`> ${notPrime[0]} isn't prime: ${notPrime[0] < 2 ? "primes start at 2" : `${notPrime[0]} = ${T.smallestFactor(notPrime[0])} × ${notPrime[0] / T.smallestFactor(notPrime[0])}`}.`, "bad");
+    else line(`> ${x} × ${y} = ${x * y}, not ${P}.`, "bad");
+    const hits = alarm.hit();
+    if(hits === 2){ line(`> ORACLE: try the small primes first. Does 2, 3, 5 or 7 go into ${P}?`, "sys"); T.say(`Start small: which prime goes into ${P} with nothing left over?`); }
+  });
+  function end(ok){
+    over = true; inp.disabled = true;
+    T.finish({ ok, title: ok ? "DOUBLE SEALS OPEN" : "TRACE COMPLETE",
+      lines: [`Seals released: <b>${k}</b> of 3`, ...locks.slice(0, Math.max(k, 1)).map(l => `${l.p * l.q} = ${l.p} × ${l.q}`), `Guesses: <b>${guesses}</b>`] });
+    T.say(ok ? "All three seals off. The vault's ours." : "They traced the guesses. Out, now.");
+  }
+  show();
+  T.say("Double seal. The clue narrows it down: use it.", { delay: 600 });
+  if(window.PNTest) PNTest.skip("Crack this seal", () => { const lk = locks[k]; if(!lk) return; inp.value = `${lk.p} ${lk.q}`; form.requestSubmit(); });
+})();
+</script>
+</body>
+</html>

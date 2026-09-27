@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en" class="phase-hack">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PRIMENET · Motion-Sensor Sieve</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Inter:wght@400;600;700;800&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../shared/primenet.css">
+<style>
+  /* Scan twist: the Sieve of Eratosthenes as the trading floor's motion sensors */
+  .board{ padding:14px; position:relative; overflow:hidden; }
+  .tw-grid{ grid-template-columns:repeat(10, minmax(0,1fr)); gap:5px; }
+  .tw-tile{ aspect-ratio:1.6; font-size:17px; }
+  .beam{ position:absolute; left:0; right:0; height:3px; top:0; background:#ff2d55; box-shadow:0 0 14px 3px rgba(255,45,85,.7); opacity:0; pointer-events:none; }
+  .beam.run{ animation:beam 1.1s ease-in-out; }
+  @keyframes beam{ 0%{ top:0; opacity:.9; } 100%{ top:100%; opacity:.9; } }
+  .step{ display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+  .step .n{ font-family:var(--font-ui); font-weight:700; letter-spacing:.16em; font-size:13px; color:var(--accent); border:1px solid rgba(var(--accent-rgb),.6); padding:3px 8px; }
+  .step .t{ font-size:18px; }
+  .knocked{ display:flex; gap:6px; flex-wrap:wrap; }
+  .knocked span{ font-family:var(--font-mono); font-size:13px; border:1px solid var(--line); padding:2px 8px; color:var(--text-muted); }
+  @media (max-width:560px){ .tw-tile{ font-size:13px; } }
+  @media (prefers-reduced-motion: reduce){ .beam.run{ animation:none; } }
+</style>
+</head>
+<body>
+<main class="tw">
+  <div class="step"><span class="n" id="stepN">STEP 1</span><span class="t" id="stepT"></span></div>
+  <div class="tw-bar"><span class="knocked" id="knocked"></span></div>
+  <section class="pn-panel board"><div class="beam" id="beam"></div><div class="tw-grid" id="grid"></div></section>
+  <div class="tw-msg" id="msg" aria-live="polite"></div>
+  <div style="display:flex;justify-content:flex-end"><button class="pn-btn primary" type="button" id="lockBtn" hidden>Lock in every prime</button></div>
+</main>
+
+<script src="../shared/sound.js"></script>
+<script src="../shared/primenet.js"></script>
+<script src="../shared/testtools.js"></script>
+<script src="../shared/handler.js"></script>
+<script src="../shared/twist.js"></script>
+<script>
+(() => {
+  "use strict";
+  const T = window.PNTwist, $ = id => document.getElementById(id);
+  const L = T.init({ id: "sieve", stage: "FREQUENCY SCAN", title: "MOTION-SENSOR SIEVE",
+    brief: `${T.targets()} trading floor is covered in motion sensors, one per number. Knock out every sensor that isn't prime, the way a sieve does: find a prime, then knock out all its multiples. What's left glowing is prime.` });
+  const MAX = { L1: 50, L2: 100, L3: 150 }[L];
+  const nums = T.range(1, MAX);
+  const sievers = T.range(2, Math.floor(Math.sqrt(MAX))).filter(T.isPrime);   // 2, 3, 5, 7 (and 11 at L3)
+  const last = sievers[sievers.length - 1];
+  const dark = new Set(), locked = new Set();
+  let phase = "one", pIndex = 0, over = false, knockedTotal = 0;
+  const alarm = T.alarm(3, () => end(false));
+  const grid = $("grid"), tile = n => grid.querySelector(`[data-n="${n}"]`);
+  nums.forEach(n => {
+    const b = document.createElement("button"); b.type = "button"; b.className = "tw-tile"; b.textContent = n; b.dataset.n = n;
+    b.addEventListener("click", () => tap(n));
+    grid.appendChild(b);
+  });
+  function say(t, cls){ const m = $("msg"); m.textContent = t; m.className = "tw-msg" + (cls ? " " + cls : ""); }
+  function step(k, t){ $("stepN").textContent = `STEP ${k}`; $("stepT").innerHTML = t; }
+  const smallestLit = () => nums.find(n => n > 1 && !dark.has(n) && !locked.has(n));
+  const knockOut = n => { dark.add(n); const b = tile(n); b.classList.remove("on", "bad"); b.classList.add("x"); b.disabled = true; };
+  const lock = n => { locked.add(n); const b = tile(n); b.classList.add("gold"); };
+
+  function begin(){ phase = "one"; step(1, "Is <b>1</b> prime? It has only one factor. Knock out its sensor."); }
+  function askPrime(){
+    phase = "prime";
+    const p = sievers[pIndex];
+    step(2 + pIndex * 2, pIndex === 0 ? "Click the smallest number still glowing. It's prime." : "Click the next number still glowing. Nothing smaller divides it, so it's prime.");
+  }
+  async function tap(n){
+    if(over) return;
+    const b = tile(n); if(b.disabled || locked.has(n)) return;
+    if(phase === "one"){
+      if(n === 1){ knockOut(1); T.SND("clamp"); say("1 is out. A prime needs exactly two factors: 1 and itself.", "ok"); return askPrime(); }
+      say("Start with 1.", "warn"); return;
+    }
+    if(phase === "prime"){
+      const p = sievers[pIndex], want = smallestLit();
+      if(n !== want){ T.SND("untag"); say(`Not yet: ${want} is smaller and still glowing.`, "warn"); return; }
+      lock(p); T.SND("correct", pIndex);
+      if(p !== last){
+        // The sensors knock out every multiple of p that is still glowing, with a sweep
+        phase = "busy";
+        step(3 + pIndex * 2, `The sensors knock out every multiple of <b>${p}</b>…`);
+        const mult = nums.filter(m => m > p && m % p === 0 && !dark.has(m));
+        const beam = $("beam"); beam.classList.remove("run"); void beam.offsetWidth; beam.classList.add("run");
+        T.SND("trickle", 1);
+        const sp = window.PNTest ? PNTest.speed() : 1;
+        for(const m of mult){ knockOut(m); await new Promise(r => setTimeout(r, 22 / sp)); }
+        knockedTotal += mult.length;
+        $("knocked").insertAdjacentHTML("beforeend", `<span>×${p}: ${mult.length} out</span>`);
+        say(`${mult.length} multiples of ${p} knocked out${pIndex > 0 ? " (some were already dark)" : ""}.`, "ok");
+        pIndex++;
+        return askPrime();
+      }
+      // The last sensor is damaged: the student finds its multiples
+      phase = "manual";
+      const left = nums.filter(m => m > p && m % p === 0 && !dark.has(m));
+      step(3 + pIndex * 2, `The sensor for <b>${p}</b> is damaged. Knock out the multiples of ${p} that are still glowing yourself. <span style="color:var(--text-faint)">(${left.length} left)</span>`);
+      T.say(`Sensor ${p} is down. You'll have to find its multiples by hand: ${p} times what?`);
+      if(!left.length) return finishSieve();
+      return;
+    }
+    if(phase === "manual"){
+      const p = last;
+      if(n % p === 0 && n > p){ knockOut(n); knockedTotal++; T.SND("clamp"); say(`${n} = ${p} × ${n / p}. Out.`, "ok");
+        const left = nums.filter(m => m > p && m % p === 0 && !dark.has(m));
+        step(3 + pIndex * 2, `Knock out the multiples of ${p} that are still glowing. <span style="color:var(--text-faint)">(${left.length} left)</span>`);
+        if(!left.length) finishSieve();
+        return; }
+      b.classList.add("bad"); setTimeout(() => b.classList.remove("bad"), 700);
+      say(T.isPrime(n) ? `${n} is prime: nothing but 1 and ${n} divides it. Leave it glowing.` : `${n} isn't a multiple of ${p}: ${p} × ${Math.floor(n / p)} = ${p * Math.floor(n / p)}, remainder ${n % p}.`, "bad");
+      alarm.hit();
+    }
+  }
+  function finishSieve(){
+    phase = "done";
+    step(4 + pIndex * 2, `Every number still glowing is prime. Why stop at ${last}? The next prime is ${sievers.length ? nextPrime(last) : 2}, and ${nextPrime(last)} × ${nextPrime(last)} = ${nextPrime(last) ** 2}, which is bigger than ${MAX}.`);
+    $("lockBtn").hidden = false; $("lockBtn").focus();
+  }
+  const nextPrime = p => { let q = p + 1; while(!T.isPrime(q)) q++; return q; };
+  $("lockBtn").addEventListener("click", () => { nums.forEach(n => { if(n > 1 && !dark.has(n)) lock(n); }); end(true); });
+  function end(ok){
+    over = true; $("lockBtn").hidden = true;
+    const primes = nums.filter(T.isPrime);
+    T.finish({ ok, title: ok ? "SENSORS SIEVED" : "SENSOR ALARM",
+      lines: ok ? [`<b>${primes.length}</b> primes left glowing between 1 and ${MAX}`, `Sensors knocked out: <b>${knockedTotal + 1}</b> (including 1)`, `Sieved with ${sievers.join(", ")}`, `Wrong sensors touched: <b>${alarm.count}</b>`]
+        : [`Tripped on the multiples of ${last}`, `Multiples of ${last} still glowing: <b>${nums.filter(m => m > last && m % last === 0 && !dark.has(m)).join(", ") || "none"}</b>`] });
+    T.say(ok ? "The floor's clear. Every sensor left is a prime channel." : "The sensors caught movement. Go again.");
+  }
+  begin();
+  T.say("Old trick, new floor: a sieve. Knock out the multiples, keep the primes.", { delay: 600 });
+  if(window.PNTest) PNTest.skip("Run the whole sieve", async () => {
+    if(phase === "one") await tap(1);
+    while(phase === "prime"){ await tap(smallestLit()); }
+    while(phase === "manual"){ const m = nums.find(x => x > last && x % last === 0 && !dark.has(x)); if(!m) break; await tap(m); }
+    if(phase === "done") $("lockBtn").click();
+  });
+})();
+</script>
+</body>
+</html>

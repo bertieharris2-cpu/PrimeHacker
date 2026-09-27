@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en" class="phase-hack">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PRIMENET · Cube Relays</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Inter:wght@400;600;700;800&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../shared/primenet.css">
+<style>
+  /* Scan twist: find the old relays running on cube numbers (n × n × n) */
+  .layout{ display:grid; grid-template-columns:minmax(0,1fr) 300px; gap:16px; align-items:start; }
+  .board{ padding:16px; }
+  .tw-grid{ grid-template-columns:repeat(6, minmax(0,1fr)); }
+  .log{ padding:14px; display:flex; flex-direction:column; gap:10px; }
+  .log h2{ margin:0; font-family:var(--font-ui); font-size:14px; letter-spacing:.18em; color:var(--accent); }
+  .relay{ display:grid; grid-template-columns:64px 1fr; gap:10px; align-items:center; border:1px solid rgba(255,201,77,.45); padding:6px 8px; background:rgba(255,201,77,.06); }
+  .relay svg{ width:64px; height:64px; }
+  .relay b{ font-size:20px; color:#fff3cf; } .relay span{ display:block; font-size:14px; color:var(--text-muted); }
+  .slots{ display:flex; gap:6px; flex-wrap:wrap; }
+  .slots i{ width:28px; height:28px; border:1px dashed rgba(255,201,77,.5); display:inline-block; }
+  .slots i.on{ background:#ffc94d; border-style:solid; box-shadow:0 0 10px rgba(255,201,77,.6); }
+  .table{ font-size:14px; color:var(--text-muted); border-top:1px solid var(--line); padding-top:8px; }
+  .table[hidden]{ display:none; }
+  @media (max-width:820px){ .layout{ grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<main class="tw">
+  <div class="tw-bar"><span>Relays found: <b id="count">0</b> of <b id="total">0</b></span></div>
+  <div class="layout">
+    <section class="pn-panel board"><div class="tw-grid" id="grid"></div></section>
+    <aside class="pn-panel log">
+      <h2>RELAY LOG</h2>
+      <div class="slots" id="slots" aria-hidden="true"></div>
+      <div id="found" style="display:flex;flex-direction:column;gap:8px"></div>
+      <div class="table" id="table" hidden></div>
+    </aside>
+  </div>
+  <div class="tw-msg" id="msg" aria-live="polite">Find every relay running on a cube number.</div>
+</main>
+
+<script src="../shared/sound.js"></script>
+<script src="../shared/primenet.js"></script>
+<script src="../shared/testtools.js"></script>
+<script src="../shared/handler.js"></script>
+<script src="../shared/twist.js"></script>
+<script>
+(() => {
+  "use strict";
+  const T = window.PNTwist, $ = id => document.getElementById(id);
+  const L = T.init({ id: "cubes", stage: "FREQUENCY SCAN", title: "CUBE-NUMBER RELAYS",
+    brief: `Three old relays still run under ${T.target()}. They use <b>cube numbers</b>: a number times itself, times itself again (3 × 3 × 3 = 27). Find every cube relay for a bonus decoder. Hit a wrong relay and the alarm goes up.` });
+  const MAX = { L1: 70, L2: 130, L3: 220 }[L];
+  const cubes = T.range(1, 6).map(n => n * n * n).filter(c => c <= MAX && !(L === "L3" && c === 1));
+  // Decoys: squares, powers of 2 and 3 that aren't cubes, numbers right next to a cube, and a few multiples of 3
+  const decoyPool = new Set();
+  cubes.forEach(c => { if(c > 2){ decoyPool.add(c - 1); decoyPool.add(c + 1); } });
+  [4, 9, 16, 25, 32, 36, 49, 81, 100, 121, 128, 144, 169, 196, 12, 18, 21, 24, 30, 33, 45, 54, 72, 90, 96, 108, 120, 150, 180, 200, 210].forEach(n => decoyPool.add(n));
+  const decoys = T.shuffle([...decoyPool].filter(n => n <= MAX && !T.isCube(n))).slice(0, 24 - cubes.length);
+  const nums = T.shuffle([...cubes, ...decoys]);
+  $("total").textContent = cubes.length;
+  $("slots").innerHTML = cubes.map(() => "<i></i>").join("");
+  let found = 0, over = false;
+  const alarm = T.alarm(3, () => end(false));
+
+  // An isometric drawing of an n × n × n cube, gridded on its three visible faces
+  function cubeSVG(n){
+    const s = 26, cx = 32, cy = 32, c30 = Math.cos(Math.PI / 6), s30 = 0.5;
+    const P = (x, y, z) => [cx + (x - z) * c30 * s / 1, cy + (x + z) * s30 * s / 1 - y * s];   // x,z along the floor, y up (0..1)
+    const pt = (x, y, z) => P(x - 0.5, y - 0.5, z - 0.5).map(v => v.toFixed(1)).join(",");
+    const face = (pts, fill) => `<polygon points="${pts.map(p => pt(...p)).join(" ")}" fill="${fill}" stroke="#ffe7a8" stroke-width="1"/>`;
+    let g = face([[0,1,0],[1,1,0],[1,1,1],[0,1,1]], "rgba(255,201,77,.55)") + face([[1,0,0],[1,1,0],[1,1,1],[1,0,1]], "rgba(255,201,77,.3)") + face([[0,0,1],[1,0,1],[1,1,1],[0,1,1]], "rgba(255,201,77,.18)");
+    for(let k = 1; k < n; k++){
+      const t = k / n, line = (a, b) => `<line x1="${pt(...a).split(",")[0]}" y1="${pt(...a).split(",")[1]}" x2="${pt(...b).split(",")[0]}" y2="${pt(...b).split(",")[1]}" stroke="#ffe7a8" stroke-width=".6" opacity=".8"/>`;
+      g += line([t,1,0],[t,1,1]) + line([0,1,t],[1,1,t]);           // top
+      g += line([1,t,0],[1,t,1]) + line([1,0,t],[1,1,t]);           // right
+      g += line([0,t,1],[1,t,1]) + line([t,0,1],[t,1,1]);           // front
+    }
+    return `<svg viewBox="0 0 64 64" aria-hidden="true">${g}</svg>`;
+  }
+  const grid = $("grid");
+  nums.forEach(n => {
+    const b = document.createElement("button"); b.type = "button"; b.className = "tw-tile"; b.textContent = n; b.dataset.n = n;
+    b.addEventListener("click", () => tap(n, b));
+    grid.appendChild(b);
+  });
+  function say(t, cls){ const m = $("msg"); m.textContent = t; m.className = "tw-msg" + (cls ? " " + cls : ""); }
+  function nearCubes(n){ let k = 1; while((k + 1) ** 3 <= n) k++; return [k, k + 1]; }
+  function tap(n, b){
+    if(over || b.disabled) return;
+    if(T.isCube(n)){
+      const r = Math.round(Math.cbrt(n));
+      b.classList.add("gold"); b.innerHTML = `${n}<small>${r}×${r}×${r}</small>`; b.disabled = true;
+      found++; $("count").textContent = found;
+      $("slots").children[found - 1].classList.add("on");
+      $("found").insertAdjacentHTML("beforeend", `<div class="relay">${cubeSVG(r)}<div><b>${n}</b><span>${r} × ${r} × ${r} = ${n}</span></div></div>`);
+      T.SND("correct", found); say(`Relay ${found} online: ${r} × ${r} × ${r} = ${n}.`, "ok");
+      if(found === cubes.length) end(true);
+      return;
+    }
+    b.classList.add("bad"); b.disabled = true;
+    const [a, c] = nearCubes(n);
+    const sq = T.isSquare(n) ? ` It's a square (${Math.sqrt(n)} × ${Math.sqrt(n)}), not a cube.` : "";
+    say(`${n} isn't a cube: ${a} × ${a} × ${a} = ${a ** 3} and ${c} × ${c} × ${c} = ${c ** 3}.${sq}`, "bad");
+    const hits = alarm.hit();
+    if(hits === 2){ $("table").hidden = false; $("table").innerHTML = "CUBE TABLE: " + T.range(1, 6).map(k => `${k}³ = ${k ** 3}`).join(" · "); T.say("I've sent you the cube table. Match the relays against it."); }
+  }
+  function end(ok){
+    over = true;
+    cubes.forEach(c => { const b = grid.querySelector(`[data-n="${c}"]`); if(!b.classList.contains("gold")) b.classList.add("missed"); });
+    T.finish({ ok, title: ok ? "RELAYS ONLINE" : "RELAY ALARM",
+      lines: [`Cube relays found: <b>${found}</b> of ${cubes.length}`, `The cubes were <b>${cubes.join(", ")}</b>`, `Wrong relays: <b>${alarm.count}</b>`, ok ? "Bonus: <b>+1 decoder</b> for the Factor Vault" : "No decoder this time."] });
+    T.say(ok ? "All relays online. That's a free decoder for the vault." : "Too many wrong relays. They've locked the old network.");
+  }
+  T.say("Cube numbers, remember: the same number three times. 2 × 2 × 2 is 8.", { delay: 600 });
+  if(window.PNTest) PNTest.skip("Find every cube relay", () => { cubes.forEach(c => tap(c, grid.querySelector(`[data-n="${c}"]`))); });
+})();
+</script>
+</body>
+</html>
