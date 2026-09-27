@@ -336,6 +336,17 @@
     .drag-close{ position:absolute; right:14px; top:10px; background:transparent; border:1px solid var(--panel-border); color:var(--text-muted); padding:5px 10px; cursor:pointer; font:inherit; font-size:12px; }
     .drag-toggle{ margin-top:6px; background:transparent !important; font-size:12px !important; }
     .drag-board[hidden]{ display:none; }
+    /* Round 7: the drawing board lives in the left panel */
+    body.drawing #vaultLeft{ display:none; }
+    body.drawing .panel-vault:nth-of-type(1)::before{ display:none; }
+    .panel-vault > .drag-board{ position:relative; left:auto; bottom:auto; transform:none; width:100%; box-shadow:none; z-index:3; padding:14px; align-items:flex-start; background:rgba(5,16,20,.9); }
+    .drag-board .dhead{ display:flex; justify-content:space-between; gap:10px; width:100%; flex-wrap:wrap; align-items:center; }
+    .drag-board .dbtns{ display:flex; gap:6px; }
+    .drag-board .drag-close{ position:static; }
+    .drag-grid{ position:relative; }
+    .drag-grid i.placed{ background:hsla(calc(160 + var(--hue, 0)), 70%, 45%, .55); border-color:hsla(calc(160 + var(--hue, 0)), 80%, 65%, .9); }
+    .drag-grid .dtag{ position:absolute; pointer-events:none; font-family:var(--font-mono); font-size:11px; line-height:1; padding:2px 4px; background:rgba(3,14,16,.85); color:#eafff6; transform:translate(2px, 2px); }
+    .drag-board .drag-read{ font-size:16px; }
     .drag-board .dhelp{ font-size:13px; color:var(--text-muted); }
     .drag-grid{ display:grid; gap:2px; touch-action:none; user-select:none; cursor:crosshair; }
     .drag-grid i{ background:rgba(var(--accent-rgb),.08); border:1px solid rgba(var(--accent-rgb),.25); }
@@ -889,7 +900,7 @@ body{ font-size: var(--font-size); }
           <span id="msgSpan"></span>
         </div>
         <button id="submitAllBtn" class="submit-all-btn">Submit All Pairs</button>
-        <button id="dragToggle" class="submit-all-btn drag-toggle" type="button" hidden>Drag arrays instead</button>
+        <button id="dragToggle" class="submit-all-btn drag-toggle" type="button" hidden>Draw the arrays instead</button>
         <button id="decodeBtn" class="submit-all-btn decode-btn" type="button" hidden title="Earned in the Frequency Scan: cracks one factor pair for you">Decoder</button>
       </div>
 
@@ -900,8 +911,8 @@ body{ font-size: var(--font-size); }
 
       <!-- DRAG TO BUILD: drag out a rectangle of N squares instead of typing -->
       <div class="drag-board" id="dragBoard" hidden>
-        <button type="button" class="drag-close" id="dragClose">Back to typing ✕</button>
-        <div class="dhelp">Drag out a rectangle with exactly <b id="dragN">N</b> squares. Its rows × columns is a factor pair.</div>
+        <div class="dhead"><span class="dhelp">Draw a rectangle of exactly <b id="dragN">N</b> squares, then draw it turned round.</span>
+          <span class="dbtns"><button type="button" class="drag-close" id="dragClear">Clear drawings</button><button type="button" class="drag-close" id="dragClose">Back to typing</button></span></div>
         <div class="drag-grid" id="dragGrid"></div>
         <div class="drag-read" id="dragRead">&nbsp;</div>
       </div>
@@ -1643,14 +1654,14 @@ body{ font-size: var(--font-size); }
       allPairs.forEach(([a, b]) => {
         const key = keyOf(a, b);
         if(found.has(key)){
-          const isLeftVault = (tileCountLeft + tileCountRight) % 2 === 0;
+          const isLeftVault = !document.body.classList.contains("drawing") && (tileCountLeft + tileCountRight) % 2 === 0;
           if(isLeftVault) tileCountLeft++;
           else tileCountRight++;
           
           tilesToRender.push({a, b, label: `${a}×${b}`, isLeft: isLeftVault});
           
           if(showFlipped.checked && a !== b){
-            const isLeftFlip = (tileCountLeft + tileCountRight) % 2 === 0;
+            const isLeftFlip = !document.body.classList.contains("drawing") && (tileCountLeft + tileCountRight) % 2 === 0;
             if(isLeftFlip) tileCountLeft++;
             else tileCountRight++;
             
@@ -2081,73 +2092,100 @@ body{ font-size: var(--font-size); }
       }, 1000 / (window.PNTest ? PNTest.speed() : 1));
     }
 
-    // Drag to build: rows = up to √N, columns = N, so every pair fits with the smaller number as rows
+    // Draw to build (feedback round 7): the drawing grid takes over the left panel and every array the
+    // student draws stays on it, both ways round. The right panel shows the finished arrays.
     const DRAG_MAX = 40;
     let buildMode = "type";
+    const drawState = { placed: [], hue: 0 };
     function setupDrag(){
       const sw = document.getElementById("dragToggle"), board = document.getElementById("dragBoard");
       const allowed = N <= DRAG_MAX;
       sw.hidden = !allowed;
       if(!allowed && buildMode === "drag") setBuildMode("type");
       document.getElementById("dragN").textContent = N;
-      const grid = document.getElementById("dragGrid");
-      // Wider than N and several rows deep, so a 1 × N strip doesn't fill a whole row (feedback: too easy at N = 8)
-      // Deep enough that most pairs can also be drawn turned round (3 × 8 and 8 × 3)
-      const cols = Math.max(12, N + 4), rows = Math.min(N, Math.max(8, Math.floor(Math.sqrt(N)) + 5));
-      const size = Math.max(12, Math.min(34, Math.floor((window.innerWidth - 120) / cols) - 2, Math.floor((window.innerHeight * 0.5) / rows) - 2));
-      grid.dataset.rows = rows; grid.dataset.cols = cols;
+      drawState.placed = []; drawState.hue = 0;
       if(window.resetFlip) window.resetFlip();
+      if(buildMode === "drag") sizeDrawGrid();
+      board.hidden = !(allowed && buildMode === "drag");
+    }
+    // Square cells sized to fill the left panel: wide enough for 1 × N, deep enough for most pairs turned round
+    function sizeDrawGrid(){
+      const grid = document.getElementById("dragGrid"), panel = document.querySelector(".panel-vault");
+      const W = panel.clientWidth - 8, H = Math.max(360, Math.min(panel.clientHeight, window.innerHeight - 190) - 110);
+      const cols = Math.max(12, N + 1);
+      const size = Math.max(9, Math.min(30, Math.floor(W / cols) - 2));
+      const rows = Math.max(8, Math.min(N + 1, Math.floor(H / (size + 2))));
       grid.style.gridTemplateColumns = `repeat(${cols}, ${size}px)`;
       grid.style.gridAutoRows = `${size}px`;
+      grid.dataset.rows = rows; grid.dataset.cols = cols; grid.dataset.size = size;
       grid.innerHTML = "";
       for(let r = 0; r < rows; r++) for(let c = 0; c < cols; c++){ const i = document.createElement("i"); i.dataset.r = r; i.dataset.c = c; grid.appendChild(i); }
-      board.hidden = !(allowed && buildMode === "drag");
+      // Redraw arrays already drawn on this floor
+      drawState.placed.forEach(pl => stampArray(pl));
+    }
+    function stampArray(pl){
+      const grid = document.getElementById("dragGrid");
+      grid.querySelectorAll("i").forEach(i => { const r = +i.dataset.r, c = +i.dataset.c;
+        if(r >= pl.r0 && r < pl.r0 + pl.h && c >= pl.c0 && c < pl.c0 + pl.w){ i.classList.add("placed"); i.style.setProperty("--hue", pl.hue); } });
+      const size = +grid.dataset.size, tag = document.createElement("span"); tag.className = "dtag";
+      tag.textContent = `${pl.h}×${pl.w}`; tag.style.left = (pl.c0 * (size + 2)) + "px"; tag.style.top = (pl.r0 * (size + 2)) + "px";
+      grid.appendChild(tag);
     }
     function setBuildMode(m){
       buildMode = m;
-      document.getElementById("dragBoard").hidden = m !== "drag";
-      document.body.classList.toggle("dragging", m === "drag");   // lifts ORACLE's messages above the tray
-      document.getElementById("dragToggle").textContent = m === "drag" ? "Back to typing" : "Drag arrays instead";
+      const board = document.getElementById("dragBoard"), panel = document.querySelector(".panel-vault");
+      document.body.classList.toggle("drawing", m === "drag");
+      if(m === "drag"){ panel.appendChild(board); board.hidden = false; sizeDrawGrid(); }
+      else board.hidden = true;
+      document.getElementById("dragToggle").textContent = m === "drag" ? "Back to typing" : "Draw the arrays instead";
+      renderVaults();
       if(window.PNSound) PNSound.play("click");
     }
     document.getElementById("dragToggle").addEventListener("click", () => setBuildMode(buildMode === "drag" ? "type" : "drag"));
     document.getElementById("dragClose").addEventListener("click", () => setBuildMode("type"));
+    document.getElementById("dragClear").addEventListener("click", () => { drawState.placed = []; if(window.resetFlip) window.resetFlip(); sizeDrawGrid(); document.getElementById("dragRead").innerHTML = "Board cleared. Pairs you've found stay found."; });
+    window.addEventListener("resize", () => { if(buildMode === "drag") sizeDrawGrid(); });
     (function dragInput(){
       const grid = document.getElementById("dragGrid"), read = document.getElementById("dragRead");
       let anchor = null, cur = null, flip = null;   // flip: the first way round, waiting to be drawn turned round
       const clearKept = () => grid.querySelectorAll("i.kept").forEach(i => i.classList.remove("kept"));
       window.resetFlip = () => { flip = null; clearKept(); };
       const fits = (h, w) => h <= +grid.dataset.rows && w <= +grid.dataset.cols;
+      const cellFrom = e => { const t = document.elementFromPoint(e.clientX, e.clientY); return t && t.parentElement === grid && t.tagName === "I" ? { r: +t.dataset.r, c: +t.dataset.c } : null; };
+      function rect(){ return { r0: Math.min(anchor.r, cur.r), c0: Math.min(anchor.c, cur.c), h: Math.abs(anchor.r - cur.r) + 1, w: Math.abs(anchor.c - cur.c) + 1 }; }
+      function paint(){
+        if(!anchor || !cur) return;
+        const q = rect();
+        grid.querySelectorAll("i").forEach(i => { const r = +i.dataset.r, c = +i.dataset.c; i.classList.toggle("sel", r >= q.r0 && r < q.r0 + q.h && c >= q.c0 && c < q.c0 + q.w); });
+        const ok = q.h * q.w === N;
+        grid.classList.toggle("bad", !ok && q.h * q.w > N);
+        read.innerHTML = `${q.h} × ${q.w} = <span class="${ok ? "ok" : q.h * q.w > N ? "no" : ""}">${q.h * q.w}</span>${ok ? " ✓" : `  (need ${N})`}`;
+        return { ...q, ok };
+      }
+      const overlaps = q => [...grid.querySelectorAll("i.placed, i.kept")].some(i => { const r = +i.dataset.r, c = +i.dataset.c; return r >= q.r0 && r < q.r0 + q.h && c >= q.c0 && c < q.c0 + q.w; });
+      function place(q){ const pl = { ...q, hue: drawState.hue }; drawState.placed.push(pl); stampArray(pl); }
       function addPair(a, b){
         const row = [...pairsTable.querySelectorAll("tr")].find(r => r.cells[0].contentEditable === "true" && !r.cells[0].textContent.trim() && !r.cells[1].textContent.trim());
         if(!row) return;
         row.cells[0].textContent = a; row.cells[1].textContent = b;
-        attemptSubmit();
-      }
-      const cellFrom = e => { const t = document.elementFromPoint(e.clientX, e.clientY); return t && t.parentElement === grid ? { r: +t.dataset.r, c: +t.dataset.c } : null; };
-      function paint(){
-        if(!anchor || !cur) return;
-        const r0 = Math.min(anchor.r, cur.r), r1 = Math.max(anchor.r, cur.r), c0 = Math.min(anchor.c, cur.c), c1 = Math.max(anchor.c, cur.c);
-        const h = r1 - r0 + 1, w = c1 - c0 + 1;
-        grid.querySelectorAll("i").forEach(i => { const r = +i.dataset.r, c = +i.dataset.c; i.classList.toggle("sel", r >= r0 && r <= r1 && c >= c0 && c <= c1); });
-        const ok = h * w === N;
-        grid.classList.toggle("bad", !ok && h * w > N);
-        read.innerHTML = `${h} × ${w} = <span class="${ok ? "ok" : h * w > N ? "no" : ""}">${h * w}</span>${ok ? " ✓" : `  (need ${N})`}`;
-        return { h, w, ok };
+        validateAll();   // drawing is slow, careful work: the camera doesn't count drawn arrays
+        drawState.hue = (drawState.hue + 47) % 360;
       }
       grid.addEventListener("pointerdown", e => { const c = cellFrom(e); if(!c) return; e.preventDefault(); grid.setPointerCapture(e.pointerId); anchor = cur = c; paint(); if(window.PNSound) PNSound.play("tag"); });
       grid.addEventListener("pointermove", e => { if(!anchor) return; const c = cellFrom(e); if(c && (c.r !== cur.r || c.c !== cur.c)){ cur = c; paint(); if(window.PNSound) PNSound.play("plot"); } });
       grid.addEventListener("pointerup", () => {
         if(!anchor) return;
         const res = paint(); anchor = cur = null;
-        setTimeout(() => { grid.querySelectorAll("i.sel").forEach(i => i.classList.remove("sel")); grid.classList.remove("bad"); }, 700);
+        const clearSel = () => setTimeout(() => { grid.querySelectorAll("i.sel").forEach(i => i.classList.remove("sel")); grid.classList.remove("bad"); }, 500);
+        clearSel();
         if(!res) return;
         if(!res.ok){ if(window.PNSound) PNSound.play("wrong"); setHint(`${res.h} × ${res.w} = ${res.h * res.w}. You need exactly ${N} squares.`); return; }
+        if(overlaps(res)){ if(window.PNSound) PNSound.play("untag"); setHint("That overlaps an array you've already drawn. Draw it in empty space."); return; }
         const a = Math.min(res.h, res.w), b = Math.max(res.h, res.w);
-        // Feedback round 6: draw each array both ways round (3 × 7 and 7 × 3) before it counts
+        // Draw each array both ways round (3 × 7 and 7 × 3) before it counts
         if(flip){
           if(res.h === flip.w && res.w === flip.h){
-            flip = null; clearKept();
+            clearKept(); place(flip); place(res); flip = null;
             read.innerHTML = `${res.h} × ${res.w} = <span class="ok">${N}</span> ✓ The same ${N} squares, turned round.`;
             if(window.PNSound) PNSound.play("correct", 3);
             addPair(a, b); return;
@@ -2156,13 +2194,13 @@ body{ font-size: var(--font-size); }
           setHint(`First turn ${flip.h} × ${flip.w} round: draw ${flip.w} × ${flip.h}.`); if(window.PNSound) PNSound.play("untag"); return;
         }
         if(found.has(keyOf(a, b))){ setHint(`${a} × ${b} is already found. Try another shape.`); if(window.PNSound) PNSound.play("untag"); return; }
-        if(a === b){ read.innerHTML = `${a} × ${a} = <span class="ok">${N}</span> ✓ A square: turned round, it's the same shape.`; addPair(a, b); return; }
-        if(!fits(res.w, res.h)){ read.innerHTML = `${res.h} × ${res.w} = <span class="ok">${N}</span> ✓ Turned round it's ${res.w} × ${res.h}: too tall for this grid, so that counts too.`; addPair(a, b); return; }
+        if(a === b){ place(res); read.innerHTML = `${a} × ${a} = <span class="ok">${N}</span> ✓ A square: turned round, it's the same shape.`; addPair(a, b); return; }
+        if(!fits(res.w, res.h)){ place(res); read.innerHTML = `${res.h} × ${res.w} = <span class="ok">${N}</span> ✓ Turned round it's ${res.w} × ${res.h}: too tall for this grid, so that counts too.`; addPair(a, b); return; }
         // Keep the first shape on the grid and ask for it turned round
-        flip = { h: res.h, w: res.w };
+        flip = res;
         grid.querySelectorAll("i.sel").forEach(i => i.classList.add("kept"));
         read.innerHTML = `${res.h} × ${res.w} = <span class="ok">${N}</span> ✓ Now draw it turned round: <b>${res.w} × ${res.h}</b>.`;
-        setHint(`Same squares, other way round: ${res.w} rows and ${res.h} columns.`);
+        setHint(`Same squares, other way round: ${res.w} row${res.w === 1 ? "" : "s"} and ${res.h} column${res.h === 1 ? "" : "s"}.`);
         if(window.PNSound) PNSound.play("tag");
       });
     })();

@@ -215,3 +215,14 @@ Every idea is a "maybe until I see it". Build these as prototypes to look at bef
 - [x] Blueprint fits on one screen: floor labels on the left with more room, the building in the middle, intel down the right, and the Prime Hack button always visible (enabled once the route is planned)
 - [x] Recon: a sheet of light rises up the building and reveals the stairs on every floor, a guard in each room (red dots), the CEO on the top floor and the key on the weak floor
 - [x] Route: the agent is a glowing dot on the street. A dashed route with arrows is drawn in through the ground-floor fire exit, up the stairs to the weak floor and across to the key, then the dot walks it
+
+## Play-test feedback 7
+
+- [x] Drawing arrays: the drawing grid now fills the left panel (no floating tray over the arrays). Every array drawn stays on the grid in its own colour with its label, both ways round; the finished arrays show on the right. "Clear drawings" empties the board. The camera doesn't count drawn pairs
+- [x] Room names: 1 × N rooms are ARCHIVES and long thin rooms are SERVER ROWS; the space between rooms is the corridor
+- [x] Floor analysis: three flat holo windows (no tilt, sharp text): floor analysis, the factors of N in order with their pairs, and a SQUARE CHECK (is N square? which squares sit either side?) so square numbers show on every floor
+- [x] Blueprint: after the floors lock together, the outside of the building fades in and out: walls with windows and a flat or pitched roof (fixed per target)
+- [x] Rooms have ceiling lights (a × b panels on top) instead of windows on inside walls
+- [x] Recon: the middle shaft is a LIFT (guarded). Fire stairs zigzag up the outside wall by the fire exit, and the route uses them: street → fire stairs → fire door on the weak floor → key
+- [x] You, your route and its arrows are blue
+- [x] The Prime Hack button is bigger and pulses when ready. The floor quiz sits beside the building so it can be checked. Then the student types anything to upload the breach kit (a filling bar; extra keys don't type once full) and presses ENTER to start the hack

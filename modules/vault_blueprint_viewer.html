@@ -138,11 +138,12 @@
   .intel .i-win b{ color:#ffe9a3; } .intel .i-weak b{ color:#ff4f6d; } .intel .i-hid b{ color:#ffc94d; } .intel .i-exp b{ color:var(--accent); }
   .room-tip{ position:fixed; z-index:30; pointer-events:none; background:rgba(4,14,17,.95); border:1px solid var(--accent); padding:6px 10px; font-family:var(--font-mono); font-size:13px; color:var(--text-primary); white-space:nowrap; display:none; }
   .floor-info{ font-family:var(--font-mono); font-size:14px; color:var(--text-primary); text-align:center; min-height:1.4em; margin-top:4px; }
-  .quiz{ position:fixed; inset:0; z-index:50; background:rgba(2,8,10,.8); display:flex; align-items:center; justify-content:center; padding:16px; }
-  .quiz .card{ width:min(560px, 100%); background:#0a1c21; border:1px solid var(--accent); padding:22px; display:flex; flex-direction:column; gap:14px; box-shadow:0 20px 80px rgba(0,0,0,.7); }
+  .quiz{ position:fixed; right:16px; top:84px; z-index:50; width:min(420px, calc(100vw - 32px)); }
+  .quiz .card{ width:100%; box-sizing:border-box; background:#0a1c21; border:1px solid var(--accent); padding:22px; display:flex; flex-direction:column; gap:14px; box-shadow:0 20px 80px rgba(0,0,0,.7); }
   .quiz h2{ margin:0; font-family:var(--font-ui); letter-spacing:.16em; font-size:16px; color:var(--accent); }
   .quiz .q{ font-size:19px; line-height:1.5; color:var(--text-primary); }
-  .quiz .opts{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .quiz .opts{ display:grid; grid-template-columns:1fr; gap:8px; }
+  .quiz .look{ font-size:13px; color:var(--text-muted); }
   .quiz .opts button{ font:inherit; font-size:16px; padding:12px; background:rgba(0,0,0,.3); color:var(--text-primary); border:1px solid var(--line-strong); cursor:pointer; text-align:left; }
   .quiz .opts button:hover:not(:disabled){ border-color:var(--accent); }
   .quiz .opts button.right{ border-color:#2fbf8a; background:rgba(47,191,138,.2); }
@@ -246,6 +247,17 @@ body{ padding:12px 16px !important; overflow-y:auto; }
 .completion-text{ margin:0 !important; }
 .proceed-btn{ font-size:13px !important; padding:12px 24px !important; }
 .proceed-btn:disabled{ opacity:.4; cursor:default; }
+.proceed-btn:not(:disabled){ font-size:16px !important; padding:15px 30px !important; font-weight:700; animation:hackPulse 1.6s ease-in-out infinite; }
+@keyframes hackPulse{ 50%{ box-shadow:0 0 26px rgba(var(--accent-hack-rgb),.65), inset 0 0 12px rgba(var(--accent-hack-rgb),.25); } }
+@media (prefers-reduced-motion: reduce){ .proceed-btn:not(:disabled){ animation:none; } }
+/* Arming the protocol: type anything to fill the upload */
+.arm{ position:fixed; left:50%; bottom:24px; transform:translateX(-50%); z-index:60; width:min(760px, calc(100vw - 32px)); background:rgba(2,10,12,.97); border:1px solid rgba(var(--accent-hack-rgb),.8); box-shadow:0 20px 80px rgba(0,0,0,.8); padding:16px 18px; display:flex; flex-direction:column; gap:10px; font-family:var(--font-mono); }
+.arm h2{ margin:0; font-family:var(--font-ui); font-size:15px; letter-spacing:.18em; color:var(--accent-hack); }
+.arm .scr{ height:170px; overflow:hidden; font-size:14px; line-height:1.45; color:#9fffd4; white-space:pre; }
+.arm .scr .c2{ color:#6ec8ff; } .arm .scr .c3{ color:#ffe14d; } .arm .scr .c4{ color:#ff7ae6; }
+.arm .bar{ height:10px; border:1px solid rgba(var(--accent-hack-rgb),.6); } .arm .bar b{ display:block; height:100%; width:0; background:var(--accent-hack); box-shadow:0 0 12px var(--accent-hack); }
+.arm .st{ display:flex; justify-content:space-between; gap:10px; font-size:14px; color:var(--text-muted); }
+.arm .st.ready{ color:#ffe14d; animation:hackPulse 1.2s ease-in-out infinite; }
 @media (max-width:1050px){
   .container{ height:auto; }
   .floors-container{ grid-template-columns:1fr; }
@@ -401,10 +413,13 @@ function powerUpPrompt(title){
         (window.PNGlitch ? PNGlitch.go('prime_hack.html') : (location.href = 'prime_hack.html'));
       };
       // One quick question about the building before the hack: a right answer earns an intel bonus
+      // Feedback round 7: the quiz sits beside the building (so it can be checked), then the student
+      // types to arm the protocol before the hack starts
       document.getElementById('proceedToHackBtn').addEventListener('click', () => {
         const a = PN && PN.getAgent();
-        if(DEMO_MODE || (a && a.quizDone)) return goHack();
-        floorQuiz(floors, goHack);
+        document.getElementById('proceedToHackBtn').disabled = true;
+        if(DEMO_MODE || (a && a.quizDone)) return armProtocol(floors, goHack);
+        floorQuiz(floors, () => armProtocol(floors, goHack));
       });
     }
 
@@ -537,6 +552,50 @@ function powerUpPrompt(title){
       const labelFor = n => document.querySelector(`.floor-label[data-n="${n}"]`);
       const order = [floorGroups[2], floorGroups[1], floorGroups[0]];   // ground floor first
 
+      // ---------- The outside of the building: walls with windows and a roof fade in, then away ----------
+      // Flat or pitched roof, fixed per target so the same bank always looks the same
+      function exterior(){
+        const name = PN ? PN.mission().target : 'TARGET';
+        let hsh = 0; for(const ch of name) hsh = (hsh * 31 + ch.charCodeAt(0)) >>> 0;
+        const pitched = hsh % 2 === 1;
+        const W = maxExtentX * 2 + 3, D = maxExtentZ * 2 + 3, H = floors[0].yOffset + boxHeight + 2;
+        const g = new THREE.Group(); const mats = [];
+        const facade = (w) => { const cv = document.createElement('canvas'); cv.width = 512; cv.height = 256; const x = cv.getContext('2d');
+          x.fillStyle = 'rgba(40,120,140,0.55)'; x.fillRect(0, 0, 512, 256);
+          const cols = Math.max(6, Math.round(w / 9));
+          for(let f = 0; f < 3; f++) for(let c = 0; c < cols; c++){
+            const lit = ((c * 7 + f * 3 + hsh) % 5) < 2;
+            x.fillStyle = lit ? 'rgba(255,222,140,0.9)' : 'rgba(10,30,40,0.9)';
+            x.fillRect(c * 512 / cols + 6, f * 256 / 3 + 18, 512 / cols - 12, 256 / 3 - 36);
+          }
+          x.strokeStyle = 'rgba(170,240,255,0.9)'; x.lineWidth = 4; for(let f = 1; f < 3; f++){ x.beginPath(); x.moveTo(0, f * 256 / 3); x.lineTo(512, f * 256 / 3); x.stroke(); }
+          return new THREE.CanvasTexture(cv); };
+        const wall = (w, rotY, px, pz) => {
+          const m = new THREE.MeshBasicMaterial({ map: facade(w), transparent: true, opacity: 0, side: THREE.DoubleSide, depthWrite: false });
+          const pl = new THREE.Mesh(new THREE.PlaneGeometry(w, H), m); pl.rotation.y = rotY; pl.position.set(px, H / 2 - 1, pz); g.add(pl); mats.push([m, 0.9]);
+        };
+        wall(W, 0, 0, D / 2); wall(W, Math.PI, 0, -D / 2); wall(D, Math.PI / 2, W / 2, 0); wall(D, -Math.PI / 2, -W / 2, 0);
+        const edgeM = new THREE.LineBasicMaterial({ color: 0xaff4ff, transparent: true, opacity: 0 }); mats.push([edgeM, 1]);
+        const box = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(W, H, D)), edgeM); box.position.y = H / 2 - 1; g.add(box);
+        const roofM = new THREE.MeshBasicMaterial({ color: 0x2a6a78, transparent: true, opacity: 0, side: THREE.DoubleSide, depthWrite: false }); mats.push([roofM, 0.85]);
+        if(pitched){
+          const rh = Math.min(W, D) * 0.28, shape = new THREE.Shape();
+          shape.moveTo(-D / 2, 0); shape.lineTo(D / 2, 0); shape.lineTo(0, rh); shape.closePath();
+          const geo = new THREE.ExtrudeGeometry(shape, { depth: W, bevelEnabled: false }); geo.translate(0, 0, -W / 2); geo.rotateY(Math.PI / 2);
+          const roof = new THREE.Mesh(geo, roofM); roof.position.y = H - 1; g.add(roof);
+          const redge = new THREE.LineSegments(new THREE.EdgesGeometry(geo), edgeM); redge.position.y = H - 1; g.add(redge);
+        } else {
+          const roof = new THREE.Mesh(new THREE.BoxGeometry(W, 1.2, D), roofM); roof.position.y = H - 0.4; g.add(roof);
+          const par = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(W, 3, D)), edgeM); par.position.y = H + 1; g.add(par);
+          const plant = new THREE.Mesh(new THREE.BoxGeometry(W * 0.18, 5, D * 0.14), roofM); plant.position.set(W * 0.22, H + 2, -D * 0.2); g.add(plant);
+        }
+        mainGroup.add(g);
+        say(`Exterior: ${pitched ? 'pitched' : 'flat'} roof, three storeys`);
+        SND("scan", 2.8);
+        const setOp = k => mats.forEach(([m, full]) => m.opacity = full * k);
+        return tween(800, e => setOp(e)).then(() => wait(1800)).then(() => tween(900, e => setOp(1 - e))).then(() => { mainGroup.remove(g); });
+      }
+
       // ---------- After assembly: lights, weak point, hidden vault, explore ----------
       const card = (cls, html) => { const d = document.createElement('div'); d.className = cls; d.innerHTML = html; document.getElementById('intel').appendChild(d); requestAnimationFrame(() => d.classList.add('on')); return d; };
       async function afterAssembly(){
@@ -547,7 +606,7 @@ function powerUpPrompt(title){
           await tween(900, e => rooms.forEach(w => w.draw(Math.round(e * w.a * w.b))), p => p);
           SND("seal");
         }
-        card('i-win', `<b>LIGHTS ON</b>Every room has a × b windows, so every room on a floor has exactly N lights. A 4 × 6 office has 24.`);
+        card('i-win', `<b>LIGHTS ON</b>Every room has a × b ceiling lights, so every room on a floor has exactly N lights. A 4 × 6 office has 24.`);
 
         // Weak point: the floor with the fewest rooms (factor pairs)
         const pairsOf = n => getFactorPairs(n).length;
@@ -611,17 +670,26 @@ function powerUpPrompt(title){
         sp.scale.set(4.2, 4.2, 1); sp.renderOrder = 20; sp.userData.dot = true; return sp;
       }
       function fadeIn(objs, ms = 350){ return tween(ms, e => objs.forEach(o => { o.visible = true; o.traverse(c => { if(c.material){ c.material.transparent = true; c.material.opacity = e * (c.userData.op ?? 1); } }); })); }
-      function stairsAt(sx, sz, y0, h, top){
+      // The lift: a shaft through the middle of the building with a car at the bottom
+      function liftAt(sx, sz, y0, h){
         const g = new THREE.Group(), c = 0xcfe8ff;
-        const well = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(12, h, 10)), new THREE.LineBasicMaterial({ color: c }));
+        const well = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(10, h, 10)), new THREE.LineBasicMaterial({ color: c }));
         well.position.set(sx, y0 + h / 2, sz); well.userData.op = 0.55; g.add(well);
-        if(!top){
-          const pts = [], n = 6;
-          for(let i = 0; i <= n; i++){ const t = i / n; pts.push(new THREE.Vector3(sx - 5 + 10 * t, y0 + t * h / 2, sz - 2.5)); }
-          for(let i = 0; i <= n; i++){ const t = i / n; pts.push(new THREE.Vector3(sx + 5 - 10 * t, y0 + h / 2 + t * h / 2, sz + 2.5)); }
-          const flight = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color: c }));
-          g.add(flight);
+        const car = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(7, 7, 7)), new THREE.LineBasicMaterial({ color: c }));
+        car.position.set(sx, y0 + 4, sz); car.userData.op = 0.9; g.add(car);
+        g.visible = false; return g;
+      }
+      // Fire stairs: a zigzag escape up the outside wall, from the street to the roof
+      function fireStairs(fx, fz, alongX, top){
+        const g = new THREE.Group(), c = 0xff9f6b, pts = [], flight = 12, half = 6;
+        for(let y = 0, k = 0; y < top; y += flight, k++){
+          const s0 = k % 2 ? half : -half, s1 = -s0;
+          pts.push(alongX ? new THREE.Vector3(fx + s0, y, fz) : new THREE.Vector3(fx, y, fz + s0));
+          pts.push(alongX ? new THREE.Vector3(fx + s1, Math.min(top, y + flight), fz) : new THREE.Vector3(fx, Math.min(top, y + flight), fz + s1));
         }
+        const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color: c })); g.add(line);
+        const frame = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(alongX ? 14 : 4, top, alongX ? 4 : 14)), new THREE.LineBasicMaterial({ color: c }));
+        frame.position.set(fx, top / 2, fz); frame.userData.op = 0.35; g.add(frame);
         g.visible = false; return g;
       }
       async function recon(weak){
@@ -630,7 +698,7 @@ function powerUpPrompt(title){
         const r0 = ((mainGroup.rotation.y % (Math.PI * 2)) + Math.PI * 3) % (Math.PI * 2) - Math.PI;
         await tween(900, e => { mainGroup.rotation.y = rotationY = r0 * (1 - e); });
         say('Recon scan…');
-        // Stairs: one spot that is clear of rooms on every floor, nearest the middle
+        // The lift: one spot clear of rooms on every floor, nearest the middle
         const clear = (x, z) => floorGroups.every(f => f.rooms.every(r => Math.abs(x - r.x) > r.w / 2 + 7 || Math.abs(z - r.z) > r.d / 2 + 6));
         let best = null;
         for(let i = -8; i <= 8; i++) for(let j = -8; j <= 8; j++){
@@ -639,8 +707,19 @@ function powerUpPrompt(title){
         }
         if(!best) best = { x: -maxExtentX + 8, z: -maxExtentZ + 7 };
         const S = best, TOP = boxHeight + 5;
-        // The key room: on the weak floor, the room furthest from the stairs
-        const far = weak.rooms.map((r, i) => ({ r, i, d: Math.hypot(r.x - S.x, r.z - S.z) })).sort((a, b) => b.d - a.d)[0];
+        // Fire stairs: outside the wall next to the ground-floor fire exit
+        const ground = floorGroups[2], GL = LAYOUTS[ground.n];
+        let ex = { x: maxExtentX, z: 0 };
+        if(GL && GL.exit){ const cell = PLATE / GL.grid; ex = { x: (GL.exit.x + 0.5) * cell - PLATE / 2, z: (GL.exit.y + 0.5) * cell - PLATE / 2 }; }
+        const onX = (maxExtentX - Math.abs(ex.x)) < (maxExtentZ - Math.abs(ex.z));   // exit on an east/west wall
+        const sx = Math.sign(onX ? ex.x || 1 : 1), sz = Math.sign(!onX ? ex.z || 1 : 1);
+        const F = onX ? { x: sx * (maxExtentX + 7), z: ex.z } : { x: ex.x, z: sz * (maxExtentZ + 7) };   // foot of the stairs
+        const wallAt = onX ? { x: sx * maxExtentX, z: ex.z } : { x: ex.x, z: sz * maxExtentZ };        // where the fire door is
+        const roofY = floorGroups[0].yOffset + boxHeight;
+        const stairs = fireStairs(F.x, F.z, !onX, roofY); mainGroup.add(stairs);
+        const stairTag = badge('FIRE STAIRS', '#ff9f6b', 150); stairTag.position.set(F.x, roofY + 6, F.z); stairTag.visible = false; mainGroup.add(stairTag);
+        // The key room: on the weak floor, the room furthest from the fire door
+        const far = weak.rooms.map(r => ({ r, d: Math.hypot(r.x - wallAt.x, r.z - wallAt.z) })).sort((a, b) => b.d - a.d)[0];
         const keyRoom = far ? far.r : null;
         // The CEO: the top floor's most nearly square room (not the key room)
         const topF = floorGroups[0];
@@ -648,8 +727,8 @@ function powerUpPrompt(title){
         const perFloor = new Map(); let guards = 0;
         floorGroups.forEach(f => {
           const items = [];
-          const st = stairsAt(S.x, S.z, f.yOffset, f === topF ? boxHeight : 24, f === topF); f.group.add(st); items.push(st);
-          if(f === floorGroups[2]){ const sl = badge('STAIRS', '#cfe8ff', 120); sl.position.set(S.x - 14, f.yOffset + 6, S.z); sl.visible = false; f.group.add(sl); items.push(sl); }
+          const lf = liftAt(S.x, S.z, f.yOffset, f === topF ? boxHeight : 24); f.group.add(lf); items.push(lf);
+          if(f === ground){ const ll = badge('LIFT', '#cfe8ff', 80); ll.position.set(S.x, f.yOffset + boxHeight + 5, S.z); ll.visible = false; f.group.add(ll); items.push(ll); items.push(stairs, stairTag); }
           f.rooms.forEach(r => {
             let b;
             if(r === keyRoom) b = badge('KEY', '#ffe14d', 90);
@@ -668,68 +747,67 @@ function powerUpPrompt(title){
         SND("scan");
         const shown = new Set();
         await tween(3600, e => {
-          sheet.position.y = -2 + e * (floorGroups[0].yOffset + boxHeight + 6);
+          sheet.position.y = -2 + e * (roofY + 6);
           [...order].forEach(f => { if(!shown.has(f) && sheet.position.y > f.yOffset + boxHeight * 0.6){ shown.add(f); fadeIn(perFloor.get(f)); SND("tag"); } });
         }, p => p);
         await tween(400, e => { sheetMat.opacity = 0.16 * (1 - e); rim.material.opacity = 0.9 * (1 - e); });
         mainGroup.remove(sheet);
         const wName = weak.label.split('—')[0].trim();
-        card('i-rec', `<b>RECON</b>Stairs found on every floor. ${guards} guard${guards === 1 ? '' : 's'}, one in each room. The CEO is on the top floor. The key is on ${wName}.`);
+        card('i-rec', `<b>RECON</b>A lift in the middle (guarded) and fire stairs outside the fire exit. ${guards} guard${guards === 1 ? '' : 's'}, one in each room. The CEO is on the top floor. The key is on ${wName}.`);
         const lg = document.getElementById('bpLegend');
-        if(lg){ lg.innerHTML = `<span><i style="color:#ffe14d">●</i>You</span><span><i style="color:#ffe14d">→</i>Your route in</span><span><i style="color:#ff4f6d">●</i>Guard</span><span><i style="color:#ffc94d">CEO</i>The boss</span><span><i style="color:#ffe14d">KEY</i>The key</span><span><i style="color:#cfe8ff">⇅</i>Stairs</span><span><i style="color:#2fbf8a">■</i>Fire exit</span>`; lg.classList.add('on'); }
-        if(window.PNHandler) PNHandler.say(`Recon's in. The key is on ${wName}: fewest rooms, fewest guards. Here's your way in.`);
+        if(lg){ lg.innerHTML = `<span><i style="color:#6ec8ff">●</i>You</span><span><i style="color:#6ec8ff">→</i>Your route in</span><span><i style="color:#ff4f6d">●</i>Guard</span><span><i style="color:#ffc94d">CEO</i>The boss</span><span><i style="color:#ffe14d">KEY</i>The key</span><span><i style="color:#ff9f6b">⇅</i>Fire stairs</span><span><i style="color:#cfe8ff">▣</i>Lift</span>`; lg.classList.add('on'); }
+        if(window.PNHandler) PNHandler.say(`Recon's in. The key is on ${wName}: fewest rooms, fewest guards. The lift is watched, so we take the fire stairs.`);
         await wait(900);
 
-        // The route: from the street, in through the ground-floor fire exit, up the stairs, to the key
+        // The route: from the street, up the fire stairs, in through the fire door on the weak floor, to the key
         say('Planning the route…');
-        const ground = floorGroups[2], GL = LAYOUTS[ground.n];
-        let ex = { x: maxExtentX, z: 0 };
-        if(GL && GL.exit){ const cell = PLATE / GL.grid; ex = { x: (GL.exit.x + 0.5) * cell - PLATE / 2, z: (GL.exit.y + 0.5) * cell - PLATE / 2 }; }
-        // Step outside through whichever outer wall the exit is nearest
-        const dx = maxExtentX - Math.abs(ex.x), dz = maxExtentZ - Math.abs(ex.z);
-        const out = dx < dz ? { x: Math.sign(ex.x || 1) * (maxExtentX + 26), z: ex.z } : { x: ex.x, z: Math.sign(ex.z || 1) * (maxExtentZ + 26) };
-        const y0 = 1.2, yW = weak.yOffset + 1.2, V = (x, y, z) => new THREE.Vector3(x, y, z);
-        const pts = [V(out.x, y0, out.z), V(ex.x, y0, ex.z), V(S.x, y0, ex.z), V(S.x, y0, S.z)];
-        if(weak !== ground) pts.push(V(S.x, yW, S.z));
-        if(keyRoom){ pts.push(V(keyRoom.x, yW, S.z)); pts.push(V(keyRoom.x, yW, keyRoom.z)); }
-        const path = new THREE.CurvePath(); for(let i = 1; i < pts.length; i++) path.add(new THREE.LineCurve3(pts[i - 1], pts[i]));
-        const dense = path.getSpacedPoints(240);
-        const routeGeo = new THREE.BufferGeometry().setFromPoints(dense);
-        const route = new THREE.Line(routeGeo, new THREE.LineDashedMaterial({ color: 0xffe14d, dashSize: 3, gapSize: 2, depthTest: false, transparent: true }));
-        route.computeLineDistances(); route.renderOrder = 18; routeGeo.setDrawRange(0, 0); mainGroup.add(route);
-        // Arrowheads at each turn
-        const arrows = [];
-        for(let i = 1; i < pts.length; i++){
-          const d = pts[i].clone().sub(pts[i - 1]); if(d.length() < 1) continue;
-          const cone = new THREE.Mesh(new THREE.ConeGeometry(2.2, 5, 12), new THREE.MeshBasicMaterial({ color: 0xffe14d, depthTest: false, transparent: true }));
-          cone.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.clone().normalize());
-          cone.position.copy(pts[i - 1]).add(d.multiplyScalar(0.55)); cone.renderOrder = 19; cone.visible = false;
-          cone.userData.at = path.getCurveLengths()[i - 1] / path.getLength();
-          mainGroup.add(cone); arrows.push(cone);
+        const V = (x, y, z) => new THREE.Vector3(x, y, z), yW = weak.yOffset + 1.2;
+        const street = onX ? V(F.x + sx * 20, 1.2, F.z) : V(F.x, 1.2, F.z + sz * 20);
+        const pts = [street, V(F.x, 1.2, F.z)];
+        if(weak.yOffset > 0) pts.push(V(F.x, yW, F.z));
+        pts.push(V(wallAt.x, yW, wallAt.z));
+        if(keyRoom){
+          // Walk the corridors in straight lines: first across, then along
+          if(onX){ pts.push(V(keyRoom.x, yW, wallAt.z)); } else { pts.push(V(wallAt.x, yW, keyRoom.z)); }
+          pts.push(V(keyRoom.x, yW, keyRoom.z));
         }
-        // The agent: a glowing dot on the street with a pulsing ring
+        const path = new THREE.CurvePath(); for(let i = 1; i < pts.length; i++) if(pts[i].distanceTo(pts[i - 1]) > 0.01) path.add(new THREE.LineCurve3(pts[i - 1], pts[i]));
+        const dense = path.getSpacedPoints(240);
+        const BLUE = 0x6ec8ff;
+        const routeGeo = new THREE.BufferGeometry().setFromPoints(dense);
+        const route = new THREE.Line(routeGeo, new THREE.LineDashedMaterial({ color: BLUE, dashSize: 3, gapSize: 2, depthTest: false, transparent: true }));
+        route.computeLineDistances(); route.renderOrder = 18; routeGeo.setDrawRange(0, 0); mainGroup.add(route);
+        // Arrowheads part-way along each leg
+        const arrows = [], lens = path.getCurveLengths(), total = path.getLength();
+        path.curves.forEach((cv, i) => {
+          const d = cv.v2.clone().sub(cv.v1); if(d.length() < 3) return;
+          const cone = new THREE.Mesh(new THREE.ConeGeometry(2.2, 5, 12), new THREE.MeshBasicMaterial({ color: BLUE, depthTest: false, transparent: true }));
+          cone.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.clone().normalize());
+          cone.position.copy(cv.v1).add(d.multiplyScalar(0.55)); cone.renderOrder = 19; cone.visible = false;
+          cone.userData.at = (lens[i] - cv.getLength() * 0.45) / total;
+          mainGroup.add(cone); arrows.push(cone);
+        });
+        // The agent: a glowing blue dot on the street with a pulsing ring
         const dotTex = (() => { const cv = document.createElement('canvas'); cv.width = cv.height = 64; const g = cv.getContext('2d');
-          const gr = g.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, '#fffbe0'); gr.addColorStop(.35, '#ffe14d'); gr.addColorStop(1, 'rgba(255,225,77,0)');
+          const gr = g.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, '#f0fbff'); gr.addColorStop(.35, '#6ec8ff'); gr.addColorStop(1, 'rgba(110,200,255,0)');
           g.fillStyle = gr; g.fillRect(0, 0, 64, 64); return new THREE.CanvasTexture(cv); })();
         const agent = new THREE.Sprite(new THREE.SpriteMaterial({ map: dotTex, depthTest: false, transparent: true }));
         agent.scale.set(9, 9, 1); agent.position.copy(pts[0]); agent.renderOrder = 21; mainGroup.add(agent);
-        const tag = badge('YOU', '#ffe14d', 80); tag.position.copy(pts[0]).add(V(0, 8, 0)); mainGroup.add(tag); fadeIn([tag]);
-        const halo = new THREE.Mesh(new THREE.RingGeometry(3, 3.6, 40), new THREE.MeshBasicMaterial({ color: 0xffe14d, transparent: true, side: THREE.DoubleSide, depthTest: false }));
+        const tag = badge('YOU', '#6ec8ff', 80); tag.position.copy(pts[0]).add(V(0, 8, 0)); mainGroup.add(tag); fadeIn([tag]);
+        const halo = new THREE.Mesh(new THREE.RingGeometry(3, 3.6, 40), new THREE.MeshBasicMaterial({ color: BLUE, transparent: true, side: THREE.DoubleSide, depthTest: false }));
         halo.rotation.x = -Math.PI / 2; halo.position.copy(pts[0]); halo.renderOrder = 20; mainGroup.add(halo);
         let pulsing = true; (function pulse(t){ if(!pulsing) return; const k = (t / 1200) % 1; halo.scale.setScalar(1 + k * 2.2); halo.material.opacity = 1 - k; requestAnimationFrame(pulse); })(0);
         await wait(500);
         SND("route");
         await tween(2600, e => {
           routeGeo.setDrawRange(0, Math.floor(e * dense.length));
-          arrows.forEach(a => { if(e >= a.userData.at + 0.02) a.visible = true; });
+          arrows.forEach(a => { if(e >= a.userData.at) a.visible = true; });
         }, p => p);
         arrows.forEach(a => a.visible = true);
-        // Walk the dot along the route
-        await tween(2400, e => { agent.position.copy(path.getPointAt(Math.min(1, e))); halo.position.copy(agent.position); tag.position.copy(agent.position).add(V(0, 8, 0)); });
+        await tween(2600, e => { agent.position.copy(path.getPointAt(Math.min(1, e))); halo.position.copy(agent.position); tag.position.copy(agent.position).add(V(0, 8, 0)); });
         if(keyRoom){ SND("verified"); ring(yW + 0.3, 0xffe14d); }
-        card('i-route', `<b>ROUTE IN</b>From the street, through the ground-floor fire exit, to the stairs${weak !== ground ? `, up to ${wName}` : ''}, then across to the key.`);
+        card('i-route', `<b>ROUTE IN</b>From the street to the fire stairs${weak !== ground ? `, up to ${wName}` : ''}, in through the fire door, then across to the key. The lift stays well clear.`);
         if(PN) PN.updateAgent({ route: { floor: wName, guards } });
-        // Back to the start so the route stays readable while exploring
         await wait(700);
         agent.position.copy(pts[0]); halo.position.copy(pts[0]); tag.position.copy(pts[0]).add(V(0, 8, 0));
         spinning = true;
@@ -753,7 +831,7 @@ function powerUpPrompt(title){
         el.addEventListener('pointermove', e => {
           if(drag){ moved = Math.max(moved, Math.abs(e.clientX - drag.x)); rotationY = drag.rot + (e.clientX - drag.x) * 0.01; mainGroup.rotation.y = rotationY; tip.style.display = 'none'; return; }
           const o = hit(e);
-          if(o){ const w = o.userData.win; tip.style.display = 'block'; tip.style.left = (e.clientX + 14) + 'px'; tip.style.top = (e.clientY + 10) + 'px'; tip.textContent = `${roomName(w.a, w.b)} · ${w.a} × ${w.b} · ${w.a * w.b} windows`; el.style.cursor = 'pointer'; }
+          if(o){ const w = o.userData.win; tip.style.display = 'block'; tip.style.left = (e.clientX + 14) + 'px'; tip.style.top = (e.clientY + 10) + 'px'; tip.textContent = `${roomName(w.a, w.b)} · ${w.a} × ${w.b} · ${w.a * w.b} lights`; el.style.cursor = 'pointer'; }
           else { tip.style.display = 'none'; el.style.cursor = 'grab'; }
         });
         el.addEventListener('pointerleave', () => { tip.style.display = 'none'; });
@@ -828,6 +906,7 @@ function powerUpPrompt(title){
         ]);
         beacon.visible = true; beacon.material.transparent = true;
         spinning = true;
+        await exterior();
         say(`${PN ? PN.mission().target.toUpperCase() : 'TARGET'} // STRUCTURE ASSEMBLED`);
         SND("success");
         if(window.PNHandler) PNHandler.once("blueprint", "There it is: {target}, all three floors in one building. Let's look for a way in.");
@@ -839,36 +918,35 @@ function powerUpPrompt(title){
     // Windows: a grid of a rows × b columns on the front and back of each room, drawn on a canvas.
     // draw(k) lights the first k windows in a shuffled order, so the lights come on unevenly.
     function windowPanel(mesh, r, h){
-      const cv = document.createElement('canvas'); cv.width = 256; cv.height = 128;
+      const cv = document.createElement('canvas'); cv.width = 256; cv.height = 256;
       const g = cv.getContext('2d'), tex = new THREE.CanvasTexture(cv);
       const R = r.rows || r.a, Cn = r.cols || r.b;
       const order = [...Array(R * Cn).keys()].sort(() => Math.random() - .5);
       const rank = new Array(order.length); order.forEach((cell, i) => rank[cell] = i);
       function draw(k){
-        g.clearRect(0, 0, 256, 128);
-        const cw = 256 / Cn, ch = 128 / R, gx = Math.max(1.5, cw * .4), gy = Math.max(1.5, ch * .4);
+        g.clearRect(0, 0, 256, 256);
+        const cw = 256 / Cn, ch = 256 / R, gx = Math.max(2, cw * .38), gy = Math.max(2, ch * .38);
         for(let row = 0; row < R; row++) for(let col = 0; col < Cn; col++){
           const lit = rank[row * Cn + col] < k;
-          g.fillStyle = lit ? 'rgba(255,214,120,0.5)' : 'rgba(0,50,50,0.22)';
+          g.fillStyle = lit ? 'rgba(255,222,140,0.85)' : 'rgba(0,60,60,0.25)';
           g.fillRect(col * cw + gx / 2, row * ch + gy / 2, cw - gx, ch - gy);
         }
         tex.needsUpdate = true;
       }
       draw(0);
       const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, side: THREE.DoubleSide, depthWrite: false });
-      [1, -1].forEach(side => {
-        const plane = new THREE.Mesh(new THREE.PlaneGeometry(r.w * 0.9, h * 0.72), mat);
-        plane.position.z = side * (r.d / 2 + 0.15);
-        if(side < 0) plane.rotation.y = Math.PI;
-        mesh.add(plane);
-      });
+      // Feedback round 7: rooms sit inside the building, so the lights are ceiling panels on each room's top,
+      // not windows on its walls. a × b panels per room.
+      const plane = new THREE.Mesh(new THREE.PlaneGeometry(r.w * 0.92, r.d * 0.92), mat);
+      plane.rotation.x = -Math.PI / 2; plane.position.y = h / 2 + 0.2;
+      mesh.add(plane);
       return { a: Math.min(r.a, r.b), b: Math.max(r.a, r.b), draw };
     }
     const gcd = (a, b) => b ? gcd(b, a % b) : a;
     function roomName(a, b){
       if(a === b) return 'STRONGROOM';
-      if(a === 1) return 'CORRIDOR';
-      if(b / a >= 4) return 'SERVICE TUNNEL';
+      if(a === 1) return 'ARCHIVE';
+      if(b / a >= 4) return 'SERVER ROW';
       if(b / a >= 2) return 'OFFICE';
       return 'SERVER ROOM';
     }
@@ -942,6 +1020,51 @@ function powerUpPrompt(title){
       });
     }
 
+    // ---------- Arm the protocol ----------
+    // Type anything: each key uploads a chunk of the breach kit. When the bar is full, ENTER starts the hack.
+    function armProtocol(floors, onDone){
+      const target = PN ? PN.mission().target : 'TARGET', slug = target.toLowerCase().replace(/[^a-z]+/g, '_');
+      const a = PN && PN.getAgent(), weakF = (a && a.weakFloor) || 'FLOOR 3';
+      const hex = () => Math.floor(Math.random() * 0xffffff).toString(16).padStart(6, '0');
+      const primes = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37];
+      const LINES = [
+        () => `ssh oracle@10.${Math.floor(Math.random() * 250)}.4.${Math.floor(Math.random() * 250)} -p 443`,
+        () => `mount /vault/${slug}/floor_${1 + Math.floor(Math.random() * 3)} --key 0x${hex()}`,
+        () => `route.plan(entry="fire_stairs", target="${weakF.toLowerCase()}")`,
+        () => `breach_kit.load(primes=[${primes.slice(0, 4 + Math.floor(Math.random() * 6)).join(', ')}])`,
+        () => floors.map(f => `floor N=${f.n}: ${getFactorPairs(f.n).length} pairs OK`).join('  '),
+        () => `cams.loop(feed=${Math.floor(Math.random() * 9)}, frames=0x${hex()})`,
+        () => `lift.hold(level=0) // stay off the lift`,
+        () => `upload chunk ${hex()}${hex()} ........ ok`,
+      ];
+      const ov = document.createElement('div'); ov.className = 'arm';
+      ov.innerHTML = `<h2>INITIATE PRIME HACK PROTOCOL</h2><div class="scr" aria-hidden="true"></div><div class="bar"><b></b></div>
+        <div class="st"><span class="msg">Type anything to upload the breach kit.</span><span class="pct">0%</span></div>`;
+      document.body.appendChild(ov);
+      SND("comms");
+      const scr = ov.querySelector('.scr'), bar = ov.querySelector('.bar b'), msg = ov.querySelector('.msg'), pct = ov.querySelector('.pct'), st = ov.querySelector('.st');
+      const lines = [''], NEED = 60; let n = 0, cur = LINES[0](), cls = 'c1', pos = 0, done = false;
+      function show(){ scr.innerHTML = lines.slice(-8).map((l, i, arr) => i === arr.length - 1 ? `<span class="${cls}">${l}</span>▌` : l).join('\n'); }
+      function key(e){
+        if(e.key === 'Enter' && done){ e.preventDefault(); finish(); return; }
+        if(e.key.length !== 1 && e.key !== 'Backspace') return;
+        e.preventDefault();
+        if(done){ st.classList.remove('ready'); void st.offsetWidth; st.classList.add('ready'); return; }   // full: no more typing
+        n++; SND("key");
+        const step = 3 + Math.floor(Math.random() * 5);
+        lines[lines.length - 1] += cur.slice(pos, pos + step); pos += step;
+        if(pos >= cur.length){ lines.push(''); cur = LINES[Math.floor(Math.random() * LINES.length)](); pos = 0; cls = ['c1', 'c2', 'c3', 'c4'][Math.floor(Math.random() * 4)]; }
+        const k = Math.min(1, n / NEED); bar.style.width = (k * 100) + '%'; pct.textContent = Math.round(k * 100) + '%';
+        if(k >= 1){ done = true; msg.textContent = 'Breach kit uploaded. Press ENTER to start the hack.'; st.classList.add('ready'); SND("verified"); }
+        show();
+      }
+      function finish(){ document.removeEventListener('keydown', key); ov.remove(); onDone(); }
+      document.addEventListener('keydown', key);
+      ov.addEventListener('click', () => { if(done) finish(); });
+      if(window.PNTest) PNTest.add("Arm the protocol", () => { n = NEED - 1; key({ key: 'x', preventDefault(){} }); });
+      show();
+    }
+
     // ---------- Floor quiz ----------
     // One question about the building. A right answer earns a 10% intel bonus on the heist.
     function floorQuiz(floors, onDone){
@@ -968,8 +1091,8 @@ function powerUpPrompt(title){
 
       const ov = document.createElement('div'); ov.className = 'quiz';
       ov.innerHTML = `<div class="card" role="dialog" aria-modal="true" aria-labelledby="quizTitle"><h2 id="quizTitle">ORACLE // ONE LAST CHECK</h2>
-        <div class="q">${Q.q}</div><div class="opts"></div><div class="why">Answer right for a 10% intel bonus on the heist.</div>
-        <button class="pn-btn primary go" type="button" hidden>Continue to Prime Hack</button></div>`;
+        <div class="q">${Q.q}</div><div class="look">Not sure? Check the building: drag it round, or click a floor to pull it out.</div><div class="opts"></div><div class="why">Answer right for a 10% intel bonus on the heist.</div>
+        <button class="pn-btn primary go" type="button" hidden>Arm the protocol</button></div>`;
       document.body.appendChild(ov);
       SND("comms");
       const box = ov.querySelector('.opts'), why = ov.querySelector('.why'), go = ov.querySelector('.go');

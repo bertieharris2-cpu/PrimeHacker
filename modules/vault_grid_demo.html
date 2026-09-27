@@ -651,8 +651,8 @@ function floorRating(n){
 function roomName(rect){
   const a = Math.min(rect.w, rect.h), b = Math.max(rect.w, rect.h);
   if(a === b) return "STRONGROOM";
-  if(a === 1) return "CORRIDOR";
-  if(b / a >= 4) return "SERVICE TUNNEL";
+  if(a === 1) return "ARCHIVE";        // feedback round 7: the space between rooms is the corridor
+  if(b / a >= 4) return "SERVER ROW";
   if(b / a >= 2) return "OFFICE";
   return "SERVER ROOM";
 }
@@ -1160,7 +1160,7 @@ nextFloorBtn.addEventListener("click", ()=>{
   // After three floors, the laser corridor (then the Blueprint); otherwise back to Factor Vault for a new number
   // Feedback: straight to the Blueprint after the third floor (the laser corridor is out of the route for now)
   const next = blueprintReady() ? "vault_blueprint_viewer.html" : "factor_vault.html";
-  if(analysisWin) analysisWin.close();
+  analysisWins.forEach(w => w.close());
   (window.PNGlitch ? PNGlitch.go(next, { style: "sweep" }) : (location.href = next));
 });
 
@@ -1239,15 +1239,28 @@ async function droneFlythrough(placements){
 }
 
 // After the drone: a holographic floor analysis. Few factor pairs means few rooms to guard: a weak floor.
-let analysisWin = null;
-function floorAnalysis(placements){
+let analysisWins = [];
+async function floorAnalysis(placements){
   if(!window.PNHolo) return;
   const { pairs, rating } = floorRating(currentN);
   const strong = placements.some(r => r.w === r.h);
   const col = rating === "WEAK" ? "bad" : rating === "SECURE" ? "ok" : "yl";
   const why = rating === "WEAK" ? "Few rooms, few guards. A possible way in." : rating === "SECURE" ? "Lots of rooms to guard. Hard to cross." : "Average security.";
-  analysisWin = PNHolo.open({ title: `FLOOR ANALYSIS · N=${currentN}`, flag: rating, x: 87, y: 28, w: 300, tilt: -16,
-    html: `ROOMS <span class="yl">${placements.length}</span> (${pairs} factor pair${pairs === 1 ? "" : "s"}, both ways round)<br>DOORS <span class="yl">${placements.length}</span> · FIRE EXITS <span class="yl">1</span><br>${strong ? '<span class="yl">STRONGROOM</span> present<br>' : ""}SECURITY <span class="${col}">${rating}</span><br><span class="k">${why}</span>` });
+  // Feedback round 7: flat windows (no tilt) so the text is sharp, and two more windows with the floor's maths
+  const factors = []; for(let d = 1; d <= currentN; d++) if(currentN % d === 0) factors.push(d);
+  const root = Math.sqrt(currentN), sq = Number.isInteger(root), lo = Math.floor(root), hi = lo + 1;
+  const squareHtml = sq
+    ? `<span class="big yl">${currentN} = ${root} × ${root}</span><br>${currentN} <span class="ok">IS</span> a square number.<br><span class="k">One pair repeats a number, so it has an odd number of factors: ${factors.length}. Its square pair is the gold strongroom.</span>`
+    : `Is ${currentN} a square number? <span class="bad">NO</span><br>${lo} × ${lo} = <span class="yl">${lo * lo}</span> is too small<br>${hi} × ${hi} = <span class="yl">${hi * hi}</span> is too big<br><span class="k">No pair repeats, so no strongroom on this floor.</span>`;
+  const list = [
+    { title: `FLOOR ANALYSIS · N=${currentN}`, flag: rating, x: 86, y: 26, w: 290,
+      html: `ROOMS <span class="yl">${placements.length}</span> (${pairs} factor pair${pairs === 1 ? "" : "s"}, both ways round)<br>DOORS <span class="yl">${placements.length}</span> · FIRE EXITS <span class="yl">1</span><br>${strong ? '<span class="yl">STRONGROOM</span> present<br>' : ""}SECURITY <span class="${col}">${rating}</span><br><span class="k">${why}</span>` },
+    { title: `FACTORS OF ${currentN}`, flag: `${factors.length} FOUND`, x: 14, y: 26, w: 270,
+      html: `<span class="big">${factors.map((f, i) => i < factors.length / 2 ? `<span class="ok">${f}</span>` : `<span class="yl">${f}</span>`).join(" ")}</span><br><span class="k">Each <span class="ok">green</span> factor pairs with a <span class="yl">gold</span> one: ${factors.slice(0, Math.ceil(factors.length / 2)).map(f => `${f}×${currentN / f}`).join(", ")}.</span>` },
+    { title: "SQUARE CHECK", flag: sq ? "SQUARE" : "NOT SQUARE", x: 14, y: 64, w: 270, html: squareHtml },
+  ];
+  analysisWins = [];
+  for(const w of list){ analysisWins.push(PNHolo.open({ ...w, tilt: 0 })); await PNHolo.wait(380); }
 }
 
 // ====== 3D CUBOID RECTANGLE RENDERER ======
