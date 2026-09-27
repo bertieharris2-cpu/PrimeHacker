@@ -409,7 +409,6 @@
     { id:"jammer",     point:"scan",   name:"Jammer",                 maths:"Multiples" },
     { id:"strongroom", point:"vault",  name:"Square strongroom",      maths:"Square numbers", page:"twist_strongroom.html" },
     { id:"walls",      point:"vault",  name:"Deposit-box walls",      maths:"Factor pairs", page:"twist_walls.html" },
-    { id:"primefloor", point:"vault",  name:"Fake floor",             maths:"Primes and factor pairs", page:"twist_primefloor.html" },
     { id:"cubes",      point:"lights", name:"Ceiling relays (cubes)", maths:"Cube numbers", page:"twist_cubes.html" },
     { id:"patrols",    point:"getin",  name:"Guard patrols",          maths:"Multiples and LCM", page:"twist_patrols.html" },
     { id:"corridor",   point:"getin",  name:"Laser corridor",         maths:"Factors" },

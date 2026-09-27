@@ -45,7 +45,7 @@
   const T = window.PNTwist, $ = id => document.getElementById(id);
   const L = T.init({ id: "sieve", stage: "FREQUENCY SCAN", title: "MOTION-SENSOR SIEVE",
     goal: "Knock out every number that isn't prime. Follow the step line below.",
-    example: "2 is prime, so every multiple of 2 (4, 6, 8…) gets knocked out.",
+    example: "A sieve keeps some things and lets the rest fall through. This one keeps the primes: 2 is prime, so every multiple of 2 (4, 6, 8…) is switched off.",
     story: `${T.targets()} trading floor has a motion sensor for every number. Knock out all the ones that aren't prime; the prime ones are our way through.` });
   const MAX = { L1: 50, L2: 100, L3: 150 }[L];
   const nums = T.range(1, MAX);
@@ -70,7 +70,7 @@
   function askPrime(){
     phase = "prime";
     const p = sievers[pIndex];
-    step(2 + pIndex * 2, pIndex === 0 ? "Click the smallest number still glowing. It's prime." : "Click the next number still glowing. Nothing smaller divides it, so it's prime.");
+    step(2 + pIndex * 2, pIndex === 0 ? "Click the smallest number still switched on. It's prime." : "Click the next number still switched on. Nothing smaller divides it, so it's prime.");
   }
   async function tap(n){
     if(over) return;
@@ -81,10 +81,10 @@
     }
     if(phase === "prime"){
       const p = sievers[pIndex], want = smallestLit();
-      if(n !== want){ T.SND("untag"); say(`Not yet: ${want} is smaller and still glowing.`, "warn"); return; }
+      if(n !== want){ T.SND("untag"); say(`Not yet: ${want} is smaller and still switched on.`, "warn"); return; }
       lock(p); T.SND("correct", pIndex);
       if(p !== last){
-        // The sensors knock out every multiple of p that is still glowing, with a sweep
+        // The sensors knock out every multiple of p that is still switched on, with a sweep
         phase = "busy";
         step(3 + pIndex * 2, `The sensors knock out every multiple of <b>${p}</b>…`);
         const mult = nums.filter(m => m > p && m % p === 0 && !dark.has(m));
@@ -101,7 +101,7 @@
       // The last sensor is damaged: the student finds its multiples
       phase = "manual";
       const left = nums.filter(m => m > p && m % p === 0 && !dark.has(m));
-      step(3 + pIndex * 2, `The sensor for <b>${p}</b> is damaged. Knock out the multiples of ${p} that are still glowing yourself. <span style="color:var(--text-faint)">(${left.length} left)</span>`);
+      step(3 + pIndex * 2, `The sensor for <b>${p}</b> is damaged. Knock out the multiples of ${p} that are still switched on yourself. <span style="color:var(--text-faint)">(${left.length} left)</span>`);
       T.say(`Sensor ${p} is down. You'll have to find its multiples by hand: ${p} times what?`);
       if(!left.length) return finishSieve();
       return;
@@ -110,17 +110,17 @@
       const p = last;
       if(n % p === 0 && n > p){ knockOut(n); knockedTotal++; T.SND("clamp"); say(`${n} = ${p} × ${n / p}. Out.`, "ok");
         const left = nums.filter(m => m > p && m % p === 0 && !dark.has(m));
-        step(3 + pIndex * 2, `Knock out the multiples of ${p} that are still glowing. <span style="color:var(--text-faint)">(${left.length} left)</span>`);
+        step(3 + pIndex * 2, `Knock out the multiples of ${p} that are still switched on. <span style="color:var(--text-faint)">(${left.length} left)</span>`);
         if(!left.length) finishSieve();
         return; }
       b.classList.add("bad"); setTimeout(() => b.classList.remove("bad"), 700);
-      say(T.isPrime(n) ? `${n} is prime: nothing but 1 and ${n} divides it. Leave it glowing.` : `${n} isn't a multiple of ${p}: ${p} × ${Math.floor(n / p)} = ${p * Math.floor(n / p)}, remainder ${n % p}.`, "bad");
+      say(T.isPrime(n) ? `${n} is prime: nothing but 1 and ${n} divides it. Leave it switched on.` : `${n} isn't a multiple of ${p}: ${p} × ${Math.floor(n / p)} = ${p * Math.floor(n / p)}, remainder ${n % p}.`, "bad");
       alarm.hit();
     }
   }
   function finishSieve(){
     phase = "done";
-    step(4 + pIndex * 2, `Every number still glowing is prime. Why stop at ${last}? The next prime is ${sievers.length ? nextPrime(last) : 2}, and ${nextPrime(last)} × ${nextPrime(last)} = ${nextPrime(last) ** 2}, which is bigger than ${MAX}.`);
+    step(4 + pIndex * 2, `Every number still switched on is prime. Why stop at ${last}? The next prime is ${sievers.length ? nextPrime(last) : 2}, and ${nextPrime(last)} × ${nextPrime(last)} = ${nextPrime(last) ** 2}, which is bigger than ${MAX}.`);
     $("lockBtn").hidden = false; $("lockBtn").focus();
   }
   const nextPrime = p => { let q = p + 1; while(!T.isPrime(q)) q++; return q; };
@@ -129,8 +129,8 @@
     over = true; $("lockBtn").hidden = true;
     const primes = nums.filter(T.isPrime);
     T.finish({ ok, title: ok ? "SENSORS SIEVED" : "SENSOR ALARM",
-      lines: ok ? [`<b>${primes.length}</b> primes left glowing between 1 and ${MAX}`, `Sensors knocked out: <b>${knockedTotal + 1}</b> (including 1)`, `Sieved with ${sievers.join(", ")}`, `Wrong sensors touched: <b>${alarm.count}</b>`]
-        : [`Tripped on the multiples of ${last}`, `Multiples of ${last} still glowing: <b>${nums.filter(m => m > last && m % last === 0 && !dark.has(m)).join(", ") || "none"}</b>`] });
+      lines: ok ? [`<b>${primes.length}</b> primes left switched on between 1 and ${MAX}`, `Sensors knocked out: <b>${knockedTotal + 1}</b> (including 1)`, `Sieved with ${sievers.join(", ")}`, `Wrong sensors touched: <b>${alarm.count}</b>`]
+        : [`Tripped on the multiples of ${last}`, `Multiples of ${last} still switched on: <b>${nums.filter(m => m > last && m % last === 0 && !dark.has(m)).join(", ") || "none"}</b>`] });
     T.say(ok ? "The floor's clear. Every sensor left is a prime channel." : "The sensors caught movement. Go again.");
   }
   begin();

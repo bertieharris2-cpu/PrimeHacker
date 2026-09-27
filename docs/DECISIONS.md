@@ -320,3 +320,17 @@ Every idea is a "maybe until I see it". Build these as prototypes to look at bef
 - A twist plays in a full-screen frame over the stage. A "CHANGE OF PLAN" card and an ORACLE line lead in, and "Continue the mission" hands back. The twist's ORACLE lines use the stage's ORACLE, and the stage's TEST/MENU tabs hide meanwhile. Start and end (right or not) are logged in the record.
 - For now a failed twist has no penalty beyond the record. None of the twists are signed off yet, so they are in rotation for testing.
 - Testing: `?twist=<id>` on a stage forces that twist at its point, and `?notwist=1` switches twists off there. `Primenet.setTwistPlan({...})` sets a mission's plan.
+
+## Review of the twists in the mission (round 12)
+Direction: twists should happen in the building itself (the 3D floor, the room, the door), not on abstract number grids, and results should be shown visually rather than as words.
+- Batch 1 (done):
+  - A yellow "powering up the plan" bar fills across the blueprint's automatic sequence, from the lights up to the agent reaching the key.
+  - About 40% of missions enter over the roof (`?entry=roof` or `?entry=street` to test).
+  - Floor-plan cameras are in proportion at every level, and one or two on the outer wall point outwards.
+  - Guards are separate red dots walking short beats, flaring as the laser passes.
+  - Holograms: three picked per floor from seven (shift rota, CCTV, keycard log, radio intercept, alarm panel, staff file, ventilation), and quicker.
+  - CCTV shows a clear moving guard.
+  - More plain hacker lines between locks.
+  - Sieve wording: "switched on" (not "glowing"), and a line explaining what a sieve does.
+  - The fake floor is parked, out of the rotation. Its slot becomes the corrupted-blueprint array puzzle.
+- Next: the ceiling relays on a real 3D floor, with the blueprint going dark at the end; the key room door with a keypad, a real-life reason for prime factors and scaffolding that fades; guard patrols on a 3D floor with walking guards (L2 just finds the LCM); the walls in a perspective room; the corrupted-blueprint puzzle; a sieve rework; ideas for the strongroom.

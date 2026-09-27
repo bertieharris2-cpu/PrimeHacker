@@ -2145,7 +2145,7 @@ async function runBufferSequence(){
 }
 
 function randChatterLine(){
-  const verbs = ["probe_gate","rate_limit_bypass","sync_ledger","open_channel","mask_account","checksum_ok","shuffle_route","scramble_ledger"];
+  const verbs = ["probe_gate","rate_limit_bypass","sync_ledger","open_channel","mask_account","checksum_ok","shuffle_route","scramble_ledger","loop_cctv","mute_sensor","spoof_badge","bounce_proxy","wipe_logs","clone_session"];
   const tag = ["[VAULT]","[MUX]","[NET]","[PROC]","[AUTH]"][randInt(5)];
   const id = Math.random().toString(16).slice(2,10).toUpperCase();
   return `${tag} ${id} :: ${pick(verbs)}()`;
@@ -2250,8 +2250,21 @@ async function lockTransition(prev){
     () => `$ tail -n 3 /var/log/vault/${host}.log | grep "lock_${next}"`,
     () => `[${hex(8).toUpperCase()}] rekey ${next}/${Run.locksPerRun} :: ${["ok", "ok", "pending", "ok"][randInt(4)]}`,
   ];
+  // Round 12: plenty of plain hacker flavour in between, not just maths
+  const HACKY = [
+    () => `$ ping -c 3 gw.${host}.net        # ${3 + randInt(40)} ms`,
+    () => `$ ./spoof_badge --id ${hex(6).toUpperCase()} --level 3`,
+    () => `$ tracert ${host}.net | tail -2`,
+    () => `> firewall rule ${100 + randInt(800)} disabled`,
+    () => `$ ./decrypt_packet --in cap_${hex(4)}.pcap --out /tmp/p${randInt(9)}`,
+    () => `[WARN] intrusion sensor ${hex(3).toUpperCase()} :: muted`,
+    () => `$ scp ledger_${hex(3)}.db ghost@relay:/drop/`,
+    () => `$ sudo ./loop_cctv --cam ${1 + randInt(8)} --replay 00:${10 + randInt(49)}`,
+    () => `> proxy chain: ${["Oslo", "Lima", "Perth", "Cairo", "Quito"][randInt(5)]} → ${["Riga", "Lagos", "Hanoi", "Porto"][randInt(4)]} → ${host}`,
+    () => `$ ./wipe_logs --since "${1 + randInt(9)} min ago"`,
+  ];
   // Always start with the release, always end with the new modulus; random middle
-  const middle = [2, 3, 4, 5, 8, 9].sort(() => Math.random() - .5).slice(0, 3 + randInt(2)).map(i => pools[i]());
+  const middle = [...[2, 3, 4, 5, 8, 9].sort(() => Math.random() - .5).slice(0, 2).map(i => pools[i]()), ...HACKY.sort(() => Math.random() - .5).slice(0, 2 + randInt(2)).map(f => f())].sort(() => Math.random() - .5);
   const lines = [pools[0](), pools[1](), ...middle, pools[6](), pools[7]()];
   const box = addBlock("", "keyRotate");
   const html = highlightCode(lines.join("\n"));
