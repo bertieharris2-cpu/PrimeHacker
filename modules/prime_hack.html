@@ -387,6 +387,26 @@ html.term-cycle .terminal{ animation:termCycle 8s linear infinite; }
 .lockRig.jam{ animation:rigJam .45s ease-in-out; border-color:#ff6b6b; }
 @keyframes rigJam{ 20%{ transform:translateX(-6px); } 40%{ transform:translateX(6px); } 60%{ transform:translateX(-4px); } 80%{ transform:translateX(3px); } }
 .lockRig .tumblers{ display:flex; gap:8px; align-self:stretch; }
+.lockRig .rigScreen{ align-self:stretch; background:#020a0c; border:1px solid rgba(var(--accent-rgb),.35); padding:8px 10px; font-family:var(--font-mono); min-height:58px; display:flex; flex-direction:column; justify-content:center; gap:4px; }
+.lockRig .rigHex{ font-size:11px; color:rgba(110,200,255,.7); letter-spacing:.06em; min-height:1.2em; white-space:nowrap; overflow:hidden; }
+.lockRig .rigStat{ font-size:12px; letter-spacing:.08em; color:rgba(235,255,248,.6); }
+.lockRig .rigStat.ok{ color:#2fbf8a; } .lockRig .rigStat.bad{ color:#ff6b6b; }
+.lockRig .tumbler.busy span{ color:#ffe14d; }
+/* The orange-yellow gradient (feedback: "the colours add something different"), filling one step per cracked lock */
+.pnt{ bottom:64px !important; }   /* teacher tools sit above the HUD bar */
+.breach{ align-self:stretch; display:flex; flex-direction:column; gap:4px; }
+.breach .tl{ display:flex; justify-content:space-between; font-size:11px; letter-spacing:.18em; color:rgba(235,255,248,.6); }
+.breach .tl b{ font-family:var(--font-mono); letter-spacing:.02em; color:#ffc94d; }
+.breach .bar{ height:12px; border:1px solid rgba(255,159,67,.6); background:rgba(0,0,0,.4); position:relative; overflow:hidden; }
+.breach .bar i{ position:absolute; left:0; top:0; bottom:0; width:0; background:linear-gradient(90deg, #ffe14d, #ffb347 55%, #ff7a1a); box-shadow:0 0 12px rgba(255,159,67,.6); transition:width .9s cubic-bezier(.3,.7,.3,1); }
+/* Wall breached: a block in the terminal instead of holograms */
+.wallBlock{ border:1px solid rgba(255,159,67,.55); background:rgba(40,20,0,.25); padding:10px 12px; margin:8px 0; display:flex; flex-direction:column; gap:6px; font-family:var(--font-mono); }
+.wallBlock .wb-h{ font-family:var(--font-ui, sans-serif); font-weight:700; font-size:22px; letter-spacing:.2em; color:#ffc94d; text-shadow:0 0 16px rgba(255,159,67,.5); }
+.wallBlock .wb-k{ color:#9fffd4; } .wallBlock .wb-k .pk{ color:#ff9ae9; }
+.wallBlock .wb-bar{ height:10px; border:1px solid rgba(255,159,67,.6); background:rgba(0,0,0,.4); position:relative; overflow:hidden; }
+.wallBlock .wb-bar i{ position:absolute; left:0; top:0; bottom:0; width:0; background:linear-gradient(90deg, #ffe14d, #ffb347 55%, #ff7a1a); }
+.wallBlock .wb-m{ display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap; color:rgba(235,255,248,.75); font-size:14px; }
+.wallBlock .wb-m b{ color:#ffe14d; }
 .lockRig .tumbler{ flex:1; border:1px solid rgba(var(--accent-rgb),.35); background:rgba(0,0,0,.35); text-align:center; padding:4px 0 5px; }
 .lockRig .tumbler small{ display:block; font-size:9px; letter-spacing:.18em; color:rgba(235,255,248,.45); }
 .lockRig .tumbler span{ font-family:var(--font-mono); font-size:22px; font-weight:700; color:rgba(235,255,248,.35); }
@@ -1360,7 +1380,6 @@ button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [clas
 <script src="../shared/testtools.js"></script>
 <script src="../shared/handler.js"></script>
 <script src="../shared/glitch.js"></script>
-<script src="../shared/holo.js"></script>
 <script src="../shared/sound.js"></script>
 <script src="./bank.js"></script>
 
@@ -1612,7 +1631,7 @@ function newRunSameDifficulty(){
   updateRunUI();
   Run.runNo = (Run.runNo || 0) + 1;
   Run.busy = false;
-  if(typeof Rig !== "undefined"){ Rig.reset(); Rig.trace = 0; Rig.peak = 0; Rig.paintTrace(); Rig.startClock(); }
+  if(typeof Rig !== "undefined"){ Rig.reset(); Rig.trace = 0; Rig.peak = 0; Rig.paintTrace(); if(Rig.setBreach) Rig.setBreach(0); Rig.startClock(); }
 }
 
 function newTargetNextLock(){
@@ -2140,26 +2159,6 @@ async function breachPrelude(seconds=10){
 }
 
 
-// ===================== HOLOGRAPHIC WINDOWS (final breach) =====================
-// Feedback 3: film-style laser windows open across the screen with live intel on the heist.
-async function breachHolos(){
-  const acct = Bank.getCurrentAccount() || { name: "TARGET", id: "", balance: 0 };
-  const sess = PN && PN.currentSession();
-  const floors = sess ? sess.events.filter(e => e.stage === "vault-complete" && e.detail).map(e => e.detail.n) : [];
-  const weak = PN && PN.getAgent() ? PN.getAgent().weakN : null;
-  const locks = Run.cracked.map((c, i) => `L${i + 1} <span class="pk">${c.p}</span> × <span class="pk">${c.q}</span> = <span class="yl">${c.n}</span> <span class="ok">✓</span>`).join("<br>");
-  const trace = Math.round(Rig.trace || 0);
-  return PNHolo.burst([
-    { title: "TARGET PROFILE", x: 19, y: 26, w: 280, tilt: 24, flag: "LOCKED ON",
-      html: `<span class="big" style="font-size:18px">${acct.name.toUpperCase()}</span><br>ACCT <span class="k">${acct.id || "----"}</span><br>VAULT <span class="yl">${gbp(acct.balance)}</span><br>SECURITY <span class="bad">${{ L1: "LOW", L2: "MEDIUM", L3: "HIGH" }[DIFF]}</span>` },
-    { title: "LOCK MATRIX", x: 81, y: 26, w: 300, tilt: -24, flag: `${Run.cracked.length}/${Run.locksPerRun}`, html: locks || "—" },
-    { title: "TRACE MONITOR", x: 19, y: 72, w: 260, tilt: 20, flag: trace >= 75 ? "HOT" : "LIVE",
-      html: `COUNTER-TRACE <span class="${trace >= 50 ? "bad" : "ok"}">${trace}%</span><div class="bar"><b style="width:${trace}%;${trace >= 50 ? "background:#ff8aa0;box-shadow:0 0 10px #ff8aa0" : ""}"></b></div>PEAK THIS RUN ${Math.round(Rig.peak || 0)}%` },
-    { title: "BLUEPRINT", x: 81, y: 72, w: 280, tilt: -20, flag: "3D",
-      html: floors.length ? floors.map((n, i) => `FLOOR ${i + 1} · N=<span class="yl">${n}</span>${n === weak ? ' <span class="bad">WEAK POINT</span>' : ""}`).join("<br>") : "FLOOR PLANS ON FILE" },
-  ], 260);
-}
-
 // ===================== BETWEEN LOCKS: key rotation code =====================
 // After a lock is cracked, a burst of generated code runs while the next lock is set up.
 async function lockTransition(prev){
@@ -2352,40 +2351,31 @@ const Rig = (() => {
     ticks += `<line x1="${C + r1 * Math.sin(a)}" y1="${CY - r1 * Math.cos(a)}" x2="${C + r2 * Math.sin(a)}" y2="${CY - r2 * Math.cos(a)}" stroke="rgba(235,255,248,${long ? .8 : .35})" stroke-width="${long ? 2 : 1}"/>`;
     if(long) ticks += `<text x="${C + 52 * Math.sin(a)}" y="${CY - 52 * Math.cos(a) + 4}" text-anchor="middle" font-size="11" fill="rgba(235,255,248,.75)" font-family="Courier Prime, monospace">${v}</text>`;
   }
-  el.innerHTML = `<div class="rigTitle"><span>LOCK</span><b class="rigN">N = ?</b></div>
-    <svg viewBox="0 0 176 196">
-      <path class="shackle" d="M52 34 V20 a36 36 0 0 1 72 0 V34" fill="none" stroke="#9fb7bb" stroke-width="9" stroke-linecap="round"/>
-      <circle cx="${C}" cy="${CY}" r="84" fill="#0d2327" stroke="rgba(var(--accent-rgb),.6)" stroke-width="2"/>
-      <g class="dial">${ticks}<circle cx="${C}" cy="${CY}" r="30" fill="#081a1e" stroke="rgba(235,255,248,.25)"/></g>
-      <text class="dialRead" x="${C}" y="${CY + 6}" text-anchor="middle" font-size="18" font-weight="700" fill="#ffe14d" font-family="Courier Prime, monospace">00</text>
-      <path d="M${C - 7} 16 L${C + 7} 16 L${C} 28 Z" fill="#ff4f6d"/>
-    </svg>
-    <div class="tumblers"><div class="tumbler t1"><small>TUMBLER 1</small><span>--</span></div><div class="tumbler t2"><small>TUMBLER 2</small><span>--</span></div></div>
+  // Feedback: no padlock (it isn't techie). A key decoder: two prime registers that scramble then settle,
+  // a BREACH bar (the orange-yellow gradient) that fills one step per cracked lock, and the trace bar.
+  el.innerHTML = `<div class="rigTitle"><span>KEY DECODER</span><b class="rigN">N = ?</b></div>
+    <div class="rigScreen"><div class="rigHex" aria-hidden="true"></div><div class="rigStat">AWAITING KEY</div></div>
+    <div class="tumblers"><div class="tumbler t1"><small>PRIME A</small><span>--</span></div><div class="tumbler t2"><small>PRIME B</small><span>--</span></div></div>
+    <div class="breach"><div class="tl"><span>BREACH</span><b class="bv">0/4</b></div><div class="bar"><i></i></div></div>
     <div class="trace"><div class="tl"><span>TRACE</span><b class="tv">0%</b></div><div class="bar"><i></i></div></div>`;
   if(win){ win.appendChild(el); win.classList.add("hasRig"); }
-  const dial = el.querySelector(".dial"), read = el.querySelector(".dialRead"), t1 = el.querySelector(".t1"), t2 = el.querySelector(".t2");
-  let angle = 0;   // degrees; number v sits under the pointer when angle = -v * 3.6
+  const t1 = el.querySelector(".t1"), t2 = el.querySelector(".t2"), stat = el.querySelector(".rigStat"), hexEl = el.querySelector(".rigHex");
   let gen = 0;     // each new answer bumps this, so an older animation stops where it is
   const fast = () => (window.PNTest ? PNTest.speed() : 1) * speed();
   const wait = ms => new Promise(r => setTimeout(r, ms / fast()));
-  function spinTo(v, dir, my = gen){
-    // Turn a full extra rotation in the given direction, then settle on v, clicking as it passes numbers
-    const target = -((v % 100) * 3.6);
-    let end = target;
-    if(dir > 0){ while(end <= angle) end += 360; end += 360; } else { while(end >= angle) end -= 360; end -= 360; }
-    const from = angle, ms = 900 / fast(), t0 = performance.now();
-    let lastStep = Math.round(from / 7.2);
+  const hexLine = () => Array.from({ length: 4 }, () => Math.floor(Math.random() * 65536).toString(16).padStart(4, "0")).join(" ");
+  function setStat(t, cls){ stat.textContent = t; stat.className = "rigStat" + (cls ? " " + cls : ""); }
+  // A register scrambles through random digits, then settles on the value
+  function scramble(t, v, my = gen){
+    const span = t.querySelector("span"), ms = 520 / fast(), t0 = performance.now(), digits = String(v).length;
+    t.classList.add("busy");
     return new Promise(done => {
+      let last = 0;
       (function step(now){
-        if(my !== gen) return done(false);
-        const k = Math.min(1, (now - t0) / ms), e = 1 - Math.pow(1 - k, 3);
-        angle = from + (end - from) * e;
-        dial.setAttribute("transform", `rotate(${angle} ${C} ${CY})`);
-        const shown = ((Math.round(-angle / 3.6) % 100) + 100) % 100;
-        read.textContent = String(shown).padStart(2, "0");
-        const st = Math.round(angle / 7.2);
-        if(st !== lastStep){ lastStep = st; if(window.PNSound) PNSound.play("key"); }
-        if(k < 1) requestAnimationFrame(step); else { angle = ((end % 360) + 360) % 360 - 360; dial.setAttribute("transform", `rotate(${angle} ${C} ${CY})`); read.textContent = String(v % 100).padStart(2, "0"); done(true); }
+        if(my !== gen){ t.classList.remove("busy"); return done(false); }
+        const k = (now - t0) / ms;
+        if(now - last > 45){ last = now; span.textContent = String(Math.floor(Math.random() * Math.pow(10, digits))).padStart(digits, "0"); hexEl.textContent = hexLine(); if(window.PNSound) PNSound.play("key"); }
+        if(k < 1) requestAnimationFrame(step); else { span.textContent = String(v); t.classList.remove("busy"); done(true); }
       })(t0);
     });
   }
@@ -2393,23 +2383,27 @@ const Rig = (() => {
   const api = {
     trace: 0, traceOuts: 0, timer: null,
     setN(n){ el.querySelector(".rigN").textContent = `N = ${n}`; },
-    reset(){ gen++; clearTimeout(api.jamTimer); el.classList.remove("open", "jam"); setTumbler(t1, null); setTumbler(t2, null); api.setN(Run.n); },
+    reset(){ gen++; clearTimeout(api.jamTimer); el.classList.remove("open", "jam"); setTumbler(t1, null); setTumbler(t2, null); setStat("AWAITING KEY"); hexEl.textContent = ""; api.setN(Run.n); },
+    setBreach(k){ const tot = Run.locksPerRun || 4; el.querySelector(".breach i").style.width = (Math.min(k, tot) / tot * 100) + "%"; el.querySelector(".bv").textContent = `${Math.min(k, tot)}/${tot}`; },
     // Correct pair: right to the first prime, left to the second, shackle springs
     async open(p, q){
       const my = ++gen;
       clearTimeout(api.jamTimer); el.classList.remove("jam");
       setTumbler(t1, null); setTumbler(t2, null);
-      await spinTo(p, 1, my); setTumbler(t1, p, "set"); if(window.PNSound) PNSound.play("seal");
-      await spinTo(q, -1, my); setTumbler(t2, q, "set"); if(window.PNSound) PNSound.play("seal");
+      setStat("DECODING…");
+      await scramble(t1, p, my); setTumbler(t1, p, "set"); if(window.PNSound) PNSound.play("tag");
+      await scramble(t2, q, my); setTumbler(t2, q, "set"); if(window.PNSound) PNSound.play("tag");
       await wait(150);
-      el.classList.add("open"); if(window.PNSound) PNSound.play("dock");
+      el.classList.add("open"); setStat(`KEY ACCEPTED · ${p} × ${q} = ${p * q}`, "ok"); if(window.PNSound) PNSound.play("verified");
       await wait(500);
     },
     // Wrong pair: the dial turns, the tumblers won't catch, it jams
     async jam(p, q){
       const my = ++gen;
-      if(!await spinTo(p, 1, my)) return; setTumbler(t1, p, "bad");
-      if(!await spinTo(q, -1, my)) return; setTumbler(t2, q, "bad");
+      setStat("DECODING…");
+      if(!await scramble(t1, p, my)) return; setTumbler(t1, p, "bad");
+      if(!await scramble(t2, q, my)) return; setTumbler(t2, q, "bad");
+      setStat(`KEY REJECTED · ${p} × ${q} = ${p * q}`, "bad");
       el.classList.remove("jam"); void el.offsetWidth; el.classList.add("jam");
       clearTimeout(api.jamTimer);
       api.jamTimer = setTimeout(() => { setTumbler(t1, null); setTumbler(t2, null); el.classList.remove("jam"); }, 900 / fast());
@@ -2498,24 +2492,20 @@ function waitForKeyOrClick(el, keys){
 
 // Locks 1-3: the student's primes, the bank draining, and a bigger card each time
 async function lockCard(lockIdx, withdrawn, p, q){
-  // Feedback 3: a central holographic banner zooms in, with the key check and the account either side
+  // Feedback: no holograms in Prime Hack; keep the focus on the code. A "wall breached" block in the terminal,
+  // with the orange-yellow bar filling as the account drains, and the decoder's BREACH bar steps on.
   const acct = Bank.getCurrentAccount() || { name:"TARGET ACCOUNT", id:"", balance:0 };
   const take = Bank.getRunEarnings();
-  setCinematic(true);
   SFX("lock");
-  const banner = PNHolo.open({ title: `LOCK ${lockIdx} OF ${Run.locksPerRun}`, flag: "BREACH", x: 50, y: 40, w: 580,
-    html: `<div class="big holoZoom" style="font-size:46px;text-align:center">WALL ${lockIdx} BREACHED</div>
-      <div style="text-align:center;font-size:22px;margin-top:6px"><span class="pk">${p}</span> × <span class="pk">${q}</span> = <span class="yl">${p * q}</span></div>
-      <div style="text-align:center;margin-top:6px;letter-spacing:.2em;font-size:12px" class="k">${Array.from({length: Run.locksPerRun}, (_, i) => i < lockIdx ? "■" : "□").join(" ")}</div>` });
-  await PNHolo.wait(260);
-  const key = PNHolo.open({ title: "KEY CHECK", x: 17, y: 66, w: 250, tilt: 22, flag: "OK",
-    html: `<span class="pk">${p}</span> <span class="ok">prime ✓</span><br><span class="pk">${q}</span> <span class="ok">prime ✓</span><br>${p} × ${q} = <span class="yl">${p * q}</span> <span class="ok">= N ✓</span>` });
-  await PNHolo.wait(200);
-  const bank = PNHolo.open({ title: "ACCOUNT", x: 83, y: 66, w: 280, tilt: -22, flag: "DRAIN",
-    html: `${acct.name}<br>balance <b class="bad bal"></b><br>taken <b class="ok tk"></b><div class="bar"><b class="fill" style="width:0"></b></div>` });
-  const bal = bank.body.querySelector(".bal"), tk = bank.body.querySelector(".tk"), fill = bank.body.querySelector(".fill");
+  if(typeof Rig !== "undefined" && Rig.setBreach) Rig.setBreach(lockIdx);
+  const box = addBlock(`<div class="wb-h">WALL ${lockIdx} BREACHED</div>
+    <div class="wb-k">key <span class="pk">${p}</span> × <span class="pk">${q}</span> = ${p * q} ✓ both prime</div>
+    <div class="wb-bar"><i></i></div>
+    <div class="wb-m"><span>${acct.name.toUpperCase()} · balance <b class="bal"></b></span><span>taken <b class="tk"></b></span></div>`, "wallBlock");
+  const bal = box.querySelector(".bal"), tk = box.querySelector(".tk"), fill = box.querySelector(".wb-bar i");
+  term.scrollTop = term.scrollHeight;
   let ticks = 0;
-  await animate(1500, pr => {
+  await animate(1400, pr => {
     const e = ease(pr);
     bal.textContent = gbp(acct.balance + withdrawn * (1 - e));
     tk.textContent = gbp(take - withdrawn + withdrawn * e);
@@ -2523,9 +2513,7 @@ async function lockCard(lockIdx, withdrawn, p, q){
     if(++ticks % 3 === 0 && pr < 1) SFX("data");
   });
   SFX("cash");
-  await animate(1000, () => {});
-  key.close(); await PNHolo.wait(90); bank.close(); await PNHolo.wait(90); await banner.close();
-  setCinematic(false);
+  await sleep(500);
 }
 
 // The final lock: a counter-trace alarm before the breach
@@ -2685,17 +2673,17 @@ async function onLockSolved(){
   Sound.ok();
   await sleep(500);
   await alarmSequence();
+  if(typeof Rig !== "undefined" && Rig.setBreach) Rig.setBreach(Run.locksPerRun);
   setCinematic(true);
-  const holos = await breachHolos();
   await breachPrelude(PRIME_NET_EFFECTS.preludeSeconds);
-  await PNHolo.wait(600);
-  for(const h of holos){ h.close(); await PNHolo.wait(80); }
   setCinematic(false);
   await runBufferSequence();
   if(PRIME_NET_EFFECTS.finalFloodSeconds > 0){
     setCinematic(true);
-    await codeFlood("BREACH CHANNEL", PRIME_NET_EFFECTS.finalFloodSeconds);
-    await miniFlood("ENCRYPTION HANDSHAKE", PRIME_NET_EFFECTS.miniFloodSeconds);   // the small fast box, last stage before the door
+    // Feedback: one flood per run, taking turns: the big breach channel, or the small fast handshake box
+    Run.floodTurn = (Run.floodTurn === undefined ? Math.round(Math.random()) : Run.floodTurn + 1);
+    if(Run.floodTurn % 2 === 0) await codeFlood("BREACH CHANNEL", PRIME_NET_EFFECTS.finalFloodSeconds);
+    else await miniFlood("ENCRYPTION HANDSHAKE", PRIME_NET_EFFECTS.miniFloodSeconds);
     setCinematic(false);
   }
 
