@@ -309,6 +309,7 @@ button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [clas
   <script src="../shared/badges.js"></script>
   <script src="../shared/testtools.js"></script>
   <script src="../shared/handler.js"></script>
+<script src="../shared/twistslot.js"></script>
   <script src="../shared/glitch.js"></script>
   <script src="../shared/sound.js"></script>
   <script>
@@ -408,7 +409,8 @@ function powerUpPrompt(title){
         PNTest.add("Continue to Prime Hack", () => { window.location.href = "prime_hack.html"; });
         PNTest.add("Show the floor quiz", () => { floorQuiz(floors, () => {}); });
       }
-      const goHack = () => {
+      const goHack = async () => {
+        if(window.PNTwistSlot) await PNTwistSlot.run("getin");   // round 11: getting in (guard patrols)
         localStorage.removeItem('blueprintProgress');   // the next mission starts with no floors
         (window.PNGlitch ? PNGlitch.go('prime_hack.html') : (location.href = 'prime_hack.html'));
       };
@@ -614,6 +616,8 @@ function powerUpPrompt(title){
           SND("seal");
         }
         card('i-win', `<b>LIGHTS ON</b>Every room has a × b ceiling lights, so every room on a floor has exactly N lights. A 4 × 6 office has 24.`);
+        // Round 11: with the lights on, the ceiling relays (cubes) twist fits here
+        if(window.PNTwistSlot){ await wait(1200); await PNTwistSlot.run("lights"); }
 
         // Weak point: the floor with the fewest rooms (factor pairs)
         const pairsOf = n => getFactorPairs(n).length;

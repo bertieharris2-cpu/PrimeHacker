@@ -542,6 +542,7 @@ button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [clas
 <script src="../shared/badges.js"></script>
 <script src="../shared/testtools.js"></script>
 <script src="../shared/handler.js"></script>
+<script src="../shared/twistslot.js"></script>
 <script src="../shared/glitch.js"></script>
 <script src="../shared/sound.js"></script>
 <script>
@@ -1072,9 +1073,10 @@ button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [clas
 
     const proceed = el("button", {
       text: "PROCEED TO THE VAULT",
-      onClick: () => {
+      onClick: async () => {
         setConsole("ROUTE SET", "Next module: FACTOR VAULT.");
         if(PN) PN.log("scan-complete", { signal, bands: CONFIG.bands.map(b => `${b.start}-${b.end}`) });
+        if(window.PNTwistSlot) await PNTwistSlot.run("scan");   // round 11: a twist here if the mission has one
         flashAccessGranted(() => (window.PNGlitch ? PNGlitch.go("factor_vault.html") : (location.href = "factor_vault.html")));
       }
     });

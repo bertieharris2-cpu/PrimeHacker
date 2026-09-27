@@ -307,3 +307,16 @@ Every idea is a "maybe until I see it". Build these as prototypes to look at bef
 - 3D build: the exploded floors sit lower and closer together, so floor 3 is visible. ORACLE's "There it is" line starts as the building's outline appears.
 - Parked: a spatial "fit the arrays" puzzle (perhaps a corrupted blueprint), avoiding 1 × N. Also teacher-controlled hints, because some hints give answers away too early.
 - Round 10: the flat squares no longer fade before the 3D view arrives (that caused a dim-then-bright flash). They cross-fade with it. During the drone flight, 4–6 security cameras pop up one by one, each with a beep, a blinking red light and a faint view cone. They stay on the floor afterwards. The holograms open about twice as fast.
+
+## Round 11: twists woven into the bank mission
+- Each twist has its own place, chosen by context, and none are fixed at one slot:
+  - after the Frequency Scan: sieve
+  - after Factor Vault floor 2: strongroom, walls, fake floor
+  - once the Blueprint's lights come on: ceiling relays (cubes)
+  - getting in: guard patrols
+  - before Prime Hack lock 3: key room door (factor tree)
+  - finale: blackout and getaway, which are built into Prime Hack
+- Each mission (session) plans two of the ticked twists, at different points. It avoids the twists this agent had last mission. A teacher can pin one twist into every mission ("Always include").
+- A twist plays in a full-screen frame over the stage. A "CHANGE OF PLAN" card and an ORACLE line lead in, and "Continue the mission" hands back. The twist's ORACLE lines use the stage's ORACLE, and the stage's TEST/MENU tabs hide meanwhile. Start and end (right or not) are logged in the record.
+- For now a failed twist has no penalty beyond the record. None of the twists are signed off yet, so they are in rotation for testing.
+- Testing: `?twist=<id>` on a stage forces that twist at its point, and `?notwist=1` switches twists off there. `Primenet.setTwistPlan({...})` sets a mission's plan.

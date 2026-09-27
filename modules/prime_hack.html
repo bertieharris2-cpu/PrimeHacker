@@ -1417,6 +1417,7 @@ button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [clas
 <script src="../shared/badges.js"></script>
 <script src="../shared/testtools.js"></script>
 <script src="../shared/handler.js"></script>
+<script src="../shared/twistslot.js"></script>
 <script src="../shared/glitch.js"></script>
 <script src="../shared/sound.js"></script>
 <script src="./bank.js"></script>
@@ -2829,6 +2830,8 @@ async function onLockSolved(){
       PNHandler.say(left === 1 ? "Last lock, {agent}. Their security team is waking up. Make it count." : `Lock ${Run.index} down. ${left} to go.`);
     }
     Run.index += 1;
+    // Round 11: the key room door (factor tree) comes before lock 3 when the mission has it
+    if(Run.index === 3 && window.PNTwistSlot){ Rig.busy = true; const tw = await PNTwistSlot.run("hack"); Rig.busy = false; if(tw) focusInput(); }
     newTargetNextLock();
     await lockTransition(last);
     lockBanner(Run.index === Run.locksPerRun ? "Final lock: crack it to breach the vault" : "");
@@ -2860,7 +2863,7 @@ async function onLockSolved(){
   const acct = Bank.getCurrentAccount() || { name:"TARGET", balance:0 };
   // Feedback round 9: the server blackout only turns up now and then (about one run in three). The vault door is
   // gone from the bank heist (saved for the museum). Knocking the monitoring servers out keeps the line open longer.
-  const blackout = Run.forceFinale ? Run.forceFinale === "blackout" : Math.random() < 0.34;
+  const blackout = Run.forceFinale ? Run.forceFinale === "blackout" : (!PN || PN.twistOn("blackout")) && Math.random() < 0.34;
   Run.forceFinale = null;
   let frac = siphonShare(Run.cracked);
   if(blackout){
@@ -2874,7 +2877,7 @@ async function onLockSolved(){
   const acctSnapshot = { name: acct.name, balance: acct.balance };
   await getOut();
   // The getaway: three quick calls on the numbers' properties to lose the police. 3 out of 3 adds 5%.
-  const escape = await getaway();
+  const escape = (!PN || PN.twistOn("getaway")) ? await getaway() : { score: 0 };   // teachers can switch the getaway off
   setHackTier(tierMove.to);
 
   const agent = PN ? PN.getAgent() : null;

@@ -505,10 +505,14 @@
   // Twists the teacher allows in the bank rotation
   (function twistRules(){
     const box = $("#twistRules"); if(!box || !P.TWISTS) return;
-    const POINTS = { scan:"Frequency Scan (band 2)", vault:"Factor Vault (floor 2)", getin:"Getting in", hack:"Prime Hack (lock 3)", finale:"Finale" };
+    const POINTS = P.TWIST_POINTS;
+    // Round 11: each mission picks two of the ticked twists (each plays at its own point); one can be pinned
+    const pinOpts = P.TWISTS.filter(t => t.page).map(t => `<option value="${t.id}" ${P.twistPin() === t.id ? "selected" : ""}>${t.name}</option>`).join("");
     box.innerHTML = Object.entries(POINTS).map(([k, name]) => `<fieldset><legend>${name}</legend>${P.TWISTS.filter(t => t.point === k).map(t =>
-      `<label><input type="checkbox" data-twist="${t.id}" ${P.twistOn(t.id) ? "checked" : ""}> ${t.name} <small>${t.maths}</small></label>`).join("")}</fieldset>`).join("");
+      `<label><input type="checkbox" data-twist="${t.id}" ${P.twistOn(t.id) ? "checked" : ""}> ${t.name} <small>${t.maths}${t.page ? "" : " · built into its stage"}</small></label>`).join("")}</fieldset>`).join("")
+      + `<fieldset><legend>Every mission</legend><label style="flex-direction:column;align-items:stretch;gap:6px">Always include<select id="twistPin" class="pn-input" style="font-size:15px;padding:6px"><option value="">No, rotate them</option>${pinOpts}</select><small>Each mission plays two ticked twists, at their own points.</small></label></fieldset>`;
     box.querySelectorAll("input").forEach(i => i.addEventListener("change", () => P.setTwistOn(i.dataset.twist, i.checked)));
+    box.querySelector("#twistPin").addEventListener("change", e => P.setTwistPin(e.target.value));
   })();
 
   // index.html#teacher opens the PIN box straight away (easier than the hidden shortcuts; bookmark it)

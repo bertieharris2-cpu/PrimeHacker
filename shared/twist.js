@@ -56,23 +56,28 @@
   @media (prefers-reduced-motion: reduce){ .tw-tile.missed{ animation:none; } .tw-flash{ animation:none; } }`;
 
   let level = "L1";
+  // Round 11: in a mission the twist plays inside the stage (an iframe); no lab header, and Continue hands back
+  const MISSION = qs.get("mission") === "1";
+  const EMBED = MISSION && window.parent !== window;
   const SND = (n, a) => { if(window.PNSound) PNSound.play(n, a); };
 
   // The level from ?level=, else the agent's level, else L1 (safe to call before init)
   function peekLevel(){ const a = PN && PN.getAgent(); return ["L1", "L2", "L3"].includes(qs.get("level")) ? qs.get("level") : (a && a.level) || "L1"; }
   function init({ id, stage, title, goal, story, brief, example }){
-    const st = document.createElement("style"); st.textContent = css; document.head.appendChild(st);
+    const st = document.createElement("style"); st.textContent = css + (EMBED ? " .pnh{ display:none !important; }" : ""); document.head.appendChild(st);
     level = peekLevel();
     const wrap = document.querySelector(".tw") || document.body;
     const head = document.createElement("header"); head.className = "tw-head";
     const lv = ["L1", "L2", "L3"].map(l => { const u = new URL(location.href); u.searchParams.set("level", l); return `<a href="${u.pathname.split("/").pop()}${u.search}" aria-current="${l === level}">${l}</a>`; }).join("");
-    head.innerHTML = `<div class="l"><span class="eb">TWIST LAB · ${stage}</span><h1>${title}</h1></div>
+    head.innerHTML = MISSION
+      ? `<div class="l"><span class="eb">CHANGE OF PLAN · ${level}</span><h1>${title}</h1></div>`
+      : `<div class="l"><span class="eb">TWIST LAB · ${stage}</span><h1>${title}</h1></div>
       <div class="r"><nav class="tw-lv" aria-label="Level">${lv}</nav><button class="pn-btn small" type="button" id="twNew">New round</button><a class="pn-btn small" href="twist_lab.html" style="text-decoration:none">Twist Lab</a></div>`;
     wrap.prepend(head);
-    head.querySelector("#twNew").addEventListener("click", () => location.reload());
+    if(!MISSION) head.querySelector("#twNew").addEventListener("click", () => location.reload());
     const g = document.createElement("div"); g.className = "tw-goal"; g.innerHTML = `<span class="g">GOAL</span><span class="gt">${goal || brief || ""}</span>`; head.after(g);
     if(example){ const e = document.createElement("div"); e.className = "tw-ex"; e.innerHTML = `Example: ${example}`; g.after(e); }
-    if(story && window.PNHandler) setTimeout(() => PNHandler.say(story), 500);
+    if(story && window.PNHandler && !EMBED) setTimeout(() => PNHandler.say(story), 500);   // in a mission the stage's ORACLE introduces it
     if(PN) PN.log("twist", { id, level });
     return level;
   }
@@ -101,16 +106,19 @@
     const next = qs.get("next");
     ov.innerHTML = `<div class="card" role="dialog" aria-modal="true" aria-labelledby="twResT"><h2 id="twResT">${title || (ok ? "TWIST CLEARED" : "ALARM TRIPPED")}</h2>
       <ul>${lines.map(l => `<li>${l}</li>`).join("")}</ul>${note ? `<p style="margin:0;color:var(--text-muted)">${note}</p>` : ""}
-      <div class="btns"><a class="pn-btn small" href="twist_lab.html" style="text-decoration:none">Twist Lab</a><button class="pn-btn small" type="button" data-a="again">Play again</button>${next ? `<a class="pn-btn small primary" href="${next}" style="text-decoration:none">Continue</a>` : ""}</div></div>`;
+      <div class="btns">${MISSION ? `<button class="pn-btn small primary" type="button" data-a="cont">Continue the mission</button>`
+        : `<a class="pn-btn small" href="twist_lab.html" style="text-decoration:none">Twist Lab</a><button class="pn-btn small" type="button" data-a="again">Play again</button>${next ? `<a class="pn-btn small primary" href="${next}" style="text-decoration:none">Continue</a>` : ""}`}</div></div>`;
     document.body.appendChild(ov);
-    ov.querySelector('[data-a="again"]').addEventListener("click", () => location.reload());
+    const again = ov.querySelector('[data-a="again"]'); if(again) again.addEventListener("click", () => location.reload());
+    const cont = ov.querySelector('[data-a="cont"]');
+    if(cont) cont.addEventListener("click", () => { SND("click"); if(EMBED) window.parent.postMessage({ type: "pn-twist-done", ok }, "*"); else if(next) location.href = next; });
     (ov.querySelector(".primary") || ov.querySelector("button")).focus();
     SND(ok ? "success" : "denied");
     if(PN) PN.log("twist-done", { ok, level });
   }
 
   function setGoal(html){ const el = document.querySelector(".tw-goal .gt"); if(el) el.innerHTML = html; }
-  function say(text, opts){ if(window.PNHandler) PNHandler.say(text, opts); }
+  function say(text, opts){ if(EMBED){ window.parent.postMessage({ type: "pn-twist-say", text }, "*"); return; } if(window.PNHandler) PNHandler.say(text, opts); }
   const target = () => (PN && PN.mission && PN.mission().target) || "Sentinel Finance";
   const targets = () => { const t = target(); return /s$/i.test(t) ? t + "'" : t + "'s"; };   // possessive: "Rivercross Utilities'"
 

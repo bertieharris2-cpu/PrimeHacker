@@ -359,6 +359,7 @@ button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [clas
 <script src="../shared/badges.js"></script>
 <script src="../shared/testtools.js"></script>
 <script src="../shared/handler.js"></script>
+<script src="../shared/twistslot.js"></script>
 <script src="../shared/glitch.js"></script>
 <script src="../shared/holo.js"></script>
 <script src="../shared/sound.js"></script>
@@ -1159,7 +1160,9 @@ function blueprintReady(){ return floorsBuilt() >= FLOORS_NEEDED; }
 function setNextButton(){
   nextFloorBtn.textContent = blueprintReady() ? "Assemble the blueprint" : `Next floor (${Math.min(floorsBuilt() + 1, FLOORS_NEEDED)} of ${FLOORS_NEEDED})`;
 }
-nextFloorBtn.addEventListener("click", ()=>{
+nextFloorBtn.addEventListener("click", async ()=>{
+  // Round 11: after floor 2, the mission's Factor Vault twist (if it has one)
+  if(floorsBuilt() === 2 && window.PNTwistSlot && !nextFloorBtn.dataset.twisted){ nextFloorBtn.dataset.twisted = "1"; analysisWins.forEach(w => w.close()); await PNTwistSlot.run("vault"); }
   // After three floors, the laser corridor (then the Blueprint); otherwise back to Factor Vault for a new number
   // Feedback: straight to the Blueprint after the third floor (the laser corridor is out of the route for now)
   const next = blueprintReady() ? "vault_blueprint_viewer.html" : "factor_vault.html";

@@ -400,23 +400,55 @@
   };
   // ---------- Twists the teacher allows in the bank rotation (feedback: leave out what hasn't been taught) ----------
   const TWIST_KEY = "primenet_twists_v1";
+  // Round 11: each twist has its own place in the mission, chosen by context (the ceiling relays follow the
+  // blueprint's lights, the key room door comes before the last locks). `page` twists join the rotation;
+  // the others are built into their stage and only use the tick box.
+  const TWIST_POINTS = { scan:"After the Frequency Scan", vault:"Factor Vault (after floor 2)", lights:"Blueprint (after the lights)", getin:"Getting in", hack:"Prime Hack (before lock 3)", finale:"Finale" };
   const TWISTS = [
-    { id:"cubes",      point:"scan",   name:"Ceiling relays (cubes)",  maths:"Cube numbers" },
-    { id:"sieve",      point:"scan",   name:"Motion-sensor sieve",    maths:"Primes and multiples" },
+    { id:"sieve",      point:"scan",   name:"Motion-sensor sieve",    maths:"Primes and multiples", page:"twist_sieve.html" },
     { id:"jammer",     point:"scan",   name:"Jammer",                 maths:"Multiples" },
-    { id:"strongroom", point:"vault",  name:"Square strongroom",      maths:"Square numbers" },
-    { id:"walls",      point:"vault",  name:"Deposit-box walls",      maths:"Factor pairs" },
-    { id:"primefloor", point:"vault",  name:"Fake floor",             maths:"Primes and factor pairs" },
-    { id:"patrols",    point:"getin",  name:"Guard patrols",          maths:"Multiples and LCM" },
+    { id:"strongroom", point:"vault",  name:"Square strongroom",      maths:"Square numbers", page:"twist_strongroom.html" },
+    { id:"walls",      point:"vault",  name:"Deposit-box walls",      maths:"Factor pairs", page:"twist_walls.html" },
+    { id:"primefloor", point:"vault",  name:"Fake floor",             maths:"Primes and factor pairs", page:"twist_primefloor.html" },
+    { id:"cubes",      point:"lights", name:"Ceiling relays (cubes)", maths:"Cube numbers", page:"twist_cubes.html" },
+    { id:"patrols",    point:"getin",  name:"Guard patrols",          maths:"Multiples and LCM", page:"twist_patrols.html" },
     { id:"corridor",   point:"getin",  name:"Laser corridor",         maths:"Factors" },
-    { id:"factortree", point:"hack",   name:"Factor-tree lock",       maths:"Prime factorisation" },
+    { id:"factortree", point:"hack",   name:"Key room door (factor tree)", maths:"Prime factorisation", page:"twist_factortree.html" },
     { id:"blackout",   point:"finale", name:"Server blackout",        maths:"Primes" },
-    { id:"getaway",    point:"finale", name:"Getaway chase",          maths:"Primes" },
+    { id:"getaway",    point:"finale", name:"Getaway chase",          maths:"Primes, squares, cubes" },
   ];
-  function twistsOff(){ try{ const d = JSON.parse(localStorage.getItem(TWIST_KEY) || "{}"); return Array.isArray(d.off) ? d.off : []; }catch(e){ return []; } }
-  function setTwistOn(id, on){ const off = new Set(twistsOff()); if(on) off.delete(id); else off.add(id); try{ localStorage.setItem(TWIST_KEY, JSON.stringify({ off:[...off] })); }catch(e){} }
+  const readTw = () => { try{ return JSON.parse(localStorage.getItem(TWIST_KEY) || "{}") || {}; }catch(e){ return {}; } };
+  const writeTw = d => { try{ localStorage.setItem(TWIST_KEY, JSON.stringify(d)); }catch(e){} };
+  function twistsOff(){ const d = readTw(); return Array.isArray(d.off) ? d.off : []; }
+  function setTwistOn(id, on){ const d = readTw(), off = new Set(Array.isArray(d.off) ? d.off : []); if(on) off.delete(id); else off.add(id); d.off = [...off]; writeTw(d); }
   const twistOn = id => !twistsOff().includes(id);
-  Object.assign(window.Primenet, { TWISTS, twistsOff, setTwistOn, twistOn });
+  // The teacher can make one twist turn up in every mission (e.g. the whole class on square numbers)
+  const twistPin = () => readTw().pin || "";
+  function setTwistPin(id){ const d = readTw(); d.pin = id || ""; writeTw(d); }
+  // How many rotating twists a mission gets
+  const TWISTS_PER_MISSION = 2;
+  // The mission's twist plan: made once per session, then every stage asks it "is there a twist here?".
+  // It avoids the twists this agent had last mission when it can.
+  const PLAN_KEY = "primenet_twistplan_v1";
+  function twistPlan(){
+    const a = getAgent(); if(!a) return {};
+    let st; try{ st = JSON.parse(localStorage.getItem(PLAN_KEY) || "{}") || {}; }catch(e){ st = {}; }
+    if(st.session === a.sessionId && st.picks) return st.picks;
+    const hist = (st.history || {})[a.codename] || [];
+    const pool = TWISTS.filter(t => t.page && twistOn(t.id));
+    const shuffle = arr => arr.map(v => [Math.random(), v]).sort((x, y) => x[0] - y[0]).map(x => x[1]);
+    const fresh = shuffle(pool.filter(t => !hist.includes(t.id))), stale = shuffle(pool.filter(t => hist.includes(t.id)));
+    const picks = {};
+    const pin = TWISTS.find(t => t.id === twistPin() && t.page && twistOn(t.id));
+    if(pin) picks[pin.point] = pin.id;
+    for(const t of [...fresh, ...stale]){ if(Object.keys(picks).length >= TWISTS_PER_MISSION) break; if(!picks[t.point]) picks[t.point] = t.id; }
+    st.session = a.sessionId; st.picks = picks; st.history = st.history || {}; st.history[a.codename] = Object.values(picks);
+    try{ localStorage.setItem(PLAN_KEY, JSON.stringify(st)); }catch(e){}
+    return picks;
+  }
+  const twistAt = point => { const id = twistPlan()[point]; return id ? TWISTS.find(t => t.id === id) : null; };
+  function setTwistPlan(picks){ const a = getAgent(); if(!a) return; let st; try{ st = JSON.parse(localStorage.getItem(PLAN_KEY) || "{}") || {}; }catch(e){ st = {}; } st.session = a.sessionId; st.picks = picks; try{ localStorage.setItem(PLAN_KEY, JSON.stringify(st)); }catch(e){} }
+  Object.assign(window.Primenet, { TWISTS, TWIST_POINTS, twistsOff, setTwistOn, twistOn, twistPin, setTwistPin, twistPlan, twistAt, setTwistPlan });
 
   applyPrefs();   // every page opens with the current agent's settings
 
@@ -424,6 +456,7 @@
   // Bottom-left, small. Asks first, because leaving part-way through a stage loses that stage's progress.
   function homeButton(){
     if(!/\/modules\//.test(location.pathname.replace(/\\/g, "/"))) return;
+    if(window.parent !== window) return;   // a twist playing inside a mission stage
     const st = document.createElement("style");
     st.textContent = `.pn-home{ all:unset; box-sizing:border-box; position:fixed; left:0; top:50%; transform:translateY(-50%); z-index:99990; writing-mode:vertical-rl; rotate:180deg;
         font-family:"Chakra Petch","Inter",system-ui,sans-serif; font-weight:700; font-size:11px; letter-spacing:.2em; color:rgba(235,255,248,.75);
