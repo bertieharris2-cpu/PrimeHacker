@@ -102,6 +102,7 @@
   }
 
   function finish({ ok = true, title, lines = [], note = "" }){
+    if(document.querySelector(".tw-result")) return;   // one result screen only (a twist could end twice)
     const ov = document.createElement("div"); ov.className = "tw-result" + (ok ? "" : " fail");
     const next = qs.get("next");
     ov.innerHTML = `<div class="card" role="dialog" aria-modal="true" aria-labelledby="twResT"><h2 id="twResT">${title || (ok ? "TWIST CLEARED" : "ALARM TRIPPED")}</h2>
