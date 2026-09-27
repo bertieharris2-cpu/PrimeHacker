@@ -120,11 +120,12 @@
   // ----- Stage 2: the pressure plates, in perspective. Square numbers are live; mark them, then the agent crosses -----
   const PC = { L1: { cols: 8, rows: 6, lo: 1, hi: 48 }, L2: { cols: 8, rows: 5, lo: 40, hi: 150 }, L3: { cols: 8, rows: 5, lo: 100, hi: 400 } }[L];
   let plates = [], live = [], found = 0;
-  const VW = 900, VH = 360, CX = VW / 2, CY = 40, FOC = 520;
+  const VW = 900, VH = 380, CX = VW / 2, CY = 8, FOC = 350;   // near row at the bottom, the safe at the top
   const P = (X, Z) => [CX + X / Z * FOC, CY + 1.1 / Z * FOC];   // the floor at Y = 1.1, seen from above the doorway
   const quad = (x0, x1, z0, z1) => [P(x0, z0), P(x1, z0), P(x1, z1), P(x0, z1)].map(p => p.map(v => v.toFixed(1)).join(",")).join(" ");
   function step2(){
     $("build").hidden = true; $("plates").hidden = false; $("st1").className = "done"; $("st2").className = "on";
+    $("stage").style.transition = "height .6s"; $("stage").style.height = "140px";   // make room for the plates
     T.setGoal("The <b>square-numbered</b> plates are live. Tap every one so the agent can walk round them to the safe.");
     F.flyTo({ pos: new TH.Vector3(target.x, 26, target.z + 18), look: new TH.Vector3(target.x, 0, target.z - 4) }, 1400);
     $("hud").textContent = "INSIDE THE STRONGROOM";
@@ -145,7 +146,7 @@
     const [sx, sy] = P(0, zs[PC.rows] + 0.25);
     g += `<g transform="translate(${sx},${sy - 18})"><rect x="-26" y="-14" width="52" height="30" fill="#2a2a2a" stroke="#ffc94d" stroke-width="2"/><circle cx="0" cy="1" r="8" fill="none" stroke="#ffc94d" stroke-width="2"/><text x="0" y="-20" text-anchor="middle" fill="#ffc94d" font-size="12" font-family="Chakra Petch" letter-spacing="2">SAFE</text></g>`;
     const [dx, dy] = P(0, 1.1);
-    g += `<circle id="agent" cx="${dx}" cy="${dy + 8}" r="9" fill="#6ec8ff" stroke="#fff" stroke-width="2"/>`;
+    g += `<circle id="agent" cx="${dx}" cy="${Math.min(VH - 12, dy)}" r="9" fill="#6ec8ff" stroke="#fff" stroke-width="2"/>`;
     $("plates").innerHTML = `<svg viewBox="0 0 ${VW} ${VH}">${g}</svg>`;
     $("plates").querySelector("svg").addEventListener("click", e => { const p = e.target.closest(".plate"); if(p) tapPlate(p); });
     $("bar").textContent = `Live plates found: 0 of ${live.length}`;

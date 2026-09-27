@@ -124,7 +124,7 @@
   $("nLab").textContent = `N = ${N}`; $("gridLab").textContent = `${W} × ${H} SQUARES`;
   $("total").textContent = P.pieces.length;
   const roomArea = P.pieces.reduce((s, p) => s + p.a * p.b, 0);
-  $("area").innerHTML = `Rooms: <b>${P.pieces.length} × ${N}</b> = ${roomArea} squares · floor has ${W * H - P.blocked.length * 4} free`;
+  $("area").innerHTML = `${P.pieces.length} rooms of <b>${N}</b> squares = ${roomArea} squares · the floor has ${W * H - P.blocked.length * 4} free`;
 
   // Board
   const C = Math.max(22, Math.min(40, Math.floor(Math.min(460 / W, 400 / H))));
