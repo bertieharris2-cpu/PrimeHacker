@@ -125,9 +125,11 @@
   }
   $("keys").addEventListener("click", e => { const b = e.target.closest("button"); if(b) press(b.dataset.k); });
   document.addEventListener("keydown", e => {
-    if(!keypadOn || T.briefOpen()) return;   // while the brief is up, ENTER means GOT IT, not a code
+    if(!keypadOn) return;
+    const codeKey = /^[0-9]$/.test(e.key) || e.key === "*" || e.key === " " || e.key.toLowerCase() === "x" || e.key === "^";
+    if(T.briefOpen()){ if(codeKey){ T.hideBrief(); } else return; }   // typing a code folds the brief away; ENTER still means GOT IT
     if(/^[0-9]$/.test(e.key)) press(e.key);
-    else if(e.key === "*" || e.key.toLowerCase() === "x") press("×");
+    else if(e.key === "*" || e.key === " " || e.key.toLowerCase() === "x"){ e.preventDefault(); press("×"); }
     else if(e.key === "^") press("^");
     else if(e.key === "Backspace") press("⌫");
     else if(e.key === "Enter"){ e.preventDefault(); press("ENTER"); }
@@ -138,9 +140,14 @@
     if(L !== "L3") return pf.join(" × ");
     return [...new Set(pf)].map(p => { const c = pf.filter(x => x === p).length; return c > 1 ? `${p}^${c}` : `${p}`; }).join(" × ");
   }
+  // Bertie couldn't open the door: order shouldn't matter (the primes are the same), so compare the primes, not the text
+  const expand = str => str.split("×").map(t => t.trim()).filter(Boolean).flatMap(t => { const [b, e] = t.split("^").map(Number); return Array(Number.isInteger(e) && e > 0 ? e : 1).fill(b); });
   function check(){
     const want = codeFor(locks[k]), got = typed.replace(/\s+/g, " ").trim();
-    if(got === want){
+    const mine = expand(got).sort((a, b) => a - b), theirs = primeFactors(locks[k]);
+    const powersOk = L !== "L3" || new Set(theirs).size === theirs.length || got.includes("^");
+    if(mine.length && mine.join() === theirs.join() && powersOk){
+      typed = want;
       screen.textContent = `${locks[k]} = ${want} ✓`; T.SND("verified");
       $("bolt" + k).classList.add("off"); T.SND("clamp");
       setKeypad(false); screen.textContent = `BOLT ${k + 1} RELEASED`;
@@ -152,7 +159,8 @@
     slips++;
     screen.classList.add("bad");
     const pf = primeFactors(locks[k]);
-    const hint = got.split(/[×\s]+/).filter(Boolean).map(s => +s.split("^")[0]).some(v => !T.isPrime(v)) ? "Only primes go in the code." : (L === "L3" && !got.includes("^") && pf.length !== new Set(pf).size) ? "Use powers for repeated primes, like 2^2." : "Check your tree: smallest prime first, and every prime counted.";
+    const made = mine.reduce((a, b) => a * b, 1);
+    const hint = !mine.length ? "Key in the primes with × between them." : mine.some(v => !T.isPrime(v)) ? `Only primes go in the code. ${mine.find(v => !T.isPrime(v))} isn't prime.` : made !== locks[k] ? `Your code makes ${made}, not ${locks[k]}. Check every prime in your tree is there.` : "Use powers for repeated primes, like 2^2.";
     screen.textContent = "DENIED"; say(hint, "bad"); T.SND("denied"); alarm.hit();
     setTimeout(() => { if(!over){ screen.classList.remove("bad"); screen.textContent = typed || "_"; } }, 900);
   }
@@ -220,8 +228,8 @@
     say(`${n} = ${a} × ${c}.${primes.length ? ` ${primes.join(" and ")} ${primes.length === 1 ? "is" : "are"} prime.` : ""}`, "ok");
     if(!$("tree").querySelector(".val:not(.prime):not(.split)")){
       say("Every branch ends in a prime. Keypad unlocked.", "ok");
-      brief("keypad", L === "L3" ? `Key in the primes of <b>${locks[k]}</b>, <b>smallest first</b>. Use <b>powers</b> for repeats, like 2^3 × 5. Then press <b>ENTER</b>.`
-        : `Key the primes of <b>${locks[k]}</b> into the keypad, <b>smallest first</b>, with × between them. Then press <b>ENTER</b>.`);
+      brief("keypad", L === "L3" ? `Key in the primes of <b>${locks[k]}</b>, smallest first. Use <b>powers</b> for repeats, like 2^3 × 5. Then press <b>ENTER</b>.`
+        : `Key the primes of <b>${locks[k]}</b> into the keypad, with × between them. Then press <b>ENTER</b>.`);
       setKeypad(true); T.SND("ready");
       $("keys").scrollIntoView({ block: "nearest", behavior: "smooth" });
     }

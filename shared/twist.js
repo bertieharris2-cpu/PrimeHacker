@@ -28,7 +28,7 @@
     transition:transform .42s cubic-bezier(.2,1.1,.35,1), opacity .3s, filter .3s; }
   .twb-layer.open .twb-win{ transform:translate(-50%,-50%); opacity:1; filter:none; }
   .twb-win .hw{ position:relative; color:#dff8ff; font-family:var(--font-mono, "Courier Prime", monospace);
-    background:linear-gradient(160deg, rgba(110,220,255,.20), rgba(110,220,255,.07) 60%, rgba(110,220,255,.13));
+    background:linear-gradient(160deg, rgba(14,52,64,.9), rgba(6,30,38,.86) 60%, rgba(12,46,58,.9));   /* Bertie: a bit more opaque */
     border:1px solid rgba(140,235,255,.8); box-shadow:0 0 34px rgba(110,220,255,.4), inset 0 0 40px rgba(110,220,255,.14);
     clip-path:polygon(0 14px, 14px 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%);
     backdrop-filter:blur(5px); -webkit-backdrop-filter:blur(5px); animation:twbFlick 5s infinite; }
