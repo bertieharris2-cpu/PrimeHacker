@@ -57,7 +57,7 @@
   "use strict";
   const T = window.PNTwist, $ = id => document.getElementById(id);
   const L = T.init({ id: "walls", stage: "FACTOR VAULT", title: "DEPOSIT-BOX WALLS",
-    goal: T.peekLevel() === "L1" ? "Which rectangles of boxes fit on the wall? Tap a rectangle to try it on the wall first." : "Which rectangles of boxes <b>fit on the wall</b>? They can be turned round.",
+    goal: T.peekLevel() === "L1" ? "Which rectangles of boxes fit on the wall? Drag boxes out on the wall, or tap a rectangle to try it." : "Which rectangles of boxes <b>fit on the wall</b>? They can be turned round.",
     example: "On a wall 8 wide and 6 high, 4 × 6 fits (4 high, 6 wide). 2 × 12 doesn't: 12 is too wide and too tall.",
     story: `The key is in ${T.targets()} deposit boxes. The boxes are fitted into the vault wall in rectangles. Work out which rectangles fit, and we'll know where to look.` });
   // [N, wall width, wall height], chosen so some pairs only fit turned round and some don't fit at all
@@ -101,6 +101,18 @@
     const over = rows > H || cols > W;
     $("wallNote").textContent = `${rows} high × ${cols} wide${over ? `: too ${rows > H && cols > W ? "tall and too wide" : rows > H ? "tall" : "wide"} for this wall` : ": it fits"}. Tap it again to turn it round.`;
     T.SND("plot");
+  }
+  // L1 scaffold: drag out rectangles on the wall to experiment (removed at L2 and L3)
+  if(L === "L1"){
+    const wall = $("wall"); wall.style.touchAction = "none"; wall.style.cursor = "crosshair";
+    let anchor = null, cur = null;
+    const cellAt = e => { const t = document.elementFromPoint(e.clientX, e.clientY); return t && t.parentElement === wall ? { r: +t.dataset.r, c: +t.dataset.c } : null; };
+    const paint = () => { const r0 = Math.min(anchor.r, cur.r), r1 = Math.max(anchor.r, cur.r), c0 = Math.min(anchor.c, cur.c), c1 = Math.max(anchor.c, cur.c), h = r1 - r0 + 1, w = c1 - c0 + 1, N = rounds[r][0];
+      hue = 200; wall.querySelectorAll("i").forEach(i => { const on = +i.dataset.r >= r0 && +i.dataset.r <= r1 && +i.dataset.c >= c0 && +i.dataset.c <= c1; i.classList.toggle("box", on); if(on) i.style.setProperty("--h", hue); });
+      $("wallNote").textContent = `${h} high × ${w} wide = ${h * w} boxes${h * w === N ? ` ✓ that's all ${N}` : ` (need ${N})`}`; };
+    wall.addEventListener("pointerdown", e => { if(over) return; const c = cellAt(e); if(!c) return; e.preventDefault(); wall.setPointerCapture(e.pointerId); anchor = cur = c; paint(); T.SND("tag"); });
+    wall.addEventListener("pointermove", e => { if(!anchor) return; const c = cellAt(e); if(c && (c.r !== cur.r || c.c !== cur.c)){ cur = c; paint(); T.SND("plot"); } });
+    wall.addEventListener("pointerup", () => { anchor = cur = null; });
   }
   function show(a, b){
     const [N, W, H] = rounds[r];

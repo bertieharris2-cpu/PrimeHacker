@@ -376,9 +376,9 @@ html.term-cycle .terminal{ animation:termCycle 8s linear infinite; }
 .cf-badges span.bn{ display:inline-flex; align-items:center; gap:8px; font-size:14px; }
 
 /* ===== Round 3 group 5: combination dial and trace meter ===== */
-.lockRig{ position:absolute; top:18px; right:18px; width:210px; z-index:4; display:flex; flex-direction:column; gap:10px; align-items:center;
+.lockRig{ position:absolute; top:18px; right:18px; width:260px; z-index:4; display:flex; flex-direction:column; gap:10px; align-items:center;
   background:rgba(3,12,14,.82); border:1px solid rgba(var(--accent-rgb),.35); padding:12px 12px 14px; font-family:var(--font-ui); }
-.terminalWindow.hasRig .terminal{ padding-right:236px; }
+.terminalWindow.hasRig .terminal{ padding-right:288px; }
 .lockRig .rigTitle{ font-size:11px; letter-spacing:.2em; color:var(--muted, rgba(235,255,248,.6)); align-self:stretch; display:flex; justify-content:space-between; }
 .lockRig .rigTitle b{ color:#ffe14d; font-family:var(--font-mono); letter-spacing:.04em; font-size:14px; }
 .lockRig svg{ width:176px; height:196px; overflow:visible; }
@@ -388,33 +388,36 @@ html.term-cycle .terminal{ animation:termCycle 8s linear infinite; }
 @keyframes rigJam{ 20%{ transform:translateX(-6px); } 40%{ transform:translateX(6px); } 60%{ transform:translateX(-4px); } 80%{ transform:translateX(3px); } }
 .lockRig .tumblers{ display:flex; gap:8px; align-self:stretch; }
 .lockRig .rigScreen{ align-self:stretch; background:#020a0c; border:1px solid rgba(var(--accent-rgb),.35); padding:8px 10px; font-family:var(--font-mono); min-height:58px; display:flex; flex-direction:column; justify-content:center; gap:4px; }
-.lockRig .rigHex{ font-size:11px; color:rgba(110,200,255,.7); letter-spacing:.06em; min-height:1.2em; white-space:nowrap; overflow:hidden; }
-.lockRig .rigStat{ font-size:12px; letter-spacing:.08em; color:rgba(235,255,248,.6); }
+.lockRig .rigHex{ font-size:12px; color:rgba(110,200,255,.7); letter-spacing:.06em; min-height:1.2em; white-space:nowrap; overflow:hidden; }
+.lockRig .rigStat{ font-size:14px; letter-spacing:.08em; color:rgba(235,255,248,.6); }
 .lockRig .rigStat.ok{ color:#2fbf8a; } .lockRig .rigStat.bad{ color:#ff6b6b; }
 .lockRig .tumbler.busy span{ color:#ffe14d; }
 /* The orange-yellow gradient (feedback: "the colours add something different"), filling one step per cracked lock */
 .pnt{ bottom:64px !important; }   /* teacher tools sit above the HUD bar */
 .breach{ align-self:stretch; display:flex; flex-direction:column; gap:4px; }
 .breach .tl{ display:flex; justify-content:space-between; font-size:11px; letter-spacing:.18em; color:rgba(235,255,248,.6); }
+.breach .tl small{ font-size:10px; letter-spacing:.06em; color:rgba(235,255,248,.45); margin-left:6px; }
 .breach .tl b{ font-family:var(--font-mono); letter-spacing:.02em; color:#ffc94d; }
 .breach .bar{ height:12px; border:1px solid rgba(255,159,67,.6); background:rgba(0,0,0,.4); position:relative; overflow:hidden; }
 .breach .bar i{ position:absolute; left:0; top:0; bottom:0; width:0; background:linear-gradient(90deg, #ffe14d, #ffb347 55%, #ff7a1a); box-shadow:0 0 12px rgba(255,159,67,.6); transition:width .9s cubic-bezier(.3,.7,.3,1); }
 /* Wall breached: a block in the terminal instead of holograms */
-.wallBlock{ border:1px solid rgba(255,159,67,.55); background:rgba(40,20,0,.25); padding:10px 12px; margin:8px 0; display:flex; flex-direction:column; gap:6px; font-family:var(--font-mono); }
-.wallBlock .wb-h{ font-family:var(--font-ui, sans-serif); font-weight:700; font-size:22px; letter-spacing:.2em; color:#ffc94d; text-shadow:0 0 16px rgba(255,159,67,.5); }
+.wallBlock{ border:1px solid rgba(255,159,67,.45); background:rgba(40,20,0,.2); padding:6px 10px; margin:6px 0; display:flex; flex-direction:column; gap:4px; font-family:var(--font-mono); font-size:15px; max-width:560px; }
+.wallBlock .wb-h{ font-family:var(--font-ui, sans-serif); font-weight:700; font-size:15px; letter-spacing:.18em; color:#ffc94d; text-shadow:0 0 10px rgba(255,159,67,.4); display:flex; gap:14px; flex-wrap:wrap; }
+.wallBlock .wb-h span{ font-family:var(--font-mono); letter-spacing:0; color:#9fffd4; font-weight:400; }
 .wallBlock .wb-k{ color:#9fffd4; } .wallBlock .wb-k .pk{ color:#ff9ae9; }
-.wallBlock .wb-bar{ height:10px; border:1px solid rgba(255,159,67,.6); background:rgba(0,0,0,.4); position:relative; overflow:hidden; }
+.wallBlock .wb-bar{ height:6px; border:1px solid rgba(255,159,67,.6); background:rgba(0,0,0,.4); position:relative; overflow:hidden; }
 .wallBlock .wb-bar i{ position:absolute; left:0; top:0; bottom:0; width:0; background:linear-gradient(90deg, #ffe14d, #ffb347 55%, #ff7a1a); }
-.wallBlock .wb-m{ display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap; color:rgba(235,255,248,.75); font-size:14px; }
+.wallBlock .wb-m{ display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap; color:rgba(235,255,248,.7); font-size:13px; }
 .wallBlock .wb-m b{ color:#ffe14d; }
 .lockRig .tumbler{ flex:1; border:1px solid rgba(var(--accent-rgb),.35); background:rgba(0,0,0,.35); text-align:center; padding:4px 0 5px; }
 .lockRig .tumbler small{ display:block; font-size:9px; letter-spacing:.18em; color:rgba(235,255,248,.45); }
-.lockRig .tumbler span{ font-family:var(--font-mono); font-size:22px; font-weight:700; color:rgba(235,255,248,.35); }
+.lockRig .tumbler span{ font-family:var(--font-mono); font-size:28px; font-weight:700; color:rgba(235,255,248,.35); }
 .lockRig .tumbler.set{ border-color:#ff4fd8; box-shadow:0 0 14px rgba(255,79,216,.35); }
 .lockRig .tumbler.set span{ color:#ff4fd8; }
 .lockRig .tumbler.bad{ border-color:#ff6b6b; } .lockRig .tumbler.bad span{ color:#ff6b6b; }
 .lockRig.open .tumbler.set{ border-color:#2fbf8a; box-shadow:0 0 14px rgba(47,191,138,.45); } .lockRig.open .tumbler.set span{ color:#2fbf8a; }
 .trace{ align-self:stretch; display:flex; flex-direction:column; gap:4px; }
+.trace .tl small{ font-size:10px; letter-spacing:.06em; color:rgba(235,255,248,.45); margin-left:6px; }
 .trace .tl{ display:flex; justify-content:space-between; font-size:11px; letter-spacing:.18em; color:rgba(235,255,248,.6); }
 .trace .tl b{ font-family:var(--font-mono); letter-spacing:.02em; color:#ffe14d; }
 .trace .bar{ height:12px; border:1px solid rgba(255,107,107,.55); background:rgba(0,0,0,.4); position:relative; overflow:hidden; }
@@ -2356,8 +2359,8 @@ const Rig = (() => {
   el.innerHTML = `<div class="rigTitle"><span>KEY DECODER</span><b class="rigN">N = ?</b></div>
     <div class="rigScreen"><div class="rigHex" aria-hidden="true"></div><div class="rigStat">AWAITING KEY</div></div>
     <div class="tumblers"><div class="tumbler t1"><small>PRIME A</small><span>--</span></div><div class="tumbler t2"><small>PRIME B</small><span>--</span></div></div>
-    <div class="breach"><div class="tl"><span>BREACH</span><b class="bv">0/4</b></div><div class="bar"><i></i></div></div>
-    <div class="trace"><div class="tl"><span>TRACE</span><b class="tv">0%</b></div><div class="bar"><i></i></div></div>`;
+    <div class="breach" title="Walls breached so far. It fills a quarter with every lock you crack."><div class="tl"><span>BREACH <small>walls down</small></span><b class="bv">0/4</b></div><div class="bar"><i></i></div></div>
+    <div class="trace" title="How close their security is to finding you. Wrong answers push it up; at 100% they swap the lock for a new number."><div class="tl"><span>TRACE <small>security finding you</small></span><b class="tv">0%</b></div><div class="bar"><i></i></div></div>`;
   if(win){ win.appendChild(el); win.classList.add("hasRig"); }
   const t1 = el.querySelector(".t1"), t2 = el.querySelector(".t2"), stat = el.querySelector(".rigStat"), hexEl = el.querySelector(".rigHex");
   let gen = 0;     // each new answer bumps this, so an older animation stops where it is
@@ -2498,8 +2501,7 @@ async function lockCard(lockIdx, withdrawn, p, q){
   const take = Bank.getRunEarnings();
   SFX("lock");
   if(typeof Rig !== "undefined" && Rig.setBreach) Rig.setBreach(lockIdx);
-  const box = addBlock(`<div class="wb-h">WALL ${lockIdx} BREACHED</div>
-    <div class="wb-k">key <span class="pk">${p}</span> × <span class="pk">${q}</span> = ${p * q} ✓ both prime</div>
+  const box = addBlock(`<div class="wb-h">WALL ${lockIdx} BREACHED <span>${p} × ${q} = ${p * q} ✓</span></div>
     <div class="wb-bar"><i></i></div>
     <div class="wb-m"><span>${acct.name.toUpperCase()} · balance <b class="bal"></b></span><span>taken <b class="tk"></b></span></div>`, "wallBlock");
   const bal = box.querySelector(".bal"), tk = box.querySelector(".tk"), fill = box.querySelector(".wb-bar i");

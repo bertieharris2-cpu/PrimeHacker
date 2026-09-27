@@ -280,3 +280,12 @@ Every idea is a "maybe until I see it". Build these as prototypes to look at bef
   4. Every twist has a one-line GOAL and an example; the story is ORACLE's message. "Prime floor trap" is now "Fake floor"; deposit-box walls is "fits / doesn't fit" (no basement)
   5. Teacher controls: "Twists in the bank heist" tick boxes; the Twist Lab marks any that are switched off
 - [ ] Next: wire the rotation into the mission, using the ticked twists
+
+## Review round 8 (by level)
+
+- [x] Title screen shows the last agent again after a run (codename and level filled in, "Welcome back")
+- [x] Prime Hack: "wall breached" block is a compact line with a thin bar; key decoder is larger; TRACE and BREACH have plain labels ("security finding you", "walls down") and hover explanations
+- [x] Factor tree: one click per split. Each number still to split shows ÷2 ÷3 ÷5 ÷7 (and 11, 13 at L3); "a × b" still lets you type a pair
+- [x] Square strongroom L3: drag along a line to set the side length instead of typing
+- [x] Deposit-box walls L1: drag out rectangles on the wall to experiment; tapping a rectangle still tries it (scaffold only at L1)
+- Proposed (awaiting decision): merge square channels + square strongroom into one square task (draw squares, then find them on a grid) and do the same for cubes (L1 build, L2 draw layers, L3 cube root, each followed by finding cubes on a grid); narratives for each twist

@@ -17,12 +17,16 @@
   .node{ display:flex; flex-direction:column; align-items:center; gap:10px; }
   .kids{ display:flex; gap:26px; position:relative; padding-top:10px; }
   .kids::before{ content:""; position:absolute; top:0; left:25%; right:25%; border-top:1px solid rgba(var(--accent-rgb),.5); }
-  .val{ font:inherit; font-family:var(--font-mono); font-size:22px; font-weight:700; min-width:64px; padding:8px 12px; background:rgba(8,26,31,.95); border:1px solid rgba(var(--accent-rgb),.6); color:var(--text-primary); cursor:pointer; }
-  .val:hover{ border-color:var(--warning); }
+  .val{ font-family:var(--font-mono); font-size:22px; font-weight:700; min-width:64px; text-align:center; padding:8px 12px; background:rgba(8,26,31,.95); border:1px solid rgba(var(--accent-rgb),.6); color:var(--text-primary); }
   .val:focus-visible{ outline:2px solid var(--warning); outline-offset:2px; }
   .val.prime{ cursor:default; border-color:#ffc94d; color:#fff3cf; background:rgba(255,201,77,.18); box-shadow:0 0 12px rgba(255,201,77,.3); }
   .val.split{ cursor:default; opacity:.8; }
-  .val.open{ border-color:var(--warning); }
+  .chips{ display:flex; gap:4px; flex-wrap:wrap; justify-content:center; max-width:220px; }
+  .chip{ font:inherit; font-family:var(--font-mono); font-size:15px; font-weight:700; padding:5px 8px; background:rgba(0,0,0,.35); color:#9fffd4; border:1px solid rgba(var(--accent-rgb),.5); cursor:pointer; }
+  .chip:hover{ border-color:var(--warning); color:#fff; }
+  .chip:focus-visible{ outline:2px solid var(--warning); outline-offset:2px; }
+  .chip.no{ border-color:#ff6b6b; color:#ff6b6b; }
+  .chip.other{ color:var(--text-muted); font-weight:400; font-size:13px; }
   .val:not(.prime):not(.split){ border-style:dashed; }   /* still to split */
   .splitf{ display:flex; gap:6px; align-items:center; font-size:18px; }
   .splitf input{ width:58px; font-size:18px; text-align:center; padding:5px; }
@@ -54,27 +58,37 @@
   const L = T.peekLevel();
   T.init({ id: "factortree", stage: "PRIME HACK", title: "FACTOR-TREE LOCK",
     goal: L === "L3" ? "Split the number until every branch ends in a <b>prime</b>. Then write the key with powers." : "Split the number until every branch ends in a <b>prime</b>.",
-    example: "Click 12, split it into 3 × 4, then split 4 into 2 × 2. The primes are 2, 2 and 3: 12 = 2 × 2 × 3.",
+    example: "Under 12, press ÷2: it splits into 2 × 6. Under 6, press ÷2 again: 2 × 3. The primes are 2, 2 and 3: 12 = 2 × 2 × 3.",
     story: "Lock 3 wants its number broken all the way down into primes. Build a factor tree." });
   const POOL = { L1: [12, 18, 20, 28, 30, 42, 45, 50], L2: [36, 48, 60, 72, 84, 90, 100, 126], L3: [120, 144, 168, 180, 210, 240, 252, 360] }[L];
   const locks = T.shuffle(POOL).slice(0, 2);
-  let k = 0, over = false, splits = 0, slips = 0, openNode = null;
+  let k = 0, over = false, splits = 0, slips = 0;
   const alarm = T.alarm(3, () => end(false));
   function say(t, cls){ const m = $("msg"); m.textContent = t; m.className = "tw-msg" + (cls ? " " + cls : ""); }
   const primeFactors = n => { const out = []; let m = n; for(let d = 2; d * d <= m; d++) while(m % d === 0){ out.push(d); m /= d; } if(m > 1) out.push(m); return out; };
+  // Feedback: too much clicking then typing. Every number still to split shows prime buttons: one click splits it.
+  // "Type a pair" is still there for anyone who wants to split another way (e.g. 60 into 6 × 10).
+  const CHIPS = { L1: [2, 3, 5, 7], L2: [2, 3, 5, 7], L3: [2, 3, 5, 7, 11, 13] }[L];
   function makeNode(n){
     const wrap = document.createElement("div"); wrap.className = "node"; wrap.dataset.n = n;
-    const b = document.createElement("button"); b.type = "button"; b.className = "val"; b.textContent = n;
+    const b = document.createElement("div"); b.className = "val"; b.textContent = n;
     wrap.appendChild(b);
-    if(T.isPrime(n)){ b.classList.add("prime"); b.title = `${n} is prime`; b.disabled = true; }
-    else b.addEventListener("click", () => openSplit(wrap, n));
+    if(T.isPrime(n)){ b.classList.add("prime"); b.title = `${n} is prime`; return wrap; }
+    const chips = document.createElement("div"); chips.className = "chips";
+    chips.innerHTML = CHIPS.map(p => `<button type="button" class="chip" data-p="${p}" aria-label="Divide ${n} by ${p}">÷${p}</button>`).join("") + `<button type="button" class="chip other" aria-label="Type a factor pair for ${n}">a × b</button>`;
+    chips.querySelectorAll("[data-p]").forEach(c => c.addEventListener("click", () => {
+      if(over) return;
+      const p = +c.dataset.p;
+      if(n % p === 0) return split(wrap, n, p, n / p);
+      slips++; c.classList.add("no"); setTimeout(() => c.classList.remove("no"), 700);
+      say(`${n} ÷ ${p} = ${Math.floor(n / p)} remainder ${n % p}. ${p} doesn't go into ${n}.`, "bad"); alarm.hit();
+    }));
+    chips.querySelector(".other").addEventListener("click", () => openSplit(wrap, n));
+    wrap.appendChild(chips);
     return wrap;
   }
   function openSplit(wrap, n){
-    if(over || wrap.querySelector(".kids")) return;
-    if(openNode && openNode !== wrap){ const f = openNode.querySelector(".splitf"); if(f) f.remove(); openNode.querySelector(".val").classList.remove("open"); }
-    if(wrap.querySelector(".splitf")) return;
-    openNode = wrap; wrap.querySelector(".val").classList.add("open");
+    if(over || wrap.querySelector(".kids") || wrap.querySelector(".splitf")) return;
     const f = document.createElement("form"); f.className = "splitf"; f.autocomplete = "off";
     f.innerHTML = `<label style="position:absolute;left:-9999px" for="a${n}">First factor</label><input class="pn-input" id="a${n}" inputmode="numeric" maxlength="3"> × <label style="position:absolute;left:-9999px" for="b${n}">Second factor</label><input class="pn-input" id="b${n}" inputmode="numeric" maxlength="3"><button class="pn-btn small primary" type="submit">Split</button>`;
     wrap.appendChild(f); f.querySelector("input").focus();
@@ -89,8 +103,9 @@
   }
   function split(wrap, n, a, c){
     const f = wrap.querySelector(".splitf"); if(f) f.remove();
-    const v = wrap.querySelector(".val"); v.classList.remove("open"); v.classList.add("split"); v.disabled = true;
-    openNode = null; splits++;
+    const ch = wrap.querySelector(".chips"); if(ch) ch.remove();
+    const v = wrap.querySelector(".val"); v.classList.add("split");
+    splits++;
     const kids = document.createElement("div"); kids.className = "kids";
     kids.append(makeNode(Math.min(a, c)), makeNode(Math.max(a, c)));
     wrap.appendChild(kids);
@@ -125,7 +140,7 @@
     $("k").textContent = k + 1; $("nLab").textContent = `N = ${n}`; $("key").hidden = true; $("key").innerHTML = "";
     const tree = $("tree"); tree.innerHTML = ""; tree.appendChild(makeNode(n));
     $("leftLab").textContent = "1 to split";
-    say(`Click ${n} to split it into a factor pair.`);
+    say(`Press a prime under ${n} that divides into it.`);
   }
   function nextLock(){ if(over) return; k++; if(k === locks.length) return end(true); T.SND("newlock"); show(); }
   function end(ok){

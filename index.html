@@ -492,6 +492,16 @@
     if(e.key === "Escape" && !overlay.hidden) closeTeacher();
     if(e.key === "Escape" && !pinOverlay.hidden) pinOverlay.hidden = true;
   });
+  // Feedback: after a run, the title screen shows the same agent again so they can go straight back in
+  setTimeout(function welcomeBack(){
+    const last = P.getAgent && P.getAgent();
+    if(!last || !last.codename || codename.value) return;
+    codename.value = last.codename;
+    if(last.level && P.allowedLevels().includes(last.level)) chosen = last.level;
+    renderLevels(); update(); renderIdCard();
+    $("#status").textContent = `Welcome back, agent ${last.codename}. Not you? Type a new codename or press Random.`;
+  }, 0);   // after the rest of this script has set up the ID card
+
   // Twists the teacher allows in the bank rotation
   (function twistRules(){
     const box = $("#twistRules"); if(!box || !P.TWISTS) return;
