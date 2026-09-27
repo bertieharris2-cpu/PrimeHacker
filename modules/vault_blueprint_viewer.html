@@ -872,11 +872,12 @@ function powerUpPrompt(title){
 
       return (async () => {
         // 1. An exploded view: each floor slides in at its own height, well apart, and fills with rooms
-        const GAP = 50;
+        // Feedback round 9: floor 3 sat too high to see; the exploded floors are closer together and lower down
+        const GAP = 38, BASE = -22;
         say('Decrypting floor plans…');
         for(const [k, f] of order.entries()){
           labelFor(f.n)?.classList.remove('waiting');
-          f.group.position.set(-420, k * GAP, 0);
+          f.group.position.set(-420, BASE + k * GAP, 0);
           SND("laser");
           tween(600, e => { f.group.position.x = -420 * (1 - e); });
           f.boxes.forEach((mesh, i) => setTimeout(() => {
@@ -892,10 +893,8 @@ function powerUpPrompt(title){
           const label = labelFor(f.n);
           label?.classList.add('docking');
           say(k === 0 ? `Ground floor locked · N=${f.n}` : `Docking ${f.label.split('—')[0].trim().toLowerCase()} · N=${f.n}`);
-          if(k > 0){
-            const top = f.group.position.y;
-            await tween(560, e => { f.group.position.y = top * (1 - e); }, p => p * p);
-          }
+          const top = f.group.position.y;
+          if(top !== 0) await tween(k ? 560 : 360, e => { f.group.position.y = top * (1 - e); }, p => p * p);
           f.group.position.set(0, 0, 0);
           SND("dock"); ring(f.yOffset + 0.5, f.square ? 0xffc94d : 0x00ffcc);
           label?.classList.remove('docking');
@@ -904,6 +903,8 @@ function powerUpPrompt(title){
 
         // 3. The shell rises around the building, the camera swings round, the beacon lights
         say('Sealing the structure…');
+        // Feedback round 9: ORACLE names the building as soon as its outline appears
+        if(window.PNHandler) PNHandler.once("blueprint", "There it is: {target}, all three floors in one building. Let's look for a way in.");
         shell.visible = true; gridReferences.forEach(g => g.visible = true);
         const camFrom = camera.position.clone(), lookFrom = camLook.clone();
         await Promise.all([
@@ -915,7 +916,6 @@ function powerUpPrompt(title){
         await exterior();
         say(`${PN ? PN.mission().target.toUpperCase() : 'TARGET'} // STRUCTURE ASSEMBLED`);
         SND("success");
-        if(window.PNHandler) PNHandler.once("blueprint", "There it is: {target}, all three floors in one building. Let's look for a way in.");
         await wait(2400);
         await afterAssembly();
       })();

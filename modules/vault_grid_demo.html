@@ -935,7 +935,9 @@ async function triggerIsometricMorph(placements){
   overlay.style.display = "none";
   
   // Fade the flat grid cells to background only (10-15% opacity)
+  // Feedback round 9: the flat squares fade gently into the 3D view instead of vanishing
   cells.forEach(c => {
+    c.style.transition = "opacity 1.6s ease";
     c.style.opacity = "0.1";
   });
   
@@ -985,6 +987,7 @@ async function triggerIsometricMorph(placements){
       canvas.width = Math.floor(canvasW * dpr);
       canvas.height = Math.floor(canvasH * dpr);
       ctx.setTransform(dpr, 0, 0, dpr, horizontalPad * dpr, verticalPad * dpr);
+      window.roofGrid = 0.9;
       renderRectCuboids(ctx, placements, GRID, cellSize, gap, 0, window.extrusionMode);
       
       // Fade in canvas
@@ -995,7 +998,7 @@ async function triggerIsometricMorph(placements){
       await pause(300);
       
       // Start rectangle extrusion animation
-      animateRectExtrusion(canvas, placements, GRID, 1500);
+      animateRectExtrusion(canvas, placements, GRID, 2600);
     }
   }
   
@@ -1222,7 +1225,11 @@ async function droneFlythrough(placements){
   ], { duration: dur, easing: "ease-in-out" });
   const log = hud.querySelector(".log"), alt = hud.querySelector(".a");
   // Keep the room labels pinned to the rooms while the camera moves
-  let live = true; (function follow(){ if(!live) return; rerenderGrid(); requestAnimationFrame(follow); })();
+  // Feedback round 9: a laser sweeps across the floor, showing the square grid of every room as it passes
+  const sweepMs = Math.min(dur * 0.45, 5200), t0 = performance.now();
+  window.sweepTrail = 0.22;
+  SND("scan", sweepMs / 1000);
+  let live = true; (function follow(now){ if(!live) return; const k = ((now || performance.now()) - t0) / sweepMs; window.sweep = k <= 1 ? -1 + k * (GRID + 2) : null; if(k > 1) window.roofGrid = Math.max(window.roofGrid || 0, 0.22); rerenderGrid(); requestAnimationFrame(follow); })();
   const lines = [];
   const altTimer = setInterval(() => { alt.textContent = (8 + Math.random() * 6).toFixed(1); }, 180);
   for(const [i, r] of rooms.entries()){
@@ -1234,36 +1241,67 @@ async function droneFlythrough(placements){
     SND("tag");
   }
   await anim.finished.catch(() => {});
-  live = false;
+  live = false; window.sweep = null;
   clearInterval(altTimer);
   window.gridHighlight = null; rerenderGrid();
   hud.remove();
   floorAnalysis(placements);
 }
 
-// After the drone: a holographic floor analysis. Few factor pairs means few rooms to guard: a weak floor.
+// After the drone: intel on the floor, the kind of thing an agent wants (feedback round 9: no maths here).
+// Each window opens large in the middle, holds, then zooms out to its place, so at the end all three are showing.
 let analysisWins = [];
+function cctvSvg(r){
+  const guard = `<circle r="3.5" fill="#ff6b8a"><animateMotion dur="7s" repeatCount="indefinite" path="M40 92 L150 92 L150 60 L40 60 Z"/></circle>`;
+  return `<svg viewBox="0 0 250 120" style="width:100%;display:block;background:#051014;border:1px solid rgba(140,235,255,.35)">
+    <g stroke="rgba(140,235,255,.45)" fill="none" stroke-width="1">
+      <path d="M0 120 L70 40 L180 40 L250 120"/><path d="M70 40 L70 0 M180 40 L180 0"/><path d="M20 120 L78 52 M230 120 L172 52"/>
+      <rect x="92" y="18" width="34" height="22"/><rect x="138" y="22" width="26" height="18" stroke="rgba(255,230,138,.6)"/>
+    </g>
+    ${guard}
+    <rect width="250" height="120" fill="url(#cctvScan)" opacity=".5"/>
+    <defs><pattern id="cctvScan" width="4" height="4" patternUnits="userSpaceOnUse"><rect width="4" height="1" fill="rgba(160,240,255,.08)"/></pattern></defs>
+    <text x="6" y="12" fill="#ff6b8a" font-size="9" font-family="monospace">● REC</text>
+    <text x="244" y="114" fill="rgba(223,248,255,.8)" font-size="9" font-family="monospace" text-anchor="end" class="cctvClock">02:14:07</text>
+    <text x="6" y="114" fill="rgba(223,248,255,.8)" font-size="9" font-family="monospace">${r}</text>
+  </svg>`;
+}
 async function floorAnalysis(placements){
   if(!window.PNHolo) return;
-  const { pairs, rating } = floorRating(currentN);
-  const strong = placements.some(r => r.w === r.h);
+  const { rating } = floorRating(currentN);
+  const rnd = mulberry32((currentN * 7919) ^ 0x5eed);
+  const pickR = a => a[Math.floor(rnd() * a.length)];
+  const rooms = placements.map(r => roomName(r));
+  const strongRoom = placements.find(r => r.w === r.h);
+  const guards = rating === "WEAK" ? 1 : rating === "SECURE" ? 3 : 2;
+  const nightStart = pickR(["21:30", "22:00", "22:30"]), gapMin = rating === "WEAK" ? 6 : rating === "SECURE" ? 2 : 4;
   const col = rating === "WEAK" ? "bad" : rating === "SECURE" ? "ok" : "yl";
-  const why = rating === "WEAK" ? "Few rooms, few guards. A possible way in." : rating === "SECURE" ? "Lots of rooms to guard. Hard to cross." : "Average security.";
-  // Feedback round 7: flat windows (no tilt) so the text is sharp, and two more windows with the floor's maths
-  const factors = []; for(let d = 1; d <= currentN; d++) if(currentN % d === 0) factors.push(d);
-  const root = Math.sqrt(currentN), sq = Number.isInteger(root), lo = Math.floor(root), hi = lo + 1;
-  const squareHtml = sq
-    ? `<span class="big yl">${currentN} = ${root} × ${root}</span><br>${currentN} <span class="ok">IS</span> a square number.<br><span class="k">One pair repeats a number, so it has an odd number of factors: ${factors.length}. Its square pair is the gold strongroom.</span>`
-    : `Is ${currentN} a square number? <span class="bad">NO</span><br>${lo} × ${lo} = <span class="yl">${lo * lo}</span> is too small<br>${hi} × ${hi} = <span class="yl">${hi * hi}</span> is too big<br><span class="k">No pair repeats, so no strongroom on this floor.</span>`;
+  const camRoom = strongRoom ? "STRONGROOM" : pickR(rooms);
+  const names = ["J. OKAFOR", "M. PATEL", "S. REID", "L. CHEN", "D. EVANS", "A. NOWAK", "R. SINGH", "K. MORGAN"];
+  const log = [0, 1, 2, 3].map(i => { const h = 1 + Math.floor(rnd() * 3), m = Math.floor(rnd() * 60); return { t: `0${h}:${String(m).padStart(2, "0")}`, who: pickR(names), room: pickR(rooms), role: pickR(["GUARD", "GUARD", "CLEANER", "IT"]) }; }).sort((a, b) => a.t.localeCompare(b.t));
   const list = [
-    { title: `FLOOR ANALYSIS · N=${currentN}`, flag: rating, x: 86, y: 26, w: 290,
-      html: `ROOMS <span class="yl">${placements.length}</span> (${pairs} factor pair${pairs === 1 ? "" : "s"}, both ways round)<br>DOORS <span class="yl">${placements.length}</span> · FIRE EXITS <span class="yl">1</span><br>${strong ? '<span class="yl">STRONGROOM</span> present<br>' : ""}SECURITY <span class="${col}">${rating}</span><br><span class="k">${why}</span>` },
-    { title: `FACTORS OF ${currentN}`, flag: `${factors.length} FOUND`, x: 14, y: 26, w: 270,
-      html: `<span class="big">${factors.map((f, i) => i < factors.length / 2 ? `<span class="ok">${f}</span>` : `<span class="yl">${f}</span>`).join(" ")}</span><br><span class="k">Each <span class="ok">green</span> factor pairs with a <span class="yl">gold</span> one: ${factors.slice(0, Math.ceil(factors.length / 2)).map(f => `${f}×${currentN / f}`).join(", ")}.</span>` },
-    { title: "SQUARE CHECK", flag: sq ? "SQUARE" : "NOT SQUARE", x: 14, y: 64, w: 270, html: squareHtml },
+    { title: "SHIFT ROTA", flag: `SECURITY ${rating}`, x: 15, y: 26, w: 300,
+      html: `DAY &nbsp;&nbsp;07:00–15:00 · <span class="yl">${guards + 2}</span> guards<br>EVE &nbsp;&nbsp;15:00–${nightStart} · <span class="yl">${guards + 1}</span> guards<br>NIGHT ${nightStart}–07:00 · <span class="yl">${guards}</span> guard${guards === 1 ? "" : "s"}<br><span class="k">Shift change at ${nightStart}: the floor is empty for <span class="${col}">${gapMin} min</span>.</span>` },
+    { title: `CCTV · CAM 0${1 + Math.floor(rnd() * 8)}`, flag: "LIVE", x: 85, y: 30, w: 280,
+      html: `${cctvSvg(camRoom)}<span class="k">Camera pans every 12 s. Blind spot by the ${pickR(rooms).toLowerCase()} door.</span>` },
+    { title: "KEYCARD LOG", flag: "LAST NIGHT", x: 15, y: 68, w: 300,
+      html: log.map(l => `${l.t} <span class="yl">${l.role}</span> ${l.who}<br><span class="k">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ${l.room}</span>`).join("<br>") + (strongRoom ? `<br><span class="k">No one swiped into the <span class="yl">strongroom</span>.</span>` : "") },
   ];
   analysisWins = [];
-  for(const w of list){ analysisWins.push(PNHolo.open({ ...w, tilt: 0 })); await PNHolo.wait(380); }
+  const sp = () => (window.PNTest ? PNTest.speed() : 1);
+  for(const w of list){
+    const win = PNHolo.open({ ...w, x: 50, y: 46, tilt: 0 });
+    analysisWins.push(win);
+    win.el.style.transform = "translate(-50%,-50%) scale(1.45)";
+    SND("holo");
+    await PNHolo.wait(1900);
+    win.el.style.transition = "left .9s ease, top .9s ease, transform .9s ease";
+    win.el.style.left = w.x + "%"; win.el.style.top = w.y + "%"; win.el.style.transform = "translate(-50%,-50%) scale(1)";
+    await PNHolo.wait(950);
+  }
+  // A ticking CCTV clock
+  const clock = document.querySelector(".cctvClock");
+  if(clock){ let t = 2 * 3600 + 14 * 60 + 7; const iv = setInterval(() => { if(!document.body.contains(clock)) return clearInterval(iv); t++; clock.textContent = [Math.floor(t / 3600), Math.floor(t / 60) % 60, t % 60].map(x => String(x).padStart(2, "0")).join(":"); }, 1000); }
 }
 
 // ====== 3D CUBOID RECTANGLE RENDERER ======
@@ -1389,6 +1427,21 @@ function drawCuboid(ctx, rect, cellSize, gap, heightPx, mode=1){
   ctx.closePath();
   ctx.fill();
   
+  // Feedback round 9: the array's unit squares on the roof. Strong while the floor is flat, fading as the room
+  // rises; the drone's laser sweep lights them up again as it passes and leaves them faintly showing.
+  const base = window.roofGrid || 0, sw = window.sweep, step = cellSize + gap;
+  if(base > 0.01 || sw != null){
+    ctx.lineWidth = 1;
+    for(let i = 0; i < rect.w; i++){
+      const col = rect.x + i + 0.5;
+      let a = base;
+      if(sw != null){ const d = col - sw; a = Math.max(a, Math.exp(-d * d / 1.5) * 0.95, d < 0 ? (window.sweepTrail || 0) : 0); }
+      if(a < 0.02) continue;
+      ctx.strokeStyle = `rgba(190, 255, 235, ${a.toFixed(3)})`;
+      for(let j = 0; j < rect.h; j++) ctx.strokeRect(x0 + i * step + hx + 0.5, y0 + j * step + hy + 0.5, cellSize - 1, cellSize - 1);
+    }
+  }
+
   // EDGE STROKES
   ctx.strokeStyle = colors.edge;
   ctx.lineWidth = 1.2;
@@ -1428,7 +1481,8 @@ function drawCuboid(ctx, rect, cellSize, gap, heightPx, mode=1){
 
 // Render all rectangles as extruded cuboids with painter's algorithm
 function renderRectCuboids(ctx, rects, GRID, cellSize, gap, heightPx, mode=1){
-  ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+  // Clear the whole canvas, padding included (the context is translated by the padding)
+  ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height); ctx.restore();
   
   // Draw faint floor grid first (underneath extrusions)
   ctx.strokeStyle = "rgba(17, 75, 95, 0.15)";
@@ -1491,6 +1545,16 @@ function renderRectCuboids(ctx, rects, GRID, cellSize, gap, heightPx, mode=1){
     drawCuboid(ctx, rect, cellSize, gap, heightPx, mode);
   }
   if(heightPx > 1) wall(0, full, full, full, 0.07);
+  // The drone's laser: a bright line across the floor with a thin light curtain up to roof height
+  if(window.sweep != null && window.sweep > -1 && window.sweep < GRID + 1){
+    const lx = window.sweep * step0, rh = mc.hx(heightPx), rv = mc.hy(heightPx);
+    ctx.fillStyle = "rgba(120, 255, 220, 0.10)";
+    ctx.beginPath(); ctx.moveTo(lx, 0); ctx.lineTo(lx, full); ctx.lineTo(lx + rh, full + rv); ctx.lineTo(lx + rh, rv); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = "rgba(150, 255, 230, 0.95)"; ctx.lineWidth = 2; ctx.shadowColor = "rgba(120,255,220,1)"; ctx.shadowBlur = 10;
+    ctx.beginPath(); ctx.moveTo(lx + rh, rv); ctx.lineTo(lx + rh, full + rv); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(lx, 0); ctx.lineTo(lx, full); ctx.stroke();
+    ctx.shadowBlur = 0;
+  }
 
   // Labels on the rooms, as crisp HTML over the view (text painted on the tilted canvas looked pixelated)
   if(heightPx > 1){
@@ -1603,7 +1667,9 @@ function animateRectExtrusion(canvas, rects, GRID, duration=650){
   
   function frame(now){
     const t = Math.min(1, (now - start) / duration);
-    const heightPx = easeOutCubic(t) * targetHeight;
+    // The first third holds the flat arrays while their squares fade; then the rooms rise
+    window.roofGrid = Math.max(0, 1 - t * 2.4) * 0.9;
+    const heightPx = easeOutCubic(Math.max(0, (t - 0.18) / 0.82)) * targetHeight;
     
     renderRectCuboids(ctx, rects, GRID, cellSize, gap, heightPx, window.extrusionMode);
     
