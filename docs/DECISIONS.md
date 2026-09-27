@@ -172,3 +172,13 @@ Every idea is a "maybe until I see it". Build these as prototypes to look at bef
 - [x] Getaway: the cartoon van and police car are replaced by a live tracking map (generated streets and route, police units flashing behind, the gap in metres, radio chatter)
 - [x] Between cracked locks, a short burst of generated code (bolt released with the student's primes, key rotation, hex, the next lock's modulus) runs before the next lock's banner
 
+
+## Play-test feedback 4
+
+- [x] Live intercept at L1 slowed down (14 signals, each on screen about 5.5 seconds); L2 and L3 unchanged
+- [x] Buffer charge: once a stage is full, extra keys no longer type code; PRESS SPACE nudges instead
+- [x] Prime Hack hint only appears after three wrong tries on a lock, and sits outside the terminal: in the left margin on wide screens, under the lock on narrower ones. No "Lock cracked" hint any more
+- [x] A cracked lock now shows a holographic "WALL n BREACHED" banner that zooms in, with a KEY CHECK and ACCOUNT window either side (`shared/holo.js`)
+- [x] Final breach: four holographic windows open across the screen (target profile, lock matrix, trace monitor, blueprint) while the breach runs
+- [x] Sounds: the stage-change glitch lost its falling "boing" tone; Start / Accept mission is now a mechanical switch and relays instead of a rising sweep and bells; the encryption handshake has a low drone and a data rattle
+- [x] Fixed: pressing Enter again while a lock was opening could crack it twice

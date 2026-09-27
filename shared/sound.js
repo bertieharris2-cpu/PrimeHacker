@@ -116,9 +116,10 @@
       hiss(0.8);
       [110, 164.8, 220].forEach(f => tone({ f, type:"sawtooth", at: 0.85, dur: 1.3, vol: 0.035, lp: 700, attack: 0.25 }));
     },
-    start(){   // start mission
-      tone({ f: 180, to: 720, type:"sawtooth", dur: 0.35, vol: 0.06, lp: 1800 });
-      [392.0, 523.3, 784.0].forEach((f, k) => bell(f, 0.28 + k*0.08, 0.14, 0.7));
+    start(){   // start / accept mission: a switch throws, relays click in, a low power hum
+      latch(0, 0.28); latch(0.07, 0.18); latch(0.12, 0.14);
+      thunk(0.16, 0.35);
+      [110, 164.8].forEach(f => tone({ f, type:"sawtooth", at: 0.2, dur: 0.9, vol: 0.035, lp: 600, attack: 0.15 }));
     },
     newlock(){   // a new lock comes online
       tone({ f: 110, to: 220, type:"sawtooth", dur: 0.4, vol: 0.07, lp: 500 });
@@ -145,10 +146,10 @@
     chatter(){ noise({ dur: 0.012, vol: 0.03, type:"highpass", freq: 5000 }); },
 
     // Whole game
-    glitch(){   // stage change: a burst of static and a falling blip
-      noise({ dur: 0.22, vol: 0.2, freq: 2400, to: 300, q: 0.6 });
-      noise({ at: 0.05, dur: 0.05, vol: 0.18, type:"highpass", freq: 3500 });
-      tone({ f: 1400, to: 90, type:"square", dur: 0.2, vol: 0.05, lp: 2400, verb:false });
+    glitch(){   // stage change: a burst of static, no tone (the falling blip sounded like a bounce)
+      noise({ dur: 0.22, vol: 0.18, freq: 2400, to: 500, q: 0.6 });
+      noise({ at: 0.05, dur: 0.05, vol: 0.16, type:"highpass", freq: 3500 });
+      noise({ at: 0.12, dur: 0.08, vol: 0.12, type:"highpass", freq: 5000 });
     },
     comms(){   // the handler's radio opens: a click, crackle, two soft pips
       noise({ dur: 0.03, vol: 0.2, type:"highpass", freq: 2500 });
@@ -160,11 +161,14 @@
     engine(){ tone({ f: 55, to: 140, type:"sawtooth", dur: 0.9, vol: 0.07, lp: 500, attack: 0.05 }); noise({ dur: 0.9, vol: 0.05, type:"lowpass", freq: 300 }); },
     siren(){ [0, 0.3].forEach(at => { tone({ f: 700, to: 1050, type:"triangle", at, dur: 0.28, vol: 0.05, lp: 2500 }); }); },
     dock(){ servo(0, 0.25, 0.04); latch(0.22, 0.3); thunk(0.26, 0.45); hiss(0.34, 0.4, 0.04); },   // a floor locks onto the building
+    holo(){ noise({ dur: 0.16, vol: 0.07, type:"highpass", freq: 6000 }); noise({ at: 0.03, dur: 0.22, vol: 0.05, freq: 3000, to: 5500, q: 3 }); tone({ f: 220, type:"triangle", at: 0.02, dur: 0.3, vol: 0.03, lp: 900 }); },
+    drone(sec=5){ tone({ f: 55, type:"sawtooth", dur: sec, vol: 0.04, lp: 260, attack: 0.4 }); tone({ f: 82.4, type:"sawtooth", dur: sec, vol: 0.025, lp: 380, attack: 0.8 }); },
+    data(){ noise({ dur: 0.018, vol: 0.05, freq: 1500 + Math.random() * 3500, q: 6 }); },
     hum(i=0){ tone({ f: 110 + i*6, type:"sawtooth", dur: 0.09, vol: 0.035, lp: 700, verb:false }); },   // fingerprint scanner
     verified(){ latch(0, 0.22); latch(0.1, 0.22); tone({ f: 220, to: 330, type:"triangle", at: 0.14, dur: 0.4, vol: 0.1, lp: 1400 }); },
   };
 
-  const THROTTLE = { hum: 60, key: 15, fill: 28, chatter: 45, laser: 120, pop: 40, seal: 50, click: 30 };
+  const THROTTLE = { data: 30, holo: 60, hum: 60, key: 15, fill: 28, chatter: 45, laser: 120, pop: 40, seal: 50, click: 30 };
 
   function play(name, arg){
     if(!settings.on || !SOUNDS[name]) return;
