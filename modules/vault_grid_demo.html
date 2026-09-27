@@ -935,11 +935,8 @@ async function triggerIsometricMorph(placements){
   overlay.style.display = "none";
   
   // Fade the flat grid cells to background only (10-15% opacity)
-  // Feedback round 9: the flat squares fade gently into the 3D view instead of vanishing
-  cells.forEach(c => {
-    c.style.transition = "opacity 1.6s ease";
-    c.style.opacity = "0.1";
-  });
+  // Feedback round 10: the squares used to fade before the 3D view arrived, a dim-then-bright flash.
+  // They now stay bright through the tilt and cross-fade with the 3D view, which starts from the same flat rooms.
   
   // Start vault tilt animation (800ms total duration)
   vaultEl.classList.add("tilting-to-iso");
@@ -990,9 +987,10 @@ async function triggerIsometricMorph(placements){
       window.roofGrid = 0.9;
       renderRectCuboids(ctx, placements, GRID, cellSize, gap, 0, window.extrusionMode);
       
-      // Fade in canvas
-      canvas.style.transition = "opacity 300ms ease-out";
+      // Cross-fade: the 3D view comes in as the flat squares go
+      canvas.style.transition = "opacity 350ms ease-out";
       canvas.style.opacity = "1";
+      cells.forEach(c => { c.style.transition = "opacity 350ms ease-out"; c.style.opacity = "0.1"; });
       
       // Wait for fade to complete, then immediately start extrusions
       await pause(300);
@@ -1205,6 +1203,23 @@ document.querySelector(".title div:first-child").insertAdjacentHTML("afterend",
 
 // ====== DRONE FLYTHROUGH ======
 // Once the floor has risen, a drone camera sweeps low over it and logs each room.
+function pickCameras(placements){
+  const occ = new Set(); placements.forEach(r => { for(let i = 0; i < r.w; i++) for(let j = 0; j < r.h; j++) occ.add((r.x + i) + "," + (r.y + j)); });
+  const rnd = mulberry32((currentN * 131) ^ 0xCA3E);
+  const spots = [];
+  for(let y = 0; y < GRID; y++) for(let x = 0; x < GRID; x++){
+    if(occ.has(x + "," + y)) continue;
+    const near = [[1,0],[-1,0],[0,1],[0,-1]].find(([dx, dy]) => occ.has((x + dx) + "," + (y + dy)));
+    if(near) spots.push({ x, y, dir: Math.atan2(-near[1], -near[0]) });
+  }
+  const out = [], n = Math.min(6, Math.max(4, Math.round(placements.length * 0.7)));
+  while(out.length < n && spots.length){
+    const s = spots.splice(Math.floor(rnd() * spots.length), 1)[0];
+    if(out.every(o => Math.abs(o.x - s.x) + Math.abs(o.y - s.y) >= GRID / 4)) out.push(s);
+    else if(!spots.length) break;
+  }
+  return out;
+}
 async function droneFlythrough(placements){
   if(!placements.length || (PN && PN.reducedMotion && PN.reducedMotion())) return;
   const seen = new Set(), rooms = placements.filter(r => { const k = [Math.min(r.w, r.h), Math.max(r.w, r.h)].join("x"); if(seen.has(k)) return false; seen.add(k); return true; });
@@ -1225,6 +1240,9 @@ async function droneFlythrough(placements){
   ], { duration: dur, easing: "ease-in-out" });
   const log = hud.querySelector(".log"), alt = hud.querySelector(".a");
   // Keep the room labels pinned to the rooms while the camera moves
+  // Round 10: the drone spots the floor's security cameras one by one (on corridor cells beside rooms), with a beep
+  window.cams = pickCameras(placements);
+  window.cams.forEach((c, i) => setTimeout(() => { c.shown = performance.now(); SND("beep"); }, (dur * sp) * (0.18 + 0.6 * i / Math.max(1, window.cams.length)) / sp));
   // Feedback round 9: a laser sweeps across the floor, showing the square grid of every room as it passes
   const sweepMs = Math.min(dur * 0.45, 5200), t0 = performance.now();
   window.sweepTrail = 0.22;
@@ -1294,10 +1312,10 @@ async function floorAnalysis(placements){
     analysisWins.push(win);
     win.el.style.transform = "translate(-50%,-50%) scale(1.45)";
     SND("holo");
-    await PNHolo.wait(1900);
-    win.el.style.transition = "left .9s ease, top .9s ease, transform .9s ease";
+    await PNHolo.wait(900);
+    win.el.style.transition = "left .6s ease, top .6s ease, transform .6s ease";
     win.el.style.left = w.x + "%"; win.el.style.top = w.y + "%"; win.el.style.transform = "translate(-50%,-50%) scale(1)";
-    await PNHolo.wait(950);
+    await PNHolo.wait(500);
   }
   // A ticking CCTV clock
   const clock = document.querySelector(".cctvClock");
@@ -1545,6 +1563,31 @@ function renderRectCuboids(ctx, rects, GRID, cellSize, gap, heightPx, mode=1){
     drawCuboid(ctx, rect, cellSize, gap, heightPx, mode);
   }
   if(heightPx > 1) wall(0, full, full, full, 0.07);
+  // Round 10: security cameras the drone spots, a red light and a camera on the wall with a faint view cone
+  if(heightPx > 1 && window.cams){
+    const now = performance.now(), ch = mc.hx(heightPx * 0.85), cv = mc.hy(heightPx * 0.85);
+    for(const c of window.cams){
+      if(!c.shown) continue;
+      const age = (now - c.shown) / 1000, pop = Math.min(1, age * 4);
+      const x = c.x * step0 + cellSize / 2 + ch, y = c.y * step0 + cellSize / 2 + cv;
+      // view cone on the floor
+      ctx.fillStyle = `rgba(255, 60, 90, ${0.10 * pop})`;
+      ctx.beginPath(); ctx.moveTo(x - ch, y - cv); const a0 = c.dir - .5, a1 = c.dir + .5, rr = step0 * 3.2;
+      ctx.lineTo(x - ch + Math.cos(a0) * rr, y - cv + Math.sin(a0) * rr); ctx.lineTo(x - ch + Math.cos(a1) * rr, y - cv + Math.sin(a1) * rr); ctx.closePath(); ctx.fill();
+      // mount line down the wall
+      ctx.strokeStyle = "rgba(255, 120, 140, .5)"; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(x - ch, y - cv); ctx.lineTo(x, y); ctx.stroke();
+      // camera body and lens
+      const k = Math.max(9, cellSize * 0.95) * pop;
+      ctx.fillStyle = "rgba(20, 8, 12, .95)"; ctx.strokeStyle = "rgba(255, 90, 110, .95)"; ctx.lineWidth = 1.2;
+      ctx.fillRect(x - k, y - k * 0.6, k * 1.6, k * 1.2); ctx.strokeRect(x - k, y - k * 0.6, k * 1.6, k * 1.2);
+      ctx.beginPath(); ctx.moveTo(x + k * 0.6, y - k * 0.3); ctx.lineTo(x + k * 1.2, y - k * 0.6); ctx.lineTo(x + k * 1.2, y + k * 0.6); ctx.lineTo(x + k * 0.6, y + k * 0.3); ctx.closePath(); ctx.fill(); ctx.stroke();
+      // blinking red light with a halo
+      const blink = 0.55 + 0.45 * Math.sin(now / 180 + c.x);
+      ctx.fillStyle = `rgba(255, 50, 80, ${blink})`; ctx.shadowColor = "rgba(255, 40, 70, 1)"; ctx.shadowBlur = 12;
+      ctx.beginPath(); ctx.arc(x - k * 0.3, y, Math.max(3.5, k * 0.34), 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0;
+      if(age < 0.8){ ctx.strokeStyle = `rgba(255, 60, 90, ${0.8 - age})`; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(x - k * 0.3, y, 6 + age * 40, 0, Math.PI * 2); ctx.stroke(); }
+    }
+  }
   // The drone's laser: a bright line across the floor with a thin light curtain up to roof height
   if(window.sweep != null && window.sweep > -1 && window.sweep < GRID + 1){
     const lx = window.sweep * step0, rh = mc.hx(heightPx), rv = mc.hy(heightPx);
