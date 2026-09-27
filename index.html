@@ -150,69 +150,139 @@
   .jumps{ display:flex; flex-wrap:wrap; gap:8px; }
   .jumps a{ text-decoration:none; }
 
-  @media (max-width:820px){
-    .console{ grid-template-columns:1fr; }
-    .levels{ grid-template-columns:1fr; }
+  /* Title deck: the agent ID card in the centre, four holographic panels projected from it */
+  .hero{ gap:6px; }
+  .logo{ font-size:clamp(40px,7vw,72px); }
+  .deck{ position:relative; width:min(1180px,100%); display:grid; grid-template-columns:minmax(0,1fr) minmax(330px,400px) minmax(0,1fr);
+    grid-template-areas:"tl core tr" "bl core br"; gap:28px 56px; align-items:center; perspective:1400px; }
+  .deck .tl{ grid-area:tl; } .deck .tr{ grid-area:tr; } .deck .bl{ grid-area:bl; } .deck .br{ grid-area:br; } .deck .core{ grid-area:core; }
+  .beams{ position:absolute; inset:0; width:100%; height:100%; pointer-events:none; overflow:visible; z-index:0; }
+  .beams path{ fill:none; stroke:rgba(140,235,255,.45); stroke-width:1; stroke-dasharray:4 5; }
+  .beams circle{ fill:#8feaff; filter:drop-shadow(0 0 4px #8feaff); }
+  .hp{ position:relative; z-index:1; color:#dff8ff;
+    background:linear-gradient(160deg, rgba(110,220,255,.12), rgba(110,220,255,.03) 60%, rgba(110,220,255,.08));
+    border:1px solid rgba(140,235,255,.6); box-shadow:0 0 22px rgba(110,220,255,.18), inset 0 0 30px rgba(110,220,255,.08);
+    clip-path:polygon(0 12px, 12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%);
+    transform-origin:center; animation:hpOpen .5s cubic-bezier(.2,.9,.3,1) both; }
+  .hp.tl, .hp.bl{ transform:rotateY(7deg); } .hp.tr, .hp.br{ transform:rotateY(-7deg); }
+  .hp.tl{ animation-delay:.35s } .hp.tr{ animation-delay:.5s } .hp.bl{ animation-delay:.65s } .hp.br{ animation-delay:.8s }
+  @keyframes hpOpen{ 0%{ clip-path:polygon(0 49.5%, 0 49.5%, 0 50.5%, 0 50.5%); opacity:0; } 40%{ clip-path:polygon(0 49.5%, 100% 49.5%, 100% 50.5%, 0 50.5%); opacity:1; }
+    100%{ clip-path:polygon(0 12px, 12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%); opacity:1; } }
+  .hp::before{ content:""; position:absolute; inset:0; pointer-events:none; background:repeating-linear-gradient(0deg, rgba(160,240,255,.05) 0 1px, transparent 1px 3px); }
+  .hp .ht{ display:flex; justify-content:space-between; gap:12px; padding:7px 14px; border-bottom:1px solid rgba(140,235,255,.35); font-family:var(--font-ui); font-weight:700; font-size:11px; letter-spacing:.2em; color:#8feaff; }
+  .hp .ht i{ font-style:normal; color:#7dffc4; }
+  .hp .hb{ padding:12px 14px 14px; display:flex; flex-direction:column; gap:9px; }
+  .hp .kv{ display:flex; justify-content:space-between; gap:10px; font-size:14px; color:rgba(223,248,255,.7); }
+  .hp .kv b{ color:#eafcff; } .hp .kv b.wal{ font-family:var(--font-mono); color:#ffe68a; font-size:18px; }
+  .hp .prog{ height:6px; background:rgba(140,235,255,.12); } .hp .prog i{ display:block; height:100%; width:0; background:#8feaff; box-shadow:0 0 8px #8feaff; transition:width .4s ease; }
+  .hp .nextr{ font-size:13px; color:rgba(223,248,255,.65); }
+  .hp .badges{ display:flex; flex-wrap:wrap; gap:4px; align-items:center; min-height:32px; }
+  .hp .badges .none{ font-size:13px; color:rgba(223,248,255,.5); }
+  .hp .side{ font-size:13px; color:rgba(223,248,255,.6); text-decoration:none; } .hp .side:hover{ color:#8feaff; }
+  .levels{ display:flex; flex-direction:column; gap:6px; }
+  .level{ display:grid; grid-template-columns:34px 1fr; gap:0 10px; padding:8px 10px; background:rgba(0,0,0,.2); border:1px solid rgba(140,235,255,.2); border-radius:0; }
+  .level .lv{ grid-row:span 2; align-self:center; font-size:15px; }
+  .level .rank{ font-size:16px; }
+  .level .spec, .level .reward, .level .lock{ grid-column:2; font-size:12.5px; margin:0; }
+  .level[aria-checked="true"]{ border-color:#8feaff; box-shadow:0 0 14px rgba(110,220,255,.3), inset 0 0 0 1px rgba(140,235,255,.35); }
+  .level[aria-checked="true"] .lv{ color:#8feaff; }
+  .suggest{ font-size:13px; } .suggest:empty, .rulenote:empty{ display:none; }
+  ol.route{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; align-items:stretch; gap:7px; border:0; font-size:15px; }
+  ol.route li{ display:flex; align-items:baseline; gap:10px; color:#eafcff; }
+  ol.route li b{ font-family:var(--font-mono); font-size:12px; padding:1px 6px; border:1px solid; }
+  ol.route li.h b{ color:var(--accent-hack); } ol.route li.b b{ color:var(--accent-build); }
+  ol.route small{ margin-left:auto; font-size:12px; color:rgba(223,248,255,.5); }
+  .core{ position:relative; z-index:2; display:flex; flex-direction:column; gap:10px; }
+  .core .idcard{ margin:0 0 8px; grid-template-columns:96px 1fr; padding:18px; box-shadow:0 0 40px rgba(110,220,255,.12); }
+  .core .idcard .photo{ width:96px; height:118px; grid-row:span 4; } .core .idcard .photo svg{ width:84px; height:104px; }
+  .core .idcard .nm{ font-size:26px; }
+  .core .hint{ margin:-4px 0 4px; font-size:13px; }
+  .core #startBtn{ font-size:17px; padding:15px 28px; width:100%; }
+  .core .status{ font-size:14px; color:var(--text-muted); text-align:center; min-height:1.4em; }
+
+  @media (max-width:980px){
+    .deck{ grid-template-columns:1fr; grid-template-areas:"core" "tl" "tr" "bl" "br"; gap:16px; width:min(560px,100%); }
+    .hp.tl, .hp.bl, .hp.tr, .hp.br{ transform:none; }
+    .beams{ display:none; }
   }
+  @media (prefers-reduced-motion: reduce){ .hp{ animation:none; } }
+  html.pn-reduce-motion .hp{ animation:none; }
 </style>
 </head>
 <body>
 <div class="shell">
-  <div class="topline"><span><span class="dot"></span>SECURE UPLINK</span><span class="row" style="gap:14px"><button class="pn-btn small" type="button" id="shopBtn" title="Spend your wallet on terminal colours, vault doors and ID frames">Safehouse shop</button><button class="pn-btn small" type="button" id="settingsBtn" title="Text size, font, motion and sound for this agent">Settings</button><button class="pn-btn small" type="button" id="soundBtn" aria-pressed="true">Sound: on</button><span id="clock"></span></span></div>
+  <div class="topline"><span><span class="dot"></span>SECURE UPLINK</span><span class="row" style="gap:14px"><button class="pn-btn small" type="button" id="soundBtn" aria-pressed="true">Sound: on</button><span id="clock"></span></span></div>
 
   <div class="hero">
     <h1 class="logo"><span class="p">PRIME</span><span class="n">NET</span></h1>
-    <p class="tagline">Crack the bank. <b class="b">Factors</b> rebuild its blueprint. <b class="h">Primes</b> break the vault.</p>
     <div class="boot" id="boot" aria-live="polite"></div>
   </div>
 
-  <form class="console pn-panel" id="startForm" autocomplete="off">
-    <div class="field">
+  <form class="deck" id="startForm" autocomplete="off">
+    <svg class="beams" id="beams" aria-hidden="true"></svg>
+
+    <section class="hp tl" aria-labelledby="levelLabel">
+      <div class="ht"><span id="levelLabel">CLEARANCE LEVEL</span><span><i>●</i> SELECT</span></div>
+      <div class="hb">
+        <div class="levels" role="radiogroup" aria-labelledby="levelLabel" id="levels"></div>
+        <p class="suggest" id="suggest"></p>
+        <p class="rulenote" id="rulenote"></p>
+      </div>
+    </section>
+
+    <section class="hp tr" aria-label="Agent file">
+      <div class="ht"><span>AGENT FILE</span><span><i>●</i> LIVE</span></div>
+      <div class="hb">
+        <div class="kv"><span>Next rank</span><b id="idNextRank">·</b></div>
+        <div class="prog" title="Progress to the next rank"><i id="idProg"></i></div>
+        <div class="nextr" id="idNext">Breach one vault to become a Field Agent.</div>
+        <div class="badges" id="idBadges"></div>
+      </div>
+    </section>
+
+    <div class="core">
+      <div class="idcard" id="idcard" aria-live="polite">
+        <div class="photo" aria-hidden="true"><svg viewBox="0 0 64 80"><circle cx="32" cy="28" r="14" fill="rgba(47,191,138,.35)"/><path d="M6 80 C8 58 20 50 32 50 C44 50 56 58 58 80 Z" fill="rgba(47,191,138,.35)"/><rect x="0" y="36" width="64" height="2" fill="rgba(47,191,138,.8)"><animate attributeName="y" values="4;76;4" dur="3s" repeatCount="indefinite"/></rect></svg></div>
+        <div class="top"><span>PRIMENET · AGENT ID</span><b id="idNum">AG-0000-X</b></div>
+        <div class="nm empty" id="idName">NO CODENAME</div>
+        <div class="row2"><span>Rank <b id="idRank">Rookie</b></span><span>Vaults <b id="idVaults">0</b></span></div>
+        <div class="row2"><span>Clearance <b id="idClear">·</b></span></div>
+        <span class="stamp">VERIFIED</span>
+      </div>
       <label class="pn-label" for="codename">Agent codename</label>
       <div class="codename-row">
         <input class="pn-input" id="codename" name="codename" maxlength="20" placeholder="e.g. NIGHTJAR" required>
         <button class="pn-btn small" type="button" id="randomName" title="Pick a random codename">Random</button>
       </div>
-      <p class="hint">Use a made-up name, not your real one. Your teacher sees it in the mission record.</p>
-      <div class="idcard" id="idcard" aria-live="polite">
-        <div class="photo" aria-hidden="true"><svg viewBox="0 0 64 80"><circle cx="32" cy="28" r="14" fill="rgba(47,191,138,.35)"/><path d="M6 80 C8 58 20 50 32 50 C44 50 56 58 58 80 Z" fill="rgba(47,191,138,.35)"/><rect x="0" y="36" width="64" height="2" fill="rgba(47,191,138,.8)"><animate attributeName="y" values="4;76;4" dur="3s" repeatCount="indefinite"/></rect></svg></div>
-        <div class="top"><span>PRIMENET · AGENT ID</span><b id="idNum">AG-0000-X</b></div>
-        <div class="nm empty" id="idName">NO CODENAME</div>
-        <div class="row2"><span>Rank <b id="idRank">Rookie</b></span><span>Vaults <b id="idVaults">0</b></span><span>Clearance <b id="idClear">·</b></span></div>
-        <div class="prog" title="Progress to the next rank"><i id="idProg"></i></div>
-        <div class="nextr" id="idNext">Breach one vault to become a Field Agent.</div>
-        <div class="badges" id="idBadges"></div>
-        <span class="stamp">VERIFIED</span>
-      </div>
-    </div>
-
-    <div class="field">
-      <span class="pn-label" id="levelLabel">Clearance level</span>
-      <div class="levels" role="radiogroup" aria-labelledby="levelLabel" id="levels"></div>
-      <p class="suggest" id="suggest"></p>
-      <p class="rulenote" id="rulenote"></p>
-    </div>
-
-    <div class="route" aria-label="Mission route">
-      <span class="st h">Frequency Scan</span><span class="arrow">→</span>
-      <span class="st b">Factor Vault ×3 floors</span><span class="arrow">→</span>
-      <span class="st b">Laser corridor</span><span class="arrow">→</span>
-      <span class="st b">Blueprint</span><span class="arrow">→</span>
-      <span class="st h">Prime Hack</span><span class="arrow">→</span>
-      <span class="st h">Vault breach</span>
-    </div>
-
-    <div class="go">
-      <span class="status" id="status">Enter a codename and choose a level.</span>
+      <p class="hint">A made-up name, not your real one.</p>
       <button class="pn-btn primary" type="submit" id="startBtn" disabled>Start mission</button>
+      <span class="status" id="status">Enter a codename and choose a level.</span>
     </div>
-  </form>
 
-  <a class="side-door" href="modules/roleplay_terminal.html">
-    <span class="sd-k">Roleplay terminal</span>
-    <span class="sd-d">Free play. No maths, no mission, nothing saved. Type anything and the terminal answers like a hacker film.</span>
-    <span class="sd-go">Open →</span>
-  </a>
+    <section class="hp bl" aria-label="Mission route">
+      <div class="ht"><span>MISSION ROUTE</span><span><i>●</i> 4 STAGES</span></div>
+      <div class="hb">
+        <ol class="route">
+          <li class="h"><b>01</b> Frequency Scan <small>find the primes</small></li>
+          <li class="b"><b>02</b> Factor Vault <small>rebuild 3 floors</small></li>
+          <li class="b"><b>03</b> Blueprint <small>assemble the building</small></li>
+          <li class="h"><b>04</b> Prime Hack <small>crack the locks</small></li>
+        </ol>
+      </div>
+    </section>
+
+    <section class="hp br" aria-label="Safehouse">
+      <div class="ht"><span>SAFEHOUSE</span><span><i>●</i> SECURE</span></div>
+      <div class="hb">
+        <div class="kv"><span>Wallet</span><b class="wal" id="idWallet">£0</b></div>
+        <div class="row">
+          <button class="pn-btn small" type="button" id="shopBtn" title="Spend your wallet on terminal colours, vault doors and ID frames">Shop</button>
+          <button class="pn-btn small" type="button" id="settingsBtn" title="Text size, font, motion and sound for this agent">Settings</button>
+        </div>
+        <a class="side" href="modules/roleplay_terminal.html">Roleplay terminal: free play, nothing saved →</a>
+      </div>
+    </section>
+  </form>
 
   <div class="foot"><span>Maths training simulation. No real systems are harmed.</span><button class="ver" type="button" id="ver" aria-label="Version 1">v1</button></div>
 </div>
@@ -512,6 +582,7 @@
   P.applyPrefs(prefs);
 
   // Agent ID card
+  const gbp = n => "£" + Math.floor(n).toLocaleString("en-GB");
   function renderIdCard(){
     const name = codename.value.trim().toUpperCase();
     const r = P.agentRank(name || "-");
@@ -526,6 +597,8 @@
     $("#idBadges").innerHTML = !name ? "" : got.length ? got.map(id => PNBadges.hex(id, true)).join("") + `<span class="none">&nbsp;${got.length} of ${PNBadges.LIST.length} badges</span>` : `<span class="none">No badges yet. Each one is earned for something special.</span>`;
     const frame = name ? P.lootFor(name).equip.frame : "frame-standard";
     $("#idcard").className = "idcard " + frame;
+    $("#idNextRank").textContent = !name ? "·" : r.next || "Top rank";
+    $("#idWallet").textContent = name ? gbp(P.walletOf(name)) : "£0";
     $("#idNext").textContent = !name ? "Type a codename to load an agent file." : r.next ? `${r.toNext} more vault${r.toNext === 1 ? "" : "s"} to become ${/^[AEIOU]/.test(r.next) ? "an" : "a"} ${r.next}.` : "Top rank. A legend in the network.";
   }
   codename.addEventListener("input", renderIdCard);
@@ -533,9 +606,27 @@
   $("#randomName").addEventListener("click", () => { renderIdCard(); codename.dispatchEvent(new Event("change")); });
   renderIdCard();
 
+  // Light beams from the ID card out to the four panels
+  function drawBeams(){
+    const svg = $("#beams"), deck = $("#startForm"), card = $("#idcard");
+    if(getComputedStyle(svg).display === "none") return;
+    const d = deck.getBoundingClientRect(), c = card.getBoundingClientRect();
+    const at = (x, y) => [x - d.left, y - d.top];
+    let out = "";
+    [["tl", c.left, c.top + 24, "right"], ["tr", c.right, c.top + 24, "left"], ["bl", c.left, c.bottom - 24, "right"], ["br", c.right, c.bottom - 24, "left"]].forEach(([k, x, y, side]) => {
+      const p = document.querySelector(".hp." + k).getBoundingClientRect();
+      const [x1, y1] = at(x, y), [x2, y2] = at(side === "right" ? p.right : p.left, p.top + p.height / 2);
+      const mx = (x1 + x2) / 2;
+      out += `<path d="M${x1} ${y1} L${mx} ${y1} L${mx} ${y2} L${x2} ${y2}"/><circle cx="${x1}" cy="${y1}" r="2.5"/><circle cx="${x2}" cy="${y2}" r="2.5"/>`;
+    });
+    svg.innerHTML = out;
+  }
+  window.addEventListener("resize", drawBeams);
+  [0, 400, 1200].forEach(t => setTimeout(drawBeams, t));
+  if(document.fonts) document.fonts.ready.then(drawBeams);
+
   // Safehouse shop: spend the codename's wallet on cosmetics
   const shopOverlay = $("#shopOverlay");
-  const gbp = n => "£" + Math.floor(n).toLocaleString("en-GB");
   function renderShop(){
     const name = codename.value.trim().toUpperCase();
     $("#shopWho").textContent = name ? `Agent ${name}'s safehouse. Money comes from vaults you crack in Prime Hack; higher levels pay far more.` : "Type your codename first to open your safehouse.";

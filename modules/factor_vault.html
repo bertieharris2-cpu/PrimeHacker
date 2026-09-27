@@ -330,8 +330,9 @@
     .mode-switch{ display:flex; gap:6px; }
     .mode-switch button{ flex:1; padding:6px 8px; font-size:12px; letter-spacing:.08em; text-transform:uppercase; background:rgba(0,0,0,.25); color:var(--text-muted); border:1px solid var(--panel-border); cursor:pointer; }
     .mode-switch button[aria-pressed="true"]{ color:var(--text-primary); border-color:var(--accent); box-shadow:inset 0 0 0 1px rgba(var(--accent-rgb),.35); }
-    .drag-board{ position:fixed; left:0; right:0; bottom:0; z-index:40; border-top:1px solid var(--accent); background:rgba(5,16,20,.97); box-shadow:0 -20px 60px rgba(0,0,0,.6); padding:14px 16px 18px; display:flex; flex-direction:column; gap:8px; align-items:center; }
-    body.dragging .pnh{ bottom:calc(var(--tray-h, 200px) + 16px) !important; }
+    .drag-board{ position:fixed; left:50%; bottom:24px; transform:translateX(-50%); width:min(1200px, calc(100vw - 32px)); box-sizing:border-box; z-index:40; border:1px solid var(--accent); background:rgba(5,16,20,.97); box-shadow:0 20px 80px rgba(0,0,0,.7); padding:22px 24px 24px; display:flex; flex-direction:column; gap:12px; align-items:center; }
+    .drag-board .dhelp{ font-size:15px !important; }
+    body.dragging .pnh{ bottom:auto !important; top:96px; }
     .drag-close{ position:absolute; right:14px; top:10px; background:transparent; border:1px solid var(--panel-border); color:var(--text-muted); padding:5px 10px; cursor:pointer; font:inherit; font-size:12px; }
     .drag-toggle{ margin-top:6px; background:transparent !important; font-size:12px !important; }
     .drag-board[hidden]{ display:none; }
@@ -1496,7 +1497,7 @@ body{ font-size: var(--font-size); }
           setMode("Blueprint Decryption");
           setHint(`All pairs verified. Reconstructing floor plan for N=${N}…`);
           submitAllBtn.disabled = true;
-          setTimeout(() => (window.PNGlitch ? PNGlitch.go(`vault_grid_demo.html?n=${N}`) : (location.href = `vault_grid_demo.html?n=${N}`)), 1800);
+          setTimeout(() => (window.PNGlitch ? PNGlitch.go(`vault_grid_demo.html?n=${N}`, { style: "sweep" }) : (location.href = `vault_grid_demo.html?n=${N}`)), 1800);
         }
       } else if(totalEntered === 0){
         setHint("Enter at least one pair.");
@@ -1736,10 +1737,40 @@ body{ font-size: var(--font-size); }
       });
       
       arrayCount.textContent = String(tilesToRender.length);
-      
+      packVault(vaultLeft); packVault(vaultRight);
+
       // Draw scan lines
       redrawScanLines(vaultLeft, svgLeft);
       redrawScanLines(vaultRight, svgRight);
+    }
+
+    // Feedback: arrays sat far apart and some crossed the panel edges. Pack them in tidy rows,
+    // centred in the panel, shrinking the grid unit until everything fits inside.
+    function packVault(vault){
+      const tiles = [...vault.querySelectorAll(".array-tile")];
+      if(!tiles.length) return;
+      const pad = 14, gapPx = 18;
+      let unit = getGridUnit(vault);
+      for(let attempt = 0; attempt < 8; attempt++){
+        const W = vault.clientWidth - pad * 2, H = Math.min(vault.clientHeight, 720) - pad * 2;
+        const rows = []; let row = { items: [], w: 0, h: 0 };
+        tiles.forEach(t => {
+          const w = t.offsetWidth, h = t.offsetHeight;
+          if(row.items.length && row.w + gapPx + w > W){ rows.push(row); row = { items: [], w: 0, h: 0 }; }
+          row.w += (row.items.length ? gapPx : 0) + w; row.h = Math.max(row.h, h); row.items.push({ t, w, h });
+        });
+        rows.push(row);
+        const total = rows.reduce((a, r) => a + r.h, 0) + gapPx * (rows.length - 1);
+        const widest = Math.max(...rows.map(r => r.w));
+        if((total > H || widest > W) && unit > 6){ unit = Math.max(6, Math.floor(unit * 0.85)); vault.style.setProperty("--grid-unit", unit + "px"); continue; }
+        let y = pad + Math.max(0, (H - total) / 2);
+        rows.forEach(r => {
+          let x = pad + Math.max(0, (W - r.w) / 2);
+          r.items.forEach(({ t, w, h }) => { t.style.left = x + "px"; t.style.top = (y + (r.h - h) / 2) + "px"; x += w + gapPx; });
+          y += r.h + gapPx;
+        });
+        break;
+      }
     }
 
     function redrawScanLines(panel, svg){
@@ -1854,12 +1885,12 @@ body{ font-size: var(--font-size); }
     proceedBtn.addEventListener("click", () => {
       // Some levels complete - go to vault grid demo for current N
       const gridUrl = `vault_grid_demo.html?n=${N}`;
-      (window.PNGlitch ? PNGlitch.go(gridUrl) : (location.href = gridUrl));
+      (window.PNGlitch ? PNGlitch.go(gridUrl, { style: "sweep" }) : (location.href = gridUrl));
     });
 
     buildBlueprintBtn.addEventListener("click", () => {
       // All 3 levels complete - go to blueprint viewer
-      (window.PNGlitch ? PNGlitch.go("vault_blueprint_viewer.html") : (location.href = "vault_blueprint_viewer.html"));
+      (window.PNGlitch ? PNGlitch.go("vault_blueprint_viewer.html", { style: "sweep" }) : (location.href = "vault_blueprint_viewer.html"));
     });
 
     // Override the completion check to show the right prompt
@@ -2059,8 +2090,9 @@ body{ font-size: var(--font-size); }
       if(!allowed && buildMode === "drag") setBuildMode("type");
       document.getElementById("dragN").textContent = N;
       const grid = document.getElementById("dragGrid");
-      const rows = Math.floor(Math.sqrt(N)), cols = N;
-      const size = Math.max(10, Math.min(26, Math.floor((window.innerWidth - 80) / cols) - 2));
+      // Wider than N and several rows deep, so a 1 × N strip doesn't fill a whole row (feedback: too easy at N = 8)
+      const cols = Math.max(12, N + 4), rows = Math.min(N, Math.max(6, Math.floor(Math.sqrt(N)) + 3));
+      const size = Math.max(12, Math.min(34, Math.floor((window.innerWidth - 120) / cols) - 2, Math.floor((window.innerHeight * 0.42) / rows) - 2));
       grid.style.gridTemplateColumns = `repeat(${cols}, ${size}px)`;
       grid.style.gridAutoRows = `${size}px`;
       grid.innerHTML = "";

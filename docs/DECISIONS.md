@@ -182,3 +182,23 @@ Every idea is a "maybe until I see it". Build these as prototypes to look at bef
 - [x] Final breach: four holographic windows open across the screen (target profile, lock matrix, trace monitor, blueprint) while the breach runs
 - [x] Sounds: the stage-change glitch lost its falling "boing" tone; Start / Accept mission is now a mechanical switch and relays instead of a rising sweep and bells; the encryption handshake has a low drone and a data rattle
 - [x] Fixed: pressing Enter again while a lock was opening could crack it twice
+
+## Play-test feedback 5 (screenshot review)
+
+- [x] Title screen calmer: the agent ID card sits in the middle and four holographic panels project from it (clearance level, agent file, mission route, safehouse). The tagline, the long route strip and the separate roleplay box are gone. On narrow screens the panels stack under the card
+- [x] Intercept: clicking near a number locks it (within about 70px), and the numbers are bigger
+- [x] Factor Vault: arrays are packed together and always fit inside the panel. The drag tray is a bigger, centred grid (12 × 6 at N = 8), so it takes thought to place the rectangle
+- [x] Sounds throughout are flat mechanical tones (relays, hums, buzzes) with no pitch slides or bells
+- [x] Blueprint-style sweep transitions between Factor Vault, Vault Grid and the Blueprint
+- [x] Vault Grid: every room is labelled (name and a × b), has a door onto the corridor side, and each floor has a fire exit. The drone highlights each room as it logs it, then a holographic FLOOR ANALYSIS rates the floor WEAK, STANDARD or SECURE by its number of factor pairs
+- [x] Blueprint rebuilt from the student's own Vault Grid floors (same rooms, doors and exit), so it matches what they built. Storeys are spaced with a slab between each, windows are dimmer, the camera is closer, and the weak point is the floor with the fewest factor pairs
+- [x] The plotter step is skipped (kept in the code, may come back as a holographic window)
+- [ ] Camera cone in Factor Vault: to be explained through the narrative
+
+## Narrative decisions
+
+- Hybrid heists: the crew steals a physical item from the vault while the student siphons funds digitally
+- Mission types to build first: bank, tech company, museum. Each target is "hiding something", which is the reason to break in
+- ORACLE stays the only voice on the radio for now (a named crew member is still an open question)
+- Laser corridor: out of the route, kept in the code and previewable from the teacher controls. Its place in the story is to be decided
+- Next: finish the 3D floor-plan sequence, then write the bank mission script, then build the tech company and museum variants

@@ -15,6 +15,10 @@
   .png .shade{ position:absolute; inset:0; background:#071418; opacity:0; transition:opacity .16s linear; }
   .png.fade .shade{ transition:opacity .25s linear; }
   html.pn-glitching body > *:not(.png){ animation:pngShift .09s steps(2) infinite; }
+  .png .sweep{ position:absolute; left:0; right:0; height:3px; top:-4px; background:#4aa3ff; box-shadow:0 0 18px 6px rgba(74,163,255,.55); }
+  .png .grid{ position:absolute; inset:0; opacity:0; background:
+    repeating-linear-gradient(0deg, rgba(74,163,255,.14) 0 1px, transparent 1px 32px),
+    repeating-linear-gradient(90deg, rgba(74,163,255,.14) 0 1px, transparent 1px 32px), #071418; }
   @keyframes pngShift{ 0%{ transform:translate(0,0); filter:none; } 50%{ transform:translate(-6px,1px); filter:hue-rotate(40deg) saturate(1.6); } 100%{ transform:translate(5px,-1px); } }`;
 
   function layer(){
@@ -48,8 +52,33 @@
     });
   }
 
-  async function go(url){
-    try{ sessionStorage.setItem(FLAG, "1"); }catch(e){}
+  // "sweep": the calmer blueprint-style wipe used between the build stages (feedback: smoother transitions)
+  function sweep(el, down, ms){
+    return new Promise(done => {
+      const line = document.createElement("div"); line.className = "sweep";
+      const grid = document.createElement("div"); grid.className = "grid";
+      el.append(grid, line);
+      const t0 = performance.now();
+      (function f(now){
+        const k = Math.min(1, (now - t0) / ms), e = k < .5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
+        const y = (down ? e : 1 - e) * 100;
+        line.style.top = `calc(${y}% - 2px)`;
+        grid.style.clipPath = down ? `inset(0 0 ${100 - y}% 0)` : `inset(0 0 ${100 - y}% 0)`;
+        grid.style.opacity = "1";
+        if(k < 1) requestAnimationFrame(f); else done();
+      })(t0);
+    });
+  }
+
+  async function go(url, opts){
+    const style = opts && opts.style === "sweep" ? "sweep" : "glitch";
+    try{ sessionStorage.setItem(FLAG, style === "sweep" ? "sweep" : "1"); }catch(e){}
+    if(style === "sweep" && document.body && !reduced()){
+      const el = layer(); el.querySelector("canvas").remove();
+      if(window.PNSound) PNSound.play("holo");
+      await sweep(el, true, 520);
+      location.href = url; return;
+    }
     if(!document.body){ location.href = url; return; }
     const el = layer(), shade = el.querySelector(".shade");
     if(window.PNSound) PNSound.play("glitch");
@@ -67,9 +96,14 @@
 
   // The page we arrive on glitches in
   function arrive(){
-    let flagged = false;
-    try{ flagged = sessionStorage.getItem(FLAG) === "1"; sessionStorage.removeItem(FLAG); }catch(e){}
+    let flagged = false, kind = "1";
+    try{ kind = sessionStorage.getItem(FLAG); flagged = !!kind; sessionStorage.removeItem(FLAG); }catch(e){}
     if(!flagged) return;
+    if(kind === "sweep" && !reduced()){
+      const el = layer(); el.querySelector("canvas").remove(); el.querySelector(".shade").remove();
+      sweep(el, false, 520).then(() => el.remove());
+      return;
+    }
     const el = layer(), shade = el.querySelector(".shade");
     shade.style.transition = "none"; shade.style.opacity = "1";
     if(reduced()){

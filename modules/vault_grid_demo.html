@@ -344,6 +344,7 @@ button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [clas
 <script src="../shared/testtools.js"></script>
 <script src="../shared/handler.js"></script>
 <script src="../shared/glitch.js"></script>
+<script src="../shared/holo.js"></script>
 <script src="../shared/sound.js"></script>
 <script>
 const PN = window.Primenet;
@@ -590,7 +591,7 @@ async function fillOutsideInPower(rect){
   let l=rect.x,r=rect.x+rect.w-1,t=rect.y,b=rect.y+rect.h-1;
 
   async function flowThenSet(x,y){
-    SND("fill", (fillCount++) % 48);
+    if((fillCount++) % 4 === 0) SND("fill", fillCount);   // feedback: every-cell ticking felt gimmicky
     setCell(x,y,"flow");
     await pause(settle);
     setCell(x,y,"on");
@@ -604,6 +605,30 @@ async function fillOutsideInPower(rect){
     l++;r--;t++;b--;
     await pause(38);
   }
+}
+
+/* Doors: on the visible wall (north, west or east after the tilt) with the most open space in front of it.
+   `at` is the door's position along that wall, in cells from the wall's start. */
+function doorFor(r, GRID){
+  const opts = [
+    { side: "n", free: r.y, len: r.w },
+    { side: "w", free: r.x, len: r.h },
+    { side: "e", free: GRID - (r.x + r.w), len: r.h },
+  ].filter(o => o.free > 0);
+  const best = opts.sort((a, b) => b.free - a.free)[0] || { side: "n", len: r.w };
+  return { side: best.side, at: Math.max(0, Math.floor((best.len - 1) / 2)) };
+}
+// A free cell on the outer wall, preferring the south edge, for the fire exit
+function exitFor(rects, GRID){
+  const taken = (x, y) => rects.some(r => x >= r.x && x < r.x + r.w && y >= r.y && y < r.y + r.h);
+  for(let x = GRID - 1; x >= 0; x--) if(!taken(x, GRID - 1)) return { x, y: GRID - 1 };
+  for(let y = GRID - 1; y >= 0; y--) if(!taken(GRID - 1, y)) return { x: GRID - 1, y };
+  return { x: 0, y: GRID - 1 };
+}
+// Floor rating from how many factor pairs the number has: fewer pairs, fewer rooms to guard
+function floorRating(n){
+  let pairs = 0; for(let a = 1; a * a <= n; a++) if(n % a === 0) pairs++;
+  return { pairs, rating: pairs <= 2 ? "WEAK" : pairs === 3 ? "STANDARD" : "SECURE" };
 }
 
 /* Rooms get names from their shape, so the floor plan reads like a building.
@@ -838,6 +863,14 @@ async function run(seed, wanted){
   
   // Store placements globally for 3D view reuse
   window.lastPlacements = placements;
+  // Doors face the widest corridor; one fire exit on the outer wall. Saved so the Blueprint rebuilds this exact floor.
+  placements.forEach(r => { r.door = doorFor(r, GRID); });
+  window.lastExit = exitFor(placements, GRID);
+  try{
+    const all = JSON.parse(localStorage.getItem("blueprintLayouts") || "{}");
+    all[currentN] = { grid: GRID, rooms: placements.map(({ x, y, w, h, door }) => ({ x, y, w, h, door })), exit: window.lastExit };
+    localStorage.setItem("blueprintLayouts", JSON.stringify(all));
+  }catch(e){}
   window.lastSeed = currentSeed;
   window.lastN = currentN;
 
@@ -1099,12 +1132,14 @@ if(tilt75Btn) tilt75Btn.addEventListener("click", () => applyTiltAngle(75));
 const nextFloorBtn = document.getElementById("nextFloorBtn");
 function blueprintReady(){ return floorsBuilt() >= FLOORS_NEEDED; }
 function setNextButton(){
-  nextFloorBtn.textContent = blueprintReady() ? "Cross the laser corridor" : `Next floor (${Math.min(floorsBuilt() + 1, FLOORS_NEEDED)} of ${FLOORS_NEEDED})`;
+  nextFloorBtn.textContent = blueprintReady() ? "Assemble the blueprint" : `Next floor (${Math.min(floorsBuilt() + 1, FLOORS_NEEDED)} of ${FLOORS_NEEDED})`;
 }
 nextFloorBtn.addEventListener("click", ()=>{
   // After three floors, the laser corridor (then the Blueprint); otherwise back to Factor Vault for a new number
-  const next = blueprintReady() ? "laser_corridor.html" : "factor_vault.html";
-  (window.PNGlitch ? PNGlitch.go(next) : (location.href = next));
+  // Feedback: straight to the Blueprint after the third floor (the laser corridor is out of the route for now)
+  const next = blueprintReady() ? "vault_blueprint_viewer.html" : "factor_vault.html";
+  if(analysisWin) analysisWin.close();
+  (window.PNGlitch ? PNGlitch.go(next, { style: "sweep" }) : (location.href = next));
 });
 
 // Check URL parameters for N value from factor_vault
@@ -1115,7 +1150,7 @@ const initialN = (Number.isInteger(urlN) && urlN > 1) ? urlN : 18;
 // Teacher test tools (only while unlocked)
 if(window.PNTest){
   PNTest.add("Show the next button now", () => { nextFloorBtn.style.visibility = "visible"; });
-  PNTest.add("Go to the next step", () => { window.location.href = blueprintReady() ? "laser_corridor.html" : "factor_vault.html"; });
+  PNTest.add("Go to the next step", () => { window.location.href = blueprintReady() ? "vault_blueprint_viewer.html" : "factor_vault.html"; });
 }
 
 // Initialize with N from URL or default to 18.
@@ -1126,7 +1161,7 @@ nextFloorBtn.style.visibility = "hidden";
 document.querySelector(".title div:first-child").insertAdjacentHTML("afterend",
   `<div>FLOOR ${Math.max(1, Math.min(floorsBuilt(), FLOORS_NEEDED))} OF ${FLOORS_NEEDED}</div>`);
 (window.PNSound ? PNSound.whenUnlocked(() => powerUpPrompt("POWER UP THE GRID")) : Promise.resolve())
-.then(() => initVault(initialN)).then(async () => {
+.then(() => { window.scrollTo(0, 0); setTimeout(() => window.scrollTo(0, 0), 60); return initVault(initialN); }).then(async () => {
   await pause(700);
   if(window.lastPlacements && window.lastPlacements.length) await triggerIsometricMorph(window.lastPlacements);
   await pause(1900);
@@ -1135,7 +1170,7 @@ document.querySelector(".title div:first-child").insertAdjacentHTML("afterend",
   SND("success");
   if(window.PNHandler){
     const f = Math.max(1, Math.min(floorsBuilt(), FLOORS_NEEDED));
-    PNHandler.once(`grid-${f}-${initialN}`, f >= FLOORS_NEEDED ? "Three floors mapped. One laser corridor between us and {target}'s blueprint." : `Floor ${f} is solid. Every room is one factor pair of ${initialN}.`, { delay: 400 });
+    PNHandler.once(`grid-${f}-${initialN}`, f >= FLOORS_NEEDED ? "Three floors mapped. Let's put {target}'s building together." : `Floor ${f} is solid. Every room is one factor pair of ${initialN}.`, { delay: 400 });
   }
   nextFloorBtn.focus();
 });
@@ -1166,13 +1201,28 @@ async function droneFlythrough(placements){
   for(const [i, r] of rooms.entries()){
     await pause(dur * sp * 0.8 / rooms.length);
     const a = Math.min(r.w, r.h), b = Math.max(r.w, r.h);
+    window.gridHighlight = r; rerenderGrid();
     lines.push(`<div class="${a === b ? "strong" : ""}">ROOM ${String(i + 1).padStart(2, "0")} · ${roomName(r)} ${a}×${b} · ${a * b} squares ✓</div>`);
     log.innerHTML = lines.slice(-4).join("");
     SND("tag");
   }
   await anim.finished.catch(() => {});
   clearInterval(altTimer);
+  window.gridHighlight = null; rerenderGrid();
   hud.remove();
+  floorAnalysis(placements);
+}
+
+// After the drone: a holographic floor analysis. Few factor pairs means few rooms to guard: a weak floor.
+let analysisWin = null;
+function floorAnalysis(placements){
+  if(!window.PNHolo) return;
+  const { pairs, rating } = floorRating(currentN);
+  const strong = placements.some(r => r.w === r.h);
+  const col = rating === "WEAK" ? "bad" : rating === "SECURE" ? "ok" : "yl";
+  const why = rating === "WEAK" ? "Few rooms, few guards. A possible way in." : rating === "SECURE" ? "Lots of rooms to guard. Hard to cross." : "Average security.";
+  analysisWin = PNHolo.open({ title: `FLOOR ANALYSIS · N=${currentN}`, flag: rating, x: 84, y: 30, w: 300, tilt: -16,
+    html: `ROOMS <span class="yl">${placements.length}</span> (${pairs} factor pair${pairs === 1 ? "" : "s"}, both ways round)<br>DOORS <span class="yl">${placements.length}</span> · FIRE EXITS <span class="yl">1</span><br>${strong ? '<span class="yl">STRONGROOM</span> present<br>' : ""}SECURITY <span class="${col}">${rating}</span><br><span class="k">${why}</span>` });
 }
 
 // ====== 3D CUBOID RECTANGLE RENDERER ======
@@ -1228,12 +1278,21 @@ function drawCuboid(ctx, rect, cellSize, gap, heightPx, mode=1){
   const Dh = {x: D.x + hx, y: D.y + hy};
   
   // Green buildings with bright edges: the original Vault Grid mix. Canvas can't read CSS variables.
-  const colors = {
+  // The room the drone is looking at glows amber; the square strongroom has gold edges.
+  const hot = window.gridHighlight && window.gridHighlight === rect;
+  const strong = rect.w === rect.h;
+  const colors = hot ? {
+    top:   "rgba(255, 200, 90, 0.70)",
+    left:  "rgba(150, 100, 30, 0.75)",
+    right: "rgba(170, 115, 35, 0.72)",
+    front: "rgba(200, 140, 50, 0.66)",
+    edge:  "rgba(255, 230, 150, 1)"
+  } : {
     top:   "rgba(40, 180, 140, 0.60)",
     left:  "rgba(20, 100, 80, 0.70)",
     right: "rgba(25, 120, 100, 0.65)",
     front: "rgba(35, 150, 120, 0.58)",
-    edge:  "rgba(60, 255, 200, 0.9)"
+    edge:  strong ? "rgba(255, 201, 77, 0.95)" : "rgba(60, 255, 200, 0.9)"
   };
   
   // LEFT FACE: D → A → Ah → Dh
@@ -1266,6 +1325,19 @@ function drawCuboid(ctx, rect, cellSize, gap, heightPx, mode=1){
   ctx.closePath();
   ctx.fill();
   
+  // DOOR: a dark opening with an amber frame on the chosen wall
+  if(rect.door && heightPx > 2){
+    const step = cellSize + gap, d = rect.door, wLen = Math.min(cellSize * 0.9, step);
+    let F0, F1;
+    if(d.side === "n"){ F0 = { x: A.x + d.at * step + (step - wLen) / 2, y: A.y }; F1 = { x: F0.x + wLen, y: A.y }; }
+    else if(d.side === "w"){ F0 = { x: A.x, y: A.y + d.at * step + (step - wLen) / 2 }; F1 = { x: A.x, y: F0.y + wLen }; }
+    else { F0 = { x: B.x, y: B.y + d.at * step + (step - wLen) / 2 }; F1 = { x: B.x, y: F0.y + wLen }; }
+    const k = 0.62;
+    ctx.fillStyle = "rgba(3, 12, 14, 0.92)";
+    ctx.beginPath(); ctx.moveTo(F0.x, F0.y); ctx.lineTo(F1.x, F1.y); ctx.lineTo(F1.x + hx * k, F1.y + hy * k); ctx.lineTo(F0.x + hx * k, F0.y + hy * k); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = "rgba(255, 190, 90, 0.95)"; ctx.lineWidth = 1.2; ctx.stroke();
+  }
+
   // TOP FACE: Ah → Bh → Ch → Dh
   ctx.fillStyle = colors.top;
   ctx.beginPath();
@@ -1353,10 +1425,44 @@ function renderRectCuboids(ctx, rects, GRID, cellSize, gap, heightPx, mode=1){
   // Rects further back (higher y + h) draw first
   const sorted = rects.slice().sort((a, b) => (a.y + a.h) - (b.y + b.h));
   
+  // Fire exit: a green marker on the outer wall
+  const ex = window.lastExit;
+  if(ex){
+    const step = cellSize + gap, x0 = ex.x * step, y0 = ex.y * step;
+    ctx.fillStyle = "rgba(47, 191, 138, 0.35)"; ctx.fillRect(x0, y0, cellSize, cellSize);
+    ctx.strokeStyle = "rgba(120, 255, 190, 1)"; ctx.lineWidth = 1.5; ctx.strokeRect(x0, y0, cellSize, cellSize);
+    ctx.fillStyle = "rgba(160, 255, 210, 1)"; ctx.font = `700 ${Math.max(9, Math.min(13, cellSize * 1.1))}px "Chakra Petch", sans-serif`;
+    ctx.textAlign = "right"; ctx.textBaseline = "middle"; ctx.fillText("FIRE EXIT ▸", x0 - 4, y0 + cellSize / 2);
+  }
+
   // Draw each rectangle as a cuboid
   for(const rect of sorted){
     drawCuboid(ctx, rect, cellSize, gap, heightPx, mode);
   }
+
+  // Labels on the rooms themselves (feedback: label the cuboids), once they've risen
+  if(heightPx > 1){
+    const modeConfig = EXTRUSION_MODES[mode] || EXTRUSION_MODES[1];
+    const hx = modeConfig.hx(heightPx), hy = modeConfig.hy(heightPx), step = cellSize + gap;
+    for(const r of sorted){
+      const w = r.w * step, h = r.h * step, cx = r.x * step + w / 2 + hx, cy = r.y * step + h / 2 + hy;
+      const name = roomName(r), dims = `${Math.min(r.w, r.h)}×${Math.max(r.w, r.h)}`;
+      const size = Math.max(8, Math.min(14, cellSize * 1.15));
+      ctx.font = `700 ${size}px "Chakra Petch", sans-serif`;
+      const tw = Math.max(ctx.measureText(name).width, ctx.measureText(dims).width);
+      const hot = window.gridHighlight === r;
+      if(tw > w - 4 || size * 2.3 > h){ if(!hot) continue; }   // too small: only the drone's current room gets a label
+      ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillStyle = hot ? "rgba(40, 20, 0, 0.95)" : "rgba(3, 25, 20, 0.9)";
+      ctx.fillText(name, cx, cy - size * 0.55);
+      ctx.font = `700 ${size * 0.95}px "Courier Prime", monospace`;
+      ctx.fillText(dims, cx, cy + size * 0.6);
+    }
+  }
+}
+function rerenderGrid(){
+  const a = window.animationState; if(!a) return;
+  renderRectCuboids(a.ctx, a.rects, a.GRID, a.cellSize, a.gap, a.targetHeight, window.extrusionMode);
 }
 
 // Animate rectangle extrusion with painter's algorithm occlusion

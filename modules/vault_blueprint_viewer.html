@@ -308,8 +308,8 @@ function powerUpPrompt(title){
       const floor3N = sorted[0];  // Smallest - Top floor
       
       const floors = [
-        { label: 'FLOOR 3 — ROOF ACCESS', n: floor3N, yOffset: 36 },
-        { label: 'FLOOR 2 — VAULT CHAMBER', n: floor2N, yOffset: 18 },
+        { label: 'FLOOR 3 — ROOF ACCESS', n: floor3N, yOffset: 48 },
+        { label: 'FLOOR 2 — VAULT CHAMBER', n: floor2N, yOffset: 24 },
         { label: 'FLOOR 1 — SECURITY CORE (GROUND)', n: floor1N, yOffset: 0 }
       ];
       
@@ -352,7 +352,10 @@ function powerUpPrompt(title){
       // Wait for sound to be allowed, then build: a pop per box, and a chord when the bank is complete
       (window.PNSound ? PNSound.whenUnlocked(() => powerUpPrompt("ASSEMBLE THE BLUEPRINT")) : Promise.resolve()).then(() => {
         const t = document.querySelector("h1"); if(t && PN) t.textContent = `${PN.mission().target}: assembling`;
-        plotterPrint(floors, canvasContainer).then(() => initializeSharedScene(floors, canvasContainer)).then(() => {
+        // Feedback: the plotter didn't match the arrays and slowed things down; straight into the 3D build
+        // SPACE on the power-up prompt scrolls the page after this runs; bring the building back into view
+        window.scrollTo(0, 0); setTimeout(() => window.scrollTo(0, 0), 60);
+        initializeSharedScene(floors, canvasContainer).then(() => {
           if(t && PN) t.textContent = `${PN.mission().target}: blueprint complete`;
         });
       });
@@ -407,8 +410,9 @@ function powerUpPrompt(title){
 
       const scene = new THREE.Scene();
       const camera = new THREE.PerspectiveCamera(35, width / height, 1, 4000);
-      const CAM_FINAL = { pos: new THREE.Vector3(150, 75, 350), look: new THREE.Vector3(0, 18, 0) };
-      const CAM_WIDE  = { pos: new THREE.Vector3(120, 150, 520), look: new THREE.Vector3(0, 55, 0) };
+      // Closer cameras so the rebuilt floor plans fill the frame
+      const CAM_FINAL = { pos: new THREE.Vector3(130, 105, 265), look: new THREE.Vector3(0, 24, 0) };
+      const CAM_WIDE  = { pos: new THREE.Vector3(95, 150, 360), look: new THREE.Vector3(0, 50, 0) };
       const camLook = CAM_WIDE.look.clone();
       camera.position.copy(CAM_WIDE.pos); camera.lookAt(camLook);
 
@@ -427,7 +431,8 @@ function powerUpPrompt(title){
 
       let maxExtentX = 0, maxExtentZ = 0;
       floors.forEach(floor => {
-        layoutFor(floor.n, scales[floor.n]).forEach(b => {
+        if(LAYOUTS[floor.n]){ maxExtentX = Math.max(maxExtentX, PLATE / 2); maxExtentZ = Math.max(maxExtentZ, PLATE / 2); }
+        roomsFor(floor.n, scales[floor.n]).forEach(b => {
           maxExtentX = Math.max(maxExtentX, Math.abs(b.x) + b.w / 2);
           maxExtentZ = Math.max(maxExtentZ, Math.abs(b.z) + b.d / 2);
         });
@@ -441,7 +446,7 @@ function powerUpPrompt(title){
       });
 
       // The outer shell and the dividing grids, hidden until the floors are in
-      const boxHeight = 18;
+      const boxHeight = 16;
       const cuboidBottomY = floors[2].yOffset, cuboidTopY = floors[0].yOffset + boxHeight;
       const totalHeight = cuboidTopY - cuboidBottomY, centerY = (cuboidBottomY + cuboidTopY) / 2;
       const shell = new THREE.Group();
@@ -480,7 +485,7 @@ function powerUpPrompt(title){
       function animate(now){
         if(spinning){ rotationY += 0.0012; mainGroup.rotation.y = rotationY; }
         scanTime += 0.008;
-        const scanY = ((Math.sin(scanTime) + 1) / 2) * 54;
+        const scanY = ((Math.sin(scanTime) + 1) / 2) * 64;
         if(shell.visible) gridReferences.forEach(grid => {
           grid.material.opacity = (Math.max(0, 1 - Math.abs(grid.position.y - scanY) / 12) * 0.8 + 0.05) * grid.userData.fade;
         });
@@ -514,15 +519,16 @@ function powerUpPrompt(title){
         card('i-win', `<b>LIGHTS ON</b>Every room has a × b windows, so every room on a floor has exactly N lights. A 4 × 6 office has 24.`);
 
         // Weak point: the floor with the fewest rooms (factor pairs)
-        const fewest = Math.min(...floorGroups.map(f => f.boxes.length));
-        const weak = floorGroups.filter(f => f.boxes.length === fewest).sort((a, b) => a.n - b.n)[0];
+        const pairsOf = n => getFactorPairs(n).length;
+        const fewest = Math.min(...floorGroups.map(f => pairsOf(f.n)));
+        const weak = floorGroups.filter(f => pairsOf(f.n) === fewest).sort((a, b) => a.n - b.n)[0];
         weak.lines.forEach(m => m.color.set(0xff4f6d)); weak.plate.material.color.set(0xff4f6d);
         ring(weak.yOffset + 0.5, 0xff4f6d); SND("alarm");
-        const wl = labelFor(weak.n); if(wl){ wl.classList.add('weak'); wl.insertAdjacentHTML('beforeend', `<span class="weaktag">WEAK POINT · ${fewest} room${fewest === 1 ? '' : 's'}</span>`); }
+        const wl = labelFor(weak.n); if(wl){ wl.classList.add('weak'); wl.insertAdjacentHTML('beforeend', `<span class="weaktag">WEAK POINT · ${fewest} factor pair${fewest === 1 ? '' : 's'}</span>`); }
         const wName = weak.label.split('—')[0].trim();
         card('i-weak', `<b>WEAK POINT: ${wName.toUpperCase()}</b>N=${weak.n} has only ${fewest} factor pair${fewest === 1 ? '' : 's'}: the fewest rooms, so the fewest guards.`);
         if(PN) PN.updateAgent({ weakFloor: wName, weakN: weak.n });
-        if(window.PNHandler) PNHandler.say(`${wName} only has ${fewest} rooms. Fewest rooms, fewest guards. That's our way in.`);
+        if(window.PNHandler) PNHandler.say(`${wName} only has ${fewest} factor pairs, so the fewest rooms to guard. That's our way in.`);
         let pulse = true; (function pulseWeak(t){ if(!pulse) return; const k = 0.5 + 0.5 * Math.abs(Math.sin(t / 300)); weak.lines.forEach(m => m.opacity = k); requestAnimationFrame(pulseWeak); })(0);
         weak.lines.forEach(m => m.transparent = true);
         await wait(1400);
@@ -587,7 +593,7 @@ function powerUpPrompt(title){
             tween(450, k => { f.group.position.copy(dirV).multiplyScalar(k); });
             labelFor(f.n)?.classList.add('picked');
             const rooms = getFactorPairs(f.n).map(([a, b]) => `${a}×${b}`).join(' · ');
-            info.textContent = `${f.label.split('—')[0].trim()} · N=${f.n} · ${f.boxes.length} rooms: ${rooms}`;
+            info.textContent = `${f.label.split('—')[0].trim()} · N=${f.n} · ${f.boxes.length} rooms from ${getFactorPairs(f.n).length} factor pairs: ${rooms}`;
           }
         });
       }
@@ -656,14 +662,15 @@ function powerUpPrompt(title){
     function windowPanel(mesh, r, h){
       const cv = document.createElement('canvas'); cv.width = 256; cv.height = 128;
       const g = cv.getContext('2d'), tex = new THREE.CanvasTexture(cv);
-      const order = [...Array(r.a * r.b).keys()].sort(() => Math.random() - .5);
+      const R = r.rows || r.a, Cn = r.cols || r.b;
+      const order = [...Array(R * Cn).keys()].sort(() => Math.random() - .5);
       const rank = new Array(order.length); order.forEach((cell, i) => rank[cell] = i);
       function draw(k){
         g.clearRect(0, 0, 256, 128);
-        const cw = 256 / r.b, ch = 128 / r.a, gx = Math.max(1.5, cw * .4), gy = Math.max(1.5, ch * .4);
-        for(let row = 0; row < r.a; row++) for(let col = 0; col < r.b; col++){
-          const lit = rank[row * r.b + col] < k;
-          g.fillStyle = lit ? 'rgba(255,214,120,0.72)' : 'rgba(0,50,50,0.3)';
+        const cw = 256 / Cn, ch = 128 / R, gx = Math.max(1.5, cw * .4), gy = Math.max(1.5, ch * .4);
+        for(let row = 0; row < R; row++) for(let col = 0; col < Cn; col++){
+          const lit = rank[row * Cn + col] < k;
+          g.fillStyle = lit ? 'rgba(255,214,120,0.5)' : 'rgba(0,50,50,0.22)';
           g.fillRect(col * cw + gx / 2, row * ch + gy / 2, cw - gx, ch - gy);
         }
         tex.needsUpdate = true;
@@ -676,7 +683,7 @@ function powerUpPrompt(title){
         if(side < 0) plane.rotation.y = Math.PI;
         mesh.add(plane);
       });
-      return { a: r.a, b: r.b, draw };
+      return { a: Math.min(r.a, r.b), b: Math.max(r.a, r.b), draw };
     }
     const gcd = (a, b) => b ? gcd(b, a % b) : a;
     function roomName(a, b){
@@ -804,6 +811,17 @@ function powerUpPrompt(title){
       go.addEventListener('click', () => { ov.remove(); onDone(); });
     }
 
+    // The exact floor plans from the Vault Grid, scaled onto one plate size (bigger N means smaller cells)
+    const LAYOUTS = (() => { try{ return JSON.parse(localStorage.getItem('blueprintLayouts') || '{}'); }catch(e){ return {}; } })();
+    const PLATE = 130;
+    function roomsFor(n, scale){
+      const L = LAYOUTS[n];
+      if(!L) return layoutFor(n, scale);   // teacher preview with sample numbers
+      const cell = PLATE / L.grid;
+      return L.rooms.map(r => ({ a: Math.min(r.w, r.h), b: Math.max(r.w, r.h), rows: r.h, cols: r.w, cell, door: r.door,
+        w: r.w * cell - cell * 0.25, d: r.h * cell - cell * 0.25, x: (r.x + r.w / 2) * cell - PLATE / 2, z: (r.y + r.h / 2) * cell - PLATE / 2 }));
+    }
+
     // Where each factor-pair room sits on its floor (shared by the sizing pass and the build)
     function layoutFor(n, scale){
       const pairs = getFactorPairs(n);
@@ -820,16 +838,29 @@ function powerUpPrompt(title){
 
     function buildFloor(n, yOffset, scale, maxExtentX, maxExtentZ){
       const group = new THREE.Group();
-      const boxHeight = 18, boxes = [];
+      const boxHeight = 16, boxes = [];
       const square = Number.isInteger(Math.sqrt(n));
       // The floor plate: a faint slab under the rooms so each floor reads as one level
       const plate = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(maxExtentX * 2, 0.6, maxExtentZ * 2)),
         new THREE.LineBasicMaterial({ color: square ? 0xffc94d : 0x4aa3ff, transparent: true, opacity: 0.5 }));
       plate.position.y = yOffset + 0.3;
+      // A solid floor slab, so each storey reads on its own and upper floors partly hide the ones below
+      const slab = new THREE.Mesh(new THREE.BoxGeometry(maxExtentX * 2, 1.2, maxExtentZ * 2), new THREE.MeshBasicMaterial({ color: 0x06161a, transparent: true, opacity: 0.72 }));
+      slab.position.y = yOffset - 0.4;
+      group.add(slab);
       group.add(plate);
 
       const lines = [];
-      layoutFor(n, scale).forEach(r => {
+      // The fire exit from the Vault Grid, on this floor's plate
+      const L = LAYOUTS[n];
+      if(L && L.exit){
+        const cell = PLATE / L.grid, ex = L.exit;
+        const g = new THREE.BoxGeometry(cell * 0.9, 1, cell * 0.9);
+        const m = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color: 0x2fbf8a, transparent: true, opacity: 0.6 }));
+        m.position.set((ex.x + 0.5) * cell - PLATE / 2, yOffset + 0.6, (ex.y + 0.5) * cell - PLATE / 2);
+        group.add(m);
+      }
+      roomsFor(n, scale).forEach(r => {
         // A square pair (6 × 6) is the reinforced strongroom: gold edges
         const strong = r.a === r.b;
         const color = 0x00ff99;
@@ -839,6 +870,14 @@ function powerUpPrompt(title){
         mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(geom), lineMat));
         lines.push(lineMat);
         mesh.userData.win = windowPanel(mesh, r, boxHeight);
+        // Door: an amber opening on the same wall as in the Vault Grid
+        if(r.door && r.cell){
+          const dm = new THREE.Mesh(new THREE.PlaneGeometry(r.cell * 0.75, 11), new THREE.MeshBasicMaterial({ color: 0xffbe5a, side: THREE.DoubleSide, transparent: true, opacity: 0.9 }));
+          const along = len => -len / 2 + (r.door.at + 0.5) * r.cell;
+          if(r.door.side === "n"){ dm.position.set(along(r.w), -2.5, -r.d / 2 - 0.25); }
+          else { dm.rotation.y = Math.PI / 2; dm.position.set((r.door.side === "w" ? -1 : 1) * (r.w / 2 + 0.25), -2.5, along(r.d)); }
+          mesh.add(dm);
+        }
         mesh.position.set(r.x, yOffset + boxHeight / 2, r.z);
         mesh.scale.set(0.01, 0.01, 0.01);
         group.add(mesh); boxes.push(mesh);

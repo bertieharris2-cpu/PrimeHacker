@@ -477,7 +477,7 @@ body{ overflow:auto !important; }
 .scope .rx{ position:absolute; left:10px; top:8px; z-index:3; font-family:var(--font-mono); font-size:12px; letter-spacing:.08em; color:rgba(var(--accent-rgb),.8); pointer-events:none; }
 .scope .rx .rec{ color:#ff4f6d; animation:dotPulse 1s steps(2) infinite; }
 .scope .rx2{ left:auto; right:10px; text-align:right; }
-.blip{ position:absolute; left:0; top:0; z-index:4; min-width:0 !important; padding:3px 8px !important; font-family:var(--font-mono) !important; font-size:18px !important; font-weight:700; color:#d9fff0 !important;
+.blip{ position:absolute; left:0; top:0; z-index:4; min-width:0 !important; padding:6px 12px !important; font-family:var(--font-mono) !important; font-size:20px !important; font-weight:700; color:#d9fff0 !important;
   background:rgba(2,14,12,.75) !important; border:1px solid rgba(var(--accent-rgb),.55) !important; box-shadow:none !important; cursor:crosshair; will-change:transform; transition:none !important; }
 .blip::before, .blip::after{ content:""; position:absolute; width:7px; height:7px; border:2px solid transparent; transition:all .15s; }
 .blip::before{ left:-6px; top:-6px; } .blip::after{ right:-6px; bottom:-6px; }
@@ -999,6 +999,14 @@ button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [clas
       else { stats.noise++; let f = ""; for(let i = 2; i * i <= blip.n; i++) if(blip.n % i === 0){ f = `${i}×${blip.n / i}`; break; } retire(blip, "noise", blip.n === 1 ? "1: NOT PRIME" : `= ${f}`); SND("wrong"); loseSignal(4); setConsole("NOISE", blip.n === 1 ? "1 is not prime: it has only one factor." : `${blip.n} = ${f.replace("×", " × ")}, so it isn't prime.`); }
       paintHud();
     }
+    // Feedback: clicks were too fussy. A click anywhere near a peak's label (within 70px) counts for it.
+    scope.addEventListener("pointerdown", e => {
+      if(e.target.closest(".blip")) return;
+      const r = scope.getBoundingClientRect(), px = e.clientX - r.left, py = e.clientY - r.top;
+      let best = null, bestD = 70;
+      blips.forEach(b => { if(b.done || b.state !== "live") return; const q = b.el.getBoundingClientRect(), cx = q.left - r.left + q.width / 2, cy = q.top - r.top + q.height / 2, d = Math.hypot(cx - px, cy - py); if(d < bestD){ bestD = d; best = b; } });
+      if(best) hitBlip(best);
+    });
     const t0 = performance.now();
     function frame(now){
       if(!running) return;
