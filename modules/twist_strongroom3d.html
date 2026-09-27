@@ -46,8 +46,8 @@
 </head>
 <body>
 <main class="tw">
-  <div class="tw-bar"><span class="steps"><span id="st1" class="on">1 · LAY THE STRONGROOM FLOOR</span><span id="st2">2 · CROSS THE PRESSURE PLATES</span></span><span id="bar"></span></div>
-  <section class="pn-panel stage3d" id="stage"><div class="hud" id="hud">STRONGROOM · ZOOMING IN…</div></section>
+  <div class="tw-bar"><span class="steps"><span id="st1" class="on">1 · STRONGROOM FLOOR</span><span id="st2">2 · PRESSURE PLATES</span></span><span id="bar"></span></div>
+  <section class="pn-panel stage3d" id="stage"><div class="hud" id="hud">STRONGROOM · STANDING BY</div></section>
   <div class="build" id="build">
     <section class="pn-panel gridbox"><div class="dg" id="dg"></div><div class="read" id="read">&nbsp;</div></section>
     <aside class="pn-panel side">
@@ -73,10 +73,11 @@
   "use strict";
   const T = window.PNTwist, $ = id => document.getElementById(id);
   const L = T.peekLevel();
+  // Round 13: the instructions live in the hologram brief (H hides or shows it), not on the page
   const GOALS = {
-    L1: "The strongroom's floor is square. Lay a <b>square</b> of exactly the tiles delivered.",
-    L2: "Can each delivery make the <b>square</b> floor? Lay it, or say it can't be done.",
-    L3: "Give the square floor's <b>side length</b>, or say it can't be a square.",
+    L1: "The strongroom's floor is square. Drag on the grid to lay a <b>square</b> of exactly the tiles delivered.",
+    L2: "Can each delivery make the <b>square</b> floor? Drag it out on the grid, or press <b>It can't be a square</b>.",
+    L3: "Type the square floor's <b>side length</b>. If the tiles can't make a square, press <b>It can't be a square</b>.",
   };
   T.init({ id: "strongroom3d", stage: "FACTOR VAULT", title: "THE STRONGROOM", goal: GOALS[L],
     example: "16 tiles make a 4 × 4 square floor. 12 tiles can't: 3 × 3 = 9 is too few and 4 × 4 = 16 too many.",
@@ -91,7 +92,13 @@
   const beacon = new TH.Mesh(new TH.RingGeometry(Math.max(target.w, target.d) * 0.6, Math.max(target.w, target.d) * 0.68, 40), new TH.MeshBasicMaterial({ color: 0xffe14d, side: TH.DoubleSide, transparent: true }));
   beacon.rotation.x = -Math.PI / 2; beacon.position.set(target.x, 0.4, target.z); F.root.add(beacon);
   F.onTick(now => { beacon.material.opacity = 0.4 + 0.4 * Math.sin(now / 260); });
-  F.flyTo({ pos: new TH.Vector3(target.x + 30, 70, target.z + 60), look: new TH.Vector3(target.x, 4, target.z) }, 2200).then(() => { $("hud").textContent = `STRONGROOM · ${target.name} ${target.a} × ${target.b}`; });
+  // Camera moves wait until the brief folds away, so the child sees them. Only the latest one waits; moves run one after another.
+  let shot = null, flight = Promise.resolve();
+  function camera(f){ shot = f; if(!T.briefOpen()) runShot(); }
+  function runShot(){ const f = shot; shot = null; if(f) flight = flight.then(f); }
+  window.addEventListener("pn-brief", e => { if(e.detail.open) return; runShot(); if(L === "L3" && $("plates").hidden && !over) $("sideIn").focus(); });   // L3: straight back to typing
+  shot = () => { $("hud").textContent = "STRONGROOM · ZOOMING IN…";   // the brief opens first, so the fly-in waits for it
+    return F.flyTo({ pos: new TH.Vector3(target.x + 30, 70, target.z + 60), look: new TH.Vector3(target.x, 4, target.z) }, 2200).then(() => { if($("plates").hidden) $("hud").textContent = `STRONGROOM · ${target.name} ${target.a} × ${target.b}`; }); };
 
   // ----- Stage 1: the square floor (from the square strongroom twist) -----
   const SETS = { L1: () => T.shuffle([9, 16, 25, 36]).slice(0, 3), L2: () => T.shuffle([...T.shuffle([36, 49, 64, 81]).slice(0, 2), ...T.shuffle([40, 45, 50, 60, 72, 30]).slice(0, 2)]), L3: () => T.shuffle([...T.shuffle([121, 144, 169, 196, 225, 256, 289, 324]).slice(0, 2), ...T.shuffle([120, 150, 200, 250, 300, 180]).slice(0, 2)]) };
@@ -126,9 +133,8 @@
   function step2(){
     $("build").hidden = true; $("plates").hidden = false; $("st1").className = "done"; $("st2").className = "on";
     $("stage").style.transition = "height .6s"; $("stage").style.height = "140px";   // make room for the plates
-    T.setGoal("The <b>square-numbered</b> plates are live. Tap every one so the agent can walk round them to the safe.");
-    F.flyTo({ pos: new TH.Vector3(target.x, 26, target.z + 18), look: new TH.Vector3(target.x, 0, target.z - 4) }, 1400);
-    $("hud").textContent = "INSIDE THE STRONGROOM";
+    T.setGoal("The <b>square-numbered</b> plates are live. Tap every one. Then the agent can walk round them to the safe.");
+    camera(() => { $("hud").textContent = "INSIDE THE STRONGROOM"; return F.flyTo({ pos: new TH.Vector3(target.x, 26, target.z + 18), look: new TH.Vector3(target.x, 0, target.z - 4) }, 1400); });
     // Numbers: L1 is every number 1–48 in order; L2/L3 hide squares among near misses
     let ns;
     if(L === "L1") ns = T.range(PC.lo, PC.hi);
@@ -151,7 +157,7 @@
     $("plates").querySelector("svg").addEventListener("click", e => { const p = e.target.closest(".plate"); if(p) tapPlate(p); });
     $("bar").textContent = `Live plates found: 0 of ${live.length}`;
     T.say("We're in. The square-numbered plates trigger the alarm. Mark them all.");
-    say("Tap every plate with a square number on it.");
+    say("");
   }
   function tapPlate(el){
     if(over || el.classList.contains("live")) return;
@@ -162,7 +168,7 @@
   }
   // The agent walks from the door to the safe, only on safe plates (a shortest path round the live ones)
   async function cross(){
-    over = true;
+    over = true; T.hideBrief();   // the walk is the payoff, so nothing sits over it (and SKIP with the brief up still gets there)
     const R = PC.rows, Cn = PC.cols, liveAt = (r0, c0) => T.isSquare(plates[(R - 1 - r0) * Cn + c0]);
     const start = [0, Math.floor(Cn / 2)], prev = new Map(), q = [];
     for(let c0 = 0; c0 < Cn; c0++) if(!liveAt(0, c0)){ q.push([0, c0]); prev.set(`0,${c0}`, null); }
@@ -172,6 +178,7 @@
     say("All live plates marked. Walking to the safe on the safe plates…", "ok"); T.SND("verified");
     const agent = $("plates").querySelector("#agent");
     for(const [r0, c0] of path){
+      while(T.briefOpen()) await new Promise(r => setTimeout(r, 100));   // the walk holds while the brief is up
       const el = $("plates").querySelector(`.plate[data-r="${r0}"][data-c="${c0}"]`); if(!el) continue; el.classList.add("step");
       const pts = el.getAttribute("points").split(" ").map(s => s.split(",").map(Number)), cx = pts.reduce((s, p) => s + p[0], 0) / 4, cy = pts.reduce((s, p) => s + p[1], 0) / 4;
       agent.setAttribute("cx", cx); agent.setAttribute("cy", cy); T.SND("plot");

@@ -43,7 +43,7 @@
   <section class="pn-panel room" id="room"></section>
   <div class="under">
     <section class="pn-panel wallinfo"><span class="big" id="wallSize"></span><span class="note" id="wallNote"></span></section>
-    <section class="pn-panel pairs"><span class="lab">RECTANGLES OF BOXES (FACTOR PAIRS) · DO THEY FIT THE BACK WALL?</span><div id="pairs" style="display:flex;flex-direction:column;gap:8px"></div></section>
+    <section class="pn-panel pairs"><span class="lab">RECTANGLES OF BOXES · FACTOR PAIRS</span><div id="pairs" style="display:flex;flex-direction:column;gap:8px"></div></section>
   </div>
   <div class="tw-msg" id="msg" aria-live="polite"></div>
 </main>
@@ -58,7 +58,7 @@
   "use strict";
   const T = window.PNTwist, $ = id => document.getElementById(id);
   const L = T.init({ id: "walls3d", stage: "FACTOR VAULT", title: "DEPOSIT-BOX ROOM",
-    goal: T.peekLevel() === "L1" ? "Which rectangles of boxes fit on the <b>back wall</b>? Tap a rectangle to try it, or drag boxes out on the wall." : "Which rectangles of boxes fit on the <b>back wall</b>? They can be turned round.",
+    goal: T.peekLevel() === "L1" ? "Which rectangles of boxes fit on the <b>back wall</b>? Tap a rectangle to try it on the wall. Tap it again to <b>turn it round</b>. Or drag boxes out on the wall." : "Which rectangles of boxes fit on the <b>back wall</b>? They can be <b>turned round</b>.",
     example: "On a back wall 8 wide and 6 high, 4 × 6 fits. 2 × 12 doesn't: 12 is too wide and too tall.",
     story: `We're in ${T.targets()} deposit-box room. The key's box is in a bank on the back wall, and the bank has to fit the wall. Work out which rectangles fit.` });
   const SETS = {
@@ -117,8 +117,13 @@
     return { gx0, gy0, cw };
   }
   let geo = null;
-  // A laser sweep across the room when a wall is dealt
+  // A laser sweep across the room when a wall is dealt. If the brief is up, it waits until it folds away so it's seen.
+  let sweepWait = false;
   function sweep(){
+    if(T.briefOpen()){
+      if(!sweepWait){ sweepWait = true; window.addEventListener("pn-brief", function f(e){ if(e.detail.open) return; window.removeEventListener("pn-brief", f); sweepWait = false; sweep(); }); }
+      return;
+    }
     const s = $("sweep"), t0 = performance.now(), dur = 1300 / (window.PNTest ? PNTest.speed() : 1);
     s.setAttribute("opacity", "1"); T.SND("scan", 1.3);
     (function f(now){ const k = Math.min(1, (now - t0) / dur), z = 1 + k * (ZB - 1); const [a1, b1] = P(-1, 0.75, z), [a2, b2] = P(1, 0.75, z), [a3, b3] = P(-1, -0.75, z); s.setAttribute("x1", a1); s.setAttribute("y1", b1); s.setAttribute("x2", a2); s.setAttribute("y2", b2); if(k < 1) requestAnimationFrame(f); else s.setAttribute("opacity", "0"); })(t0);
@@ -130,26 +135,29 @@
     const [N, W, H] = rounds[r];
     $("round").textContent = r + 1; $("nLab").textContent = `N = ${N} boxes`;
     $("wallSize").textContent = `${W} WIDE × ${H} HIGH`; $("wallNote").textContent = "";
+    // The wall's job goes in the hologram brief. Wall 1 zooms it open; later walls are the same job,
+    // so they just update it and ping the BRIEF tab.
+    T.step(`Wall ${r + 1}: <b>${N}</b> boxes. The back wall is <b>${W}</b> wide and <b>${H}</b> high. Mark each rectangle <b>Fits</b> or <b>Doesn't fit</b>.`, { quiet: r > 0 });
     geo = drawRoom(W, H); sweep();
     const box = $("pairs"); box.innerHTML = "";
     T.pairs(N).forEach(([a, b]) => {
       total++;
       const el = document.createElement("div"); el.className = "pair";
       el.innerHTML = `<b>${a} × ${b}</b><button class="pn-btn small" type="button" data-a="fit">Fits</button><button class="pn-btn small" type="button" data-a="base">Doesn't fit</button><span class="v"></span>`;
-      if(L === "L1"){ const lab = el.querySelector("b"); lab.style.cursor = "pointer"; lab.title = "Try it on the back wall"; let turned = false;
+      if(L === "L1"){ const lab = el.querySelector("b"); lab.style.cursor = "pointer"; lab.title = "Try it on the back wall. Tap again to turn it round."; let turned = false;
         lab.addEventListener("click", () => { if(el.classList.contains("done")) return; preview(turned ? b : a, turned ? a : b); turned = !turned; }); }
       el.querySelector('[data-a="fit"]').addEventListener("click", () => answer(el, a, b, true));
       el.querySelector('[data-a="base"]').addEventListener("click", () => answer(el, a, b, false));
       box.appendChild(el);
     });
     if(L === "L1") wireDrag();
-    say(`${N} boxes to fit. The back wall is ${W} boxes wide and ${H} high.`);
+    say("");
   }
   function preview(rows, cols){
     const [N, W, H] = rounds[r];
     hue = (hue + 55) % 360; paintRect(rows, cols, hue);
     const o = rows > H || cols > W;
-    $("wallNote").textContent = `${rows} high × ${cols} wide${o ? `: too ${rows > H && cols > W ? "tall and too wide" : rows > H ? "tall" : "wide"} for this wall` : ": it fits"}. Tap it again to turn it round.`;
+    $("wallNote").textContent = `${rows} high × ${cols} wide${o ? `: too ${rows > H && cols > W ? "tall and too wide" : rows > H ? "tall" : "wide"} for this wall` : ": it fits"}.`;
     T.SND("plot");
   }
   function wireDrag(){

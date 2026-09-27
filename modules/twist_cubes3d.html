@@ -57,7 +57,7 @@
 </head>
 <body>
 <main class="tw">
-  <div class="tw-bar"><span class="steps"><span id="st1" class="on">1 · POWER THE RELAYS</span><span id="st2">2 · FIND THE CUBE RELAYS</span></span><span>Relays powered: <b id="count">0</b> of <b id="total">0</b></span></div>
+  <div class="tw-bar"><span class="steps"><span id="st1" class="on">1 · CUBE RELAYS</span><span id="st2">2 · RELAY BOARD</span></span><span>Relays powered: <b id="count">0</b> of <b id="total">0</b></span></div>
   <section class="pn-panel stage3d" id="stage"><div class="hud">CEILING OF <span id="floorName">THE TARGET FLOOR</span> · TRANSFORMER LOAD <b id="hudN">0</b> / <b id="hudT">0</b> ROOMS</div><div class="blackout" id="blackout">BLACKOUT</div></section>
   <div class="layout">
     <div>
@@ -72,18 +72,18 @@
         </div>
       </section>
       <section class="pn-panel draw" id="draw" hidden>
-        <div><span class="lab">DRAW ONE LAYER</span><div class="dg" id="dg"></div></div>
+        <div><span class="lab">LAYER GRID</span><div class="dg" id="dg"></div></div>
         <div class="dside">
           <div class="need">Relay needs <b class="needN"></b> blocks</div>
           <div id="stackArt"></div>
-          <div class="count" id="stackLine">Draw a square layer on the grid.</div>
+          <div class="count" id="stackLine">No layer yet.</div>
           <div class="row"><button class="pn-btn small" type="button" id="stackBtn" disabled>Stack a layer</button><button class="pn-btn small" type="button" id="unstackBtn" disabled>Take one off</button><button class="pn-btn small primary" type="button" id="drawLock" disabled>Power the relay</button></div>
         </div>
       </section>
       <section class="pn-panel rootq" id="rootq" hidden>
         <div class="need">Relay has <b class="needN"></b> blocks</div>
-        <span class="lab">IT'S A CUBE. HOW MANY BLOCKS ALONG EACH SIDE?</span>
-        <div class="strip"><div class="cells" id="cells"></div><span class="sr" id="stripRead">Drag along the strip, or type it.</span></div>
+        <span class="lab">CUBE ROOT</span>
+        <div class="strip"><div class="cells" id="cells"></div><span class="sr" id="stripRead">side ?</span></div>
         <div class="answer"><label for="rootIn">Blocks along each side:</label><input class="pn-input" id="rootIn" inputmode="numeric" maxlength="2"><button class="pn-btn small primary" type="button" id="rootBtn">Check</button><button class="pn-btn small" type="button" id="noCube">It can't be a cube</button></div>
       </section>
       <section class="pn-panel board spot" id="spot" hidden><div class="tw-grid" id="grid"></div></section>
@@ -110,9 +110,9 @@
     L2: "Draw a <b>square layer</b>, then stack layers until it's a <b>cube</b> with the right number of blocks.",
     L3: "Give each relay's <b>cube root</b>: how many blocks along each side. Or say it can't be a cube.",
   };
-  const GOAL2 = "Find every <b>cube number</b> on the relay board. Each one powers another room.";
+  const GOAL2 = "Tap every <b>cube number</b> on the relay board. Each one powers another room.";
   T.init({ id: "cubes3d", stage: "BLUEPRINT", title: "CEILING RELAYS", goal: GOALS[L],
-    example: "<b>27 = 3³</b>, a cube number: 3 blocks along each side and 3 layers, 3 × 3 × 3 = 27. The small ³ means the number is multiplied three times.",
+    example: "<b>27 = 3³</b>, a cube number: 3 blocks along each side and 3 layers, 3 × 3 × 3 = 27. The small ³ means three of that number multiplied together.",
     story: `This is the target floor of ${T.target()}. Every room's lights and cameras run back to one transformer. Wire each room in with a cube-number relay, then overload it: the whole floor blacks out.` });
 
   // ----- The 3D floor: the student's own weak floor -----
@@ -182,6 +182,7 @@
   }
   // Overload: the transformer flashes and sparks, the lights flicker, then room by room the floor goes black
   async function blackout(){
+    T.hideBrief();   // the blackout is the payoff, so nothing sits over it
     await new Promise(r => setTimeout(r, 400));
     T.say("Everything's on the one transformer. Overload it.");
     T.SND("alarm");
@@ -197,10 +198,21 @@
   }
   let i1 = 0;
   const setNeed = () => document.querySelectorAll(".needN").forEach(b => b.textContent = s1[i1]);
+  // Instructions live in the hologram brief. A new kind of step zooms it open; the same job again
+  // (the next relay, a new number) just updates it and pings the BRIEF tab.
+  const seen = new Set();
+  function brief(kind, html){ T.step(html, { quiet: seen.has(kind) }); seen.add(kind); }
+  function ask(){
+    const n = s1[i1];
+    if(L === "L1") brief("build", `Relay needs <b>${n}</b> blocks. Build it as a <b>cube</b>. Then press <b>Power the relay</b>.`);
+    else if(L === "L2") brief("draw", `Relay needs <b>${n}</b> blocks. Drag on the grid to draw one <b>square layer</b>.`);
+    else brief("root", `Relay has <b>${n}</b> blocks. How many blocks along each side? Drag the strip or type it. Not a cube? Press <b>It can't be a cube</b>.`);
+  }
   function nextRelay(){
     i1++;
     if(i1 === s1.length) return setTimeout(() => { if(!over) step2(); }, 1000);
     setNeed(); if(L === "L1") resetBuild(); else if(L === "L2") resetDraw(); else resetRoot();
+    ask();
   }
   // L1 build
   let side = 1, lay = 1;
@@ -219,7 +231,7 @@
   dg.innerHTML = Array.from({ length: 64 }, (_, i) => `<i data-r="${Math.floor(i / 8)}" data-c="${i % 8}"></i>`).join("");
   function paintStack(){
     $("stackArt").innerHTML = base && layers ? boxSVG(base, layers, 200) : "";
-    $("stackLine").innerHTML = base ? `${layers} layer${layers === 1 ? "" : "s"} of ${base} × ${base}: ${Array(layers).fill(base * base).join(" + ")} = <b>${base * base * layers}</b>` : "Draw a square layer on the grid.";
+    $("stackLine").innerHTML = base ? `${layers} layer${layers === 1 ? "" : "s"} of ${base} × ${base}: ${Array(layers).fill(base * base).join(" + ")} = <b>${base * base * layers}</b>` : "No layer yet.";
     $("stackBtn").disabled = !base || layers >= 8; $("unstackBtn").disabled = layers <= 1; $("drawLock").disabled = !base;
   }
   function resetDraw(){ base = 0; layers = 0; dg.querySelectorAll("i").forEach(i => i.classList.remove("sel")); dg.classList.remove("bad"); paintStack(); }
@@ -227,7 +239,8 @@
   function paintSel(){ const r0 = Math.min(anchor.r, cur.r), r1 = Math.max(anchor.r, cur.r), c0 = Math.min(anchor.c, cur.c), c1 = Math.max(anchor.c, cur.c); dg.querySelectorAll("i").forEach(i => { const r = +i.dataset.r, c = +i.dataset.c; i.classList.toggle("sel", r >= r0 && r <= r1 && c >= c0 && c <= c1); }); const h = r1 - r0 + 1, w = c1 - c0 + 1; dg.classList.toggle("bad", h !== w); return { h, w }; }
   dg.addEventListener("pointerdown", e => { if(over) return; const c = cellFrom(e); if(!c) return; e.preventDefault(); dg.setPointerCapture(e.pointerId); anchor = cur = c; paintSel(); T.SND("tag"); });
   dg.addEventListener("pointermove", e => { if(!anchor) return; const c = cellFrom(e); if(c && (c.r !== cur.r || c.c !== cur.c)){ cur = c; paintSel(); T.SND("plot"); } });
-  dg.addEventListener("pointerup", () => { if(!anchor) return; const { h, w } = paintSel(); anchor = cur = null; if(h !== w){ base = 0; layers = 0; paintStack(); say(`${h} × ${w} isn't square. A cube's layers are squares.`, "warn"); T.SND("untag"); return; } base = h; layers = 1; paintStack(); T.SND("clamp"); say(`One layer of ${h} × ${h} = ${h * h} blocks. Now stack layers.`); });
+  dg.addEventListener("pointerup", () => { if(!anchor) return; const { h, w } = paintSel(); anchor = cur = null; if(h !== w){ base = 0; layers = 0; paintStack(); say(`${h} × ${w} isn't square. A cube's layers are squares.`, "warn"); T.SND("untag"); ask(); return; } base = h; layers = 1; paintStack(); T.SND("clamp"); say(`One layer of ${h} × ${h} = ${h * h} blocks.`);
+    brief("stack", `Now <b>stack</b> layers until the cube has <b>${s1[i1]}</b> blocks. Then press <b>Power the relay</b>.`); });
   $("stackBtn").addEventListener("click", () => { if(over || !base) return; layers++; paintStack(); T.SND("pop", layers); });
   $("unstackBtn").addEventListener("click", () => { if(over || layers <= 1) return; layers--; paintStack(); T.SND("untag"); });
   $("drawLock").addEventListener("click", () => {
@@ -247,11 +260,11 @@
     cells.addEventListener("pointermove", e => { if(!dragging) return; const v = at(e); if(v) set(v); });
     cells.addEventListener("pointerup", () => { dragging = false; });
   })();
-  function resetRoot(){ $("rootIn").value = ""; $("cells").querySelectorAll("i").forEach(i => i.classList.remove("on")); $("stripRead").textContent = "Drag along the strip, or type it."; }
+  function resetRoot(){ $("rootIn").value = ""; $("cells").querySelectorAll("i").forEach(i => i.classList.remove("on")); $("stripRead").textContent = "side ?"; }
   $("rootBtn").addEventListener("click", () => {
     if(over) return;
     const n = s1[i1], v = parseInt($("rootIn").value, 10);
-    if(!Number.isInteger(v)){ say("Give the side length, or press \"It can't be a cube\".", "warn"); return; }
+    if(!Number.isInteger(v)){ say("No side length yet.", "warn"); T.showBrief(); return; }   // stuck: the brief comes back to explain
     if(v ** 3 === n){ light(n); say(`${v}³ = ${v} × ${v} × ${v} = ${n}. That room is wired in.`, "ok"); return nextRelay(); }
     say(T.isCube(n) ? `${v} × ${v} × ${v} = ${v ** 3}, not ${n}.` : `${v} × ${v} × ${v} = ${v ** 3}. In fact ${n} isn't a cube: ${between(n)}.`, "bad"); alarm.hit();
   });
@@ -277,7 +290,7 @@
     $("grid").innerHTML = T.shuffle([...s2, ...decoys]).map(n => `<button type="button" class="tw-tile" data-n="${n}">${n}</button>`).join("");
     $("grid").addEventListener("click", e => { const b = e.target.closest(".tw-tile"); if(b) tap(+b.dataset.n); });
     T.say("Those rooms are wired. The rest of the relays are on this board: find every cube number.");
-    say("Tap every cube number.");
+    say("");
   }
   function tap(n){
     if(over) return;
@@ -300,7 +313,7 @@
     T.say(ok ? "Whole floor's dark. Their cameras can't see a thing." : "Too many wrong relays. The lights stay on.");
   }
   $("build").hidden = L !== "L1"; $("draw").hidden = L !== "L2"; $("rootq").hidden = L !== "L3";
-  setNeed(); paintBuild(); paintStack();
+  setNeed(); paintBuild(); paintStack(); ask();
   if(window.PNTest) PNTest.skip("Solve this step", () => {
     if(!$("spot").hidden){ s2.forEach(n => { if(!tile(n).disabled) tap(n); }); return; }
     const n = s1[i1]; if(n === undefined) return;

@@ -11,7 +11,8 @@
 <style>
   /* Round 12 prototype, second pass (Bertie's notes): the blueprint is corrupted as the floors assemble. A spatial
      puzzle: fit a mix of room arrays onto a bigger squared floor, around the lift, stairs and fire exit. About the
-     same challenge at every level. When it all fits, the rooms rise in 3D and the floor rejoins the building. */
+     same challenge at every level. When it all fits, the rooms rise in 3D and the floor rejoins the building.
+     Round 13: what to do sits in the hologram brief (H), not on the page. */
   .fbox{ padding:14px; display:flex; flex-direction:column; gap:8px; align-items:center; }
   .fbox .lab{ align-self:stretch; display:flex; justify-content:space-between; font-family:var(--font-ui); font-size:12px; letter-spacing:.16em; color:var(--text-faint); }
   .fg{ position:relative; background:
@@ -41,7 +42,7 @@
 <main class="tw">
   <div class="tw-bar"><span>Rooms placed: <b id="placed">0</b> of <b id="total">0</b></span><span id="area"></span></div>
   <section class="pn-panel fbox" id="fbox"><div class="lab"><span>FLOOR PLAN · CORRUPTED</span><span id="gridLab"></span></div><div class="fg" id="fg"></div></section>
-  <section class="pn-panel tray" id="tray"><span class="lab"><span>ROOMS RECOVERED FROM THE FILE</span><span>Drag onto the floor · tap to turn</span></span><div class="slots" id="slots"></div></section>
+  <section class="pn-panel tray" id="tray"><span class="lab"><span>ROOMS RECOVERED FROM THE FILE</span><span>DRAG · TAP TO TURN</span></span><div class="slots" id="slots"></div></section>
   <section class="pn-panel stage3d" id="stage" hidden><div class="rep" id="rep">BLUEPRINT REPAIRED</div></section>
   <div class="tw-msg" id="msg" aria-live="polite"></div>
 </main>
@@ -58,7 +59,7 @@
   "use strict";
   const T = window.PNTwist, $ = id => document.getElementById(id);
   const L = T.init({ id: "corrupt", stage: "BLUEPRINT", title: "CORRUPTED BLUEPRINT",
-    goal: "The plan for this floor came through scrambled. Fit <b>every room</b> back on, with no overlaps. Keep the lift, stairs and fire exit clear.",
+    goal: "The plan for this floor came through scrambled. Rooms can't <b>overlap</b>. Keep the lift, stairs and fire exit clear.",
     example: "Each room is an array of squares. A 3 × 4 room can turn round to 4 × 3: same 12 squares, different shape.",
     story: `Interference on the file. The plan for one of ${T.targets()} floors is scrambled. The rooms came through, but not where they go. Fit them back together.` });
 
@@ -170,7 +171,7 @@
 
   // Solved: the floor rises in 3D (rooms coming up one by one with beeps, lasers sweeping), then rejoins the building
   async function done(){
-    over = true; T.SND("verified");
+    over = true; T.SND("verified"); T.hideBrief();   // the rise is the payoff, so nothing sits over it
     say("Every room fits. Rebuilding the floor…", "ok");
     await new Promise(r => setTimeout(r, 500));
     $("fbox").hidden = true; $("tray").hidden = true; $("stage").hidden = false;
@@ -191,7 +192,8 @@
     setTimeout(() => T.finish({ ok: true, title: "BLUEPRINT REPAIRED", lines: [], effect: "repaired", auto: 2200 }), 1400 / (window.PNTest ? PNTest.speed() : 1));
   }
   layoutTray();
-  say(`${pieces.length} rooms to fit. Tap a room to turn it round.`);
+  // Quiet: the brief zooms in by itself a moment after load, with this on top and the goal underneath
+  T.step(`Drag all <b>${pieces.length} rooms</b> onto the floor. <b>Tap</b> a room to turn it round.`, { quiet: true });
   if(window.PNTest) PNTest.skip("Fit every room", () => {
     pieces.forEach(p => { if(p.onBoard) return; const s = p.sol; if(p.w !== s.w){ [p.w, p.h] = [p.h, p.w]; paint(p); } toBoard(p, s.x, s.y); });
     layoutTray(); update();

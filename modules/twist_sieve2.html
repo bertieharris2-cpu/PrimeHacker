@@ -9,15 +9,13 @@
 <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Inter:wght@400;600;700;800&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../shared/primenet.css">
 <style>
-  /* Round 12 prototype: the sieve as a corridor of motion sensors. A short explainer first, then the student
-     chooses each prime; its multiples' sensors are switched off. When only primes are left, a path lights up. */
-  .intro{ padding:20px; display:grid; grid-template-columns:minmax(0,1fr) 260px; gap:20px; align-items:center; }
-  .intro h2{ margin:0 0 8px; font-family:var(--font-ui); letter-spacing:.14em; color:var(--warning); font-size:18px; }
-  .intro p{ margin:0 0 10px; font-size:17px; color:var(--text-primary); line-height:1.5; }
-  .intro .mini{ display:grid; grid-template-columns:repeat(6, 1fr); gap:4px; }
-  .intro .mini span{ font-family:var(--font-mono); text-align:center; padding:6px 0; border:1px solid var(--line); color:#dff8ff; }
-  .intro .mini span.x{ opacity:.25; text-decoration:line-through; } .intro .mini span.p{ border-color:#ffc94d; color:#fff3cf; }
-  .intro[hidden], .corr[hidden]{ display:none; }
+  /* Round 12 prototype: the sieve as a corridor of motion sensors. The student chooses each prime; its multiples'
+     sensors are switched off. When only primes are left, a path lights up.
+     Round 13: the "what's a sieve?" explainer and each step sit in the hologram brief (H), not on the page. */
+  /* The sieved 1 to 12 strip, shown in the brief's example */
+  .mini{ display:grid; grid-template-columns:repeat(12, minmax(0,1fr)); gap:4px; margin-top:8px; max-width:440px; }
+  .mini span{ font-family:var(--font-mono); text-align:center; padding:4px 0; border:1px solid rgba(140,235,255,.45); color:#dff8ff; }
+  .mini span.x{ opacity:.3; text-decoration:line-through; } .mini span.p{ border-color:#ffc94d; color:#fff3cf; background:rgba(255,201,77,.16); }
   .corr{ padding:14px; background:linear-gradient(180deg, #05141a, #020a0c); }
   .sensors{ display:grid; grid-template-columns:repeat(10, minmax(0,1fr)); gap:6px; }
   .sn{ position:relative; font:inherit; font-family:var(--font-mono); font-size:16px; font-weight:700; aspect-ratio:1.5; background:linear-gradient(180deg, #0d2229, #081419); border:1px solid #2c4c55; color:#dff8ff; cursor:pointer; padding:0; }
@@ -35,27 +33,17 @@
   .ctrl{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
   .status{ font-size:15px; color:var(--text-muted); }
   .status b{ color:var(--warning); }
-  @media (max-width:700px){ .sensors{ grid-template-columns:repeat(5, minmax(0,1fr)); } .intro{ grid-template-columns:1fr; } }
+  @media (max-width:700px){ .sensors{ grid-template-columns:repeat(5, minmax(0,1fr)); } .mini{ grid-template-columns:repeat(6, minmax(0,1fr)); } }
 </style>
 </head>
 <body>
 <main class="tw">
   <div class="tw-bar"><span class="status" id="status"></span></div>
-  <section class="pn-panel intro" id="intro">
-    <div>
-      <h2>WHAT'S A SIEVE?</h2>
-      <p>A sieve keeps some things and lets the rest fall through. This one keeps the <b>prime numbers</b>.</p>
-      <p>Every number that isn't prime is a multiple of a smaller prime. So: take the smallest prime, switch off all its multiples. Take the next number still on: nothing smaller divides it, so it's prime. Switch off its multiples. Keep going.</p>
-      <p>Their corridor has a motion sensor for every number. The prime sensors are old and blind: when only they are left on, we can walk straight through.</p>
-      <button class="pn-btn primary" type="button" id="startBtn">Into the corridor</button>
-    </div>
-    <div class="mini" aria-hidden="true"><span class="x">1</span><span class="p">2</span><span class="p">3</span><span class="x">4</span><span class="p">5</span><span class="x">6</span><span class="p">7</span><span class="x">8</span><span class="x">9</span><span class="x">10</span><span class="p">11</span><span class="x">12</span></div>
-  </section>
-  <section class="pn-panel corr" id="corr" hidden>
+  <section class="pn-panel corr" id="corr">
     <div class="sensors" id="grid"></div>
     <div class="sweepbar" id="sweepbar"></div>
   </section>
-  <div class="ctrl" id="ctrl" hidden><button class="pn-btn" type="button" id="doneBtn">Only primes are left on</button></div>
+  <div class="ctrl" id="ctrl"><button class="pn-btn" type="button" id="doneBtn">Only primes are left on</button></div>
   <div class="tw-msg" id="msg" aria-live="polite"></div>
 </main>
 
@@ -68,16 +56,18 @@
 (() => {
   "use strict";
   const T = window.PNTwist, $ = id => document.getElementById(id);
+  // The brief carries the "what's a sieve?" explainer under each step, with the sieved 1 to 12 as the example
   const L = T.init({ id: "sieve2", stage: "FREQUENCY SCAN", title: "MOTION-SENSOR SIEVE",
-    goal: "Switch off every sensor that isn't prime. <b>You</b> choose each prime; its multiples go off.",
-    example: "2 is prime, so 4, 6, 8, 10… switch off. The next number still on is 3: prime.",
+    goal: "A <b>sieve</b> keeps some things and lets the rest fall through. This one keeps the <b>primes</b>.<br>Every number that isn't prime is a <b>multiple</b> of a smaller prime. So choose the smallest prime and switch off its multiples. The next number still on is prime too: nothing smaller divides it. Keep going.",
+    example: "2 is prime, so 4, 6, 8, 10… switch off. The next number still on is 3: prime.<div class=\"mini\" aria-hidden=\"true\">" +
+      [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(n => `<span class="${T.isPrime(n) ? "p" : "x"}">${n}</span>`).join("") + "</div>",
     story: `${T.targets()} corridor has a motion sensor for every number. Only the prime ones are blind. Switch off the rest and we walk through.` });
   const MAX = { L1: 50, L2: 100, L3: 120 }[L];
   // Who switches off the multiples: the sensors (auto) or the student (tap)
   const autoFor = p => L === "L1" || (L === "L2" && p <= 3) || (L === "L3" && p === 2);
   const nums = T.range(1, MAX);
   const off = new Set(), primes = [];
-  let phase = "one", current = 0, over = false, wrongs = 0;
+  let phase = "one", current = 0, over = false, wrongs = 0, handTold = false;
   const alarm = T.alarm(3, () => end(false));
   const grid = $("grid"), tile = n => grid.querySelector(`[data-n="${n}"]`);
   grid.innerHTML = nums.map(n => `<button type="button" class="sn" data-n="${n}">${n}</button>`).join("");
@@ -85,12 +75,19 @@
   function status(){ const on = nums.filter(n => !off.has(n)).length; $("status").innerHTML = `Sensors on: <b>${on}</b> · Primes chosen: <b>${primes.length}</b>${current ? ` · Switching off multiples of <b>${current}</b>` : ""}`; }
   const smallestOn = () => nums.find(n => n > 1 && !off.has(n) && !primes.includes(n));
   const kill = n => { off.add(n); const b = tile(n); b.classList.add("off"); b.disabled = true; };
-  $("startBtn").addEventListener("click", () => { $("intro").hidden = true; $("corr").hidden = false; $("ctrl").hidden = false; say("First: 1 isn't prime (it has only one factor). Switch its sensor off."); status(); T.SND("scan", 1); });
+  // The brief's steps. Choosing is the same job every time, so its text never changes and it only zooms in once.
+  const CHOOSE = "Choose the next prime. It's the <b>smallest number still on</b>.";
+  const handStep = n => `<b>${n}</b> is prime. Now <b>you</b> switch off its multiples. Tap every sensor still on that ${n} goes into.`;
+  // Quiet: the brief zooms in by itself a moment after load, with this on top and the explainer underneath
+  T.step("First, switch off <b>1</b>. It isn't prime: it has only one factor.", { quiet: true });
+  // Folding the brief away the first time is walking into the corridor
+  const enter = e => { if(e.detail.open || over) return; window.removeEventListener("pn-brief", enter); T.SND("scan", 1); };
+  window.addEventListener("pn-brief", enter);
   grid.addEventListener("click", e => { const b = e.target.closest(".sn"); if(b && !b.disabled) tap(+b.dataset.n); });
   async function tap(n){
     if(over) return;
     if(phase === "one"){
-      if(n === 1){ kill(1); T.SND("untag"); phase = "choose"; say("Now choose the first prime: the smallest number still on."); status(); return; }
+      if(n === 1){ kill(1); T.SND("untag"); phase = "choose"; say("1 is off.", "ok"); T.step(CHOOSE); status(); return; }
       say("Start with 1: it isn't prime, so switch it off first.", "warn"); return;
     }
     if(phase === "choose"){
@@ -98,9 +95,11 @@
       if(n === want){
         primes.push(n); current = n; tile(n).classList.add("prime", "sieving"); tile(n).disabled = true; T.SND("correct", primes.length);
         const left = nums.filter(m => m > n && m % n === 0 && !off.has(m));
-        if(!left.length){ tile(n).classList.remove("sieving"); current = 0; say(`${n} is prime, and none of its multiples are still on. Choose the next prime, or say you're done.`); status(); return; }
+        if(!left.length){ tile(n).classList.remove("sieving"); current = 0; say(`${n} is prime, and none of its multiples are still on.`, "ok");
+          T.step("No multiples left to switch off. Choose the next prime, or press <b>Only primes are left on</b> if you're done."); status(); return; }
         if(autoFor(n)){ say(`${n} is prime. The sensors switch off its multiples: ${left.slice(0, 4).join(", ")}…`, "ok"); await autoSweep(n, left); }
-        else { phase = "multiples"; say(`${n} is prime. Now switch off its multiples yourself: tap every sensor still on that ${n} divides into (${left.length} left).`); status(); }
+        else { phase = "multiples"; say(`${n} is prime. ${left.length} of its multiples are still on.`, "ok");
+          T.step(handStep(n), { quiet: handTold }); handTold = true; status(); }   // new job the first time; after that, just a new number
         return;
       }
       if(T.isPrime(n)){ say(`${n} is prime, but ${want} is smaller and still on. Choose the smallest first: it's the one nothing smaller divides.`, "warn"); return; }
@@ -113,8 +112,8 @@
       if(n % current === 0 && n !== current){
         kill(n); T.SND("plot");
         const left = nums.filter(m => m > current && m % current === 0 && !off.has(m));
-        say(left.length ? `${n} = ${current} × ${n / current}. ${left.length} left.` : `All multiples of ${current} are off. Choose the next prime.`, "ok");
-        if(!left.length){ tile(current).classList.remove("sieving"); current = 0; phase = "choose"; }
+        say(left.length ? `${n} = ${current} × ${n / current}. ${left.length} left.` : `All multiples of ${current} are off.`, "ok");
+        if(!left.length){ tile(current).classList.remove("sieving"); current = 0; phase = "choose"; T.step(CHOOSE, { quiet: true }); }
         status(); return;
       }
       wrongs++; alarm.hit(); tile(n).classList.add("bad"); setTimeout(() => tile(n).classList.remove("bad"), 700);
@@ -126,7 +125,7 @@
     for(const m of list){ kill(m); T.SND("plot"); await new Promise(r => setTimeout(r, 45 / (window.PNTest ? PNTest.speed() : 1))); }
     bar.style.transition = "opacity .6s"; bar.style.opacity = "0";
     tile(p).classList.remove("sieving"); current = 0; phase = "choose"; status();
-    say(`All multiples of ${p} are off. Choose the next prime: the smallest number still on.`);
+    say(`All multiples of ${p} are off.`, "ok"); T.step(CHOOSE, { quiet: true });
   }
   $("doneBtn").addEventListener("click", () => {
     if(over || phase === "one") return;
@@ -137,7 +136,7 @@
   });
   // Every sensor left is prime: a path lights up through them, one after another
   async function win(){
-    over = true;
+    over = true; T.hideBrief();   // the path is the payoff, so nothing sits over it
     const ps = nums.filter(n => n > 1 && !off.has(n));
     const last = primes[primes.length - 1] || 2;
     let q = last + 1; while(!T.isPrime(q)) q++;
@@ -154,7 +153,6 @@
   }
   status();
   if(window.PNTest) PNTest.skip("Finish the sieve", () => {
-    if(!$("intro").hidden) $("startBtn").click();
     if(!off.has(1)) kill(1);
     nums.filter(n => n > 1 && !T.isPrime(n)).forEach(n => { if(!off.has(n)) kill(n); });
     nums.filter(n => T.isPrime(n) && n * n <= MAX).forEach(p => { if(!primes.includes(p)){ primes.push(p); tile(p).classList.add("prime"); } });
