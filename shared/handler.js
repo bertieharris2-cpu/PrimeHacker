@@ -9,12 +9,12 @@
 
   const css = `
   .pnh{ position:fixed; right:18px; bottom:86px; z-index:9000; width:min(380px, calc(100vw - 36px));
-        font-family:var(--font-mono, "Courier Prime", monospace); pointer-events:auto; }
+        font-family:var(--font-mono, "Courier Prime", monospace); pointer-events:none; }
   .pnh-box{ display:flex; gap:12px; align-items:flex-start; background:rgba(4,14,17,.94);
         border:1px solid rgba(47,191,138,.55); border-left:3px solid #2fbf8a; padding:12px 14px;
         box-shadow:0 12px 40px rgba(0,0,0,.6), 0 0 24px rgba(47,191,138,.12);
         transform:translateX(24px); opacity:0; transition:transform .25s ease, opacity .25s ease; cursor:pointer; }
-  .pnh-box.on{ transform:none; opacity:1; }
+  .pnh-box.on{ transform:none; opacity:1; pointer-events:auto; }   /* a faded-out box mustn't block the buttons under it */
   .pnh-wave{ flex:0 0 38px; height:38px; display:flex; gap:3px; align-items:center; justify-content:center;
         border:1px solid rgba(47,191,138,.45); background:rgba(47,191,138,.06); }
   .pnh-wave i{ display:block; width:3px; height:6px; background:#2fbf8a; }

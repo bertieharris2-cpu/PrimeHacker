@@ -13,7 +13,7 @@
     walls:      "Deposit boxes on this floor. Work out which rectangles fit the wall and we'll know where the key is.",
     primefloor: "One of these floors is a fake. Prove which ones are real.",
     cubes:      "Lights are on, and so are their cameras. The ceiling relays power them. Knock them out.",
-    patrols:    "Guards on patrol at the entrance. Work out their timings so we slip in between them.",
+    patrols:    "Recon update: more guards than we expected. Watch the camera and work out when they're at the door, so we slip in past them.",
     factortree: "Crew's at the key room door. It's bolted, and the bolts want prime factors.",
   };
   const css = `
@@ -40,7 +40,9 @@
     if(!styled){ const st = document.createElement("style"); st.textContent = css; document.head.appendChild(st); styled = true; }
     const lv = (PN.getAgent() && PN.getAgent().level) || "L1";
     const o = document.createElement("div"); o.className = "pnts"; o.setAttribute("role", "dialog"); o.setAttribute("aria-label", t.name);
-    o.innerHTML = `<div class="pnts-card"><b>CHANGE OF PLAN</b><span>${t.name.toUpperCase()}</span></div>`;
+    // Some twists aren't a change of plan: the guards are recon (more guards than we expected)
+    const CARD = { patrols: ["RECON UPDATE", "MORE GUARDS THAN EXPECTED"] }[t.id] || ["CHANGE OF PLAN", t.name.toUpperCase()];
+    o.innerHTML = `<div class="pnts-card"><b>${CARD[0]}</b><span>${CARD[1]}</span></div>`;
     // Round 12: the corrupted blueprint arrives as crackling interference over the stage first
     const STATIC = t.id === "corrupt";
     if(STATIC){

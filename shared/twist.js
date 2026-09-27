@@ -63,14 +63,14 @@
 
   // The level from ?level=, else the agent's level, else L1 (safe to call before init)
   function peekLevel(){ const a = PN && PN.getAgent(); return ["L1", "L2", "L3"].includes(qs.get("level")) ? qs.get("level") : (a && a.level) || "L1"; }
-  function init({ id, stage, title, goal, story, brief, example }){
+  function init({ id, stage, title, goal, story, brief, example, eyebrow }){
     const st = document.createElement("style"); st.textContent = css + (EMBED ? " .pnh{ display:none !important; }" : ""); document.head.appendChild(st);
     level = peekLevel();
     const wrap = document.querySelector(".tw") || document.body;
     const head = document.createElement("header"); head.className = "tw-head";
     const lv = ["L1", "L2", "L3"].map(l => { const u = new URL(location.href); u.searchParams.set("level", l); return `<a href="${u.pathname.split("/").pop()}${u.search}" aria-current="${l === level}">${l}</a>`; }).join("");
     head.innerHTML = MISSION
-      ? `<div class="l"><span class="eb">CHANGE OF PLAN · ${level}</span><h1>${title}</h1></div>`
+      ? `<div class="l"><span class="eb">${eyebrow || "CHANGE OF PLAN"} · ${level}</span><h1>${title}</h1></div>`
       : `<div class="l"><span class="eb">TWIST LAB · ${stage}</span><h1>${title}</h1></div>
       <div class="r"><nav class="tw-lv" aria-label="Level">${lv}</nav><button class="pn-btn small" type="button" id="twNew">New round</button><a class="pn-btn small" href="twist_lab.html" style="text-decoration:none">Twist Lab</a></div>`;
     wrap.prepend(head);

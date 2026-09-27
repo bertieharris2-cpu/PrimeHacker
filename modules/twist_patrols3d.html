@@ -3,43 +3,58 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>PRIMENET · Guard Patrols (3D)</title>
+<title>PRIMENET · Guard Patrols (recon)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Inter:wght@400;600;700;800&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../shared/primenet.css">
 <style>
-  /* Round 12 prototype: guard patrols on the student's floor in 3D. Guards walk loops past the door at their
-     own intervals. When are they at the door together? (The lowest common multiple.) Then slip in after them. */
-  .stage3d{ position:relative; height:320px; padding:0; overflow:hidden; background:radial-gradient(ellipse at 50% 40%, rgba(20,60,70,.35), rgba(2,8,10,.9)); }
-  .hud{ position:absolute; left:12px; top:10px; right:12px; display:flex; justify-content:space-between; font-family:var(--font-ui); font-size:12px; letter-spacing:.18em; color:#dff8ff; pointer-events:none; text-shadow:0 0 8px #000; }
-  .hud .clock{ font-family:var(--font-mono); font-size:22px; color:#ffe14d; letter-spacing:.06em; }
-  .legend{ position:absolute; left:12px; bottom:10px; display:flex; gap:14px; font-size:13px; color:var(--text-muted); pointer-events:none; }
-  .legend i{ display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:5px; vertical-align:middle; }
+  /* Round 12 prototype, second pass: recon on the guards, in a CCTV window. One guard paces a corridor up and down,
+     another walks a loop of the whole floor; both pass the fire door. When are they there together? (The LCM.)
+     Three ways to play it, to compare: ?mode=A mark the timetables then predict on the 3D feed,
+     ?mode=B watch the feed until it cuts out then predict, ?mode=C choose from three times. */
+  .cctv{ position:relative; height:470px; padding:0; overflow:hidden; background:#020a0c; border:1px solid #2c4c55; transition:height .6s; }
+  .cctv.small{ height:300px; }
+  .cctv > div{ z-index:2; }
+  .cctv .scan{ position:absolute; inset:0; pointer-events:none; background:repeating-linear-gradient(0deg, rgba(160,240,255,.05) 0 1px, transparent 1px 3px); box-shadow:inset 0 0 120px rgba(0,0,0,.8); }
+  .cctv .corner{ position:absolute; width:26px; height:26px; border:2px solid rgba(255,255,255,.7); pointer-events:none; }
+  .cctv .tl{ left:10px; top:10px; border-right:0; border-bottom:0; } .cctv .tr{ right:10px; top:10px; border-left:0; border-bottom:0; }
+  .cctv .bl{ left:10px; bottom:10px; border-right:0; border-top:0; } .cctv .br{ right:10px; bottom:10px; border-left:0; border-top:0; }
+  .cctv .top{ position:absolute; left:46px; top:16px; font-family:var(--font-mono); font-size:13px; letter-spacing:.12em; color:#dff8ff; pointer-events:none; }
+  .cctv .top .rec{ color:#ff4f6d; animation:recb 1s steps(2) infinite; } @keyframes recb{ 50%{ opacity:.2; } }
+  .cctv .clock{ position:absolute; right:46px; top:12px; font-family:var(--font-mono); font-size:26px; color:#ffe14d; pointer-events:none; text-shadow:0 0 10px rgba(0,0,0,.9); }
+  .cctv .legend{ position:absolute; left:46px; bottom:16px; display:flex; gap:14px; font-size:13px; color:#dff8ff; pointer-events:none; text-shadow:0 0 6px #000; }
+  .cctv .legend i{ display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:5px; vertical-align:middle; }
+  .cctv .log{ position:absolute; left:46px; top:40px; font-family:var(--font-mono); font-size:13px; color:#dff8ff; pointer-events:none; text-shadow:0 0 6px #000; line-height:1.5; }
+  .cctv .lost{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-family:var(--font-ui); letter-spacing:.3em; font-size:30px; color:#ff4f6d; background:rgba(2,8,10,.55); opacity:0; pointer-events:none; transition:opacity .4s; }
+  .cctv .lost.on{ opacity:1; }
   .task{ padding:14px 16px; display:flex; flex-direction:column; gap:12px; }
   .ask{ font-size:19px; color:var(--text-primary); } .ask b{ color:var(--warning); }
   .rowlab{ font-family:var(--font-ui); font-size:12px; letter-spacing:.14em; color:var(--text-faint); margin-bottom:4px; display:flex; align-items:center; gap:8px; }
   .rowlab i{ width:10px; height:10px; border-radius:50%; display:inline-block; }
   .tl{ display:grid; grid-template-columns:repeat(var(--n), minmax(0,1fr)); gap:3px; }
   .tl button{ font:inherit; font-family:var(--font-mono); font-size:13px; padding:7px 0; background:rgba(8,26,31,.9); border:1px solid var(--line); color:rgba(235,255,248,.8); cursor:pointer; }
-  .tl button:hover:not(:disabled){ border-color:var(--accent); }
-  .tl button.on{ color:#fff; }
   .tl button.bad{ background:rgba(255,79,109,.3); border-color:#ff4f6d; }
-  .tl button.both{ background:rgba(255,201,77,.35); border-color:#ffc94d; color:#fff3cf; }
   .tl button:disabled{ cursor:default; }
   .ans{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; font-size:18px; }
   .ans input{ width:80px; font-size:20px; text-align:center; padding:6px; }
-  .rows[hidden], .ans[hidden]{ display:none; }
+  .choices{ display:flex; gap:10px; flex-wrap:wrap; }
+  .choices button{ font:inherit; font-family:var(--font-mono); font-size:22px; font-weight:700; padding:10px 22px; background:#0b1d22; color:#dff8ff; border:1px solid #2c4c55; cursor:pointer; }
+  .choices button.bad{ border-color:#ff4f6d; color:#ff8aa0; }
+  [hidden]{ display:none !important; }
 </style>
 </head>
 <body>
 <main class="tw">
-  <div class="tw-bar"><span>Door <b id="round">1</b> of 2</span></div>
-  <section class="pn-panel stage3d" id="stage"><div class="hud"><span>FIRE DOOR · <span id="floorName">WEAK FLOOR</span></span><span class="clock" id="clock">00:00</span></div><div class="legend" id="legend"></div></section>
-  <section class="pn-panel task">
+  <div class="tw-bar"><span>Door <b id="round">1</b> of 2</span><span id="modeLab"></span></div>
+  <section class="cctv" id="cctv"><div class="scan"></div><div class="corner tl"></div><div class="corner tr"></div><div class="corner bl"></div><div class="corner br"></div>
+    <div class="top"><span class="rec">● REC</span> CAM 04 · FIRE DOOR · <span id="floorName">WEAK FLOOR</span></div><div class="clock" id="clock">00:00</div>
+    <div class="legend" id="legend"></div><div class="log" id="log"></div><div class="lost" id="lost">FEED LOST</div></section>
+  <section class="pn-panel task" id="task">
     <div class="ask" id="ask"></div>
-    <div class="rows" id="rows"></div>
-    <div class="ans" id="ansRow" hidden><label for="ansIn">They're at the door together first at minute</label><input class="pn-input" id="ansIn" inputmode="numeric" maxlength="3"><button class="pn-btn small primary" type="button" id="ansBtn">Check</button></div>
+    <div id="rows"></div>
+    <div class="ans" id="ansRow" hidden><label for="ansIn">They're both at the door together first at minute</label><input class="pn-input" id="ansIn" inputmode="numeric" maxlength="3"><button class="pn-btn small primary" type="button" id="ansBtn">Check on the feed</button></div>
+    <div class="choices" id="choices" hidden></div>
   </section>
   <div class="tw-msg" id="msg" aria-live="polite"></div>
 </main>
@@ -56,135 +71,180 @@
   "use strict";
   const T = window.PNTwist, $ = id => document.getElementById(id);
   const L = T.peekLevel();
-  T.init({ id: "patrols3d", stage: "GETTING IN", title: "GUARD PATROLS",
-    goal: L === "L1" ? "Mark the minutes each guard passes the door. Then find when they're both there <b>together</b>." : L === "L2" ? "Each guard passes the door on a timetable. When are they <b>both</b> at the door together first?" : "Three guards, three timetables. When are <b>all three</b> at the door together first?",
-    example: "Guard A passes every 4 minutes (4, 8, 12…), guard B every 6 (6, 12…). Both at minute 12: the lowest common multiple of 4 and 6.",
-    story: "Guards walk loops past the fire door. They meet there at the same moment, then both walk away: that's our gap. Work out when." });
+  const qp = new URLSearchParams(location.search).get("mode");
+  const MODE = ["A", "B", "C"].includes(qp) ? qp : (L === "L1" ? "A" : "B");
+  $("modeLab").textContent = { A: "Option A · mark, then predict", B: "Option B · watch, then predict", C: "Option C · choose the time" }[MODE];
+  T.init({ id: "patrols3d", stage: "GETTING IN", title: "RECON: GUARD PATROLS", eyebrow: "RECON UPDATE",
+    goal: MODE === "A" ? "Mark when each guard passes the door. Then, on the camera, work out when they're both there <b>together</b>." : MODE === "B" ? "Watch the camera. When it cuts out, work out when the guards are both at the door <b>together</b>." : "When are the guards both at the door <b>together</b> for the first time? Choose the time.",
+    example: "Every 4 minutes (4, 8, 12…) and every 6 minutes (6, 12…): together at minute 12, the lowest common multiple of 4 and 6.",
+    story: "Recon update: more guards than we expected. We need to know where they'll be, and when, before we go in." });
   const a0 = window.Primenet && Primenet.getAgent();
   if(a0 && a0.weakFloor) $("floorName").textContent = a0.weakFloor.toUpperCase();
   const SETS = { L1: [[3, 4], [4, 6], [2, 5], [4, 5], [3, 5]], L2: [[4, 6], [6, 8], [6, 9], [4, 10], [8, 12], [6, 10]], L3: [[4, 6, 9], [3, 4, 10], [6, 8, 9], [4, 6, 10], [5, 6, 8]] }[L];
   const rounds = T.shuffle(SETS).slice(0, 2);
-  const COLS = [0xff4f6d, 0x6ec8ff, 0xc77dff], CSS = ["#ff4f6d", "#6ec8ff", "#c77dff"], NAMES = ["A", "B", "C"];
+  const COLS = [0xff4f6d, 0xffb347, 0xc77dff], CSS = ["#ff4f6d", "#ffb347", "#c77dff"], NAMES = ["A", "B", "C"];
   let r = 0, over = false, wrong = 0;
   const alarm = T.alarm(3, () => end(false));
   function say(t, cls){ const m = $("msg"); m.textContent = t; m.className = "tw-msg" + (cls ? " " + cls : ""); }
   const lcmAll = arr => arr.reduce((a, b) => T.lcm(a, b));
 
-  // ----- 3D: the floor, the fire door, guard loops -----
-  const F = PNFloor3D.create($("stage"), {});
-  const TH = F.THREE;
+  // ----- 3D feed -----
+  const F = PNFloor3D.create($("cctv"), {});
+  const TH = F.THREE, HP = F.PLATE / 2 - 4;
   F.lightsOn(700);
-  const ex = F.layout.exit || { x: 0, y: Math.floor(F.layout.grid / 2) };
-  const D = F.cellToWorld(ex.x, ex.y);
-  const doorMark = new TH.Mesh(new TH.BoxGeometry(F.cell * 1.4, 10, 1.2), new TH.MeshBasicMaterial({ color: 0x2fbf8a, transparent: true, opacity: 0.75 }));
-  doorMark.position.set(D.x, 5, D.z); F.root.add(doorMark);
-  F.camera.position.set(D.x * 0.4 + 40, 150, D.z * 0.4 + 150); F.look.set(D.x * 0.5, 0, D.z * 0.5);
-  // A loop for guard i: out from the door into the corridors and back, a different size for each guard
-  function loopFor(i){
-    const P = F.PLATE / 2 - 4, s = 26 + i * 16;
-    const dirX = D.x < 0 ? 1 : -1, dirZ = D.z < 0 ? 1 : -1;
-    const c = (x, z) => new TH.Vector3(Math.max(-P, Math.min(P, x)), 0, Math.max(-P, Math.min(P, z)));
-    return [c(D.x, D.z), c(D.x + dirX * s, D.z), c(D.x + dirX * s, D.z + dirZ * s), c(D.x, D.z + dirZ * s), c(D.x, D.z)];
+  // Guards walk the free floor squares (never over a room). Find a door on the outside wall with a long clear run inward.
+  const G = F.layout.grid, occ = Array.from({ length: G }, () => Array(G).fill(false));
+  (F.layout.rooms || []).forEach(rm => { for(let x = rm.x; x < rm.x + rm.w; x++) for(let y = rm.y; y < rm.y + rm.h; y++) if(occ[x] && y >= 0 && y < G) occ[x][y] = true; });
+  const free = (x, y) => x >= 0 && y >= 0 && x < G && y < G && !occ[x][y];
+  const run = (x, y, n) => { let k = 0; while(free(x + n[0] * k, y + n[1] * k)) k++; return k; };
+  const cands = [];
+  for(let i = 0; i < G; i++) [[0, i, [1, 0]], [G - 1, i, [-1, 0]], [i, 0, [0, 1]], [i, G - 1, [0, -1]]].forEach(([x, y, n]) => { if(free(x, y)) cands.push({ x, y, n, len: run(x, y, n), mid: -Math.abs(i - G / 2) }); });
+  const ex = F.layout.exit;
+  cands.sort((p, q) => (q.len - p.len) || (q.mid - p.mid));
+  const dc = cands.find(c => ex && c.x === ex.x && c.y === ex.y && c.len >= G / 2) || cands[0] || { x: 0, y: Math.floor(G / 2), n: [1, 0], len: G };
+  const N = [-dc.n[0], -dc.n[1]];   // outward, through the door
+  const W = (x, y) => F.cellToWorld(x, y);
+  const D = W(dc.x, dc.y).add(new TH.Vector3(N[0] * F.cell / 2, 0, N[1] * F.cell / 2));
+  const doorMark = new TH.Mesh(new TH.BoxGeometry(N[0] ? 1.4 : F.cell * 1.6, 12, N[0] ? F.cell * 1.6 : 1.4), new TH.MeshBasicMaterial({ color: 0x2fbf8a, transparent: true, opacity: 0.85 }));
+  doorMark.position.set(D.x, 6, D.z); F.root.add(doorMark);
+  // The camera sits over the door looking across the floor: guard A's corridor runs straight up the picture
+  F.camera.position.set(N[0] * 105, 200, N[1] * 105); F.look.set(N[0] * 14, 0, N[1] * 14);
+  const V = (x, z) => new TH.Vector3(x, 0, z);
+  // Shortest walk between squares on the free floor, avoiding any squares in `avoid`
+  function bfs(from, to, avoid){
+    const key = (x, y) => x + "," + y, prev = new Map([[key(from.x, from.y), null]]), q = [from];
+    while(q.length){ const c = q.shift(); if(c.x === to.x && c.y === to.y) break;
+      for(const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]){ const nx = c.x + dx, ny = c.y + dy, k = key(nx, ny);
+        if(free(nx, ny) && !prev.has(k) && !(avoid && avoid.has(k))){ prev.set(k, c); q.push({ x: nx, y: ny }); } } }
+    if(!prev.has(key(to.x, to.y))) return null;
+    const out = []; for(let c = to; c; c = prev.get(key(c.x, c.y))) out.unshift(c); return out;
   }
-  let guards = [], minute = 0, running = true, MPS = 1.1;   // minutes per second of the clock
-  const agent = F.dot(0x6ec8ff, 2.6); agent.set(D.x + (D.x < 0 ? -10 : 10), D.z);
+  function farthest(from){ const seen = new Map([[from.x + "," + from.y, 0]]), q = [from]; let best = from, bd = 0;
+    while(q.length){ const c = q.shift(), d = seen.get(c.x + "," + c.y); if(d > bd){ bd = d; best = c; }
+      for(const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]){ const nx = c.x + dx, ny = c.y + dy; if(free(nx, ny) && !seen.has(nx + "," + ny)){ seen.set(nx + "," + ny, d + 1); q.push({ x: nx, y: ny }); } } }
+    return best; }
+  const toPts = cells => [D.clone(), ...cells.map(c => W(c.x, c.y)), D.clone()];
+  const door = { x: dc.x, y: dc.y };
+  // A: up and down the long straight corridor from the door. B: out to the far side one way, back another.
+  // C (L3): out to the middle of the floor and back.
+  const aEnd = { x: dc.x + dc.n[0] * (dc.len - 1), y: dc.y + dc.n[1] * (dc.len - 1) };
+  const far = farthest(door), out1 = bfs(door, far) || [door];
+  const avoid = new Set(out1.slice(1, -1).map(c => c.x + "," + c.y));
+  const back1 = bfs(far, door, avoid) || out1.slice().reverse();
+  const mid = (() => { let best = door, bd = 1e9; for(let x = 0; x < G; x++) for(let y = 0; y < G; y++) if(free(x, y)){ const d = Math.abs(x - G / 2) + Math.abs(y - G / 2); if(d < bd){ bd = d; best = { x, y }; } } return best; })();
+  const midPath = bfs(door, mid) || [door];
+  const ROUTES = [toPts([door, aEnd, door]), toPts(out1.concat(back1.slice(1))), toPts(midPath.concat(midPath.slice(0, -1).reverse()))];
+  function routeFor(i){ return { pts: ROUTES[i] }; }
+  let guards = [], minute = 0, rate = 0, target = null, onArrive = null;
+  const agent = F.dot(0x6ec8ff, 2.8); agent.set(D.x + N[0] * 6, D.z + N[1] * 6);
   function setupGuards(periods){
     guards.forEach(g => g.dot.remove());
     guards = periods.map((p, i) => {
-      const dot = F.dot(COLS[i], 2.2), pts = loopFor(i), path = new TH.CurvePath();
+      const dot = F.dot(COLS[i], 2.4), path = new TH.CurvePath(), pts = routeFor(i).pts;
       for(let j = 1; j < pts.length; j++) if(pts[j].distanceTo(pts[j - 1]) > 0.5) path.add(new TH.LineCurve3(pts[j - 1], pts[j]));
-      if(!path.curves.length){ const q = [D.clone(), D.clone().add(new TH.Vector3(12, 0, 0)), D.clone().add(new TH.Vector3(12, 0, 12)), D.clone()]; for(let j = 1; j < q.length; j++) path.add(new TH.LineCurve3(q[j - 1], q[j])); }
       return { p, dot, path, i };
     });
-    $("legend").innerHTML = periods.map((p, i) => `<span><i style="background:${CSS[i]}"></i>Guard ${NAMES[i]}: every ${p} min</span>`).join("") + `<span><i style="background:#6ec8ff;border:2px solid #fff"></i>You</span>`;
+    $("legend").innerHTML = periods.map((p, i) => `<span><i style="background:${CSS[i]}"></i>Guard ${NAMES[i]}${MODE !== "B" ? `: every ${p} min` : ""}</span>`).join("") + `<span><i style="background:#6ec8ff;border:2px solid #fff"></i>Our agent</span>`;
   }
-  let last = performance.now();
+  const atDoor = g => { const k = (minute % g.p) / g.p; return k < 0.05 || k > 0.97; };
+  let last = performance.now(), lastWhole = -1;
   F.onTick(now => {
     const dt = Math.min(0.1, (now - last) / 1000); last = now;
-    if(running) minute += dt * MPS * (window.PNTest ? PNTest.speed() : 1);
+    const sp = window.PNTest ? PNTest.speed() : 1;
+    if(target != null){ minute = Math.min(target, minute + dt * Math.max(4, target / 3) * sp); if(minute >= target){ const f = onArrive; target = null; onArrive = null; if(f) f(); } }
+    else minute += dt * rate * sp;
     $("clock").textContent = `00:${String(Math.floor(minute) % 60).padStart(2, "0")}`;
-    let atDoor = 0;
-    guards.forEach(g => { const k = (minute % g.p) / g.p, pt = g.path.getPointAt(Math.min(0.999, k)); if(pt) g.dot.set(pt.x, pt.z); if(k < 0.06 || k > 0.97) atDoor++; });
-    doorMark.material.color.setHex(atDoor === guards.length && guards.length ? 0xffc94d : atDoor ? 0xff4f6d : 0x2fbf8a);
+    guards.forEach(g => { const pt = g.path.getPointAt(Math.min(0.999, (minute % g.p) / g.p)); if(pt) g.dot.set(pt.x, pt.z); });
+    const n = guards.filter(atDoor).length;
+    doorMark.material.color.setHex(n === guards.length && n ? 0xffc94d : n ? 0xff4f6d : 0x2fbf8a);
+    // Option B: the feed logs each pass while it's live
+    const whole = Math.floor(minute);
+    if(MODE === "B" && whole !== lastWhole && rate > 0){ lastWhole = whole; guards.forEach(g => { if(whole > 0 && whole % g.p === 0) addLog(`${String(whole).padStart(2, "0")}:00 guard ${NAMES[g.i]} at the door`); }); }
   });
+  const logs = []; function addLog(t){ logs.push(t); $("log").innerHTML = logs.slice(-4).join("<br>"); T.SND("beep"); }
+  const runTo = m => new Promise(res => { target = m; onArrive = res; });
 
-  // ----- The task -----
+  // ----- Rounds -----
   function deal(){
     const periods = rounds[r], M = lcmAll(periods);
     $("round").textContent = r + 1;
-    setupGuards(periods); minute = 0; running = true;
-    const maxT = Math.min(40, Math.max(M + 4, 20));
-    const guardText = periods.map((p, i) => `guard ${NAMES[i]} every <b>${p}</b> min`).join(", ");
-    if(L === "L1"){
-      $("ask").innerHTML = `Mark the minutes when <b>guard A</b> passes the door (every ${periods[0]} minutes).`;
-      $("rows").hidden = false; $("ansRow").hidden = true;
-      $("rows").innerHTML = periods.map((p, i) => `<div class="row" data-g="${i}" ${i ? "hidden" : ""}><div class="rowlab"><i style="background:${CSS[i]}"></i>GUARD ${NAMES[i]} · EVERY ${p} MIN</div><div class="tl" style="--n:${maxT}">${T.range(1, maxT).map(t => `<button type="button" data-t="${t}">${t}</button>`).join("")}</div></div>`).join("")
-        + `<div class="row" data-g="both" hidden><div class="rowlab">BOTH AT THE DOOR · TAP THE FIRST MINUTE</div><div class="tl" style="--n:${maxT}">${T.range(1, maxT).map(t => `<button type="button" data-t="${t}">${t}</button>`).join("")}</div></div>`;
-      wireL1(periods, maxT, M);
+    setupGuards(periods); minute = 0; rate = 0.8; logs.length = 0; $("log").innerHTML = ""; $("lost").classList.remove("on");
+    $("rows").innerHTML = ""; $("ansRow").hidden = true; $("choices").hidden = true; $("cctv").classList.remove("small");
+    const who = periods.length === 3 ? "all three" : "both";
+    if(MODE === "A"){
+      $("cctv").classList.add("small");
+      const maxT = Math.min(36, Math.max(M + 2, 18));
+      $("ask").innerHTML = `Mark every minute <b>guard A</b> passes the door (every ${periods[0]} minutes).`;
+      $("rows").innerHTML = periods.map((p, i) => `<div class="row" data-g="${i}" ${i ? "hidden" : ""}><div class="rowlab"><i style="background:${CSS[i]}"></i>GUARD ${NAMES[i]} · EVERY ${p} MIN</div><div class="tl" style="--n:${maxT}">${T.range(1, maxT).map(t => `<button type="button" data-t="${t}">${t}</button>`).join("")}</div></div>`).join("");
+      let g = 0, need = new Set(T.range(1, maxT).filter(t => t % periods[0] === 0));
+      $("rows").onclick = e => {
+        const b = e.target.closest("button[data-t]"); if(!b || b.disabled || over) return;
+        const t = +b.dataset.t, gi = +b.closest(".row").dataset.g, p = periods[gi];
+        if(t % p === 0){ b.style.background = CSS[gi] + "55"; b.style.borderColor = CSS[gi]; b.disabled = true; need.delete(t); T.SND("tag");
+          if(!need.size){ g++; if(g < periods.length){ $("rows").querySelector(`[data-g="${g}"]`).hidden = false; need = new Set(T.range(1, maxT).filter(x => x % periods[g] === 0)); $("ask").innerHTML = `Now <b>guard ${NAMES[g]}</b> (every ${periods[g]} minutes).`; }
+            else { // the grid goes away; the camera takes over
+              setTimeout(() => { $("rows").innerHTML = ""; $("cctv").classList.remove("small"); askAnswer(periods); }, 600);
+            } }
+        } else { b.classList.add("bad"); setTimeout(() => b.classList.remove("bad"), 800); wrong++; alarm.hit(); say(`${t} isn't in guard ${NAMES[gi]}'s timetable: ${p} doesn't go into ${t}.`, "bad"); }
+      };
+      say("The camera is live. Mark each guard's timetable first.");
+    } else if(MODE === "B"){
+      const watchTo = Math.max(...periods) * 2 + 1;
+      $("ask").innerHTML = `Watch the feed. Note when each guard reaches the door.`;
+      say("The feed is live. It won't last long.");
+      const iv = setInterval(() => { if(minute >= watchTo){ clearInterval(iv); rate = 0; $("lost").classList.add("on"); T.SND("radio"); setTimeout(() => { $("lost").classList.remove("on"); minute = 0; askAnswer(periods); }, 1400); } }, 100);
     } else {
-      $("ask").innerHTML = `On this floor ${guardText}. They start together at minute 0. When are ${periods.length === 3 ? "all three" : "both"} at the door together next?`;
-      $("rows").hidden = true; $("ansRow").hidden = false; $("ansIn").value = ""; $("ansIn").focus();
+      askAnswer(periods);
     }
-    say("Watch the dots: each guard's loop brings them back past the green door.");
   }
-  function wireL1(periods, maxT, M){
-    let g = 0, need = new Set(T.range(1, maxT).filter(t => t % periods[0] === 0));
-    const rowEl = i => $("rows").querySelector(`[data-g="${i}"]`);
-    $("rows").onclick = e => {
-      const b = e.target.closest("button[data-t]"); if(!b || b.disabled || over) return;
-      const t = +b.dataset.t, row = b.closest(".row").dataset.g;
-      if(row === "both"){
-        if(t === M){ b.classList.add("both"); return met(M); }
-        b.classList.add("bad"); setTimeout(() => b.classList.remove("bad"), 800); wrong++; alarm.hit();
-        say(`At minute ${t}: ${periods.map((p, i) => `guard ${NAMES[i]} ${t % p === 0 ? "is" : "isn't"} there`).join(", ")}. Look for a minute marked in every row.`, "bad"); return;
-      }
-      const p = periods[+row];
-      if(t % p === 0){ b.classList.add("on"); b.style.background = CSS[+row] + "55"; b.style.borderColor = CSS[+row]; b.disabled = true; need.delete(t); T.SND("tag");
-        if(!need.size){
-          g++;
-          if(g < periods.length){ rowEl(g).hidden = false; need = new Set(T.range(1, maxT).filter(x => x % periods[g] === 0)); $("ask").innerHTML = `Now <b>guard ${NAMES[g]}</b> (every ${periods[g]} minutes).`; }
-          else { rowEl("both").hidden = false; $("ask").innerHTML = `When are they <b>both</b> at the door for the first time? Tap it on the bottom row.`; }
-        }
-      } else { b.classList.add("bad"); setTimeout(() => b.classList.remove("bad"), 800); wrong++; alarm.hit(); say(`${t} isn't in guard ${NAMES[+row]}'s timetable: ${p} doesn't go into ${t}. Count on in ${p}s.`, "bad"); }
-    };
+  function askAnswer(periods){
+    const M = lcmAll(periods), who = periods.length === 3 ? "all three guards" : "both guards";
+    rate = 0; minute = 0;
+    $("ask").innerHTML = `When are ${who} at the door <b>together</b> for the first time?${MODE === "B" ? "" : ` (${periods.map((p, i) => `${NAMES[i]} every ${p} min`).join(", ")})`}`;
+    if(MODE === "C"){
+      const opts = T.shuffle([...new Set([M, periods.reduce((a, b) => a * b), periods.reduce((a, b) => a + b), M * 2, Math.max(...periods) * 2].filter(v => v !== M))]).slice(0, 2).concat(M);
+      $("choices").hidden = false; $("choices").innerHTML = T.shuffle(opts).map(v => `<button type="button" data-v="${v}">${v} min</button>`).join("");
+      $("choices").onclick = e => { const b = e.target.closest("button[data-v]"); if(b && !b.disabled) check(+b.dataset.v, b); };
+    } else { $("ansRow").hidden = false; $("ansIn").value = ""; $("ansIn").focus(); }
+    say("Your answer plays on the camera.");
   }
-  $("ansBtn").addEventListener("click", () => {
-    if(over) return;
-    const periods = rounds[r], M = lcmAll(periods), v = parseInt($("ansIn").value, 10);
-    if(!Number.isInteger(v)){ say("Type a minute.", "warn"); return; }
-    if(v === M) return met(M);
-    wrong++; alarm.hit();
-    const who = periods.map((p, i) => `${NAMES[i]} ${v % p === 0 ? "✓" : "✗"}`).join(" ");
-    say(periods.every(p => v % p === 0) ? `Yes, they're all there at ${v}, but earlier too. Find the first time.` : `At minute ${v}: ${who}. Try counting on in ${Math.max(...periods)}s and checking the others.`, "bad");
-  });
+  $("ansBtn").addEventListener("click", () => { const v = parseInt($("ansIn").value, 10); if(!Number.isInteger(v) || v < 1){ say("Type a minute.", "warn"); return; } check(v); });
   $("ansIn").addEventListener("keydown", e => { if(e.key === "Enter") $("ansBtn").click(); });
-  // They meet: the clock runs to that minute, both dots hit the door, then the agent slips in behind them
+  let checking = false;
+  // Every answer is played on the feed: the clock runs to that minute and you see who's at the door
+  async function check(v, btn){
+    if(over || checking) return; checking = true; $("ansBtn").disabled = true;
+    const periods = rounds[r], M = lcmAll(periods);
+    minute = 0; say(`Running the feed to minute ${v}…`);
+    await runTo(v);
+    if(v === M){ checking = false; $("ansBtn").disabled = false; return met(M); }
+    const at = periods.map((p, i) => `${NAMES[i]} ${v % p === 0 ? "✓" : "✗"}`).join(" · ");
+    wrong++; alarm.hit(); if(btn){ btn.classList.add("bad"); btn.disabled = true; }
+    say(periods.every(p => v % p === 0) ? `At minute ${v} they're all there, but they already met earlier. Find the first time.` : `Minute ${v}: ${at}. Not everyone's at the door.`, "bad");
+    checking = false; $("ansBtn").disabled = false;
+  }
+  // They meet at the door, then walk away. Our agent slips in and crosses the floor past them. No words needed.
   let meeting = false;
   async function met(M){
     if(meeting) return; meeting = true;
-    running = false; T.SND("verified");
-    say(`Minute ${M}: ${rounds[r].map(p => `${M} ÷ ${p} = ${M / p}`).join(", ")}. They're all at the door together, then walk away.`, "ok");
-    const from = minute % M, t0 = performance.now(), dur = 1800 / (window.PNTest ? PNTest.speed() : 1);
-    await new Promise(res => { (function f(now){ const k = Math.min(1, (now - t0) / dur); minute = from + (M - from) * k; if(k < 1) requestAnimationFrame(f); else res(); })(t0); });
-    minute = M; T.SND("alarm");
-    await new Promise(res => setTimeout(res, 500));
-    running = true; MPS = 1.6;
+    $("ansRow").hidden = true; $("choices").hidden = true; $("rows").innerHTML = ""; $("cctv").classList.remove("small");
+    minute = M; T.SND("verified"); say(`${M}: ${rounds[r].map(p => `${M} = ${p} × ${M / p}`).join(", ")}.`, "ok");
+    await new Promise(res => setTimeout(res, 700));
+    rate = 1.2;
     await new Promise(res => setTimeout(res, 700 / (window.PNTest ? PNTest.speed() : 1)));
-    await agent.walk([agent.at(), new TH.Vector3(D.x, 0, D.z), new TH.Vector3(D.x * 0.6, 0, D.z * 0.6)], 1100);
-    T.SND("success"); MPS = 1.1;
-    r++;
-    meeting = false;
-    if(r < rounds.length){ setTimeout(() => { agent.set(D.x + (D.x < 0 ? -10 : 10), D.z); deal(); }, 900); }
+    await agent.walk([agent.at(), D.clone(), ...out1.map(c => W(c.x, c.y))], 3200);
+    T.SND("success");
+    r++; meeting = false;
+    if(r < rounds.length){ setTimeout(() => { agent.set(D.x + N[0] * 6, D.z + N[1] * 6); deal(); }, 700); }
     else end(true);
   }
   function end(ok){
     over = true;
-    T.finish({ ok, title: ok ? "IN WITHOUT BEING SEEN" : "SPOTTED",
-      lines: rounds.slice(0, Math.max(1, r)).map(ps => `Every ${ps.join(", ")} min → together at <b>${lcmAll(ps)}</b>`).concat([`Wrong calls: <b>${wrong}</b>`, "The first time they're all together is the lowest common multiple (LCM) of their times."]) });
-    T.say(ok ? "We're in. They never saw us." : "Too many wrong calls. A guard spotted the door moving.");
+    if(ok) T.finish({ ok: true, title: "IN", lines: [], auto: 1800 });
+    else T.finish({ ok: false, title: "SPOTTED", lines: ["The first time they're all together is the lowest common multiple (LCM) of their times."] });
   }
   deal();
-  if(window.PNTest) PNTest.skip("Solve this door", () => { const ps = rounds[r]; met(lcmAll(ps)); });
+  if(window.PNTest) PNTest.skip("Solve this door", () => { const M = lcmAll(rounds[r]); target = null; met(M); });
 })();
 </script>
 </body>
