@@ -40,7 +40,7 @@
       <div class="wall-note" id="wallNote"></div>
     </section>
     <section class="pn-panel pairs">
-      <span class="lab">FACTOR PAIRS: ON THE WALL, OR IN THE BASEMENT?</span>
+      <span class="lab">RECTANGLES OF BOXES (FACTOR PAIRS)</span>
       <div id="pairs" style="display:flex;flex-direction:column;gap:8px"></div>
     </section>
   </div>
@@ -57,7 +57,9 @@
   "use strict";
   const T = window.PNTwist, $ = id => document.getElementById(id);
   const L = T.init({ id: "walls", stage: "FACTOR VAULT", title: "DEPOSIT-BOX WALLS",
-    brief: `Floor 2 is the deposit box room. Each factor pair of N is a way to arrange N boxes in a rectangle, but the walls are only so wide and so tall. Decide which arrangements <b>fit on the wall</b> (either way round) and which go down to the <b>basement</b>.` });
+    goal: T.peekLevel() === "L1" ? "Which rectangles of boxes fit on the wall? Tap a rectangle to try it on the wall first." : "Which rectangles of boxes <b>fit on the wall</b>? They can be turned round.",
+    example: "On a wall 8 wide and 6 high, 4 × 6 fits (4 high, 6 wide). 2 × 12 doesn't: 12 is too wide and too tall.",
+    story: `The key is in ${T.targets()} deposit boxes. The boxes are fitted into the vault wall in rectangles. Work out which rectangles fit, and we'll know where to look.` });
   // [N, wall width, wall height], chosen so some pairs only fit turned round and some don't fit at all
   const SETS = {
     L1: [[24, 8, 6], [18, 6, 4], [20, 5, 5], [16, 8, 4], [12, 4, 4]],
@@ -81,12 +83,24 @@
     T.pairs(N).forEach(([a, b]) => {
       total++;
       const el = document.createElement("div"); el.className = "pair";
-      el.innerHTML = `<b>${a} × ${b}</b><button class="pn-btn small" type="button" data-a="fit">Fits the wall</button><button class="pn-btn small" type="button" data-a="base">Basement</button><span class="v"></span>`;
+      el.innerHTML = `<b>${a} × ${b}</b><button class="pn-btn small" type="button" data-a="fit">Fits</button><button class="pn-btn small" type="button" data-a="base">Doesn't fit</button><span class="v"></span>`;
+      // L1: tap the rectangle to try it on the wall first, and turn it round
+      if(L === "L1"){ const lab = el.querySelector("b"); lab.style.cursor = "pointer"; lab.title = "Try it on the wall"; let turned = false;
+        lab.addEventListener("click", () => { if(el.classList.contains("done")) return; preview(turned ? b : a, turned ? a : b); turned = !turned; }); }
       el.querySelector('[data-a="fit"]').addEventListener("click", () => answer(el, a, b, true));
       el.querySelector('[data-a="base"]').addEventListener("click", () => answer(el, a, b, false));
       box.appendChild(el);
     });
     say(`${N} boxes. The wall is ${W} boxes wide and ${H} high.`);
+  }
+  // Try a rectangle on the wall (L1): rows × cols, shown even if it spills over the edge
+  function preview(rows, cols){
+    const [N, W, H] = rounds[r];
+    hue = (hue + 55) % 360;
+    $("wall").querySelectorAll("i").forEach(i => { const on = +i.dataset.r < rows && +i.dataset.c < cols; i.classList.toggle("box", on); if(on) i.style.setProperty("--h", hue); });
+    const over = rows > H || cols > W;
+    $("wallNote").textContent = `${rows} high × ${cols} wide${over ? `: too ${rows > H && cols > W ? "tall and too wide" : rows > H ? "tall" : "wide"} for this wall` : ": it fits"}. Tap it again to turn it round.`;
+    T.SND("plot");
   }
   function show(a, b){
     const [N, W, H] = rounds[r];
@@ -105,7 +119,7 @@
     el.classList.add("done", fits(a, b, W, H) ? "fit" : "base");
     v.textContent = (ok ? "✓ " : "✗ ") + why;
     if(fits(a, b, W, H)) show(a, b);
-    if(ok){ right++; T.SND("correct", right % 8); say(fits(a, b, W, H) ? "On the wall." : "Down to the basement.", "ok"); }
+    if(ok){ right++; T.SND("correct", right % 8); say(fits(a, b, W, H) ? "It fits on the wall." : "It doesn't fit, either way round.", "ok"); }
     else { T.SND("wrong"); say(why, "bad"); alarm.hit(); }
     if(!over && [...$("pairs").children].every(p => p.classList.contains("done"))){
       setTimeout(() => { if(over) return; r++; if(r < rounds.length){ T.SND("newlock"); deal(); } else end(true); }, 1500 / (window.PNTest ? PNTest.speed() : 1));
@@ -113,9 +127,9 @@
   }
   function end(ok){
     over = true;
-    T.finish({ ok, title: ok ? "BOXES SORTED" : "BOXES DROPPED",
+    T.finish({ ok, title: ok ? "WALLS MAPPED" : "ALARM TRIPPED",
       lines: [`Pairs sorted correctly: <b>${right}</b> of ${total}`, `A pair fits if its smaller number fits one side and its larger number fits the other.`, `Turning an array round (3 × 8 into 8 × 3) keeps the same number of boxes.`] });
-    T.say(ok ? "Boxes sorted. The basement ones can wait." : "Too many boxes on the floor. Security heard that.");
+    T.say(ok ? "Walls mapped. We know where the key box can be." : "Too many wrong calls. Security heard us.");
   }
   deal();
   T.say("Deposit boxes, same number every way round. Will they fit on the wall?", { delay: 600 });

@@ -44,7 +44,9 @@
   "use strict";
   const T = window.PNTwist, $ = id => document.getElementById(id);
   const L = T.init({ id: "sieve", stage: "FREQUENCY SCAN", title: "MOTION-SENSOR SIEVE",
-    brief: `${T.targets()} trading floor is covered in motion sensors, one per number. Knock out every sensor that isn't prime, the way a sieve does: find a prime, then knock out all its multiples. What's left glowing is prime.` });
+    goal: "Knock out every number that isn't prime. Follow the step line below.",
+    example: "2 is prime, so every multiple of 2 (4, 6, 8…) gets knocked out.",
+    story: `${T.targets()} trading floor has a motion sensor for every number. Knock out all the ones that aren't prime; the prime ones are our way through.` });
   const MAX = { L1: 50, L2: 100, L3: 150 }[L];
   const nums = T.range(1, MAX);
   const sievers = T.range(2, Math.floor(Math.sqrt(MAX))).filter(T.isPrime);   // 2, 3, 5, 7 (and 11 at L3)

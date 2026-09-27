@@ -149,6 +149,12 @@
   .pinbox .err{ color:var(--danger); font-size:14px; min-height:1.4em; margin:0; }
   .jumps{ display:flex; flex-wrap:wrap; gap:8px; }
   .jumps a{ text-decoration:none; }
+  .twistRules{ display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:10px; }
+  .twistRules fieldset{ border:1px solid var(--line); margin:0; padding:8px 12px 10px; display:flex; flex-direction:column; gap:4px; }
+  .twistRules legend{ font-family:var(--font-ui); font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:var(--warning); padding:0 4px; }
+  .twistRules label{ display:flex; gap:8px; align-items:baseline; font-size:15px; cursor:pointer; }
+  .twistRules label small{ color:var(--text-faint); font-size:12px; }
+  .twistRules input{ accent-color:var(--warning); }
 
   /* Title deck: the agent ID card in the centre, four holographic panels projected from it */
   .hero{ gap:6px; }
@@ -367,6 +373,12 @@
     </section>
 
     <section>
+      <span class="pn-label">Twists in the bank heist</span>
+      <p class="msg">Each mission picks one twist at each point from the ones ticked here. Untick anything your class hasn't learned yet. Try any of them in the <a href="modules/twist_lab.html" style="color:var(--accent)">Twist Lab</a>.</p>
+      <div class="twistRules" id="twistRules"></div>
+    </section>
+
+    <section>
       <span class="pn-label">Sound check</span>
       <div class="row">
         <label for="volume" class="msg">Volume</label>
@@ -480,6 +492,15 @@
     if(e.key === "Escape" && !overlay.hidden) closeTeacher();
     if(e.key === "Escape" && !pinOverlay.hidden) pinOverlay.hidden = true;
   });
+  // Twists the teacher allows in the bank rotation
+  (function twistRules(){
+    const box = $("#twistRules"); if(!box || !P.TWISTS) return;
+    const POINTS = { scan:"Frequency Scan (band 2)", vault:"Factor Vault (floor 2)", getin:"Getting in", hack:"Prime Hack (lock 3)", finale:"Finale" };
+    box.innerHTML = Object.entries(POINTS).map(([k, name]) => `<fieldset><legend>${name}</legend>${P.TWISTS.filter(t => t.point === k).map(t =>
+      `<label><input type="checkbox" data-twist="${t.id}" ${P.twistOn(t.id) ? "checked" : ""}> ${t.name} <small>${t.maths}</small></label>`).join("")}</fieldset>`).join("");
+    box.querySelectorAll("input").forEach(i => i.addEventListener("change", () => P.setTwistOn(i.dataset.twist, i.checked)));
+  })();
+
   // index.html#teacher opens the PIN box straight away (easier than the hidden shortcuts; bookmark it)
   if(location.hash === "#teacher") setTimeout(openTeacher, 300);
   $("#closeTeacher").addEventListener("click", closeTeacher);

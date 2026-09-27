@@ -9,7 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Inter:wght@400;600;700;800&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../shared/primenet.css">
 <style>
-  /* Scan twist: find the old relays running on cube numbers (n × n × n) */
+  /* Scan twist: cube-number relays. L1 builds cubes from blocks, L2 spots cubes, L3 spots them and gives the cube root */
   .layout{ display:grid; grid-template-columns:minmax(0,1fr) 300px; gap:16px; align-items:start; }
   .board{ padding:16px; }
   .tw-grid{ grid-template-columns:repeat(6, minmax(0,1fr)); }
@@ -18,27 +18,49 @@
   .relay{ display:grid; grid-template-columns:64px 1fr; gap:10px; align-items:center; border:1px solid rgba(255,201,77,.45); padding:6px 8px; background:rgba(255,201,77,.06); }
   .relay svg{ width:64px; height:64px; }
   .relay b{ font-size:20px; color:#fff3cf; } .relay span{ display:block; font-size:14px; color:var(--text-muted); }
-  .slots{ display:flex; gap:6px; flex-wrap:wrap; }
-  .slots i{ width:28px; height:28px; border:1px dashed rgba(255,201,77,.5); display:inline-block; }
-  .slots i.on{ background:#ffc94d; border-style:solid; box-shadow:0 0 10px rgba(255,201,77,.6); }
   .table{ font-size:14px; color:var(--text-muted); border-top:1px solid var(--line); padding-top:8px; }
-  .table[hidden]{ display:none; }
-  @media (max-width:820px){ .layout{ grid-template-columns:1fr; } }
+  .table[hidden], .rootf[hidden], .build[hidden], .spot[hidden]{ display:none; }
+  .rootf{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; font-size:19px; padding:12px 16px; }
+  .rootf input{ width:80px; font-size:20px; text-align:center; padding:6px; }
+  /* Build mode */
+  .build{ padding:18px; display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:18px; align-items:center; }
+  .build svg{ width:100%; max-width:340px; height:auto; justify-self:center; }
+  .ctrls{ display:flex; flex-direction:column; gap:14px; }
+  .ctrl{ display:flex; align-items:center; gap:10px; font-size:18px; }
+  .ctrl span.l{ width:150px; color:var(--text-muted); }
+  .ctrl button{ width:42px; height:42px; font-size:22px; padding:0; }
+  .ctrl b{ font-family:var(--font-mono); font-size:26px; min-width:36px; text-align:center; }
+  .count{ font-family:var(--font-mono); font-size:24px; }
+  .count b{ color:var(--warning); }
+  .need{ font-family:var(--font-ui); font-size:20px; } .need b{ color:var(--accent); font-size:30px; }
+  @media (max-width:820px){ .layout, .build{ grid-template-columns:1fr; } }
 </style>
 </head>
 <body>
 <main class="tw">
-  <div class="tw-bar"><span>Relays found: <b id="count">0</b> of <b id="total">0</b></span></div>
+  <div class="tw-bar"><span>Relays online: <b id="count">0</b> of <b id="total">0</b></span></div>
   <div class="layout">
-    <section class="pn-panel board"><div class="tw-grid" id="grid"></div></section>
+    <div>
+      <section class="pn-panel build" id="build" hidden>
+        <div id="boxArt"></div>
+        <div class="ctrls">
+          <div class="need">Relay needs <b id="needN"></b> blocks</div>
+          <div class="ctrl"><span class="l">Blocks along each side</span><button class="pn-btn" type="button" data-c="side" data-d="-1" aria-label="Fewer blocks along each side">−</button><b id="sideV">1</b><button class="pn-btn" type="button" data-c="side" data-d="1" aria-label="More blocks along each side">+</button></div>
+          <div class="ctrl"><span class="l">Layers</span><button class="pn-btn" type="button" data-c="lay" data-d="-1" aria-label="Fewer layers">−</button><b id="layV">1</b><button class="pn-btn" type="button" data-c="lay" data-d="1" aria-label="More layers">+</button></div>
+          <div class="count" id="countLine"></div>
+          <button class="pn-btn primary" type="button" id="lockBtn">Power the relay</button>
+        </div>
+      </section>
+      <section class="pn-panel board spot" id="spot"><div class="tw-grid" id="grid"></div></section>
+      <form class="pn-panel rootf" id="rootForm" hidden autocomplete="off"><label for="rootIn">What number times itself, times itself again, makes <b id="rootN"></b>?</label><input class="pn-input" id="rootIn" inputmode="numeric" maxlength="2"><button class="pn-btn small primary" type="submit">Check</button></form>
+    </div>
     <aside class="pn-panel log">
       <h2>RELAY LOG</h2>
-      <div class="slots" id="slots" aria-hidden="true"></div>
       <div id="found" style="display:flex;flex-direction:column;gap:8px"></div>
       <div class="table" id="table" hidden></div>
     </aside>
   </div>
-  <div class="tw-msg" id="msg" aria-live="polite">Find every relay running on a cube number.</div>
+  <div class="tw-msg" id="msg" aria-live="polite"></div>
 </main>
 
 <script src="../shared/sound.js"></script>
@@ -50,72 +72,112 @@
 (() => {
   "use strict";
   const T = window.PNTwist, $ = id => document.getElementById(id);
-  const L = T.init({ id: "cubes", stage: "FREQUENCY SCAN", title: "CUBE-NUMBER RELAYS",
-    brief: `Three old relays still run under ${T.target()}. They use <b>cube numbers</b>: a number times itself, times itself again (3 × 3 × 3 = 27). Find every cube relay for a bonus decoder. Hit a wrong relay and the alarm goes up.` });
-  const MAX = { L1: 70, L2: 130, L3: 220 }[L];
-  const cubes = T.range(1, 6).map(n => n * n * n).filter(c => c <= MAX && !(L === "L3" && c === 1));
-  // Decoys: squares, powers of 2 and 3 that aren't cubes, numbers right next to a cube, and a few multiples of 3
-  const decoyPool = new Set();
-  cubes.forEach(c => { if(c > 2){ decoyPool.add(c - 1); decoyPool.add(c + 1); } });
-  [4, 9, 16, 25, 32, 36, 49, 81, 100, 121, 128, 144, 169, 196, 12, 18, 21, 24, 30, 33, 45, 54, 72, 90, 96, 108, 120, 150, 180, 200, 210].forEach(n => decoyPool.add(n));
-  const decoys = T.shuffle([...decoyPool].filter(n => n <= MAX && !T.isCube(n))).slice(0, 24 - cubes.length);
-  const nums = T.shuffle([...cubes, ...decoys]);
-  $("total").textContent = cubes.length;
-  $("slots").innerHTML = cubes.map(() => "<i></i>").join("");
+  const L = T.peekLevel();
+  const GOALS = {
+    L1: "Build each relay as a <b>cube</b>: the same number of blocks along each side, and that many layers.",
+    L2: "Find every <b>cube number</b> among the relays.",
+    L3: "Find every <b>cube number</b>, then give its cube root.",
+  };
+  T.init({ id: "cubes", stage: "FREQUENCY SCAN", title: "CUBE-NUMBER RELAYS", goal: GOALS[L],
+    example: "<b>27</b> is a cube number: 3 blocks along each side and 3 layers, 3 × 3 × 3 = 27.",
+    story: `Old relays still run under ${T.target()}. Each one is powered by a cube of blocks. Get them all online and we earn a decoder.` });
+
+  // An isometric box of side a × a and h layers, gridded into blocks
+  function boxSVG(a, h, px = 64){
+    const u = Math.min(0.5 * px / a, 0.9 * px / (a + h)), c30 = 0.866, cx = px / 2, cy = px / 2;   // fits the view for any size
+    const P = (x, y, z) => [(cx + (x - z) * c30 * u).toFixed(1), (cy + (x + z - a) * 0.5 * u - (y - h / 2) * u).toFixed(1)];
+    const poly = (pts, f) => `<polygon points="${pts.map(p => P(...p).join(",")).join(" ")}" fill="${f}" stroke="#ffe7a8" stroke-width="1"/>`;
+    const line = (a1, b1) => { const [x1, y1] = P(...a1), [x2, y2] = P(...b1); return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#ffe7a8" stroke-width=".6" opacity=".75"/>`; };
+    let g = poly([[0,h,0],[a,h,0],[a,h,a],[0,h,a]], "rgba(255,201,77,.55)") + poly([[a,0,0],[a,h,0],[a,h,a],[a,0,a]], "rgba(255,201,77,.3)") + poly([[0,0,a],[a,0,a],[a,h,a],[0,h,a]], "rgba(255,201,77,.18)");
+    for(let k = 1; k < a; k++){ g += line([k,h,0],[k,h,a]) + line([0,h,k],[a,h,k]) + line([a,0,k],[a,h,k]) + line([k,0,a],[k,h,a]); }
+    for(let k = 1; k < h; k++){ g += line([a,k,0],[a,k,a]) + line([0,k,a],[a,k,a]); }
+    return `<svg viewBox="0 0 ${px} ${px}" aria-hidden="true">${g}</svg>`;
+  }
   let found = 0, over = false;
   const alarm = T.alarm(3, () => end(false));
-
-  // An isometric drawing of an n × n × n cube, gridded on its three visible faces
-  function cubeSVG(n){
-    const s = 26, cx = 32, cy = 32, c30 = Math.cos(Math.PI / 6), s30 = 0.5;
-    const P = (x, y, z) => [cx + (x - z) * c30 * s / 1, cy + (x + z) * s30 * s / 1 - y * s];   // x,z along the floor, y up (0..1)
-    const pt = (x, y, z) => P(x - 0.5, y - 0.5, z - 0.5).map(v => v.toFixed(1)).join(",");
-    const face = (pts, fill) => `<polygon points="${pts.map(p => pt(...p)).join(" ")}" fill="${fill}" stroke="#ffe7a8" stroke-width="1"/>`;
-    let g = face([[0,1,0],[1,1,0],[1,1,1],[0,1,1]], "rgba(255,201,77,.55)") + face([[1,0,0],[1,1,0],[1,1,1],[1,0,1]], "rgba(255,201,77,.3)") + face([[0,0,1],[1,0,1],[1,1,1],[0,1,1]], "rgba(255,201,77,.18)");
-    for(let k = 1; k < n; k++){
-      const t = k / n, line = (a, b) => `<line x1="${pt(...a).split(",")[0]}" y1="${pt(...a).split(",")[1]}" x2="${pt(...b).split(",")[0]}" y2="${pt(...b).split(",")[1]}" stroke="#ffe7a8" stroke-width=".6" opacity=".8"/>`;
-      g += line([t,1,0],[t,1,1]) + line([0,1,t],[1,1,t]);           // top
-      g += line([1,t,0],[1,t,1]) + line([1,0,t],[1,1,t]);           // right
-      g += line([0,t,1],[1,t,1]) + line([t,0,1],[t,1,1]);           // front
-    }
-    return `<svg viewBox="0 0 64 64" aria-hidden="true">${g}</svg>`;
-  }
-  const grid = $("grid");
-  nums.forEach(n => {
-    const b = document.createElement("button"); b.type = "button"; b.className = "tw-tile"; b.textContent = n; b.dataset.n = n;
-    b.addEventListener("click", () => tap(n, b));
-    grid.appendChild(b);
-  });
   function say(t, cls){ const m = $("msg"); m.textContent = t; m.className = "tw-msg" + (cls ? " " + cls : ""); }
-  function nearCubes(n){ let k = 1; while((k + 1) ** 3 <= n) k++; return [k, k + 1]; }
-  function tap(n, b){
-    if(over || b.disabled) return;
-    if(T.isCube(n)){
-      const r = Math.round(Math.cbrt(n));
-      b.classList.add("gold"); b.innerHTML = `${n}<small>${r}×${r}×${r}</small>`; b.disabled = true;
-      found++; $("count").textContent = found;
-      $("slots").children[found - 1].classList.add("on");
-      $("found").insertAdjacentHTML("beforeend", `<div class="relay">${cubeSVG(r)}<div><b>${n}</b><span>${r} × ${r} × ${r} = ${n}</span></div></div>`);
-      T.SND("correct", found); say(`Relay ${found} online: ${r} × ${r} × ${r} = ${n}.`, "ok");
-      if(found === cubes.length) end(true);
-      return;
+  function logRelay(n){
+    const r = Math.round(Math.cbrt(n));
+    found++; $("count").textContent = found;
+    $("found").insertAdjacentHTML("beforeend", `<div class="relay">${boxSVG(r, r)}<div><b>${n}</b><span>${r} × ${r} × ${r} = ${n}</span></div></div>`);
+    T.SND("correct", found);
+  }
+  let cubes = [];
+
+  if(L === "L1"){
+    // ----- Build mode -----
+    cubes = [8, 27, 64];
+    let i = 0, side = 1, lay = 1;
+    $("build").hidden = false; $("spot").hidden = true; $("total").textContent = cubes.length;
+    const paint = () => {
+      $("needN").textContent = cubes[i]; $("sideV").textContent = side; $("layV").textContent = lay;
+      $("boxArt").innerHTML = boxSVG(side, lay, 200).replace('viewBox="0 0 200 200"', 'viewBox="0 0 200 200" style="width:100%;max-width:340px"');
+      const n = side * side * lay;
+      $("countLine").innerHTML = `${side} × ${side} × ${lay} = <b>${n}</b> blocks`;
+    };
+    document.querySelectorAll(".ctrl button").forEach(b => b.addEventListener("click", () => {
+      if(over) return;
+      const d = +b.dataset.d;
+      if(b.dataset.c === "side") side = Math.max(1, Math.min(5, side + d)); else lay = Math.max(1, Math.min(5, lay + d));
+      T.SND("plot"); paint();
+    }));
+    $("lockBtn").addEventListener("click", () => {
+      if(over) return;
+      const n = side * side * lay, want = cubes[i];
+      if(n === want && side === lay){
+        logRelay(want); say(`${side} × ${side} × ${side} = ${want}. A cube: relay online.`, "ok");
+        i++; if(i === cubes.length) return end(true);
+        side = 1; lay = 1; paint(); return;
+      }
+      if(n === want) { say(`${n} blocks, but ${side} along each side and ${lay} layers isn't a cube. Make them match.`, "warn"); T.SND("untag"); return; }
+      say(`${side} × ${side} × ${lay} = ${n}. The relay needs ${want}.`, "bad"); alarm.hit();
+    });
+    paint();
+    if(window.PNTest) PNTest.skip("Build this relay", () => { const r = Math.round(Math.cbrt(cubes[i])); side = r; lay = r; paint(); $("lockBtn").click(); });
+  } else {
+    // ----- Spot mode (L2) and spot + cube root (L3) -----
+    const MAX = L === "L2" ? 130 : 220;
+    cubes = T.range(1, 6).map(n => n * n * n).filter(c => c <= MAX && !(L === "L3" && c === 1));
+    const pool = new Set();
+    cubes.forEach(c => { if(c > 2){ pool.add(c - 1); pool.add(c + 1); } });
+    [4, 9, 16, 25, 32, 36, 49, 81, 100, 121, 128, 144, 169, 196, 12, 18, 24, 30, 45, 54, 72, 90, 96, 108, 120, 150, 180, 200].forEach(n => pool.add(n));
+    const decoys = T.shuffle([...pool].filter(n => n <= MAX && !T.isCube(n))).slice(0, 24 - cubes.length);
+    const nums = T.shuffle([...cubes, ...decoys]);
+    $("total").textContent = cubes.length;
+    const grid = $("grid"), tile = n => grid.querySelector(`[data-n="${n}"]`);
+    let pending = null;
+    nums.forEach(n => {
+      const b = document.createElement("button"); b.type = "button"; b.className = "tw-tile"; b.textContent = n; b.dataset.n = n;
+      b.addEventListener("click", () => tap(n));
+      grid.appendChild(b);
+    });
+    const lockIn = n => { const r = Math.round(Math.cbrt(n)), b = tile(n); b.classList.remove("on"); b.classList.add("gold"); b.innerHTML = `${n}<small>${r}×${r}×${r}</small>`; b.disabled = true; logRelay(n); say(`${r} × ${r} × ${r} = ${n}. Relay online.`, "ok"); if(found === cubes.length) end(true); };
+    function tap(n){
+      if(over || pending) return;
+      const b = tile(n); if(b.disabled) return;
+      if(T.isCube(n)){
+        if(L === "L2") return lockIn(n);
+        pending = n; b.classList.add("on"); $("rootN").textContent = n; $("rootForm").hidden = false; $("rootIn").value = ""; $("rootIn").focus(); T.SND("tag"); return;
+      }
+      b.classList.add("bad"); b.disabled = true;
+      let a = 1; while((a + 1) ** 3 <= n) a++;
+      say(`${n} isn't a cube: ${a} × ${a} × ${a} = ${a ** 3} and ${a + 1} × ${a + 1} × ${a + 1} = ${(a + 1) ** 3}.${T.isSquare(n) ? ` It's a square (${Math.sqrt(n)} × ${Math.sqrt(n)}), not a cube.` : ""}`, "bad");
+      if(alarm.hit() === 2){ $("table").hidden = false; $("table").innerHTML = "CUBE TABLE: " + T.range(1, 6).map(k => `${k}³ = ${k ** 3}`).join(" · "); T.say("I've sent you the cube table. Match the relays against it."); }
     }
-    b.classList.add("bad"); b.disabled = true;
-    const [a, c] = nearCubes(n);
-    const sq = T.isSquare(n) ? ` It's a square (${Math.sqrt(n)} × ${Math.sqrt(n)}), not a cube.` : "";
-    say(`${n} isn't a cube: ${a} × ${a} × ${a} = ${a ** 3} and ${c} × ${c} × ${c} = ${c ** 3}.${sq}`, "bad");
-    const hits = alarm.hit();
-    if(hits === 2){ $("table").hidden = false; $("table").innerHTML = "CUBE TABLE: " + T.range(1, 6).map(k => `${k}³ = ${k ** 3}`).join(" · "); T.say("I've sent you the cube table. Match the relays against it."); }
+    $("rootForm").addEventListener("submit", e => {
+      e.preventDefault();
+      const v = parseInt($("rootIn").value, 10), n = pending; if(!n) return;
+      if(v * v * v === n){ pending = null; $("rootForm").hidden = true; lockIn(n); return; }
+      T.SND("wrong"); say(Number.isInteger(v) ? `${v} × ${v} × ${v} = ${v ** 3}, not ${n}.` : "Type a number.", "warn");
+    });
+    if(window.PNTest) PNTest.skip("Find every cube relay", () => { cubes.forEach(c => { if(!tile(c).disabled){ if(L === "L3"){ pending = c; $("rootIn").value = Math.round(Math.cbrt(c)); $("rootForm").requestSubmit(); } else lockIn(c); } }); });
   }
   function end(ok){
-    over = true;
-    cubes.forEach(c => { const b = grid.querySelector(`[data-n="${c}"]`); if(!b.classList.contains("gold")) b.classList.add("missed"); });
+    over = true; $("rootForm").hidden = true;
     T.finish({ ok, title: ok ? "RELAYS ONLINE" : "RELAY ALARM",
-      lines: [`Cube relays found: <b>${found}</b> of ${cubes.length}`, `The cubes were <b>${cubes.join(", ")}</b>`, `Wrong relays: <b>${alarm.count}</b>`, ok ? "Bonus: <b>+1 decoder</b> for the Factor Vault" : "No decoder this time."] });
+      lines: [`Relays online: <b>${found}</b> of ${cubes.length}`, `Cube numbers: <b>${cubes.join(", ")}</b>`, "A cube number is a number times itself, times itself again: the blocks in a cube.", ok ? "Bonus: <b>+1 decoder</b> for the Factor Vault" : "No decoder this time."] });
     T.say(ok ? "All relays online. That's a free decoder for the vault." : "Too many wrong relays. They've locked the old network.");
   }
-  T.say("Cube numbers, remember: the same number three times. 2 × 2 × 2 is 8.", { delay: 600 });
-  if(window.PNTest) PNTest.skip("Find every cube relay", () => { cubes.forEach(c => tap(c, grid.querySelector(`[data-n="${c}"]`))); });
 })();
 </script>
 </body>

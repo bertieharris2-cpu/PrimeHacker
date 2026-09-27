@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en" class="phase-hack">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PRIMENET · Factor-Tree Lock</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Inter:wght@400;600;700;800&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../shared/primenet.css">
+<style>
+  /* Prime Hack twist, lock 3: prime factorisation with a factor tree. L3 writes the key in index form */
+  .lockhead{ display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; padding:12px 16px; }
+  .lockhead .n{ font-family:var(--font-ui); font-size:clamp(34px,5vw,52px); font-weight:700; color:var(--accent); letter-spacing:.06em; }
+  .lockhead .lab{ font-family:var(--font-ui); font-size:12px; letter-spacing:.2em; color:var(--text-faint); }
+  .treebox{ padding:18px 12px; background:#020a0c; border:1px solid rgba(var(--accent-rgb),.5); overflow-x:auto; min-height:260px; }
+  .node{ display:flex; flex-direction:column; align-items:center; gap:10px; }
+  .kids{ display:flex; gap:26px; position:relative; padding-top:10px; }
+  .kids::before{ content:""; position:absolute; top:0; left:25%; right:25%; border-top:1px solid rgba(var(--accent-rgb),.5); }
+  .val{ font:inherit; font-family:var(--font-mono); font-size:22px; font-weight:700; min-width:64px; padding:8px 12px; background:rgba(8,26,31,.95); border:1px solid rgba(var(--accent-rgb),.6); color:var(--text-primary); cursor:pointer; }
+  .val:hover{ border-color:var(--warning); }
+  .val:focus-visible{ outline:2px solid var(--warning); outline-offset:2px; }
+  .val.prime{ cursor:default; border-color:#ffc94d; color:#fff3cf; background:rgba(255,201,77,.18); box-shadow:0 0 12px rgba(255,201,77,.3); }
+  .val.split{ cursor:default; opacity:.8; }
+  .val.open{ border-color:var(--warning); }
+  .val:not(.prime):not(.split){ border-style:dashed; }   /* still to split */
+  .splitf{ display:flex; gap:6px; align-items:center; font-size:18px; }
+  .splitf input{ width:58px; font-size:18px; text-align:center; padding:5px; }
+  .key{ padding:12px 16px; display:flex; gap:10px; align-items:center; flex-wrap:wrap; font-family:var(--font-mono); font-size:22px; }
+  .key[hidden]{ display:none; }
+  .key .lab{ font-family:var(--font-ui); font-size:12px; letter-spacing:.2em; color:var(--text-faint); }
+  .key .pk{ color:#ffc94d; }
+  .key input{ width:44px; font-size:16px; text-align:center; padding:3px; vertical-align:super; }
+</style>
+</head>
+<body>
+<main class="tw">
+  <div class="tw-bar"><span>Lock <b id="k">1</b> of 2</span></div>
+  <section class="pn-panel lockhead"><div><div class="lab">LOCK 3 · FACTOR TREE</div><div class="n" id="nLab"></div></div><div class="lab" id="leftLab"></div></section>
+  <section class="treebox" id="tree" aria-live="polite"></section>
+  <section class="pn-panel key" id="key" hidden></section>
+  <div class="tw-msg" id="msg" aria-live="polite"></div>
+</main>
+
+<script src="../shared/sound.js"></script>
+<script src="../shared/primenet.js"></script>
+<script src="../shared/testtools.js"></script>
+<script src="../shared/handler.js"></script>
+<script src="../shared/twist.js"></script>
+<script>
+(() => {
+  "use strict";
+  const T = window.PNTwist, $ = id => document.getElementById(id);
+  const L = T.peekLevel();
+  T.init({ id: "factortree", stage: "PRIME HACK", title: "FACTOR-TREE LOCK",
+    goal: L === "L3" ? "Split the number until every branch ends in a <b>prime</b>. Then write the key with powers." : "Split the number until every branch ends in a <b>prime</b>.",
+    example: "Click 12, split it into 3 × 4, then split 4 into 2 × 2. The primes are 2, 2 and 3: 12 = 2 × 2 × 3.",
+    story: "Lock 3 wants its number broken all the way down into primes. Build a factor tree." });
+  const POOL = { L1: [12, 18, 20, 28, 30, 42, 45, 50], L2: [36, 48, 60, 72, 84, 90, 100, 126], L3: [120, 144, 168, 180, 210, 240, 252, 360] }[L];
+  const locks = T.shuffle(POOL).slice(0, 2);
+  let k = 0, over = false, splits = 0, slips = 0, openNode = null;
+  const alarm = T.alarm(3, () => end(false));
+  function say(t, cls){ const m = $("msg"); m.textContent = t; m.className = "tw-msg" + (cls ? " " + cls : ""); }
+  const primeFactors = n => { const out = []; let m = n; for(let d = 2; d * d <= m; d++) while(m % d === 0){ out.push(d); m /= d; } if(m > 1) out.push(m); return out; };
+  function makeNode(n){
+    const wrap = document.createElement("div"); wrap.className = "node"; wrap.dataset.n = n;
+    const b = document.createElement("button"); b.type = "button"; b.className = "val"; b.textContent = n;
+    wrap.appendChild(b);
+    if(T.isPrime(n)){ b.classList.add("prime"); b.title = `${n} is prime`; b.disabled = true; }
+    else b.addEventListener("click", () => openSplit(wrap, n));
+    return wrap;
+  }
+  function openSplit(wrap, n){
+    if(over || wrap.querySelector(".kids")) return;
+    if(openNode && openNode !== wrap){ const f = openNode.querySelector(".splitf"); if(f) f.remove(); openNode.querySelector(".val").classList.remove("open"); }
+    if(wrap.querySelector(".splitf")) return;
+    openNode = wrap; wrap.querySelector(".val").classList.add("open");
+    const f = document.createElement("form"); f.className = "splitf"; f.autocomplete = "off";
+    f.innerHTML = `<label style="position:absolute;left:-9999px" for="a${n}">First factor</label><input class="pn-input" id="a${n}" inputmode="numeric" maxlength="3"> × <label style="position:absolute;left:-9999px" for="b${n}">Second factor</label><input class="pn-input" id="b${n}" inputmode="numeric" maxlength="3"><button class="pn-btn small primary" type="submit">Split</button>`;
+    wrap.appendChild(f); f.querySelector("input").focus();
+    f.addEventListener("submit", e => {
+      e.preventDefault();
+      const a = parseInt(f.children[1].value, 10), c = parseInt(f.children[3].value, 10);
+      if(!Number.isInteger(a) || !Number.isInteger(c)){ say("Type two numbers that multiply to make it.", "warn"); return; }
+      if(a === 1 || c === 1){ say(`1 × ${n} doesn't break it down. Use two numbers bigger than 1.`, "warn"); T.SND("untag"); return; }
+      if(a * c !== n){ slips++; say(`${a} × ${c} = ${a * c}, not ${n}.`, "bad"); alarm.hit(); return; }
+      split(wrap, n, a, c);
+    });
+  }
+  function split(wrap, n, a, c){
+    const f = wrap.querySelector(".splitf"); if(f) f.remove();
+    const v = wrap.querySelector(".val"); v.classList.remove("open"); v.classList.add("split"); v.disabled = true;
+    openNode = null; splits++;
+    const kids = document.createElement("div"); kids.className = "kids";
+    kids.append(makeNode(Math.min(a, c)), makeNode(Math.max(a, c)));
+    wrap.appendChild(kids);
+    T.SND("tag");
+    const left = [...$("tree").querySelectorAll(".val:not(.prime):not(.split)")];
+    $("leftLab").textContent = left.length ? `${left.length} to split` : "ALL PRIME";
+    say(`${n} = ${a} × ${c}.${[a, c].filter(T.isPrime).length ? ` ${[a, c].filter(T.isPrime).join(" and ")} ${[a, c].filter(T.isPrime).length === 1 ? "is" : "are"} prime.` : ""}`, "ok");
+    if(!left.length) finishTree();
+  }
+  function finishTree(){
+    const n = locks[k], pf = primeFactors(n);
+    const box = $("key"); box.hidden = false;
+    if(L !== "L3"){
+      box.innerHTML = `<span class="lab">KEY</span><span>${n} = ${pf.map(p => `<span class="pk">${p}</span>`).join(" × ")}</span>`;
+      T.SND("lock"); say("Every branch ends in a prime. Key accepted.", "ok");
+      return setTimeout(nextLock, 1400 / (window.PNTest ? PNTest.speed() : 1));
+    }
+    // L3: index form. One power box per different prime
+    const distinct = [...new Set(pf)];
+    box.innerHTML = `<span class="lab">KEY</span><span>${n} = ${distinct.map(p => `<span class="pk">${p}</span><label style="position:absolute;left:-9999px" for="e${p}">Power of ${p}</label><input class="pn-input" id="e${p}" inputmode="numeric" maxlength="1">`).join(" × ")}</span><button class="pn-btn small primary" type="button" id="keyBtn">Check</button>`;
+    box.querySelector("input").focus();
+    say("Now write it with powers: how many of each prime?");
+    $("keyBtn").addEventListener("click", () => {
+      const ok = distinct.every(p => parseInt($("e" + p).value, 10) === pf.filter(x => x === p).length);
+      if(ok){ T.SND("lock"); say(`${n} = ${distinct.map(p => { const c = pf.filter(x => x === p).length; return c > 1 ? `${p}^${c}` : p; }).join(" × ")}. Key accepted.`, "ok"); setTimeout(nextLock, 1400 / (window.PNTest ? PNTest.speed() : 1)); }
+      else { slips++; say(`Count the primes on your tree: ${pf.join(" × ")}.`, "bad"); alarm.hit(); }
+    });
+  }
+  function show(){
+    const n = locks[k];
+    $("k").textContent = k + 1; $("nLab").textContent = `N = ${n}`; $("key").hidden = true; $("key").innerHTML = "";
+    const tree = $("tree"); tree.innerHTML = ""; tree.appendChild(makeNode(n));
+    $("leftLab").textContent = "1 to split";
+    say(`Click ${n} to split it into a factor pair.`);
+  }
+  function nextLock(){ if(over) return; k++; if(k === locks.length) return end(true); T.SND("newlock"); show(); }
+  function end(ok){
+    over = true;
+    T.finish({ ok, title: ok ? "LOCK 3 OPEN" : "TRACE COMPLETE",
+      lines: locks.slice(0, Math.max(k, 1)).map(n => `${n} = ${primeFactors(n).join(" × ")}`).concat([`Splits made: <b>${splits}</b>`, `Wrong splits: <b>${slips}</b>`, "Every whole number above 1 breaks down into primes in exactly one way."]) });
+    T.say(ok ? "Broken down to primes. Lock 3 is ours." : "Too many bad splits. They've traced us.");
+  }
+  show();
+  if(window.PNTest) PNTest.skip("Finish this tree", () => {
+    let guard = 0;
+    while(guard++ < 20){
+      const v = [...$("tree").querySelectorAll(".val:not(.prime):not(.split)")][0]; if(!v) break;
+      const wrap = v.parentElement, n = +wrap.dataset.n, d = T.smallestFactor(n);
+      split(wrap, n, d, n / d);
+    }
+    const kb = $("keyBtn"); if(kb){ const pf = primeFactors(locks[k]); [...new Set(pf)].forEach(p => $("e" + p).value = pf.filter(x => x === p).length); kb.click(); }
+  });
+})();
+</script>
+</body>
+</html>

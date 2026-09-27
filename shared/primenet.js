@@ -398,6 +398,27 @@
     mission, agentNumber, TARGETS, updateAgent, setMissionTarget,
     SHOP, shopItem, lootFor, buyItem, equipItem, walletOf,
   };
+  // ---------- Twists the teacher allows in the bank rotation (feedback: leave out what hasn't been taught) ----------
+  const TWIST_KEY = "primenet_twists_v1";
+  const TWISTS = [
+    { id:"squares",    point:"scan",   name:"Square channels",        maths:"Square numbers" },
+    { id:"cubes",      point:"scan",   name:"Cube-number relays",     maths:"Cube numbers" },
+    { id:"sieve",      point:"scan",   name:"Motion-sensor sieve",    maths:"Primes and multiples" },
+    { id:"jammer",     point:"scan",   name:"Jammer",                 maths:"Multiples" },
+    { id:"strongroom", point:"vault",  name:"Square strongroom",      maths:"Square numbers" },
+    { id:"walls",      point:"vault",  name:"Deposit-box walls",      maths:"Factor pairs" },
+    { id:"primefloor", point:"vault",  name:"Fake floor",             maths:"Primes and factor pairs" },
+    { id:"patrols",    point:"getin",  name:"Guard patrols",          maths:"Multiples and LCM" },
+    { id:"corridor",   point:"getin",  name:"Laser corridor",         maths:"Factors" },
+    { id:"factortree", point:"hack",   name:"Factor-tree lock",       maths:"Prime factorisation" },
+    { id:"blackout",   point:"finale", name:"Server blackout",        maths:"Primes" },
+    { id:"getaway",    point:"finale", name:"Getaway chase",          maths:"Primes" },
+  ];
+  function twistsOff(){ try{ const d = JSON.parse(localStorage.getItem(TWIST_KEY) || "{}"); return Array.isArray(d.off) ? d.off : []; }catch(e){ return []; } }
+  function setTwistOn(id, on){ const off = new Set(twistsOff()); if(on) off.delete(id); else off.add(id); try{ localStorage.setItem(TWIST_KEY, JSON.stringify({ off:[...off] })); }catch(e){} }
+  const twistOn = id => !twistsOff().includes(id);
+  Object.assign(window.Primenet, { TWISTS, twistsOff, setTwistOn, twistOn });
+
   applyPrefs();   // every page opens with the current agent's settings
 
   // ---------- Home button on every game screen (feedback: a way out to the main menu) ----------

@@ -59,25 +59,29 @@
   const CORR = { L1: [12, 18, 20, 24], L2: [36, 40, 48, 60], L3: [72, 84, 90, 96] };
   const POINTS = [
     { name: "Frequency Scan", when: "Replaces band 2 of the scan", items: [
-      { t: "Honeypot squares", d: "Tag the primes; square-number channels are traps.", m: "squares", mn: "Square numbers", page: "twist_honeypot.html", isNew: 1 },
-      { t: "Cube-number relays", d: "Find every relay on a cube number (3 × 3 × 3 = 27). Each one is drawn as a cube.", m: "cubes", mn: "Cube numbers", page: "twist_cubes.html", isNew: 1 },
-      { t: "Motion-sensor sieve", d: "Sieve 1 to 50, 100 or 150: find each prime and knock out its multiples. The last sensor is broken, so its multiples are found by hand.", m: "primes", mn: "Primes and multiples", page: "twist_sieve.html", isNew: 1 },
-      { t: "Jammer", d: "Already in every band of the Frequency Scan. In the rotation it will only appear in band 2.", m: "multiples", mn: "Multiples", link: `<a href="prime_frequency_scan.html">Open the scan</a><small>uses the title-screen level</small>` },
+      { id: "squares", t: "Square channels", d: "Find the square numbers. L1: 1 to 48 with the first one shown. L2: up to 150 among near misses. L3: up to 400, and say each square root.", m: "squares", mn: "Square numbers", page: "twist_squares.html", isNew: 1 },
+      { id: "cubes", t: "Cube-number relays", d: "L1: build each relay as a cube from layers of blocks. L2: spot the cube numbers. L3: spot them and give the cube root.", m: "cubes", mn: "Cube numbers", page: "twist_cubes.html", isNew: 1 },
+      { id: "sieve", t: "Motion-sensor sieve", d: "Knock out every number that isn't prime, a prime at a time. The last prime's multiples are found by hand.", m: "primes", mn: "Primes and multiples", page: "twist_sieve.html", isNew: 1 },
+      { id: "jammer", t: "Jammer", d: "Already in every band of the Frequency Scan. In the rotation it will only appear in band 2.", m: "multiples", mn: "Multiples", link: `<a href="prime_frequency_scan.html">Open the scan</a><small>uses the title-screen level</small>` },
     ] },
     { name: "Factor Vault", when: "A twist on floor 2", items: [
-      { t: "Prime floor trap", d: "Four floor readings, one is prime. Prove the real floors with a factor pair and find the decoy. Two rounds.", m: "primes", mn: "Primes and factor pairs", page: "twist_primefloor.html", isNew: 1 },
-      { t: "Deposit-box walls", d: "Which factor-pair arrays of deposit boxes fit on a wall of a set size? Three walls.", m: "factors", mn: "Factor pairs", page: "twist_walls.html", isNew: 1 },
+      { id: "strongroom", t: "Square strongroom", d: "L1: drag out square rooms with the right number of tiles. L2: can these tiles make a square? L3: give the side length.", m: "squares", mn: "Square numbers", page: "twist_strongroom.html", isNew: 1 },
+      { id: "walls", t: "Deposit-box walls", d: "Which rectangles of boxes fit on the wall? At L1 tap a rectangle to try it on the wall and turn it round.", m: "factors", mn: "Factor pairs", page: "twist_walls.html", isNew: 1 },
+      { id: "primefloor", t: "Fake floor", d: "Four floor numbers: prove the real ones with a factor pair; the prime one is the fake.", m: "primes", mn: "Primes and factor pairs", page: "twist_primefloor.html", isNew: 1 },
     ] },
     { name: "Getting in", when: "New step between the Blueprint and Prime Hack", items: [
-      { t: "Guard patrols", d: "Mark each guard's timetable, find when both meet (the LCM), then open the door in a safe gap.", m: "lcm", mn: "Multiples and LCM", page: "twist_patrols.html", isNew: 1 },
-      { t: "Laser corridor", d: "Step only on the factors of N, in order.", m: "factors", mn: "Factors", link: null, corridor: 1 },
+      { id: "patrols", t: "Guard patrols", d: "Mark each guard's timetable, find when both meet (the LCM), then open the door in a safe gap.", m: "lcm", mn: "Multiples and LCM", page: "twist_patrols.html", isNew: 1 },
+      { id: "corridor", t: "Laser corridor", d: "Step only on the factors of N, in order.", m: "factors", mn: "Factors", corridor: 1 },
     ] },
     { name: "Prime Hack", when: "Lock 3", items: [
-      { t: "Product-and-clue lock", d: "The product of two primes plus a clue (their sum, difference or range). Three double seals.", m: "pfact", mn: "Primes and products", page: "twist_cluelock.html", isNew: 1 },
+      { id: "factortree", t: "Factor-tree lock", d: "Split the number into factor pairs until every branch is prime. L3 writes the key with powers (2² × 3 × 5).", m: "pfact", mn: "Prime factorisation", page: "twist_factortree.html", isNew: 1 },
     ] },
     { name: "Finale", when: "How it ends", items: [
-      { t: "Server blackout", d: "Lights out: shut down the prime servers by torchlight. Opens Prime Hack with the blackout set as this run's finale; SKIP (teacher mode) cracks the locks fast.", m: "primes", mn: "Primes", link: `<a href="prime_hack.html?finale=blackout">Open Prime Hack</a><small>title-screen level</small>` },
-      { t: "Getaway chase", d: "The tracking-map getaway. Opens Prime Hack with the getaway as this run's finale.", m: "pfact", mn: "Story", link: `<a href="prime_hack.html?finale=getaway">Open Prime Hack</a><small>title-screen level</small>` },
+      { id: "blackout", t: "Server blackout", d: "Lights out: shut down the prime servers by torchlight. Opens Prime Hack with the blackout set as this run's finale; SKIP (teacher mode) cracks the locks fast.", m: "primes", mn: "Primes", link: `<a href="prime_hack.html?finale=blackout">Open Prime Hack</a><small>title-screen level</small>` },
+      { id: "getaway", t: "Getaway chase", d: "The tracking-map getaway. Opens Prime Hack with the getaway as this run's finale.", m: "pfact", mn: "Story", link: `<a href="prime_hack.html?finale=getaway">Open Prime Hack</a><small>title-screen level</small>` },
+    ] },
+    { name: "Saved for other heists", when: "Not in the bank rotation", items: [
+      { id: "cluelock", t: "Product-and-clue lock", d: "The product of two primes plus a clue (their sum, difference or range).", m: "primes", mn: "Primes and products", page: "twist_cluelock.html", other: 1 },
     ] },
   ];
   // Teacher tools switch, so SKIP can be turned on from here
@@ -99,7 +103,7 @@
     pt.items.forEach(it => {
       const go = it.page ? lv(it.page) : it.corridor ? ["L1", "L2", "L3"].map(l => { const n = CORR[l][Math.floor(Math.random() * 4)]; return `<a href="laser_corridor.html?n=${n}">${l} · N=${n}</a>`; }).join("") : it.link;
       sec.querySelector(".cards").insertAdjacentHTML("beforeend", `<article class="pn-panel card" style="--c:${C[it.m]}">
-        <div class="row"><h3>${it.t}</h3><span class="pill ${it.isNew ? "new" : "old"}">${it.isNew ? "NEW" : "IN THE GAME"}</span></div>
+        <div class="row"><h3>${it.t}</h3><span class="pill ${it.isNew ? "new" : "old"}">${it.isNew ? "NEW" : "IN THE GAME"}</span></div>${!it.other && PN && PN.twistOn && !PN.twistOn(it.id) ? '<span class="pill" style="color:#ff6b6b;border-color:#ff6b6b;align-self:flex-start">OFF IN TEACHER CONTROLS</span>' : ""}
         <p>${it.d}</p><span class="m">${it.mn}</span><div class="go">${go}</div></article>`);
     });
     box.appendChild(sec);

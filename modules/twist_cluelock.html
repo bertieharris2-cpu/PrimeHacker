@@ -47,7 +47,9 @@
   "use strict";
   const T = window.PNTwist, $ = id => document.getElementById(id);
   const L = T.init({ id: "cluelock", stage: "PRIME HACK", title: "PRODUCT-AND-CLUE LOCK",
-    brief: `Lock 3 is double-sealed. You get the <b>product</b> of two primes and a <b>clue</b> about them. Find both primes. Wrong guesses raise the trace.` });
+    goal: "Find the two <b>primes</b> that multiply to the product. Use the clue.",
+    example: "Product 35, the primes add up to 12: 5 × 7 = 35 and 5 + 7 = 12.",
+    story: "This lock is double-sealed: a product of two primes, and a clue about them." });
   const PR = { L1: T.range(2, 19), L2: T.range(3, 37), L3: T.range(5, 53) }[L].filter(T.isPrime);
   const MAXP = { L1: 150, L2: 700, L3: 2000 }[L];
   function makeLock(){

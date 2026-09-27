@@ -266,3 +266,17 @@ Every idea is a "maybe until I see it". Build these as prototypes to look at bef
   - Deposit-box walls: loved; L1 should drag to experiment; "wall or basement" story unclear
   - Instructions are too long to take in quickly; narrative first, then function, then visuals
   - Teacher chooses which twists can appear (e.g. leave out prime factorisation until it's taught)
+
+## Prime Hack feedback and twists 1–5
+
+- [x] Prime Hack: the padlock is replaced by a KEY DECODER (two prime registers that scramble and settle, a status line, hex readout)
+- [x] New BREACH bar in the orange-yellow gradient that fills one step per cracked lock, above the trace bar
+- [x] No holograms in Prime Hack: each unlock is a "WALL n BREACHED" block in the terminal with the gradient bar filling as the account drains, then the short code burst. The final-breach holograms are gone
+- [x] One code flood per run, taking turns between the big breach channel and the small handshake box
+- [x] Twists, per the review:
+  1. Honeypot squares is now **Square channels** (find the square numbers). The product-and-clue lock leaves the bank ("saved for other heists")
+  2. New **Square strongroom** (Factor Vault) and **Factor-tree lock** (Prime Hack lock 3, prime factorisation)
+  3. Tasks change by level: cubes (L1 build from blocks, L2 spot, L3 spot + cube root); squares (L1 with the first one shown, L2 among near misses, L3 + square root); strongroom (L1 drag squares, L2 can it be square, L3 side length); walls (L1 tap to try a rectangle on the wall and turn it); factor tree (L3 writes powers)
+  4. Every twist has a one-line GOAL and an example; the story is ORACLE's message. "Prime floor trap" is now "Fake floor"; deposit-box walls is "fits / doesn't fit" (no basement)
+  5. Teacher controls: "Twists in the bank heist" tick boxes; the Twist Lab marks any that are switched off
+- [ ] Next: wire the rotation into the mission, using the ticked twists

@@ -56,7 +56,9 @@
   "use strict";
   const T = window.PNTwist, $ = id => document.getElementById(id);
   const L = T.init({ id: "patrols", stage: "GETTING IN", title: "GUARD PATROLS",
-    brief: `Two guards walk past ${T.targets()} vault door on a timetable. Mark when each one passes, find when they're <b>both</b> at the door, then choose a safe moment for the crew to open it.` });
+    goal: "Find a safe moment to open the vault door. Follow the steps below.",
+    example: "A guard who passes every 3 minutes is at the door at 3, 6, 9, 12… (the multiples of 3).",
+    story: `Two guards walk past ${T.targets()} vault door on a timetable. Work out when they pass and we'll open the door while nobody's there.` });
   const PAIRS = { L1: [[3, 4], [3, 5], [4, 6], [4, 5]], L2: [[6, 8], [4, 10], [6, 9], [4, 6]], L3: [[8, 12], [9, 12], [10, 15], [6, 10]] }[L];
   const [a, b] = T.pick(PAIRS), both = T.lcm(a, b);
   const OPEN = L === "L1" ? 2 : 3;   // minutes the door takes to open

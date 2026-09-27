@@ -34,7 +34,7 @@
   <div class="tw-bar"><span>Round <b id="round">1</b> of 2</span><span>Floors checked: <b id="done">0</b> of 4</span></div>
   <div class="floors" id="floors"></div>
   <div class="tip" id="tip" hidden>Quick checks: even numbers divide by 2. If the digits add up to a multiple of 3, it divides by 3. Ends in 0 or 5: divides by 5. Then try 7, 11 and 13.</div>
-  <div class="tw-msg" id="msg" aria-live="polite">Prove each real floor with a factor pair. Find the decoy.</div>
+  <div class="tw-msg" id="msg" aria-live="polite">Prove each real floor with a factor pair. Find the fake one.</div>
 </main>
 
 <script src="../shared/sound.js"></script>
@@ -46,8 +46,10 @@
 (() => {
   "use strict";
   const T = window.PNTwist, $ = id => document.getElementById(id);
-  const L = T.init({ id: "primefloor", stage: "FACTOR VAULT", title: "PRIME FLOOR TRAP",
-    brief: `${T.target()} faked one of its floor readings. A real floor has rooms, so its number has a factor pair other than 1 × N. The decoy's number is <b>prime</b>: just one long archive, nothing worth breaking into. Prove each real floor with a factor pair, and mark the decoy.` });
+  const L = T.init({ id: "primefloor", stage: "FACTOR VAULT", title: "FAKE FLOOR",
+    goal: "Prove 3 floors are real with a factor pair. The <b>prime</b> one is the fake.",
+    example: "<b>21</b> is real: 3 × 7 = 21. <b>23</b> is prime, only 1 × 23, so it would be fake.",
+    story: `${T.target()} slipped a fake floor into its plans to waste our time. A real floor's number splits into a factor pair, which gives it rooms. The fake floor's number is prime: it can't.` });
   // Composites that look prime (odd, not ending in 5 where possible) and primes to hide among them
   const POOLS = {
     L1: { comp: [9, 15, 21, 25, 27, 33, 35, 39, 49], prime: [13, 17, 19, 23, 29, 31, 37] },
@@ -66,9 +68,9 @@
       el.innerHTML = `<span class="lab">FLOOR READING ${String.fromCharCode(65 + i)}</span><div class="n">${n}</div>
         <div class="row"><label class="sr" for="a${i}" style="position:absolute;left:-9999px">First factor</label><input class="pn-input" id="a${i}" inputmode="numeric" maxlength="3"> ×
           <label for="b${i}" style="position:absolute;left:-9999px">Second factor</label><input class="pn-input" id="b${i}" inputmode="numeric" maxlength="3"></div>
-        <button class="pn-btn small" type="button" data-a="prove">Prove it's a real floor</button>
+        <button class="pn-btn small" type="button" data-a="prove">Real floor</button>
         <div class="or">or</div>
-        <button class="pn-btn small" type="button" data-a="decoy">It's prime: the decoy</button>
+        <button class="pn-btn small" type="button" data-a="decoy">Prime: the fake</button>
         <div class="res"></div>`;
       el.querySelector('[data-a="prove"]').addEventListener("click", () => prove(el, i));
       el.querySelector('[data-a="decoy"]').addEventListener("click", () => decoy(el));
@@ -88,7 +90,7 @@
   function decoy(el){
     if(over || el.classList.contains("done")) return;
     const n = +el.dataset.n, res = el.querySelector(".res");
-    if(T.isPrime(n)){ el.classList.add("decoy"); res.textContent = `Only 1 × ${n}. Prime: the decoy floor.`; T.SND("verified"); say(`${n} is prime. That's the decoy.`, "ok"); resolve(el); return; }
+    if(T.isPrime(n)){ el.classList.add("decoy"); res.textContent = `Only 1 × ${n}. Prime: the fake floor.`; T.SND("verified"); say(`${n} is prime. That's the fake.`, "ok"); resolve(el); return; }
     const f = T.smallestFactor(n);
     decoyWrong++;
     res.textContent = `Not prime: ${n} = ${f} × ${n / f}.`;
@@ -105,9 +107,9 @@
   }
   function end(ok){
     over = true;
-    T.finish({ ok, title: ok ? "DECOYS SPOTTED" : "WRONG FLOORS",
+    T.finish({ ok, title: ok ? "FAKE FLOOR FOUND" : "WRONG FLOORS",
       lines: [`Real floors proved with a factor pair: <b>${proofs}</b>`, `Real floors wrongly called prime: <b>${decoyWrong}</b>`, `A prime number has exactly two factors, 1 and itself, so its floor is one long archive.`] });
-    T.say(ok ? "Good. We won't waste time on a decoy floor." : "We'd have wasted the night on the wrong floors. Try again.");
+    T.say(ok ? "Good. We won't waste time on a fake floor." : "We'd have wasted the night on the wrong floors. Try again.");
   }
   deal();
   T.say("One of these floor numbers is fake. Prime means no rooms.", { delay: 600 });

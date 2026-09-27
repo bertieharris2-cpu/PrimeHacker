@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en" class="phase-hack">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PRIMENET · Square Channels</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Inter:wght@400;600;700;800&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../shared/primenet.css">
+<style>
+  /* Scan twist: find the square numbers (L1 up to 50, L2 up to 150 among near misses, L3 up to 400 and give the root) */
+  .board{ padding:16px; }
+  .tw-grid{ grid-template-columns:repeat(8, minmax(0,1fr)); }
+  .root{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; font-size:20px; padding:12px 16px; }
+  .root[hidden]{ display:none; }
+  .root input{ width:90px; font-size:20px; text-align:center; padding:6px; }
+  @media (max-width:560px){ .tw-grid{ grid-template-columns:repeat(5, minmax(0,1fr)); } }
+</style>
+</head>
+<body>
+<main class="tw">
+  <div class="tw-bar"><span>Square channels found: <b id="count">0</b> of <b id="total">0</b></span></div>
+  <section class="pn-panel board"><div class="tw-grid" id="grid"></div></section>
+  <form class="pn-panel root" id="rootForm" hidden autocomplete="off"><label for="rootIn">What times itself makes <b id="rootN"></b>?</label><input class="pn-input" id="rootIn" inputmode="numeric" maxlength="3"><button class="pn-btn small primary" type="submit">Check</button></form>
+  <div class="tw-msg" id="msg" aria-live="polite"></div>
+</main>
+
+<script src="../shared/sound.js"></script>
+<script src="../shared/primenet.js"></script>
+<script src="../shared/testtools.js"></script>
+<script src="../shared/handler.js"></script>
+<script src="../shared/twist.js"></script>
+<script>
+(() => {
+  "use strict";
+  const T = window.PNTwist, $ = id => document.getElementById(id);
+  const L = T.peekLevel();
+  // L1: every number 1–50. L2: squares up to 144 hidden among near misses. L3: squares up to 400, and the root.
+  let nums;
+  if(L === "L1") nums = T.range(1, 48);
+  else {
+    const hi = L === "L2" ? 150 : 400, lo = L === "L2" ? 40 : 100;
+    const sq = T.range(1, 20).map(k => k * k).filter(n => n >= lo && n <= hi);
+    const squares = T.shuffle(sq).slice(0, L === "L2" ? 6 : 7);
+    const near = new Set(); squares.forEach(n => { near.add(n - 1); near.add(n + 1); near.add(n + 2); });
+    T.range(lo, hi).filter(n => !T.isSquare(n) && n % 10 === 0).forEach(n => near.add(n));
+    const decoys = T.shuffle([...near].filter(n => n >= lo && n <= hi && !T.isSquare(n))).slice(0, 32 - squares.length);
+    nums = T.shuffle([...squares, ...decoys]);
+  }
+  const squares = nums.filter(T.isSquare);
+  T.init({ id: "squares", stage: "FREQUENCY SCAN", title: "SQUARE CHANNELS",
+    goal: `Find the <b>${squares.length}</b> square numbers.${L === "L3" ? " Then say what times itself makes each one." : ""}`,
+    example: L === "L1" ? "<b>4</b> is square: 2 × 2 = 4. It's found for you." : "<b>49</b> is square: 7 × 7 = 49.",
+    story: `${T.targets()} alarm grid runs on square-number channels. Find every one and we can jam the lot.` });
+  $("total").textContent = squares.length;
+  let found = 0, over = false, pending = null;
+  const alarm = T.alarm(3, () => end(false));
+  const grid = $("grid"), tile = n => grid.querySelector(`[data-n="${n}"]`);
+  nums.forEach(n => {
+    const b = document.createElement("button"); b.type = "button"; b.className = "tw-tile"; b.textContent = n; b.dataset.n = n;
+    b.addEventListener("click", () => tap(n));
+    grid.appendChild(b);
+  });
+  function say(t, cls){ const m = $("msg"); m.textContent = t; m.className = "tw-msg" + (cls ? " " + cls : ""); }
+  function lockIn(n){
+    const r = Math.sqrt(n), b = tile(n);
+    b.classList.add("gold"); b.innerHTML = `${n}<small>${r}×${r}</small>`; b.disabled = true;
+    found++; $("count").textContent = found; T.SND("correct", found);
+    say(`${n} = ${r} × ${r}. Square channel jammed.`, "ok");
+    if(found === squares.length) end(true);
+  }
+  function tap(n){
+    if(over || pending) return;
+    const b = tile(n); if(b.disabled) return;
+    if(T.isSquare(n)){
+      if(L !== "L3") return lockIn(n);
+      pending = n; b.classList.add("on"); $("rootN").textContent = n; $("rootForm").hidden = false; $("rootIn").value = ""; $("rootIn").focus();
+      say(`${n} looks square. What times itself makes ${n}?`); T.SND("tag"); return;
+    }
+    b.classList.add("bad"); setTimeout(() => b.classList.remove("bad"), 900);
+    const k = Math.floor(Math.sqrt(n));
+    say(`${n} isn't square: ${k} × ${k} = ${k * k} and ${k + 1} × ${k + 1} = ${(k + 1) * (k + 1)}, so no number times itself makes ${n}.`, "bad");
+    alarm.hit();
+  }
+  $("rootForm").addEventListener("submit", e => {
+    e.preventDefault();
+    const v = parseInt($("rootIn").value, 10), n = pending; if(!n) return;
+    if(v * v === n){ pending = null; $("rootForm").hidden = true; tile(n).classList.remove("on"); lockIn(n); return; }
+    T.SND("wrong"); say(Number.isInteger(v) ? `${v} × ${v} = ${v * v}, not ${n}. Try again.` : "Type a number.", "warn");
+  });
+  function end(ok){
+    over = true; $("rootForm").hidden = true;
+    squares.forEach(n => { const b = tile(n); if(!b.classList.contains("gold")) b.classList.add("missed"); });
+    T.finish({ ok, title: ok ? "CHANNELS JAMMED" : "ALARM TRIPPED",
+      lines: [`Square numbers found: <b>${found}</b> of ${squares.length}`, `They were <b>${squares.slice().sort((a, b) => a - b).join(", ")}</b>`, `A square number is a number times itself: ${squares.slice().sort((a, b) => a - b).slice(0, 3).map(n => `${Math.sqrt(n)} × ${Math.sqrt(n)} = ${n}`).join(", ")}…`, `Wrong channels: <b>${alarm.count}</b>`] });
+    T.say(ok ? "Every square channel jammed. Their alarms are deaf." : "Too many wrong channels. They've noticed.");
+  }
+  if(L === "L1") lockIn(4);
+  else say("Tap a number you think is square.");
+  if(window.PNTest) PNTest.skip("Find every square", () => { squares.forEach(n => { if(!tile(n).disabled){ if(L === "L3"){ pending = n; $("rootIn").value = Math.sqrt(n); $("rootForm").requestSubmit(); } else lockIn(n); } }); });
+})();
+</script>
+</body>
+</html>

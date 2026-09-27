@@ -1,7 +1,7 @@
 /* PRIMENET twists: the rotating bank-heist tasks. Each twist is its own page so it can be tested
    away from the mission (open modules/twist_lab.html). This file gives every twist the same frame:
    a header with the level switch, an alarm meter, ORACLE, number helpers and the result screen.
-   PNTwist.init({ id, stage, title, brief }) then PNTwist.level(), .alarm(max, onTrip), .finish({...}). */
+   PNTwist.init({ id, stage, title, goal, story }) then PNTwist.level(), .alarm(max, onTrip), .finish({...}). */
 (function(){
   "use strict";
   const PN = window.Primenet;
@@ -16,8 +16,12 @@
   .tw-lv{ display:flex; gap:4px; }
   .tw-lv a{ font-family:var(--font-ui); font-weight:700; font-size:13px; letter-spacing:.1em; text-decoration:none; color:var(--text-muted); border:1px solid var(--line); padding:6px 10px; }
   .tw-lv a[aria-current="true"]{ color:var(--accent); border-color:var(--accent); box-shadow:inset 0 0 0 1px rgba(var(--accent-rgb),.35); }
-  .tw-brief{ margin:0; color:var(--text-muted); max-width:72ch; line-height:1.6; font-size:17px; }
-  .tw-brief b{ color:var(--text-primary); }
+  /* Feedback: instructions must be quick to take in. One goal line on the page; the story goes to ORACLE. */
+  .tw-goal{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; font-family:var(--font-ui); font-size:clamp(19px,2.2vw,24px); letter-spacing:.03em; color:var(--text-primary); }
+  .tw-goal .g{ font-size:12px; letter-spacing:.22em; color:#1a1405; background:var(--warning); padding:3px 8px; font-weight:700; }
+  .tw-goal b{ color:var(--warning); }
+  .tw-ex{ font-size:15px; color:var(--text-muted); border-left:2px solid var(--line-strong); padding-left:10px; }
+  .tw-ex b{ color:var(--text-primary); }
   .tw-bar{ display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:10px 18px; font-size:15px; color:var(--text-muted); }
   .tw-bar b{ color:var(--text-primary); }
   .tw-meter{ display:inline-flex; align-items:center; gap:6px; font-family:var(--font-ui); letter-spacing:.14em; font-size:12px; }
@@ -54,10 +58,11 @@
   let level = "L1";
   const SND = (n, a) => { if(window.PNSound) PNSound.play(n, a); };
 
-  function init({ id, stage, title, brief }){
+  // The level from ?level=, else the agent's level, else L1 (safe to call before init)
+  function peekLevel(){ const a = PN && PN.getAgent(); return ["L1", "L2", "L3"].includes(qs.get("level")) ? qs.get("level") : (a && a.level) || "L1"; }
+  function init({ id, stage, title, goal, story, brief, example }){
     const st = document.createElement("style"); st.textContent = css; document.head.appendChild(st);
-    const a = PN && PN.getAgent();
-    level = ["L1", "L2", "L3"].includes(qs.get("level")) ? qs.get("level") : (a && a.level) || "L1";
+    level = peekLevel();
     const wrap = document.querySelector(".tw") || document.body;
     const head = document.createElement("header"); head.className = "tw-head";
     const lv = ["L1", "L2", "L3"].map(l => { const u = new URL(location.href); u.searchParams.set("level", l); return `<a href="${u.pathname.split("/").pop()}${u.search}" aria-current="${l === level}">${l}</a>`; }).join("");
@@ -65,7 +70,9 @@
       <div class="r"><nav class="tw-lv" aria-label="Level">${lv}</nav><button class="pn-btn small" type="button" id="twNew">New round</button><a class="pn-btn small" href="twist_lab.html" style="text-decoration:none">Twist Lab</a></div>`;
     wrap.prepend(head);
     head.querySelector("#twNew").addEventListener("click", () => location.reload());
-    if(brief){ const p = document.createElement("p"); p.className = "tw-brief"; p.innerHTML = brief; head.after(p); }
+    const g = document.createElement("div"); g.className = "tw-goal"; g.innerHTML = `<span class="g">GOAL</span><span class="gt">${goal || brief || ""}</span>`; head.after(g);
+    if(example){ const e = document.createElement("div"); e.className = "tw-ex"; e.innerHTML = `Example: ${example}`; g.after(e); }
+    if(story && window.PNHandler) setTimeout(() => PNHandler.say(story), 500);
     if(PN) PN.log("twist", { id, level });
     return level;
   }
@@ -102,6 +109,7 @@
     if(PN) PN.log("twist-done", { ok, level });
   }
 
+  function setGoal(html){ const el = document.querySelector(".tw-goal .gt"); if(el) el.innerHTML = html; }
   function say(text, opts){ if(window.PNHandler) PNHandler.say(text, opts); }
   const target = () => (PN && PN.mission && PN.mission().target) || "Sentinel Finance";
   const targets = () => { const t = target(); return /s$/i.test(t) ? t + "'" : t + "'s"; };   // possessive: "Rivercross Utilities'"
@@ -118,5 +126,5 @@
   const gcd = (a, b) => b ? gcd(b, a % b) : a;
   const lcm = (a, b) => a * b / gcd(a, b);
 
-  window.PNTwist = { init, alarm, finish, say, target, targets, level: () => level, SND, isPrime, isSquare, isCube, pairs, smallestFactor, shuffle, pick, range, gcd, lcm };
+  window.PNTwist = { init, peekLevel, setGoal, alarm, finish, say, target, targets, level: () => level, SND, isPrime, isSquare, isCube, pairs, smallestFactor, shuffle, pick, range, gcd, lcm };
 })();
