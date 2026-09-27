@@ -33,13 +33,24 @@
   .strip .cells i{ height:22px; background:rgba(var(--accent-rgb),.08); border:1px solid rgba(var(--accent-rgb),.25); }
   .strip .cells i.on{ background:rgba(255,201,77,.5); border-color:#ffc94d; }
   .strip .sr{ font-family:var(--font-mono); font-size:15px; color:var(--text-muted); }
+  /* Step 2: the strongroom's pressure plates. The square-numbered plates are live */
+  .find{ padding:16px; display:flex; flex-direction:column; gap:10px; }
+  .find[hidden], .layout[hidden]{ display:none; }
+  .find .tw-grid{ grid-template-columns:repeat(8, minmax(0,1fr)); }
+  .find .tw-tile{ aspect-ratio:1.6; border-radius:3px; background:repeating-linear-gradient(45deg, rgba(8,26,31,.95) 0 6px, rgba(12,34,40,.95) 6px 12px); }
+  .find .tw-tile.gold{ background:rgba(255,201,77,.25); }
+  .steps{ display:flex; gap:6px; font-family:var(--font-ui); font-size:12px; letter-spacing:.16em; }
+  .steps span{ border:1px solid var(--line); padding:3px 8px; color:var(--text-faint); }
+  .steps span.on{ color:var(--warning); border-color:var(--warning); }
+  .steps span.done{ color:var(--ok); border-color:rgba(61,220,151,.5); }
   @media (max-width:820px){ .layout{ grid-template-columns:1fr; } }
+  @media (max-width:560px){ .find .tw-grid{ grid-template-columns:repeat(5, minmax(0,1fr)); } }
 </style>
 </head>
 <body>
 <main class="tw">
-  <div class="tw-bar"><span>Room <b id="k">1</b> of <b id="of">4</b></span></div>
-  <div class="layout">
+  <div class="tw-bar"><span class="steps"><span id="st1" class="on">1 · BUILD THE STRONGROOM</span><span id="st2">2 · FIND THE LIVE PLATES</span></span><span id="bar1">Room <b id="k">1</b> of <b id="of">4</b></span><span id="bar2" hidden>Live plates found: <b id="count">0</b> of <b id="total">0</b></span></div>
+  <div class="layout" id="layout">
     <section class="pn-panel gridbox" id="gridbox"><div class="dg" id="dg"></div><div class="read" id="read">&nbsp;</div></section>
     <aside class="pn-panel side">
       <span class="lab">FLOOR TILES</span><div class="target" id="target"></div>
@@ -49,6 +60,7 @@
       <span class="lab">STRONGROOMS</span><div class="rooms" id="rooms"></div>
     </aside>
   </div>
+  <section class="pn-panel find" id="find" hidden><div class="tw-grid" id="plates"></div></section>
   <div class="tw-msg" id="msg" aria-live="polite"></div>
 </main>
 
@@ -62,19 +74,21 @@
   "use strict";
   const T = window.PNTwist, $ = id => document.getElementById(id);
   const L = T.peekLevel();
+  // Feedback round 8: square channels and the strongroom are one task. Step 1 builds squares, step 2 spots them.
   const GOALS = {
     L1: "Drag out a <b>square</b> room that uses exactly the number of tiles shown.",
     L2: "Can these tiles make a <b>square</b> room? Build it, or say it can't be done.",
     L3: "Give the square room's <b>side length</b>, or say it can't be a square.",
   };
+  const GOAL2 = "The pressure plates with <b>square numbers</b> are live. Find every one.";
   T.init({ id: "strongroom", stage: "FACTOR VAULT", title: "SQUARE STRONGROOM", goal: GOALS[L],
     example: "16 tiles make a 4 × 4 square room. 12 tiles can't: 3 × 3 = 9 is too few and 4 × 4 = 16 too many.",
-    story: `${T.targets()} strongroom has a square floor: the same number of tiles along every side. Work out which tile counts can make it.` });
+    story: `${T.targets()} strongroom has a square floor: the same number of tiles along every side. Work out its size, then we'll find its alarm plates.` });
   // Tile counts per level
   const SETS = {
-    L1: () => T.shuffle([9, 16, 25, 36]),
-    L2: () => T.shuffle([...T.shuffle([36, 49, 64, 81]).slice(0, 3), ...T.shuffle([40, 45, 50, 60, 72, 30]).slice(0, 3)]),
-    L3: () => T.shuffle([...T.shuffle([121, 144, 169, 196, 225, 256, 289, 324]).slice(0, 3), ...T.shuffle([120, 150, 200, 250, 300, 180]).slice(0, 3)]),
+    L1: () => T.shuffle([9, 16, 25, 36]).slice(0, 3),
+    L2: () => T.shuffle([...T.shuffle([36, 49, 64, 81]).slice(0, 2), ...T.shuffle([40, 45, 50, 60, 72, 30]).slice(0, 2)]),
+    L3: () => T.shuffle([...T.shuffle([121, 144, 169, 196, 225, 256, 289, 324]).slice(0, 2), ...T.shuffle([120, 150, 200, 250, 300, 180]).slice(0, 2)]),
   };
   const counts = SETS[L]();
   $("of").textContent = counts.length;
@@ -100,7 +114,7 @@
     $("rooms").insertAdjacentHTML("beforeend", side ? `<span class="ok">${n} tiles: ${side} × ${side} ✓</span>` : `<span class="no">${n} tiles: not square</span>`);
     if(ok) right++;
     k++;
-    if(k === counts.length) return setTimeout(() => end(true), 700);
+    if(k === counts.length) return setTimeout(() => { if(!over) step2(); }, 900);
     setTimeout(() => { if(!over) show(); }, 900 / (window.PNTest ? PNTest.speed() : 1));
   }
   const between = n => { const r = Math.floor(Math.sqrt(n)); return `${r} × ${r} = ${r * r} and ${r + 1} × ${r + 1} = ${(r + 1) * (r + 1)}`; };
@@ -152,15 +166,60 @@
     cells.addEventListener("pointermove", e => { if(!dragging) return; const v = at(e); if(v) set(v); });
     cells.addEventListener("pointerup", () => { dragging = false; });
   })();
+  // Step 2: the floor's pressure plates. Plates numbered with a square number are wired to the alarm.
+  let plates = [], liveList = [], found = 0;
+  function step2(){
+    $("layout").hidden = true; $("find").hidden = false; $("bar1").hidden = true; $("bar2").hidden = false;
+    $("st1").className = "done"; $("st2").className = "on";
+    T.setGoal(GOAL2);
+    if(L === "L1") plates = T.range(1, 48);
+    else {
+      const hi = L === "L2" ? 150 : 400, lo = L === "L2" ? 40 : 100;
+      const sq = T.shuffle(T.range(1, 20).map(k => k * k).filter(n => n >= lo && n <= hi)).slice(0, L === "L2" ? 5 : 6);
+      const near = new Set(); sq.forEach(n => { near.add(n - 1); near.add(n + 1); near.add(n + 2); });
+      T.range(lo, hi).filter(n => n % 10 === 0).forEach(n => near.add(n));
+      const decoys = T.shuffle([...near].filter(n => n >= lo && n <= hi && !T.isSquare(n))).slice(0, 24 - sq.length);
+      plates = T.shuffle([...sq, ...decoys]);
+    }
+    liveList = plates.filter(T.isSquare);
+    $("total").textContent = liveList.length;
+    const grid = $("plates");
+    grid.innerHTML = plates.map(n => `<button type="button" class="tw-tile" data-n="${n}">${n}</button>`).join("");
+    grid.addEventListener("click", e => { const b = e.target.closest(".tw-tile"); if(b) tap(+b.dataset.n); });
+    // The squares they built in step 1 are already known
+    counts.filter(n => T.isSquare(n) && plates.includes(n)).forEach(n => lockIn(n, true));
+    T.say("Room mapped. Now the plates: every square-numbered plate is live. Find them all.");
+    say(found ? "The squares you built are already marked. Find the rest." : "Tap a plate with a square number.");
+  }
+  const plate = n => $("plates").querySelector(`[data-n="${n}"]`);
+  function lockIn(n, quiet){
+    const r = Math.sqrt(n), b = plate(n);
+    b.classList.add("gold"); b.innerHTML = `${n}<small>${r}×${r}</small>`; b.disabled = true;
+    found++; $("count").textContent = found;
+    if(!quiet){ T.SND("correct", found); say(`${n} = ${r} × ${r}. Live plate marked.`, "ok"); }
+    if(found === liveList.length) setTimeout(() => end(true), 500);
+  }
+  function tap(n){
+    if(over) return;
+    const b = plate(n); if(b.disabled) return;
+    if(T.isSquare(n)) return lockIn(n);
+    b.classList.add("bad"); setTimeout(() => b.classList.remove("bad"), 900);
+    say(`${n} isn't square: ${between(n)}, so no number times itself makes ${n}.`, "bad");
+    alarm.hit();
+  }
   function end(ok){
     over = true;
+    liveList.forEach(n => { const b = plate(n); if(b && !b.classList.contains("gold")) b.classList.add("missed"); });
+    const sqs = [...new Set([...counts, ...liveList])].filter(T.isSquare).sort((a, b) => a - b);
     T.finish({ ok, title: ok ? "STRONGROOM MAPPED" : "ALARM TRIPPED",
-      lines: [`Rooms right: <b>${right}</b> of ${counts.length}`, `Square numbers: ${counts.filter(T.isSquare).sort((a, b) => a - b).map(n => `${n} = ${Math.sqrt(n)} × ${Math.sqrt(n)}`).join(", ")}`,
+      lines: [`Rooms right: <b>${right}</b> of ${counts.length}`, liveList.length ? `Live plates found: <b>${found}</b> of ${liveList.length}` : "The plates weren't reached.",
+        `Square numbers: ${sqs.slice(0, 8).map(n => `${n} = ${Math.sqrt(n)} × ${Math.sqrt(n)}`).join(", ")}`,
         counts.some(n => !T.isSquare(n)) ? `Not square: ${counts.filter(n => !T.isSquare(n)).sort((a, b) => a - b).join(", ")}` : "A square number is a number times itself."] });
-    T.say(ok ? "Strongroom mapped. We know exactly how big it is." : "Too many wrong guesses. Let's rethink.");
+    T.say(ok ? "Strongroom mapped and every live plate marked. We can walk straight across." : "Too many wrong guesses. Let's rethink.");
   }
   show();
-  if(window.PNTest) PNTest.skip("Solve this room", () => {
+  if(window.PNTest) PNTest.skip("Solve this step", () => {
+    if(!$("find").hidden){ liveList.forEach(n => { if(!plate(n).disabled) lockIn(n); }); return; }
     const n = counts[k]; if(n === undefined) return;
     if(T.isSquare(n)){ if(L === "L3"){ $("sideIn").value = Math.sqrt(n); $("sideBtn").click(); } else { dg.querySelectorAll("i").forEach(i => { if(+i.dataset.r < Math.sqrt(n) && +i.dataset.c < Math.sqrt(n)) i.classList.add("done"); }); next(true, n, Math.sqrt(n)); } }
     else $("noBtn").click();

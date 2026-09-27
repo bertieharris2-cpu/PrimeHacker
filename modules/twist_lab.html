@@ -59,14 +59,13 @@
   const CORR = { L1: [12, 18, 20, 24], L2: [36, 40, 48, 60], L3: [72, 84, 90, 96] };
   const POINTS = [
     { name: "Frequency Scan", when: "Replaces band 2 of the scan", items: [
-      { id: "squares", t: "Square channels", d: "Find the square numbers. L1: 1 to 48 with the first one shown. L2: up to 150 among near misses. L3: up to 400, and say each square root.", m: "squares", mn: "Square numbers", page: "twist_squares.html", isNew: 1 },
-      { id: "cubes", t: "Cube-number relays", d: "L1: build each relay as a cube from layers of blocks. L2: spot the cube numbers. L3: spot them and give the cube root.", m: "cubes", mn: "Cube numbers", page: "twist_cubes.html", isNew: 1 },
+      { id: "cubes", t: "Ceiling relays (cubes)", d: "Power the relays in the target floor's ceiling. L1: build cubes with + and −. L2: draw each cube layer by layer. L3: give the cube root. Then find the cube numbers on the relay board; each one lights a circuit.", m: "cubes", mn: "Cube numbers", page: "twist_cubes.html", isNew: 1 },
       { id: "sieve", t: "Motion-sensor sieve", d: "Knock out every number that isn't prime, a prime at a time. The last prime's multiples are found by hand.", m: "primes", mn: "Primes and multiples", page: "twist_sieve.html", isNew: 1 },
       { id: "jammer", t: "Jammer", d: "Already in every band of the Frequency Scan. In the rotation it will only appear in band 2.", m: "multiples", mn: "Multiples", link: `<a href="prime_frequency_scan.html">Open the scan</a><small>uses the title-screen level</small>` },
     ] },
     { name: "Factor Vault", when: "A twist on floor 2", items: [
-      { id: "strongroom", t: "Square strongroom", d: "L1: drag out square rooms with the right number of tiles. L2: can these tiles make a square? L3: give the side length.", m: "squares", mn: "Square numbers", page: "twist_strongroom.html", isNew: 1 },
-      { id: "walls", t: "Deposit-box walls", d: "Which rectangles of boxes fit on the wall? At L1 tap a rectangle to try it on the wall and turn it round.", m: "factors", mn: "Factor pairs", page: "twist_walls.html", isNew: 1 },
+      { id: "strongroom", t: "Square strongroom", d: "Step 1 builds the square room (L1 drag, L2 can it be square?, L3 side length). Step 2 finds the live pressure plates: the square numbers (L1 to 48, L2 to 150, L3 to 400). Replaces square channels.", m: "squares", mn: "Square numbers", page: "twist_strongroom.html", isNew: 1 },
+      { id: "walls", t: "Deposit-box walls", d: "Which rectangles of boxes fit on the wall? The ones that fit slide in as deposit boxes and one glows gold: the key box. L1 lets you drag boxes out to experiment.", m: "factors", mn: "Factor pairs", page: "twist_walls.html", isNew: 1 },
       { id: "primefloor", t: "Fake floor", d: "Four floor numbers: prove the real ones with a factor pair; the prime one is the fake.", m: "primes", mn: "Primes and factor pairs", page: "twist_primefloor.html", isNew: 1 },
     ] },
     { name: "Getting in", when: "New step between the Blueprint and Prime Hack", items: [
@@ -74,7 +73,7 @@
       { id: "corridor", t: "Laser corridor", d: "Step only on the factors of N, in order.", m: "factors", mn: "Factors", corridor: 1 },
     ] },
     { name: "Prime Hack", when: "Lock 3", items: [
-      { id: "factortree", t: "Factor-tree lock", d: "Split the number into factor pairs until every branch is prime. L3 writes the key with powers (2² × 3 × 5).", m: "pfact", mn: "Prime factorisation", page: "twist_factortree.html", isNew: 1 },
+      { id: "factortree", t: "Factor-tree lock", d: "The key-room door on the weak floor. Split the number with one click per prime until every branch is prime; the door slides open. L3 writes the key with powers (2² × 3 × 5).", m: "pfact", mn: "Prime factorisation", page: "twist_factortree.html", isNew: 1 },
     ] },
     { name: "Finale", when: "How it ends", items: [
       { id: "blackout", t: "Server blackout", d: "Lights out: shut down the prime servers by torchlight. Opens Prime Hack with the blackout set as this run's finale; SKIP (teacher mode) cracks the locks fast.", m: "primes", mn: "Primes", link: `<a href="prime_hack.html?finale=blackout">Open Prime Hack</a><small>title-screen level</small>` },

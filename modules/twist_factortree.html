@@ -34,13 +34,26 @@
   .key[hidden]{ display:none; }
   .key .lab{ font-family:var(--font-ui); font-size:12px; letter-spacing:.2em; color:var(--text-faint); }
   .key .pk{ color:#ffc94d; }
+  /* Feedback round 8: the lock is the key room's door on the weak floor. Each tree releases a bolt; then it slides open */
+  .doorwrap{ display:flex; align-items:center; gap:14px; }
+  .door{ position:relative; width:120px; height:84px; border:2px solid rgba(var(--accent-rgb),.6); background:#01080a; overflow:hidden; }
+  .door .leaf{ position:absolute; top:0; bottom:0; width:50%; background:repeating-linear-gradient(0deg, rgba(20,48,56,.95) 0 8px, rgba(14,38,45,.95) 8px 16px); transition:transform 1.4s cubic-bezier(.6,0,.3,1); }
+  .door .leaf.l{ left:0; border-right:1px solid rgba(var(--accent-rgb),.5); } .door .leaf.r{ right:0; }
+  .door .inside{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-family:var(--font-ui); font-size:11px; letter-spacing:.16em; color:#ffc94d; text-align:center; }
+  .door.open .leaf.l{ transform:translateX(-100%); } .door.open .leaf.r{ transform:translateX(100%); }
+  .bolts{ display:flex; flex-direction:column; gap:6px; font-family:var(--font-ui); font-size:11px; letter-spacing:.14em; color:var(--text-faint); }
+  .bolts span{ display:flex; align-items:center; gap:6px; }
+  .bolts i{ width:26px; height:8px; border:1px solid #ff6b6b; background:rgba(255,79,109,.4); transition:all .4s; }
+  .bolts span.off{ color:var(--ok); } .bolts span.off i{ border-color:var(--ok); background:transparent; width:10px; }
+  @media (prefers-reduced-motion: reduce){ .door .leaf{ transition:none; } }
   .key input{ width:44px; font-size:16px; text-align:center; padding:3px; vertical-align:super; }
 </style>
 </head>
 <body>
 <main class="tw">
-  <div class="tw-bar"><span>Lock <b id="k">1</b> of 2</span></div>
-  <section class="pn-panel lockhead"><div><div class="lab">LOCK 3 · FACTOR TREE</div><div class="n" id="nLab"></div></div><div class="lab" id="leftLab"></div></section>
+  <div class="tw-bar"><span>Bolt <b id="k">1</b> of 2</span></div>
+  <section class="pn-panel lockhead"><div><div class="lab">KEY ROOM DOOR · FACTOR TREE</div><div class="n" id="nLab"></div><div class="lab" id="leftLab"></div></div>
+    <div class="doorwrap"><div class="bolts" aria-label="Door bolts"><span id="b0"><i></i>BOLT 1</span><span id="b1"><i></i>BOLT 2</span></div><div class="door" id="door" aria-hidden="true"><div class="inside">KEY<br>ROOM</div><div class="leaf l"></div><div class="leaf r"></div></div></div></section>
   <section class="treebox" id="tree" aria-live="polite"></section>
   <section class="pn-panel key" id="key" hidden></section>
   <div class="tw-msg" id="msg" aria-live="polite"></div>
@@ -56,10 +69,10 @@
   "use strict";
   const T = window.PNTwist, $ = id => document.getElementById(id);
   const L = T.peekLevel();
-  T.init({ id: "factortree", stage: "PRIME HACK", title: "FACTOR-TREE LOCK",
+  T.init({ id: "factortree", stage: "PRIME HACK", title: "KEY ROOM DOOR",
     goal: L === "L3" ? "Split the number until every branch ends in a <b>prime</b>. Then write the key with powers." : "Split the number until every branch ends in a <b>prime</b>.",
     example: "Under 12, press ÷2: it splits into 2 × 6. Under 6, press ÷2 again: 2 × 3. The primes are 2, 2 and 3: 12 = 2 × 2 × 3.",
-    story: "Lock 3 wants its number broken all the way down into primes. Build a factor tree." });
+    story: "Crew's at the key room door on the weak floor. It's bolted twice, and each bolt wants its number broken down into primes. Build a factor tree." });
   const POOL = { L1: [12, 18, 20, 28, 30, 42, 45, 50], L2: [36, 48, 60, 72, 84, 90, 100, 126], L3: [120, 144, 168, 180, 210, 240, 252, 360] }[L];
   const locks = T.shuffle(POOL).slice(0, 2);
   let k = 0, over = false, splits = 0, slips = 0;
@@ -142,12 +155,23 @@
     $("leftLab").textContent = "1 to split";
     say(`Press a prime under ${n} that divides into it.`);
   }
-  function nextLock(){ if(over) return; k++; if(k === locks.length) return end(true); T.SND("newlock"); show(); }
+  function nextLock(){
+    if(over) return;
+    $("b" + k).classList.add("off"); T.SND("clamp");
+    k++;
+    if(k === locks.length){
+      // Both bolts off: the door slides open on the key room, then the result
+      over = true; $("door").classList.add("open"); T.SND("dock"); say("Both bolts released. The key room door is open.", "ok");
+      T.say("Door's open. The crew are in the key room.");
+      return setTimeout(() => end(true), 1900 / (window.PNTest ? PNTest.speed() : 1));
+    }
+    T.SND("newlock"); show();
+  }
   function end(ok){
     over = true;
-    T.finish({ ok, title: ok ? "LOCK 3 OPEN" : "TRACE COMPLETE",
+    T.finish({ ok, title: ok ? "KEY ROOM OPEN" : "TRACE COMPLETE",
       lines: locks.slice(0, Math.max(k, 1)).map(n => `${n} = ${primeFactors(n).join(" × ")}`).concat([`Splits made: <b>${splits}</b>`, `Wrong splits: <b>${slips}</b>`, "Every whole number above 1 breaks down into primes in exactly one way."]) });
-    T.say(ok ? "Broken down to primes. Lock 3 is ours." : "Too many bad splits. They've traced us.");
+    if(!ok) T.say("Too many bad splits. They've traced us.");
   }
   show();
   if(window.PNTest) PNTest.skip("Finish this tree", () => {

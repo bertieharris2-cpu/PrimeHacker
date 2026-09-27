@@ -27,6 +27,18 @@
   .pair.fit{ border-color:var(--accent); } .pair.fit .v{ color:var(--accent); }
   .pair.base{ border-color:#9fb7bb; } .pair.base .v{ color:#cfe0e3; }
   .pair.done button{ display:none; }
+  /* Feedback round 8: when a wall is sorted, the rectangles that fit slide in as banks of deposit boxes and the key box glows */
+  .rack{ display:flex; flex-wrap:wrap; gap:12px; justify-content:center; align-items:flex-end; min-height:0; }
+  .bank{ display:flex; flex-direction:column; align-items:center; gap:4px; opacity:0; transform:translateY(18px); transition:opacity .4s, transform .4s; }
+  .bank.in{ opacity:1; transform:none; }
+  .bank .g{ display:grid; gap:1px; padding:3px; border:1px solid rgba(var(--accent-rgb),.5); background:rgba(0,0,0,.35); }
+  .bank .g i{ width:14px; height:14px; background:hsla(var(--h), 55%, 40%, .7); border:1px solid hsla(var(--h), 70%, 65%, .8); }
+  .bank span{ font-family:var(--font-mono); font-size:13px; color:var(--text-muted); }
+  .bank.key .g{ border-color:#ffc94d; box-shadow:0 0 18px rgba(255,201,77,.55); animation:keyGlow 1.2s ease-in-out infinite alternate; }
+  .bank.key .g i{ background:rgba(255,201,77,.55); border-color:#ffe7a8; }
+  .bank.key span{ color:#ffc94d; font-weight:700; }
+  @keyframes keyGlow{ to{ box-shadow:0 0 28px rgba(255,201,77,.9); } }
+  @media (prefers-reduced-motion: reduce){ .bank{ transition:none; } .bank.key .g{ animation:none; } }
   @media (max-width:820px){ .layout{ grid-template-columns:1fr; } }
 </style>
 </head>
@@ -38,6 +50,7 @@
       <div class="lab"><span>DEPOSIT WALL</span><span id="wallSize"></span></div>
       <div class="wall" id="wall"></div>
       <div class="wall-note" id="wallNote"></div>
+      <div class="rack" id="rack" aria-live="polite"></div>
     </section>
     <section class="pn-panel pairs">
       <span class="lab">RECTANGLES OF BOXES (FACTOR PAIRS)</span>
@@ -78,7 +91,7 @@
     const wall = $("wall"), c = Math.max(14, Math.min(32, Math.floor(360 / Math.max(W, H))));
     wall.style.gridTemplateColumns = `repeat(${W}, ${c}px)`; wall.style.setProperty("--c", c + "px");
     wall.innerHTML = Array.from({ length: W * H }, (_, k) => `<i data-r="${Math.floor(k / W)}" data-c="${k % W}"></i>`).join("");
-    $("wallNote").textContent = "";
+    $("wallNote").textContent = ""; $("rack").innerHTML = "";
     const box = $("pairs"); box.innerHTML = "";
     T.pairs(N).forEach(([a, b]) => {
       total++;
@@ -134,14 +147,37 @@
     if(ok){ right++; T.SND("correct", right % 8); say(fits(a, b, W, H) ? "It fits on the wall." : "It doesn't fit, either way round.", "ok"); }
     else { T.SND("wrong"); say(why, "bad"); alarm.hit(); }
     if(!over && [...$("pairs").children].every(p => p.classList.contains("done"))){
-      setTimeout(() => { if(over) return; r++; if(r < rounds.length){ T.SND("newlock"); deal(); } else end(true); }, 1500 / (window.PNTest ? PNTest.speed() : 1));
+      const wait = complete();
+      setTimeout(() => { if(over) return; r++; if(r < rounds.length){ T.SND("newlock"); deal(); } else end(true); }, wait / (window.PNTest ? PNTest.speed() : 1));
     }
+  }
+  // The wall is sorted: every rectangle that fits slides in as a bank of boxes, then the key box glows gold.
+  // The key is in the bank that only fits turned round, or else the one closest to a square.
+  const keys = [];
+  function complete(){
+    const [N, W, H] = rounds[r], sp = window.PNTest ? PNTest.speed() : 1;
+    const fp = T.pairs(N).filter(([a, b]) => fits(a, b, W, H)).map(([a, b]) => (a <= H && b <= W) ? { rows: a, cols: b, turned: false } : { rows: b, cols: a, turned: true });
+    if(!fp.length) return 1500;
+    const tr = fp.filter(p => p.turned), kp = tr.length === 1 ? tr[0] : fp[fp.length - 1];
+    $("wall").querySelectorAll("i").forEach(i => i.classList.remove("box"));
+    $("wallNote").textContent = "Wall sorted. Fitting the deposit boxes…";
+    $("rack").innerHTML = fp.map((p, k) => `<div class="bank" data-k="${k}" style="--h:${(160 + k * 50) % 360}"><div class="g" style="grid-template-columns:repeat(${p.cols}, 14px)">${"<i></i>".repeat(p.rows * p.cols)}</div><span>${p.rows} × ${p.cols}</span></div>`).join("");
+    fp.forEach((p, k) => setTimeout(() => { const b = $("rack").querySelector(`[data-k="${k}"]`); if(b){ b.classList.add("in"); T.SND("clamp"); } }, (300 + k * 350) / sp));
+    const tKey = 300 + fp.length * 350 + 400;
+    setTimeout(() => {
+      const b = $("rack").querySelector(`[data-k="${fp.indexOf(kp)}"]`); if(!b || over) return;
+      b.classList.add("key"); b.querySelector("span").textContent = `KEY BOX · ${kp.rows} × ${kp.cols}`; T.SND("success");
+      const why = tr.length === 1 ? "the only one that fits turned round" : "the one closest to a square";
+      $("wallNote").textContent = `The key is in the ${kp.rows} × ${kp.cols} bank: ${why}.`;
+      keys.push(`${N} boxes: the ${kp.rows} × ${kp.cols} bank (${why})`);
+    }, tKey / sp);
+    return tKey + 2200;
   }
   function end(ok){
     over = true;
     T.finish({ ok, title: ok ? "WALLS MAPPED" : "ALARM TRIPPED",
-      lines: [`Pairs sorted correctly: <b>${right}</b> of ${total}`, `A pair fits if its smaller number fits one side and its larger number fits the other.`, `Turning an array round (3 × 8 into 8 × 3) keeps the same number of boxes.`] });
-    T.say(ok ? "Walls mapped. We know where the key box can be." : "Too many wrong calls. Security heard us.");
+      lines: [`Pairs sorted correctly: <b>${right}</b> of ${total}`, ...(ok && keys.length ? [`Key box: <b>${keys[keys.length - 1]}</b>`] : []), `A pair fits if its smaller number fits one side and its larger number fits the other.`, `Turning an array round (3 × 8 into 8 × 3) keeps the same number of boxes.`] });
+    T.say(ok ? "Walls mapped and the key box found. The crew know exactly which one to open." : "Too many wrong calls. Security heard us.");
   }
   deal();
   T.say("Deposit boxes, same number every way round. Will they fit on the wall?", { delay: 600 });

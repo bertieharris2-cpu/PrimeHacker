@@ -289,3 +289,9 @@ Every idea is a "maybe until I see it". Build these as prototypes to look at bef
 - [x] Square strongroom L3: drag along a line to set the side length instead of typing
 - [x] Deposit-box walls L1: drag out rectangles on the wall to experiment; tapping a rectangle still tries it (scaffold only at L1)
 - Proposed (awaiting decision): merge square channels + square strongroom into one square task (draw squares, then find them on a grid) and do the same for cubes (L1 build, L2 draw layers, L3 cube root, each followed by finding cubes on a grid); narratives for each twist
+
+## Review round 8 decisions (built)
+- Square channels and the square strongroom are one twist (vault point, `strongroom`). Step 1 builds the square room (L1 drag, L2 "can it be square?", L3 side length by strip or typing). Step 2 finds the live pressure plates, which are the square numbers (L1 1–48, L2 to 150 among near misses, L3 to 400). Squares built in step 1 are already marked. `twist_squares.html` now redirects here, and `squares` has left the teacher list.
+- Cubes are the ceiling relays of the target floor. Step 1: L1 builds with + and −, L2 draws a square layer on a grid and stacks layers, L3 gives the cube root (strip or typing) or spots the dummy that isn't a cube. Step 2 finds the cube numbers on the relay board. A ceiling-circuit plan lights a wire per relay, and the floor's cameras go dark when all are powered.
+- The factor-tree lock is the key room's door on the weak floor. Each finished tree releases one of two bolts, then the door slides open.
+- Deposit-box walls: when a wall is sorted, the rectangles that fit slide in as banks of boxes and the key box glows gold. It is the only bank that fits turned round, or else the one closest to a square.

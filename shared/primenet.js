@@ -401,8 +401,7 @@
   // ---------- Twists the teacher allows in the bank rotation (feedback: leave out what hasn't been taught) ----------
   const TWIST_KEY = "primenet_twists_v1";
   const TWISTS = [
-    { id:"squares",    point:"scan",   name:"Square channels",        maths:"Square numbers" },
-    { id:"cubes",      point:"scan",   name:"Cube-number relays",     maths:"Cube numbers" },
+    { id:"cubes",      point:"scan",   name:"Ceiling relays (cubes)",  maths:"Cube numbers" },
     { id:"sieve",      point:"scan",   name:"Motion-sensor sieve",    maths:"Primes and multiples" },
     { id:"jammer",     point:"scan",   name:"Jammer",                 maths:"Multiples" },
     { id:"strongroom", point:"vault",  name:"Square strongroom",      maths:"Square numbers" },
