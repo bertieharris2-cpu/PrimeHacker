@@ -35,13 +35,30 @@
   .pair.base{ border-color:#9fb7bb; }
   .pair.done button{ display:none; }
   @media (max-width:820px){ .under{ grid-template-columns:1fr; } }
+  /* Round 13 (Bertie: how does it culminate?): the key box. Every box has a number; the two walls' factors sort
+     into a Venn diagram and the key box is the biggest number in both: the highest common factor. */
+  .room .cell.scan{ fill:#6ec8ff; animation:wBlink .3s steps(2) infinite; }
+  @keyframes wBlink{ 50%{ fill:#0b2a33; } }
+  .room .cell.cand{ stroke:#ffc94d; stroke-width:2.2; }
+  .room .cell.out{ opacity:.3; }
+  .room .bn{ font-family:"Courier Prime", monospace; font-weight:700; fill:#dff8ff; text-anchor:middle; dominant-baseline:central; pointer-events:none; }
+  .venn{ padding:8px 10px; } .venn svg{ display:block; width:100%; max-height:300px; }
+  .vc{ fill:rgba(110,220,255,.07); stroke:#8feaff; stroke-width:2.5; } .vc.b{ fill:rgba(255,122,230,.06); stroke:#ff7ae6; }
+  .vl{ font:700 15px "Chakra Petch", sans-serif; letter-spacing:.14em; fill:#dff8ff; }
+  .vl.b{ fill:#ffb3f0; } .vl.a{ fill:#aef0ff; }
+  .vhit{ fill:transparent; cursor:pointer; }
+  .vn{ font:700 22px "Courier Prime", monospace; fill:#fff; text-anchor:middle; dominant-baseline:central; }
+  .vn.cur{ font-size:42px; fill:#ffe68a; filter:drop-shadow(0 0 10px #ffc94d); }
+  .venn.pick .vn{ cursor:pointer; } .venn.pick .vn:hover{ fill:#ffe68a; }
+  .vn.bad{ fill:#ff8aa0; } .vn.won{ fill:#ffe14d; font-size:34px; filter:drop-shadow(0 0 12px #ffc94d); }
+  @media (prefers-reduced-motion: reduce){ .room .cell.scan{ animation:none; } }
 </style>
 </head>
 <body>
 <main class="tw">
-  <div class="tw-bar"><span>Wall <b id="round">1</b> of 3</span><span><b id="nLab"></b></span></div>
+  <div class="tw-bar"><span id="stageLab">Wall <b id="round">1</b> of 2</span><span><b id="nLab"></b></span></div>
   <section class="pn-panel room" id="room"></section>
-  <div class="under">
+  <div class="under" id="under">
     <section class="pn-panel wallinfo"><span class="big" id="wallSize"></span><span class="note" id="wallNote"></span></section>
     <section class="pn-panel pairs"><span class="lab">RECTANGLES OF BOXES · FACTOR PAIRS</span><div id="pairs" style="display:flex;flex-direction:column;gap:8px"></div></section>
   </div>
@@ -58,7 +75,7 @@
   "use strict";
   const T = window.PNTwist, $ = id => document.getElementById(id);
   const L = T.init({ id: "walls3d", stage: "FACTOR VAULT", title: "DEPOSIT-BOX ROOM",
-    goal: T.peekLevel() === "L1" ? "Which rectangles of boxes fit on the <b>back wall</b>? Tap a rectangle to try it on the wall. Tap it again to <b>turn it round</b>. Or drag boxes out on the wall." : "Which rectangles of boxes fit on the <b>back wall</b>? They can be <b>turned round</b>.",
+    goal: T.peekLevel() === "L1" ? "Which rectangles of boxes fit on the <b>back wall</b>? Tap a rectangle to try it on the wall. Tap it again to <b>turn it round</b>. Or drag boxes out on the wall. Then use the box numbers to find the <b>key box</b>." : "Which rectangles of boxes fit on the <b>back wall</b>? They can be <b>turned round</b>. Then use the box numbers to find the <b>key box</b>.",
     example: "On a back wall 8 wide and 6 high, 4 × 6 fits. 2 × 12 doesn't: 12 is too wide and too tall.",
     story: `We're in ${T.targets()} deposit-box room. The key's box is in a bank on the back wall, and the bank has to fit the wall. Work out which rectangles fit.` });
   const SETS = {
@@ -66,7 +83,8 @@
     L2: [[36, 8, 6], [48, 8, 8], [40, 10, 5], [30, 6, 6], [45, 9, 5]],
     L3: [[72, 9, 8], [60, 10, 6], [84, 12, 7], [90, 10, 9], [96, 12, 8]],
   }[L];
-  const rounds = T.shuffle(SETS).slice(0, 3);
+  // Two walls whose totals share a useful common factor (the key box), not 1 and not the smaller total itself
+  const rounds = (() => { for(let i = 0; i < 200; i++){ const w = T.shuffle(SETS).slice(0, 2), g = T.gcd(w[0][0], w[1][0]); if(g >= 2 && g < Math.min(w[0][0], w[1][0])) return w; } return T.shuffle(SETS).slice(0, 2); })();
   let r = 0, over = false, right = 0, total = 0, hue = 150;
   const alarm = T.alarm(3, () => end(false));
   const fits = (a, b, W, H) => (a <= H && b <= W) || (b <= H && a <= W);
@@ -182,46 +200,124 @@
     else { T.SND("wrong"); say(why, "bad"); alarm.hit(); }
     if(!over && [...$("pairs").children].every(p => p.classList.contains("done"))){
       const wait = complete();
-      setTimeout(() => { if(over) return; r++; if(r < rounds.length){ T.SND("newlock"); deal(); } else end(true); }, wait / (window.PNTest ? PNTest.speed() : 1));
+      setTimeout(() => { if(over) return; r++; if(r < rounds.length){ T.SND("newlock"); deal(); } else venn(); }, wait / (window.PNTest ? PNTest.speed() : 1));
     }
   }
-  // The wall is sorted: each bank that fits slides into the back wall in turn; the key's bank stays,
-  // and the key box's drawer slides out towards you, glowing
-  const keys = [];
+  // The wall is sorted: each bank that fits slides into the back wall in turn
   function complete(){
     const [N, W, H] = rounds[r], sp = window.PNTest ? PNTest.speed() : 1;
-    const fp = T.pairs(N).filter(([a, b]) => fits(a, b, W, H)).map(([a, b]) => (a <= H && b <= W) ? { rows: a, cols: b, turned: false } : { rows: b, cols: a, turned: true });
-    if(!fp.length) return 1500;
-    const tr = fp.filter(p => p.turned), kp = tr.length === 1 ? tr[0] : fp[fp.length - 1];
-    const why = tr.length === 1 ? "the only one that fits turned round" : "the one closest to a square";
-    $("wallNote").textContent = "Wall sorted. Trying each bank on the back wall…";
-    const order = [...fp.filter(p => p !== kp), kp];
-    order.forEach((p, k) => setTimeout(() => { if(over) return; paintRect(p.rows, p.cols, (160 + k * 60) % 360); T.SND("clamp"); $("wallNote").textContent = `${p.rows} × ${p.cols} bank${p === kp ? `: this is the one. ${why[0].toUpperCase() + why.slice(1)}.` : ""}`; }, (300 + k * 700) / sp));
-    const tKey = 300 + order.length * 700 + 200;
-    setTimeout(() => {
+    const fp = T.pairs(N).filter(([a, b]) => fits(a, b, W, H)).map(([a, b]) => (a <= H && b <= W) ? { rows: a, cols: b } : { rows: b, cols: a });
+    $("wallNote").textContent = "Wall sorted. Every bank that fits goes into the wall…";
+    fp.forEach((p, k) => setTimeout(() => { if(over) return; paintRect(p.rows, p.cols, (160 + k * 60) % 360); T.SND("clamp"); $("wallNote").textContent = `${p.rows} × ${p.cols} bank in.`; }, (300 + k * 600) / sp));
+    return 300 + fp.length * 600 + 900;
+  }
+
+  // ----- The key box: a Venn diagram of the box numbers -----
+  let stage = "walls", vPlace = null, vPick = null;
+  const factors = n => T.range(1, n).filter(d => n % d === 0);
+  const afterBrief = fn => { if(!T.briefOpen()) return fn(); window.addEventListener("pn-brief", function f(e){ if(e.detail.open) return; window.removeEventListener("pn-brief", f); fn(); }); };
+  function venn(){
+    stage = "venn";
+    const A = rounds[0][0], B = rounds[1][0], G = T.gcd(A, B), sp = () => (window.PNTest ? PNTest.speed() : 1);
+    const fa = factors(A), fb = factors(B), all = [...new Set([...fa, ...fb])].sort((x, y) => x - y);
+    const region = n => fa.includes(n) && fb.includes(n) ? "both" : fa.includes(n) ? "a" : "b";
+    $("stageLab").textContent = "Key box"; $("nLab").textContent = "";
+    // The back wall again, now as numbered deposit boxes
+    const max = Math.max(A, B), Wn = Math.ceil(Math.sqrt(max * 1.8)), Hn = Math.ceil(max / Wn);
+    geo = drawRoom(Wn, Hn);
+    $("room").querySelector("text.note").textContent = `DEPOSIT BOXES 1 TO ${max}`;
+    const back = $("room").querySelector("#back"), boxOf = {};
+    backCells.forEach(c => {
+      const k = +c.dataset.r * Wn + +c.dataset.c + 1;
+      if(k > max){ c.style.opacity = .12; return; }
+      const pts = c.getAttribute("points").split(" ").map(q => q.split(",").map(Number));
+      const cx = pts.reduce((t, q) => t + q[0], 0) / 4, cy = pts.reduce((t, q) => t + q[1], 0) / 4, w = Math.abs(pts[1][0] - pts[0][0]);
+      back.insertAdjacentHTML("beforeend", `<text class="bn" x="${cx.toFixed(1)}" y="${cy.toFixed(1)}" font-size="${Math.min(14, w * 0.5).toFixed(1)}">${k}</text>`);
+      boxOf[k] = c;
+    });
+    $("under").style.display = "block";
+    $("under").innerHTML = `<section class="pn-panel venn" id="venn"><svg viewBox="0 0 700 340" id="vsvg" aria-label="Venn diagram of factors">
+      <circle class="vc a" cx="270" cy="195" r="135"/><circle class="vc b" cx="430" cy="195" r="135"/>
+      <rect class="vhit" width="700" height="340"/>
+      <text class="vl a" x="170" y="40" text-anchor="middle">FACTORS OF ${A}</text><text class="vl b" x="530" y="40" text-anchor="middle">FACTORS OF ${B}</text>
+      <text class="vl" x="350" y="330" text-anchor="middle" font-size="12" opacity=".7">BOTH</text>
+      <g id="vnums"></g><text class="vn cur" id="vcur" x="350" y="38"></text></svg></section>`;
+    const svg = $("vsvg"), cur = $("vcur"), nums = $("vnums");
+    $("venn").scrollIntoView({ block: "end", behavior: "smooth" });   // the diagram and the wall's back boxes both in view
+    const COLS = { a: [180, 238], both: [330, 370], b: [462, 520] }, used = { a: 0, both: 0, b: 0 };
+    const slot = reg => { const k = used[reg]++; return [COLS[reg][k % 2], 125 + Math.floor(k / 2) * 36]; };
+    let i = 0, busy = false;
+    const n = () => all[i];
+    function showNext(){
       if(over) return;
-      // Key box: a cell near the middle of the key bank; its drawer slides out of the wall
-      const kr = Math.floor((kp.rows - 1) / 2), kc = Math.floor((kp.cols - 1) / 2), c = cellEl(kr, kc);
-      if(c) c.classList.add("key");
+      if(i >= all.length) return pick();
+      cur.textContent = n(); boxOf[n()] && boxOf[n()].classList.add("scan"); T.SND("plot");
+      if(L === "L1") setTimeout(() => place(n(), region(n())), 750 / sp());
+    }
+    function place(v, reg){
+      busy = true;
+      const [tx, ty] = slot(reg), t = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      t.setAttribute("class", "vn"); t.textContent = v; t.dataset.v = v; nums.appendChild(t); cur.textContent = "";
+      const t0 = performance.now(), dur = 380 / sp();
+      (function f(now){ const k = Math.min(1, (now - t0) / dur), e = 1 - (1 - k) * (1 - k); t.setAttribute("x", 350 + (tx - 350) * e); t.setAttribute("y", 38 + (ty - 38) * e); if(k < 1) requestAnimationFrame(f); })(t0);
+      const c = boxOf[v]; if(c){ c.classList.remove("scan"); c.classList.add(reg === "both" ? "cand" : "out"); }
+      T.SND(reg === "both" ? "tag" : "clamp");
+      setTimeout(() => { busy = false; i++; showNext(); }, 420 / sp());
+    }
+    function hit(e){
+      const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY; const q = pt.matrixTransform(svg.getScreenCTM().inverse());
+      const inA = (q.x - 270) ** 2 + (q.y - 195) ** 2 <= 135 * 135, inB = (q.x - 430) ** 2 + (q.y - 195) ** 2 <= 135 * 135;
+      return inA && inB ? "both" : inA ? "a" : inB ? "b" : null;
+    }
+    svg.addEventListener("click", e => {
+      if(over) return;
+      if(stage === "pick"){ const t = e.target.closest(".vn:not(.cur)"); if(t) choose(+t.dataset.v, t); return; }
+      if(L === "L1" || busy || i >= all.length) return;
+      const reg = hit(e); if(!reg) return;
+      const v = n();
+      if(reg === region(v)) return place(v, reg);
+      alarm.hit(); T.SND("wrong");
+      say(`${v} ${A % v === 0 ? "is" : "isn't"} a factor of ${A}, and ${B % v === 0 ? "is" : "isn't"} a factor of ${B}.`, "bad");
+    });
+    function pick(){
+      stage = "pick"; $("venn").classList.add("pick");
+      T.step(`The key box is the <b>biggest number in both</b> circles. Tap it.`);
+    }
+    function choose(v, t){
+      if(v === G) return win(t);
+      alarm.hit(); T.SND("wrong"); t.classList.add("bad"); setTimeout(() => t.classList.remove("bad"), 800);
+      say(region(v) === "both" ? `${v} is in both, but there's a bigger one.` : `${v} is only a factor of ${region(v) === "a" ? A : B}. The key box number is in both.`, "bad");
+    }
+    // The key box: the highest common factor. Every other box dims and its drawer slides out of the wall.
+    function win(t){
+      over = true; T.hideBrief(); t.classList.add("won"); say(`Box ${G}: the biggest factor of ${A} and ${B}.`, "ok");
+      Object.entries(boxOf).forEach(([k, c]) => { c.classList.remove("cand"); if(+k !== G) c.classList.add("out"); });
+      const kr = Math.floor((G - 1) / Wn), kc = (G - 1) % Wn, c = boxOf[G]; if(c) c.classList.add("key");
       const x0 = geo.gx0 + kc * geo.cw, x1 = x0 + geo.cw, y0 = geo.gy0 + kr * geo.cw, y1 = y0 + geo.cw;
-      const fx = $("fx"), t0 = performance.now(), dur = 900 / sp;
-      (function f(now){ const k = Math.min(1, (now - t0) / dur), z = ZB - k * 0.5;
+      const fx = $("fx"), t0 = performance.now(), dur = 1000 / sp();
+      (function f(now){ const k = Math.min(1, (now - t0) / dur), z = ZB - k * 0.6;
         fx.innerHTML = poly([P(x0, y0, z), P(x1, y0, z), P(x1, y1, z), P(x0, y1, z)], "drawer") + poly([P(x0, y1, ZB), P(x1, y1, ZB), P(x1, y1, z), P(x0, y1, z)], "", 'fill="#b8860b"');
         if(k < 1) requestAnimationFrame(f); })(t0);
-      T.SND("success");
-      $("wallNote").textContent = `Key box found in the ${kp.rows} × ${kp.cols} bank (${why}).`;
-      keys.push(`${N} boxes: the ${kp.rows} × ${kp.cols} bank (${why})`);
-    }, tKey / sp);
-    return tKey + 2400;
+      T.SND("success"); T.say("Drawer's open. That's our key.");
+      setTimeout(() => T.finish({ ok: true, title: "KEY BOX OPEN", lines: [`Box <b>${G}</b> is the <b>highest common factor</b> of ${A} and ${B}.`], auto: 2600 }), 2400 / sp());
+    }
+    vPlace = () => { while(i < all.length && !over){ const v = n(); const [tx, ty] = slot(region(v)); nums.insertAdjacentHTML("beforeend", `<text class="vn" x="${tx}" y="${ty}" data-v="${v}">${v}</text>`); const c = boxOf[v]; if(c){ c.classList.remove("scan"); c.classList.add(region(v) === "both" ? "cand" : "out"); } i++; } cur.textContent = ""; if(stage !== "pick") pick(); };
+    vPick = () => { const t = nums.querySelector(`[data-v="${G}"]`); if(t) win(t); };
+    T.step(L === "L1"
+      ? `Every box has a number. The key box number is a <b>factor of ${A}</b> and a <b>factor of ${B}</b>. Watch the numbers sort into the circles.`
+      : `Every box has a number. Tap where each number goes: <b>factors of ${A}</b>, <b>factors of ${B}</b>, or the middle for <b>both</b>.`);
+    afterBrief(showNext);
   }
   function end(ok){
     over = true;
     T.finish({ ok, title: ok ? "KEY BOX OPEN" : "ALARM TRIPPED",
-      lines: [`Pairs sorted correctly: <b>${right}</b> of ${total}`, ...(ok && keys.length ? [`Key box: <b>${keys[keys.length - 1]}</b>`] : []), `A pair fits if its smaller number fits one side and its larger number fits the other.`] });
+      lines: [`Pairs sorted correctly: <b>${right}</b> of ${total}`, `A pair fits if its smaller number fits one side and its larger number fits the other.`] });
     T.say(ok ? "Drawer's open. That's our key." : "Too many wrong calls. The lasers caught us.");
   }
   deal();
   if(window.PNTest) PNTest.skip("Sort this wall", () => {
+    if(stage === "venn"){ if(vPlace) vPlace(); return; }
+    if(stage === "pick"){ if(vPick) vPick(); return; }
     const [N, W, H] = rounds[r];
     [...$("pairs").children].forEach(el => { if(el.classList.contains("done")) return; const [a, b] = el.querySelector("b").textContent.split("×").map(s => +s.trim()); el.querySelector(fits(a, b, W, H) ? '[data-a="fit"]' : '[data-a="base"]').click(); });
   });
