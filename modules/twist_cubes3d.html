@@ -11,12 +11,12 @@
 <style>
   /* Round 12 prototype: the ceiling relays on the student's own floor in 3D. Each cube sends electricity
      through the ceiling to a room; with every relay powered, the floor (and the blueprint) goes dark. */
-  .stage3d{ position:relative; height:330px; padding:0; overflow:hidden; background:radial-gradient(ellipse at 50% 40%, rgba(20,60,70,.35), rgba(2,8,10,.9)); }
+  .stage3d{ position:relative; height:460px; padding:0; overflow:hidden; background:radial-gradient(ellipse at 50% 40%, rgba(20,60,70,.35), rgba(2,8,10,.9)); }
   .stage3d .hud{ position:absolute; left:12px; top:10px; font-family:var(--font-ui); font-size:12px; letter-spacing:.18em; color:#ffe14d; pointer-events:none; text-shadow:0 0 8px rgba(0,0,0,.8); }
   .stage3d .hud b{ font-size:18px; }
   .stage3d .blackout{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-family:var(--font-ui); font-weight:700; letter-spacing:.3em; font-size:clamp(22px,4vw,40px); color:#ff4f6d; text-shadow:0 0 24px rgba(255,60,90,.8); opacity:0; pointer-events:none; transition:opacity .6s; }
   .stage3d .blackout.on{ opacity:1; }
-  .layout{ display:grid; grid-template-columns:minmax(0,1fr) 260px; gap:16px; align-items:start; }
+  .layout{ display:grid; grid-template-columns:minmax(0,1fr) 300px; gap:16px; align-items:start; }
   .board{ padding:16px; }
   .spot .tw-grid{ grid-template-columns:repeat(6, minmax(0,1fr)); }
   .log{ padding:12px; display:flex; flex-direction:column; gap:6px; font-size:14px; color:var(--text-muted); }
@@ -58,7 +58,7 @@
 <body>
 <main class="tw">
   <div class="tw-bar"><span class="steps"><span id="st1" class="on">1 · POWER THE RELAYS</span><span id="st2">2 · FIND THE CUBE RELAYS</span></span><span>Relays powered: <b id="count">0</b> of <b id="total">0</b></span></div>
-  <section class="pn-panel stage3d" id="stage"><div class="hud">CEILING OF <span id="floorName">THE TARGET FLOOR</span> · <b id="hudN">0</b> RELAYS LIVE</div><div class="blackout" id="blackout">CAMERAS DARK</div></section>
+  <section class="pn-panel stage3d" id="stage"><div class="hud">CEILING OF <span id="floorName">THE TARGET FLOOR</span> · TRANSFORMER LOAD <b id="hudN">0</b> / <b id="hudT">0</b> ROOMS</div><div class="blackout" id="blackout">BLACKOUT</div></section>
   <div class="layout">
     <div>
       <section class="pn-panel build" id="build" hidden>
@@ -112,21 +112,31 @@
   };
   const GOAL2 = "Find every <b>cube number</b> on the relay board. Each one powers another room.";
   T.init({ id: "cubes3d", stage: "BLUEPRINT", title: "CEILING RELAYS", goal: GOALS[L],
-    example: "<b>27</b> is a cube number: 3 blocks along each side and 3 layers, 3 × 3 × 3 = 27.",
-    story: `This is the target floor of ${T.target()}. The lights you can see run through relays in the ceiling, and so do the cameras. Power every relay and we can drop the whole floor into darkness.` });
+    example: "<b>27 = 3³</b>, a cube number: 3 blocks along each side and 3 layers, 3 × 3 × 3 = 27. The small ³ means the number is multiplied three times.",
+    story: `This is the target floor of ${T.target()}. Every room's lights and cameras run back to one transformer. Wire each room in with a cube-number relay, then overload it: the whole floor blacks out.` });
 
   // ----- The 3D floor: the student's own weak floor -----
   const F = PNFloor3D.create($("stage"), {});
   const TH = F.THREE;
   const a0 = window.Primenet && Primenet.getAgent();
   $("floorName").textContent = (a0 && a0.weakFloor ? a0.weakFloor : "FLOOR N=" + F.n).toUpperCase();
-  F.camera.position.set(0, 128, 118); F.look.set(0, 0, 8);
+  F.camera.position.set(-10, 125, 135); F.look.set(-12, 0, 6);
   F.lightsOn(1000);
   F.setSpin(0.0008);
-  // Junction box at the fire exit corner; a relay box above every room
-  const J = new TH.Vector3(-F.PLATE / 2 + 4, F.H + 2, -F.PLATE / 2 + 4);
-  const jb = new TH.Mesh(new TH.BoxGeometry(6, 3, 6), new TH.MeshBasicMaterial({ color: 0xffb347 })); jb.position.copy(J); F.root.add(jb);
-  const relayBoxes = F.rooms.map(r => { const m = new TH.Mesh(new TH.BoxGeometry(3.2, 1.6, 3.2), new TH.MeshBasicMaterial({ color: 0x3a4a4e })); m.position.set(r.x, F.H + 1.2, r.z); F.root.add(m); return m; });
+  // Round 12 feedback: wiring. One transformer outside the wall; a cable from it to each room's lights runs
+  // along the ceiling in straight lines. Each cube number wires a room in; with every room on it, it overloads.
+  const CY = F.H + 1.6, TX = -F.PLATE / 2 - 10;
+  const tr = new TH.Mesh(new TH.BoxGeometry(9, 14, 9), new TH.MeshStandardMaterial({ color: 0xffb347, emissive: 0x663300, emissiveIntensity: 0.6 })); tr.position.set(TX, 7, 0); F.root.add(tr);
+  const trTop = new TH.Mesh(new TH.CylinderGeometry(1.2, 1.2, 4, 10), new TH.MeshBasicMaterial({ color: 0xdddddd })); trTop.position.set(TX, 16, 0); F.root.add(trTop);
+  const cables = F.rooms.map((r, i) => {
+    const lane = -F.PLATE / 2 + 3 + (i % 5) * 1.2;   // a bundle along the west wall, branching off to each room
+    const pts = [new TH.Vector3(TX, 14, 0), new TH.Vector3(TX, CY, 0), new TH.Vector3(lane, CY, 0), new TH.Vector3(lane, CY, r.z), new TH.Vector3(r.x, CY, r.z)];
+    const geo = new TH.BufferGeometry().setFromPoints(pts), mat = new TH.LineDashedMaterial({ color: 0x4a5a5e, dashSize: 2, gapSize: 1.5 });
+    const line = new TH.Line(geo, mat); line.computeLineDistances(); F.root.add(line);
+    const plug = new TH.Mesh(new TH.BoxGeometry(3, 1.4, 3), new TH.MeshBasicMaterial({ color: 0x3a4a4e })); plug.position.set(r.x, CY, r.z); F.root.add(plug);
+    return { pts, line, plug, room: r, wired: 0 };
+  });
+  $("hudT").textContent = cables.length;
   // Cameras: red lights on the floor corners
   const cams = [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([sx, sz]) => { const m = new TH.Mesh(new TH.SphereGeometry(1.8, 10, 10), new TH.MeshBasicMaterial({ color: 0xff3355 })); m.position.set(sx * (F.PLATE / 2 - 3), F.H - 2, sz * (F.PLATE / 2 - 3)); F.root.add(m); return m; });
   F.onTick(now => cams.forEach((c, i) => { if(!c.userData.off) c.material.color.setHex(Math.sin(now / 220 + i) > 0 ? 0xff3355 : 0x661122); }));
@@ -154,24 +164,35 @@
   const alarm = T.alarm(3, () => end(false));
   function say(t, cls){ const m = $("msg"); m.textContent = t; m.className = "tw-msg" + (cls ? " " + cls : ""); }
   const between = n => { let a = 1; while((a + 1) ** 3 <= n) a++; return `${a} × ${a} × ${a} = ${a ** 3} and ${a + 1} × ${a + 1} × ${a + 1} = ${(a + 1) ** 3}`; };
-  // Each powered relay: electricity runs from the junction box to the next room's relay, and that room's lights flare
+  // Each cube wires a room: a spark runs from the transformer along its cable, the cable goes live, the room's lights flare
   async function light(n){
-    const room = F.rooms[found % F.rooms.length], box = relayBoxes[found % F.rooms.length];
-    found++; $("count").textContent = found; $("hudN").textContent = found;
+    const c = cables[found % cables.length], room = c.room;
+    found++; $("count").textContent = found;
     const r = cubeRoot(n);
-    if(!$("log").querySelector(`[data-n="${n}"]`)) $("log").insertAdjacentHTML("beforeend", `<div data-n="${n}"><b>${n}</b> = ${r} × ${r} × ${r} · ${room.name.toLowerCase()}</div>`);
+    if(!$("log").querySelector(`[data-n="${n}"]`)) $("log").insertAdjacentHTML("beforeend", `<div data-n="${n}"><b>${n} = ${r}³</b> = ${r} × ${r} × ${r} · ${room.name.toLowerCase()}</div>`);
     T.SND("correct", found);
-    await F.pulse(J, new TH.Vector3(room.x, F.H + 1.2, room.z), 0xffe14d, 650);
-    box.material.color.setHex(0xffe14d);
+    for(let k = 1; k < c.pts.length; k++){ if(c.pts[k].distanceTo(c.pts[k - 1]) > 0.1) await F.pulse(c.pts[k - 1], c.pts[k], 0xffe14d, 160); }
+    c.wired++;
+    c.line.material = new TH.LineBasicMaterial({ color: c.wired > 1 ? 0xffffff : 0xffe14d });
+    c.plug.material.color.setHex(0xffe14d);
     room.lights.draw(room.a * room.b, "rgba(255,240,120,1)");
+    $("hudN").textContent = cables.filter(q => q.wired).length;
+    T.SND("clamp");
     if(found === RELAYS.length) blackout();
   }
+  // Overload: the transformer flashes and sparks, the lights flicker, then room by room the floor goes black
   async function blackout(){
-    await new Promise(r => setTimeout(r, 500));
-    T.SND("clamp"); T.SND("rise");
+    await new Promise(r => setTimeout(r, 400));
+    T.say("Everything's on the one transformer. Overload it.");
+    T.SND("alarm");
+    for(let k = 0; k < 6; k++){ tr.material.emissive.setHex(k % 2 ? 0xffffff : 0x663300); F.rooms.forEach(r => r.lights.draw(k % 2 ? 0 : r.a * r.b)); T.SND("beep"); await new Promise(r => setTimeout(r, 110)); }
+    const sparks = Array.from({ length: 14 }, () => { const m = new TH.Mesh(new TH.SphereGeometry(0.7, 6, 6), new TH.MeshBasicMaterial({ color: 0xfff3a0 })); m.position.set(TX, 16, 0); F.root.add(m); return { m, v: new TH.Vector3((Math.random() - .5) * 30, 10 + Math.random() * 20, (Math.random() - .5) * 30) }; });
+    F.tween(900, e => sparks.forEach(q => { q.m.position.set(TX + q.v.x * e, 16 + q.v.y * e - 30 * e * e, q.v.z * e); })).then(() => sparks.forEach(q => F.root.remove(q.m)));
+    T.SND("rise"); T.SND("clamp");
+    for(const c of cables){ c.room.lights.draw(0); c.line.material = new TH.LineBasicMaterial({ color: 0x222222 }); c.plug.material.color.setHex(0x222222); await new Promise(r => setTimeout(r, 140)); }
     cams.forEach(c => { c.userData.off = true; c.material.color.setHex(0x222222); });
-    await F.dark(900);
-    jb.material.color.setHex(0x333333); relayBoxes.forEach(b => b.material.color.setHex(0x222222));
+    tr.material.emissive.setHex(0x000000); tr.material.color.setHex(0x333333);
+    await F.dark(700);
     $("blackout").classList.add("on");
   }
   let i1 = 0;
@@ -183,13 +204,13 @@
   }
   // L1 build
   let side = 1, lay = 1;
-  function paintBuild(){ $("sideV").textContent = side; $("layV").textContent = lay; $("boxArt").innerHTML = boxSVG(side, lay, 200); $("countLine").innerHTML = `${side} × ${side} × ${lay} = <b>${side * side * lay}</b> blocks`; }
+  function paintBuild(){ $("sideV").textContent = side; $("layV").textContent = lay; $("boxArt").innerHTML = boxSVG(side, lay, 200); $("countLine").innerHTML = `${side} × ${side} × ${lay} = <b>${side * side * lay}</b> blocks${side === lay ? ` = ${side}³` : ""}`; }
   function resetBuild(){ side = 1; lay = 1; paintBuild(); }
   document.querySelectorAll(".ctrl button").forEach(b => b.addEventListener("click", () => { if(over) return; const d = +b.dataset.d; if(b.dataset.c === "side") side = Math.max(1, Math.min(5, side + d)); else lay = Math.max(1, Math.min(5, lay + d)); T.SND("plot"); paintBuild(); }));
   $("lockBtn").addEventListener("click", () => {
     if(over) return;
     const n = side * side * lay, want = s1[i1];
-    if(n === want && side === lay){ light(want); say(`${side} × ${side} × ${side} = ${want}. A cube: power to the ceiling.`, "ok"); return nextRelay(); }
+    if(n === want && side === lay){ light(want); say(`${side}³ = ${side} × ${side} × ${side} = ${want}. A cube: that room is wired in.`, "ok"); return nextRelay(); }
     if(n === want){ say(`${n} blocks, but ${side} along each side and ${lay} layers isn't a cube. Make them match.`, "warn"); T.SND("untag"); return; }
     say(`${side} × ${side} × ${lay} = ${n}. The relay needs ${want}.`, "bad"); alarm.hit();
   });
@@ -212,7 +233,7 @@
   $("drawLock").addEventListener("click", () => {
     if(over || !base) return;
     const n = base * base * layers, want = s1[i1];
-    if(n === want && base === layers){ light(want); say(`${base} layers of ${base} × ${base} = ${want}. Power to the ceiling.`, "ok"); return nextRelay(); }
+    if(n === want && base === layers){ light(want); say(`${base} layers of ${base} × ${base} = ${base}³ = ${want}. That room is wired in.`, "ok"); return nextRelay(); }
     if(n === want){ say(`${n} blocks, but ${layers} layers of ${base} × ${base} isn't a cube.`, "warn"); T.SND("untag"); return; }
     say(`${base} × ${base} × ${layers} = ${n}. The relay needs ${want}.`, "bad"); alarm.hit();
   });
@@ -231,7 +252,7 @@
     if(over) return;
     const n = s1[i1], v = parseInt($("rootIn").value, 10);
     if(!Number.isInteger(v)){ say("Give the side length, or press \"It can't be a cube\".", "warn"); return; }
-    if(v ** 3 === n){ light(n); say(`${v} × ${v} × ${v} = ${n}. Power to the ceiling.`, "ok"); return nextRelay(); }
+    if(v ** 3 === n){ light(n); say(`${v}³ = ${v} × ${v} × ${v} = ${n}. That room is wired in.`, "ok"); return nextRelay(); }
     say(T.isCube(n) ? `${v} × ${v} × ${v} = ${v ** 3}, not ${n}.` : `${v} × ${v} × ${v} = ${v ** 3}. In fact ${n} isn't a cube: ${between(n)}.`, "bad"); alarm.hit();
   });
   $("rootIn").addEventListener("keydown", e => { if(e.key === "Enter") $("rootBtn").click(); });
@@ -262,8 +283,8 @@
     if(over) return;
     const b = tile(n); if(b.disabled) return;
     if(T.isCube(n)){
-      const r = cubeRoot(n); b.classList.add("gold"); b.innerHTML = `${n}<small>${r}×${r}×${r}</small>`; b.disabled = true;
-      light(n); s2found++; say(`${r} × ${r} × ${r} = ${n}. Power to the ceiling.`, "ok");
+      const r = cubeRoot(n); b.classList.add("gold"); b.innerHTML = `${n}<small>${r}³</small>`; b.disabled = true;
+      light(n); s2found++; say(`${n} = ${r}³ = ${r} × ${r} × ${r}. Another room wired in.`, "ok");
       if(s2found === s2.length) setTimeout(() => end(true), 3400 / (window.PNTest ? PNTest.speed() : 1));
       return;
     }
@@ -274,8 +295,8 @@
   function end(ok){
     over = true;
     if(!ok) s2.forEach(n => { const b = tile(n); if(b && !b.disabled) b.classList.add("missed"); });
-    T.finish({ ok, title: ok ? "FLOOR DARK" : "RELAY ALARM", effect: ok ? "dark" : "",
-      lines: [`Relays powered: <b>${found}</b> of ${RELAYS.length}`, `Cube numbers: <b>${[...new Set(RELAYS)].sort((a, b) => a - b).join(", ")}</b>`, "A cube number is a number times itself, times itself again: the blocks in a cube."] });
+    T.finish({ ok, title: ok ? "BLACKOUT" : "RELAY ALARM", effect: ok ? "dark" : "", auto: ok ? 2500 : 0,
+      lines: [`Relays powered: <b>${found}</b> of ${RELAYS.length}`, `Cube numbers: <b>${[...new Set(RELAYS)].sort((a, b) => a - b).map(n => `${n} = ${cubeRoot(n)}³`).join(", ")}</b>`, "A cube number is a number times itself, times itself again: 4³ = 4 × 4 × 4 = 64."] });
     T.say(ok ? "Whole floor's dark. Their cameras can't see a thing." : "Too many wrong relays. The lights stay on.");
   }
   $("build").hidden = L !== "L1"; $("draw").hidden = L !== "L2"; $("rootq").hidden = L !== "L3";

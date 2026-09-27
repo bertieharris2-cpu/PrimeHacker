@@ -101,7 +101,7 @@
     };
   }
 
-  function finish({ ok = true, title, lines = [], note = "", effect = "" }){   // effect: something the stage shows afterwards (e.g. "dark")
+  function finish({ ok = true, title, lines = [], note = "", effect = "", auto = 0 }){   // auto: in a mission, carry on by itself after this many ms   // effect: something the stage shows afterwards (e.g. "dark")
     if(document.querySelector(".tw-result")) return;   // one result screen only (a twist could end twice)
     const ov = document.createElement("div"); ov.className = "tw-result" + (ok ? "" : " fail");
     const next = qs.get("next");
@@ -112,7 +112,10 @@
     document.body.appendChild(ov);
     const again = ov.querySelector('[data-a="again"]'); if(again) again.addEventListener("click", () => location.reload());
     const cont = ov.querySelector('[data-a="cont"]');
-    if(cont) cont.addEventListener("click", () => { SND("click"); if(EMBED) window.parent.postMessage({ type: "pn-twist-done", ok, effect }, "*"); else if(next) location.href = next; });
+    let sent = false;
+    const carryOn = () => { if(sent) return; sent = true; if(EMBED) window.parent.postMessage({ type: "pn-twist-done", ok, effect }, "*"); else if(next) location.href = next; };
+    if(cont) cont.addEventListener("click", () => { SND("click"); carryOn(); });
+    if(auto && EMBED) setTimeout(carryOn, auto);
     (ov.querySelector(".primary") || ov.querySelector("button")).focus();
     SND(ok ? "success" : "denied");
     if(PN) PN.log("twist-done", { ok, level });

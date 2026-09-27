@@ -632,7 +632,18 @@ function powerUpPrompt(title){
           // Round 12: the relays twist ends with the whole building going dark
           if(tw && tw.effect === "dark"){
             SND("rise");
-            await tween(900, e => floorGroups.forEach(f => f.boxes.forEach(b => { const w = b.userData.win; w.draw(Math.round((1 - e) * w.a * w.b)); })));
+            // Round 12: the floors black out one at a time, with a flicker, as the power drops through the building
+            for(const f of order.slice().reverse()){
+              const ws = f.boxes.map(b => b.userData.win);
+              for(let k = 0; k < 3; k++){ ws.forEach(w => w.draw(k % 2 ? w.a * w.b : Math.round(w.a * w.b * 0.3))); await wait(90); }
+              await tween(420, e => ws.forEach(w => w.draw(Math.round((1 - e) * w.a * w.b))));
+              // the whole floor goes black: edges and room glass dim right down
+              f.lines.forEach(m => { m.transparent = true; m.opacity = 0.18; m.needsUpdate = true; });
+              f.boxes.forEach(b => { b.material.emissiveIntensity = 0.02; b.material.opacity = 0.06; b.material.needsUpdate = true; });
+              if(f.plate && f.plate.material){ f.plate.material.opacity = 0.15; f.plate.material.needsUpdate = true; }
+              SND("clamp"); ring(f.yOffset + 0.5, 0x333333);
+              await wait(380);
+            }
             card('i-dark', `<b>CAMERAS DARK</b>Every ceiling relay powered: the lights and cameras on the target floor are off.`);
             if(window.PNHandler) PNHandler.say("Lights out. Their cameras are blind. Let's find our way in.");
             await wait(900);
@@ -951,6 +962,16 @@ function powerUpPrompt(title){
         say(`${PN ? PN.mission().target.toUpperCase() : 'TARGET'} // STRUCTURE ASSEMBLED`);
         SND("success");
         await wait(2400);
+        // Round 12: the corrupted-blueprint twist arrives here, as the floors come together
+        if(window.PNTwistSlot){
+          const tw = await PNTwistSlot.run("assembled");
+          if(tw && tw.effect === "repaired"){
+            say('Floor plan repaired');
+            for(const f of order){ ring(f.yOffset + 0.5, 0x3dffa8); SND("dock"); await wait(380); }
+            if(window.PNHandler) PNHandler.say("Floor plan's back. The building's whole again.");
+            await wait(700);
+          }
+        }
         await afterAssembly();
       })();
     }

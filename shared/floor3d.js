@@ -37,7 +37,7 @@
   function roomName(a, b){ if(a === b) return "STRONGROOM"; if(a === 1) return "ARCHIVE"; if(b / a >= 4) return "SERVER ROW"; if(b / a >= 2) return "OFFICE"; return "SERVER ROOM"; }
 
   function create(container, opts = {}){
-    const n = pickN(opts.n), L = layouts()[n] || fallbackLayout(n), cell = PLATE / L.grid;
+    const n = pickN(opts.n), L = opts.layout || layouts()[n] || fallbackLayout(n), cell = PLATE / L.grid;   // opts.layout: {grid, rooms, exit} to draw any floor
     const width = container.clientWidth || 800, height = container.clientHeight || 500;
     const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
     renderer.setPixelRatio(window.devicePixelRatio || 1); renderer.setSize(width, height);
@@ -84,6 +84,10 @@
       r.mesh = mesh; r.lineMat = lineMat; r.lights = { a, b, draw, get lit(){ return lit; } };
       return r;
     });
+    // Grey blocks (lift, stairs) that rooms can't use
+    (opts.blocks || []).forEach(b => { const m = new THREE.Mesh(new THREE.BoxGeometry(b.w * cell - 1, H * 1.3, b.h * cell - 1), new THREE.MeshBasicMaterial({ color: 0x3a4a4e, transparent: true, opacity: 0.8 })); m.position.set((b.x + b.w / 2) * cell - PLATE / 2, H * 0.65, (b.y + b.h / 2) * cell - PLATE / 2); root.add(m); });
+    // Rooms can start flat (opts.flat) and rise with F.rise()
+    if(opts.flat) rooms.forEach(r => { r.mesh.scale.y = 0.02; r.mesh.position.y = 0.2; });
     // Fire exit
     if(L.exit){ const ex = cellToWorld(L.exit.x, L.exit.y); const m = new THREE.Mesh(new THREE.BoxGeometry(cell * 0.9, 1, cell * 0.9), new THREE.MeshBasicMaterial({ color: 0x2fbf8a })); m.position.set(ex.x, 0.6, ex.z); root.add(m); }
 
@@ -128,6 +132,10 @@
           remove(){ root.remove(m); },
         };
       },
+      // The rooms rise one after another, each with a callback (for a beep)
+      async rise(ms = 500, gap = 160, onEach){ for(const r of rooms){ if(onEach) onEach(r); tween(ms, e => { r.mesh.scale.y = Math.max(0.02, e); r.mesh.position.y = H / 2 * Math.max(0.02, e); }); await new Promise(res => setTimeout(res, gap / speed())); } await new Promise(res => setTimeout(res, ms / speed())); },
+      // A laser plane sweeping across the floor
+      sweep(ms = 1400, colour = 0x6ee7ff){ const m = new THREE.Mesh(new THREE.PlaneGeometry(PLATE, H * 1.6), new THREE.MeshBasicMaterial({ color: colour, transparent: true, opacity: 0.22, side: THREE.DoubleSide, depthWrite: false })); m.rotation.y = Math.PI / 2; root.add(m); return tween(ms, e => { m.position.set(-PLATE / 2 + e * PLATE, H * 0.8, 0); }, t => t).then(() => root.remove(m)); },
       destroy(){ alive = false; renderer.dispose(); },
     };
     return api;

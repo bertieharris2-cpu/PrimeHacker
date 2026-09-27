@@ -403,13 +403,13 @@
   // Round 11: each twist has its own place in the mission, chosen by context (the ceiling relays follow the
   // blueprint's lights, the key room door comes before the last locks). `page` twists join the rotation;
   // the others are built into their stage and only use the tick box.
-  const TWIST_POINTS = { scan:"After the Frequency Scan", vault:"Factor Vault (after floor 2)", lights:"Blueprint (after the lights)", getin:"Getting in", hack:"Prime Hack (before lock 3)", finale:"Finale" };
+  const TWIST_POINTS = { scan:"After the Frequency Scan", vault:"Factor Vault (after floor 2)", assembled:"Blueprint (as the floors assemble)", lights:"Blueprint (after the lights)", getin:"Getting in", hack:"Prime Hack (before lock 3)", finale:"Finale" };
   const TWISTS = [
     { id:"sieve",      point:"scan",   name:"Motion-sensor sieve",    maths:"Primes and multiples", page:"twist_sieve.html", proto:"twist_sieve2.html" },
     { id:"jammer",     point:"scan",   name:"Jammer",                 maths:"Multiples" },
     { id:"strongroom", point:"vault",  name:"Square strongroom",      maths:"Square numbers", page:"twist_strongroom.html", proto:"twist_strongroom3d.html" },
     { id:"walls",      point:"vault",  name:"Deposit-box walls",      maths:"Factor pairs", page:"twist_walls.html", proto:"twist_walls3d.html" },
-    { id:"corrupt",    point:"vault",  name:"Corrupted blueprint",    maths:"Factor pairs as arrays", proto:"twist_corrupt.html" },
+    { id:"corrupt",    point:"assembled",  name:"Corrupted blueprint",    maths:"Factor pairs as arrays", proto:"twist_corrupt.html" },
     { id:"cubes",      point:"lights", name:"Ceiling relays (cubes)", maths:"Cube numbers", page:"twist_cubes.html", proto:"twist_cubes3d.html" },
     { id:"patrols",    point:"getin",  name:"Guard patrols",          maths:"Multiples and LCM", page:"twist_patrols.html", proto:"twist_patrols3d.html" },
     { id:"corridor",   point:"getin",  name:"Laser corridor",         maths:"Factors" },

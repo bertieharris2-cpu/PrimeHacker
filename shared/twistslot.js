@@ -25,6 +25,10 @@
   .pnts iframe.on{ opacity:1; }
   body.pnts-on .pnh{ z-index:99985; }   /* ORACLE stays visible over the twist */
   body.pnts-on .pnt, body.pnts-on .pn-home{ display:none !important; }   /* the twist has its own */
+  .pnts.static{ background:rgba(2,8,10,.35); }
+  .pnts.static .pnts-card{ opacity:0; }
+  .pnts-noise{ position:absolute; inset:0; width:100%; height:100%; image-rendering:pixelated; mix-blend-mode:screen; animation:pntsJit .12s steps(2) infinite; }
+  @keyframes pntsJit{ 50%{ transform:translate(3px,-2px); } }
   @keyframes pntsIn{ from{ opacity:0; transform:scale(1.15); } }`;
   let styled = false;
   function run(point){
@@ -37,6 +41,16 @@
     const lv = (PN.getAgent() && PN.getAgent().level) || "L1";
     const o = document.createElement("div"); o.className = "pnts"; o.setAttribute("role", "dialog"); o.setAttribute("aria-label", t.name);
     o.innerHTML = `<div class="pnts-card"><b>CHANGE OF PLAN</b><span>${t.name.toUpperCase()}</span></div>`;
+    // Round 12: the corrupted blueprint arrives as crackling interference over the stage first
+    const STATIC = t.id === "corrupt";
+    if(STATIC){
+      o.classList.add("static");
+      const cv = document.createElement("canvas"); cv.className = "pnts-noise"; cv.width = 320; cv.height = 180; o.appendChild(cv);
+      const g = cv.getContext("2d"); let on = true;
+      (function noise(){ if(!on) return; const im = g.createImageData(320, 180); for(let i = 0; i < im.data.length; i += 4){ const v = Math.random() * 255; im.data[i] = v * .6; im.data[i + 1] = v; im.data[i + 2] = v * .9; im.data[i + 3] = Math.random() < .5 ? 90 : 0; } g.putImageData(im, 0, 0); requestAnimationFrame(noise); })();
+      if(window.PNSound){ PNSound.play("radio"); setTimeout(() => PNSound.play("glitch"), 400); setTimeout(() => PNSound.play("radio"), 900); }
+      setTimeout(() => { o.classList.remove("static"); on = false; cv.remove(); }, 1500);
+    }
     document.body.appendChild(o); document.body.classList.add("pnts-on");
     if(window.PNSound) PNSound.play("glitch");
     if(window.PNHandler && INTRO[t.id]) PNHandler.say(INTRO[t.id]);
@@ -49,7 +63,7 @@
         f.src = `${page}?level=${lv}&mission=1`; f.title = t.name;
         o.appendChild(f);
         f.addEventListener("load", () => { f.classList.add("on"); try{ f.contentWindow.focus(); }catch(e){} });
-      }, 1600);
+      }, STATIC ? 2600 : 1600);
       const onMsg = e => {
         const d = e.data || {};
         if(d.type === "pn-twist-say"){ if(window.PNHandler) PNHandler.say(d.text); return; }   // the twist's ORACLE lines use the stage's ORACLE

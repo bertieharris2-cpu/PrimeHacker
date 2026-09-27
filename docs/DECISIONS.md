@@ -342,3 +342,15 @@ Direction: twists should happen in the building itself (the 3D floor, the room, 
   - `twist_sieve2.html`: an explainer screen, then a corridor of sensors where you choose each prime. Multiples are switched off by the sensors (L1) or by you (L2/L3). You declare when only primes are left, then a path lights up.
   - `twist_strongroom3d.html`: zooms to the strongroom on the 3D floor, lays its square floor, then shows the pressure plates in perspective. Mark the square-numbered live plates, and the agent walks round them to the safe.
 - The Twist Lab has a "Prototypes (round 12)" section and a switch to make missions use them (`primenet_twists_v1.protos`). That also adds the corrupted blueprint to the vault rotation. `?proto=1` on a stage does the same for one twist.
+- Prototypes, second pass (Bertie's notes on two of them):
+  - **Corrupted blueprint**
+    - It moves to a new point: the Blueprint, as the three floors assemble. It arrives with crackling interference (a static overlay with radio and glitch sounds) before the card.
+    - It is now a spatial puzzle: a mix of room arrays (2 × 2 up to 4 × 5, at most one 1 × 3 or 1 × 4) to fit on a 12 × 8 or 12 × 9 floor, around a lift, stairs and a fire exit.
+    - Each puzzle is built from a known solution, so it is always solvable, with about 85% fill. Difficulty is about the same at every level.
+    - There is no result text. The rooms rise in 3D with beeps and a laser sweep, "BLUEPRINT REPAIRED" shows, and it carries on by itself (`finish({ auto })`). The blueprint then rings each floor.
+  - **Ceiling relays**
+    - The 3D view is roomier.
+    - Every room's lights run back to one transformer outside the wall. Each cube number wires a room in, with a spark along an orthogonal ceiling cable.
+    - When all rooms are wired, the transformer overloads: flicker, sparks, then a room-by-room blackout.
+    - Cube notation throughout: 27 = 3³.
+    - In a mission, the blueprint's floors black out one at a time, top to bottom (edges, glass and lights).
