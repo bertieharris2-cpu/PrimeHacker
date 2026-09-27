@@ -30,7 +30,7 @@
     const wrap = document.createElement("div"); wrap.className = "pnt";
     wrap.innerHTML = `<div class="pnt-panel" hidden><h4>TEST TOOLS · TEACHER ONLY</h4><div class="pnt-list" style="display:flex;flex-direction:column;gap:6px"></div>
       <label><input type="checkbox" class="pnt-fast"> Fast animations</label><div class="pnt-msg"></div></div>
-      <button class="pnt-toggle" type="button" title="Test tools (teacher only)">TEST</button>`;
+      <span style="display:flex;gap:6px"><button class="pnt-toggle" type="button" title="Test tools (teacher only)">TEST</button><button class="pnt-toggle pnt-skip" type="button" hidden title="Skip this step (Ctrl+Shift+K)">SKIP ▸</button></span>`;
     document.body.appendChild(wrap);
     panel = wrap.querySelector(".pnt-panel"); list = wrap.querySelector(".pnt-list"); msg = wrap.querySelector(".pnt-msg");
     wrap.querySelector(".pnt-toggle").addEventListener("click", e => { e.stopPropagation(); panel.hidden = !panel.hidden; });
@@ -40,7 +40,15 @@
     wrap.addEventListener("click", e => e.stopPropagation());
     wrap.addEventListener("keydown", e => e.stopPropagation());
     actions.forEach(render);
+    skipBtn = wrap.querySelector(".pnt-skip");
+    skipBtn.addEventListener("click", e => { e.stopPropagation(); runSkip(); });
+    paintSkip();
   }
+  // One-click skip for the current step, also on Ctrl+Shift+K (teacher mode only)
+  let skipAction = null, skipBtn = null;
+  function paintSkip(){ if(!skipBtn) return; skipBtn.hidden = !skipAction; if(skipAction) skipBtn.title = `${skipAction.label} (Ctrl+Shift+K)`; }
+  async function runSkip(){ if(!skipAction) return; try{ const r = await skipAction.run(); say(r || `Skipped: ${skipAction.label}.`); }catch(err){ say("Couldn't skip here: " + err.message); } }
+  document.addEventListener("keydown", e => { if(e.ctrlKey && e.shiftKey && (e.key === "K" || e.key === "k")){ e.preventDefault(); runSkip(); } }, true);
   function say(t){ if(msg) msg.textContent = t; }
   function render(a){
     const b = document.createElement("button"); b.type = "button"; b.textContent = a.label;
@@ -52,6 +60,7 @@
     get fast(){ return fast; },
     speed(){ return fast ? 8 : 1; },
     add(label, run){ const a = { label, run }; actions.push(a); if(list) render(a); },
+    skip(label, run){ skipAction = { label, run }; paintSkip(); },
   };
   if(document.readyState === "loading") document.addEventListener("DOMContentLoaded", build); else build();
 })();

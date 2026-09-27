@@ -95,9 +95,10 @@
     untag(){ noise({ dur: 0.02, vol: 0.08, freq: 1800, q: 4 }); tone({ f: 620, type:"square", dur: 0.035, vol: 0.025, lp: 1800, verb:false }); },
 
     // Answers
-    correct(i=0){   // a solid relay click and a short confirm tone, a step higher for each correct answer in a row
-      noise({ dur: 0.03, vol: 0.22, freq: 1400, q: 2 });
-      tone({ f: [440, 494, 523, 587, 659, 698, 784, 880, 988][Math.min(i, 8)], type:"triangle", at: 0.01, dur: 0.12, vol: 0.09, lp: 1600, verb:false });
+    correct(i=0){   // sound board pick (round 7): two short flat confirm tones, the pair a step higher for each correct answer in a row
+      const f = [440, 494, 523, 587, 659, 698, 784, 880, 988][Math.min(i, 8)];
+      tone({ f, type:"triangle", dur: 0.08, vol: 0.07, lp: 1600, verb:false });
+      tone({ f: f * 1.5, type:"triangle", at: 0.09, dur: 0.12, vol: 0.07, lp: 1600, verb:false });
     },
     wrong(){ noise({ dur: 0.06, vol: 0.24, type:"lowpass", freq: 500 }); tone({ f: 140, type:"square", dur: 0.22, vol: 0.06, lp: 700 }); },   // a flat low buzz
 
@@ -143,7 +144,11 @@
     engine(){ tone({ f: 60, type:"sawtooth", dur: 0.9, vol: 0.06, lp: 400, attack: 0.08 }); noise({ dur: 0.9, vol: 0.05, type:"lowpass", freq: 300 }); },
     siren(){ [0, 0.3].forEach((at, k) => tone({ f: k ? 740 : 988, type:"triangle", at, dur: 0.28, vol: 0.04, lp: 2200 })); },   // flat two-tone, far away
     dock(){ servo(0, 0.25, 0.04); latch(0.22, 0.3); thunk(0.26, 0.45); hiss(0.34, 0.4, 0.04); },
-    holo(){ noise({ dur: 0.16, vol: 0.07, type:"highpass", freq: 6000 }); noise({ at: 0.03, dur: 0.22, vol: 0.04, freq: 4200, q: 3 }); },
+    holo(){   // feedback: "a higher pitched beep, like a zoomed sound": a very quick rise, then a short high beep
+      tone({ f: 700, to: 2200, type:"sine", dur: 0.07, vol: 0.035, verb:false });
+      tone({ f: 2200, type:"square", at: 0.07, dur: 0.05, vol: 0.02, lp: 5000, verb:false });
+      noise({ dur: 0.08, vol: 0.03, type:"highpass", freq: 5000 });
+    },
     drone(sec=5){ tone({ f: 55, type:"sawtooth", dur: sec, vol: 0.04, lp: 260, attack: 0.4 }); tone({ f: 82.4, type:"sawtooth", dur: sec, vol: 0.025, lp: 380, attack: 0.8 }); },
     data(){ noise({ dur: 0.018, vol: 0.05, freq: 1500 + Math.random() * 3500, q: 6 }); },
     hum(i=0){ tone({ f: 110, type:"sawtooth", dur: 0.09, vol: 0.035, lp: 500 + i * 20, verb:false }); },   // fingerprint scanner: brighter, not higher
@@ -151,6 +156,9 @@
     scan(dur=3.6){ noise({ dur, vol: 0.035, freq: 1600, q: 0.8 }); tone({ f: 110, type:"sine", dur, vol: 0.05, lp: 400, attack: 0.3 }); },
     plot(){ noise({ dur: 0.018, vol: 0.035, freq: 2400, q: 3 }); },
     route(){ servo(0, 0.6, 0.035); },
+    // Sound board picks (round 7)
+    trickle(dur=1.4){ for(let i = 0; i < Math.round(dur * 11); i++) tone({ f: 1300 + Math.random() * 500, type:"square", at: Math.random() * dur, dur: 0.012, vol: 0.012, lp: 3000, verb:false }); },   // a room filling with power
+    clamp(){ thunk(0, 0.35); hiss(0.05, 0.25, 0.03); },   // a room locking in
     verified(){ latch(0, 0.22); latch(0.1, 0.22); tone({ f: 330, type:"triangle", at: 0.14, dur: 0.3, vol: 0.07, lp: 1200 }); },
   };
 

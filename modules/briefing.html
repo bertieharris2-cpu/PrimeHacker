@@ -321,6 +321,7 @@
     PNTest.add("Pass the identity scan", () => { if(!done) verified(); });
     PNTest.add("Pick a random target", () => { if(chooseTarget.pickRandom) chooseTarget.pickRandom(); else return "The map isn't showing yet."; });
     PNTest.add("Skip to Frequency Scan", () => { location.href = NEXT; });
+    PNTest.skip("Skip to Frequency Scan", () => { location.href = NEXT; });
   }
 })();
 </script>

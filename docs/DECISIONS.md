@@ -226,3 +226,12 @@ Every idea is a "maybe until I see it". Build these as prototypes to look at bef
 - [x] Recon: the middle shaft is a LIFT (guarded). Fire stairs zigzag up the outside wall by the fire exit, and the route uses them: street → fire stairs → fire door on the weak floor → key
 - [x] You, your route and its arrows are blue
 - [x] The Prime Hack button is bigger and pulses when ready. The floor quiz sits beside the building so it can be checked. Then the student types anything to upload the breach kit (a filling bar; extra keys don't type once full) and presses ENTER to start the hack
+
+## Play-test feedback 8
+
+- [x] Drawing arrays works at every level (it was switched off above N = 40, so L2 floors like 48 and 64 couldn't be drawn). The grid fits the panel; a pair too long to draw (1 × 64) says so and is typed in the table
+- [x] ORACLE's question comes up by itself once the route is planned, beside the building. Answering it opens the protocol typing straight away; ENTER then starts the hack. The button only appears if the quiz was already done
+- [x] Drone camera over each floor is about twice as slow
+- [x] Live intercept at L2 slowed (16 signals, about 5 seconds on screen each); L3 slowed a little too
+- [x] Teacher SKIP button next to TEST (and Ctrl+Shift+K): cracks the current prime pair in Prime Hack, fills every factor pair in Factor Vault, solves the scan band, skips the identity scan, shows the next button in Vault Grid
+- [x] Sound board picks: right answer = two flat confirm tones; a room filling = data trickle; a room locking = magnetic clamp; docking, recon scan and wrong answer unchanged. Hologram windows now use a quick zoom beep (from the note: "a higher pitched beep, like a zoomed sound")

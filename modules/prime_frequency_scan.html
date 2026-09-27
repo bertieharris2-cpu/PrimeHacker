@@ -936,8 +936,8 @@ button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [clas
   // leave the screen; leave the noise. Fast, and it speeds up as the round goes on.
   const INTERCEPT = {
     L1: { from: 2, to: 40, count: 14, travel: 5600, gap: 950 },   // feedback: L1 was too fast
-    L2: { from: 20, to: 80, count: 18, travel: 3400, gap: 560 },
-    L3: { from: 50, to: 150, count: 20, travel: 3100, gap: 520 },
+    L2: { from: 20, to: 80, count: 16, travel: 5000, gap: 850 },    // feedback: L2 was too fast
+    L3: { from: 50, to: 150, count: 18, travel: 4400, gap: 720 },
   };
   let interceptDone = null, interceptPerfect = false;
   function renderIntercept(){
@@ -1333,6 +1333,7 @@ button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [clas
       }
     });
     PNTest.add("Finish the live intercept", () => { if(interceptDone) interceptDone(); else return "The intercept isn't running."; });
+    PNTest.skip("Solve this band", () => { if(state === State.INTERCEPT){ if(interceptDone) interceptDone(); return "Intercept finished."; } verifyBand(tagPrimes()); });
     PNTest.add("Skip to Factor Vault", () => { if(PN) PN.log("scan-complete"); location.href = "factor_vault.html"; });
   }
 

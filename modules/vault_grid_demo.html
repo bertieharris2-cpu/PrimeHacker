@@ -583,6 +583,7 @@ function drawLaser(rect, ms=920){
 }
 
 function lockBorder(rect){
+  SND("clamp");
   const r=document.createElementNS("http://www.w3.org/2000/svg","rect");
   r.setAttribute("x",rect.x*STEP);
   r.setAttribute("y",rect.y*STEP);
@@ -600,6 +601,7 @@ function lockBorder(rect){
 }
 
 async function fillOutsideInPower(rect){
+  SND("trickle", Math.min(2.2, 0.2 + rect.w * rect.h * 0.03));
   // smoother feel: slightly slower settle, but shorter per-cell delay
   const perCell = 10;
   const settle = 80;
@@ -1172,6 +1174,7 @@ const initialN = (Number.isInteger(urlN) && urlN > 1) ? urlN : 18;
 // Teacher test tools (only while unlocked)
 if(window.PNTest){
   PNTest.add("Show the next button now", () => { nextFloorBtn.style.visibility = "visible"; });
+  PNTest.skip("Show the next button now", () => { nextFloorBtn.style.visibility = "visible"; });
   PNTest.add("Go to the next step", () => { window.location.href = blueprintReady() ? "vault_blueprint_viewer.html" : "factor_vault.html"; });
 }
 
@@ -1209,7 +1212,7 @@ async function droneFlythrough(placements){
     <div class="top"><span class="rec">● REC</span> DRONE CAM 02</div><div class="alt">ALT <span class="a">12.0</span>m<br>N=${currentN}</div><div class="log"></div>`;
   document.body.appendChild(hud);
   SND("rise");
-  const sp = window.PNTest ? PNTest.speed() : 1, dur = Math.max(4200, rooms.length * 900) / sp;
+  const sp = window.PNTest ? PNTest.speed() : 1, dur = Math.max(9000, rooms.length * 1600) / sp;   // feedback: slower, calmer camera
   const anim = stageEl.animate([
     { transform: "none" },
     { transform: "scale(1.55) translate(14%, 12%) rotate(-2deg)", offset: .2 },

@@ -3093,6 +3093,7 @@ if(window.PNTest){
     await submit(`${Run.p} ${Run.q}`);
   });
   PNTest.add("Make a wrong guess", () => submit(`${Run.p} ${Run.q + 2}`));
+  PNTest.skip("Crack this prime pair", async () => { if(Run.busy) return "Wait: the next lock is still loading."; await submit(`${Run.p} ${Run.q}`); return inFinale() ? "Final lock: finale next." : `Lock cracked (${Run.index} of ${Run.locksPerRun}).`; });
   PNTest.add("Solve locks up to the final one", async () => {
     while(!inFinale()) await submit(`${Run.p} ${Run.q}`);
     return "Now on the final lock.";

@@ -413,8 +413,15 @@ function powerUpPrompt(title){
         (window.PNGlitch ? PNGlitch.go('prime_hack.html') : (location.href = 'prime_hack.html'));
       };
       // One quick question about the building before the hack: a right answer earns an intel bonus
-      // Feedback round 7: the quiz sits beside the building (so it can be checked), then the student
-      // types to arm the protocol before the hack starts
+      // Feedback: ORACLE's question comes up by itself once the route is planned; answering it opens the
+      // protocol typing straight away. The button is only used when the quiz has already been done.
+      window.bpReady = () => {
+        const a = PN && PN.getAgent(), btn = document.getElementById('proceedToHackBtn'), ct = document.getElementById('completionText');
+        if(DEMO_MODE || (a && a.quizDone)){ btn.disabled = false; if(ct) ct.textContent = 'Route planned. Ready to start the hack?'; return; }
+        btn.hidden = true;
+        if(ct) ct.textContent = "Answer ORACLE's question to start the hack protocol.";
+        setTimeout(() => floorQuiz(floors, () => armProtocol(floors, goHack)), 1200 / (window.PNTest ? PNTest.speed() : 1));
+      };
       document.getElementById('proceedToHackBtn').addEventListener('click', () => {
         const a = PN && PN.getAgent();
         document.getElementById('proceedToHackBtn').disabled = true;
@@ -645,8 +652,7 @@ function powerUpPrompt(title){
         enableExplore();
         document.getElementById('floorInfo').textContent = 'Drag to turn the building. Click a floor to pull it out.';
         say(`${PN ? PN.mission().target.toUpperCase() : 'TARGET'} // READY`);
-        const goBtn = document.getElementById('proceedToHackBtn'); goBtn.disabled = false;
-        const ct = document.getElementById('completionText'); if(ct) ct.textContent = 'Route planned. Ready to start the hack?';
+        if(window.bpReady) window.bpReady();
       }
 
       // ---------- Recon: a scan sweeps up the building and shows the stairs, the people and the key;
@@ -1058,7 +1064,7 @@ function powerUpPrompt(title){
         if(k >= 1){ done = true; msg.textContent = 'Breach kit uploaded. Press ENTER to start the hack.'; st.classList.add('ready'); SND("verified"); }
         show();
       }
-      function finish(){ document.removeEventListener('keydown', key); ov.remove(); onDone(); }
+      function finish(){ document.removeEventListener('keydown', key); ov.remove(); document.querySelectorAll('.quiz').forEach(q => q.remove()); onDone(); }
       document.addEventListener('keydown', key);
       ov.addEventListener('click', () => { if(done) finish(); });
       if(window.PNTest) PNTest.add("Arm the protocol", () => { n = NEED - 1; key({ key: 'x', preventDefault(){} }); });
@@ -1106,11 +1112,11 @@ function powerUpPrompt(title){
           why.innerHTML = ok ? `<b>Intel confirmed: +10% on this heist.</b> ${Q.why}` : `Not quite. ${Q.why} No bonus this time.`;
           if(PN) PN.updateAgent({ quizDone: true, intelBonus: ok ? 10 : 0 });
           if(ok && window.PNBadges && !DEMO_MODE) PNBadges.award("analyst");
-          go.hidden = false; go.focus();
+          setTimeout(onDone, 900 / (window.PNTest ? PNTest.speed() : 1));   // straight into the typing; the answer stays on screen
         });
         box.appendChild(b);
       });
-      go.addEventListener('click', () => { ov.remove(); onDone(); });
+
     }
 
     // The exact floor plans from the Vault Grid, scaled onto one plate size (bigger N means smaller cells)

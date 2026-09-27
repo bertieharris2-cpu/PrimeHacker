@@ -915,6 +915,7 @@ body{ font-size: var(--font-size); }
           <span class="dbtns"><button type="button" class="drag-close" id="dragClear">Clear drawings</button><button type="button" class="drag-close" id="dragClose">Back to typing</button></span></div>
         <div class="drag-grid" id="dragGrid"></div>
         <div class="drag-read" id="dragRead">&nbsp;</div>
+        <div class="dhelp" id="dragNote"></div>
       </div>
 
       <!-- HINT BAR -->
@@ -2094,7 +2095,7 @@ body{ font-size: var(--font-size); }
 
     // Draw to build (feedback round 7): the drawing grid takes over the left panel and every array the
     // student draws stays on it, both ways round. The right panel shows the finished arrays.
-    const DRAG_MAX = 40;
+    const DRAG_MAX = 100;   // feedback: L2 numbers (up to 64) couldn't be drawn; the grid now fits any N
     let buildMode = "type";
     const drawState = { placed: [], hue: 0 };
     function setupDrag(){
@@ -2111,15 +2112,18 @@ body{ font-size: var(--font-size); }
     // Square cells sized to fill the left panel: wide enough for 1 × N, deep enough for most pairs turned round
     function sizeDrawGrid(){
       const grid = document.getElementById("dragGrid"), panel = document.querySelector(".panel-vault");
-      const W = panel.clientWidth - 8, H = Math.max(360, Math.min(panel.clientHeight, window.innerHeight - 190) - 110);
-      const cols = Math.max(12, N + 1);
-      const size = Math.max(9, Math.min(30, Math.floor(W / cols) - 2));
+      const W = panel.clientWidth - 8, H = Math.max(260, window.innerHeight - 400);   // from the window, not the panel (the board grows the panel)
+      // Wide enough for 1 × N when it fits at a readable cell size (12px+); otherwise as wide as the panel allows
+      const cols = Math.max(12, Math.min(N + 1, Math.floor(W / 14)));
+      const size = Math.max(10, Math.min(30, Math.floor(W / cols) - 2));
       const rows = Math.max(8, Math.min(N + 1, Math.floor(H / (size + 2))));
       grid.style.gridTemplateColumns = `repeat(${cols}, ${size}px)`;
       grid.style.gridAutoRows = `${size}px`;
       grid.dataset.rows = rows; grid.dataset.cols = cols; grid.dataset.size = size;
       grid.innerHTML = "";
       for(let r = 0; r < rows; r++) for(let c = 0; c < cols; c++){ const i = document.createElement("i"); i.dataset.r = r; i.dataset.c = c; grid.appendChild(i); }
+      const tooLong = allPairs.filter(([a, b]) => b > cols && b > rows).map(([a, b]) => `${a} × ${b}`);
+      document.getElementById("dragNote").textContent = tooLong.length ? `Too long to draw here: ${tooLong.join(", ")}. Type ${tooLong.length === 1 ? "it" : "them"} in the table.` : "";
       // Redraw arrays already drawn on this floor
       drawState.placed.forEach(pl => stampArray(pl));
     }
@@ -2237,6 +2241,7 @@ body{ font-size: var(--font-size); }
       };
       PNTest.add("Fill one pair", () => fillPairs(1));
       PNTest.add("Fill all pairs (finish this floor)", () => fillPairs(99));
+      PNTest.skip("Fill every factor pair", () => { fillPairs(99); return "All pairs in. Press Submit when the camera is clear."; });
       PNTest.add("Skip to Blueprint (3 floors at this level)", () => {
         const pool = VALID_N[currentDifficulty].slice().sort(() => Math.random() - .5).slice(0, 3);
         localStorage.setItem("blueprintProgress", JSON.stringify(pool));
