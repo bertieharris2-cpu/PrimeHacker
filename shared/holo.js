@@ -9,8 +9,8 @@
   .pnHolo{ position:absolute; transform-style:preserve-3d; transform:translate(-50%,-50%) rotateY(var(--tilt,0deg)) rotateX(var(--tiltx,0deg)); transition:transform .6s ease; }
   /* Feedback round 6: tilted text looked pixelated, so windows swing in at an angle and settle flat */
   .pnHolo.settled{ transform:translate(-50%,-50%); }
-  .pnHolo .hw{ position:relative; color:#dff8ff; font-family:var(--font-mono, "Courier Prime", monospace); font-size:15px; line-height:1.45;
-    background:linear-gradient(160deg, rgba(110,220,255,.16), rgba(110,220,255,.05) 60%, rgba(110,220,255,.10));
+  .pnHolo .hw{ position:relative; color:#eafcff; font-family:var(--font-mono, "Courier Prime", monospace); font-size:16px; line-height:1.5;
+    background:linear-gradient(160deg, rgba(12,48,60,.94), rgba(6,28,36,.92) 60%, rgba(10,42,54,.94));   /* round 13: opaque, for easy reading */
     border:1px solid rgba(140,235,255,.75); box-shadow:0 0 26px rgba(110,220,255,.35), inset 0 0 34px rgba(110,220,255,.12);
     clip-path:polygon(0 12px, 12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%);
     backdrop-filter:blur(3px); -webkit-backdrop-filter:blur(3px);
@@ -26,7 +26,7 @@
   .pnHolo .ht{ display:flex; justify-content:space-between; gap:12px; padding:6px 12px; border-bottom:1px solid rgba(140,235,255,.45); font-family:var(--font-ui, sans-serif); font-weight:700; font-size:11px; letter-spacing:.2em; color:#8feaff; }
   .pnHolo .ht i{ font-style:normal; color:#ff6b8a; animation:holoBlink 1s steps(2) infinite; }
   @keyframes holoBlink{ 50%{ opacity:.2; } }
-  .pnHolo .hb{ padding:10px 12px 12px; opacity:0; transition:opacity .2s .12s; }
+  .pnHolo .hb{ padding:12px 16px 14px; opacity:0; transition:opacity .2s .12s; }
   .pnHolo.open .hb{ opacity:1; }
   .pnHolo .flick{ animation:holoFlicker 4s infinite; }
   @keyframes holoFlicker{ 0%,100%{ opacity:1; } 92%{ opacity:1; } 93%{ opacity:.55; } 94%{ opacity:1; } 97%{ opacity:.8; } }

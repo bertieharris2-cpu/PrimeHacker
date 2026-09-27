@@ -23,12 +23,12 @@
   .twb-layer{ position:fixed; inset:0; z-index:8600; pointer-events:none; perspective:1200px; }
   .twb-dim{ position:absolute; inset:0; background:radial-gradient(ellipse at 50% 40%, rgba(0,20,26,.25), rgba(0,4,6,.62)); opacity:0; transition:opacity .3s; pointer-events:none; }
   .twb-layer.open .twb-dim{ opacity:1; pointer-events:auto; cursor:pointer; }
-  .twb-win{ position:absolute; left:50%; top:42%; width:min(640px, calc(100vw - 32px)); pointer-events:auto;
+  .twb-win{ position:absolute; left:50%; top:44%; width:min(860px, calc(100vw - 32px)); pointer-events:auto;
     transform:translate(-50%,-50%) translate(var(--dx,0px), var(--dy,0px)) scale(.04); opacity:0; filter:blur(4px);
     transition:transform .42s cubic-bezier(.2,1.1,.35,1), opacity .3s, filter .3s; }
   .twb-layer.open .twb-win{ transform:translate(-50%,-50%); opacity:1; filter:none; }
   .twb-win .hw{ position:relative; color:#dff8ff; font-family:var(--font-mono, "Courier Prime", monospace);
-    background:linear-gradient(160deg, rgba(14,52,64,.9), rgba(6,30,38,.86) 60%, rgba(12,46,58,.9));   /* Bertie: a bit more opaque */
+    background:linear-gradient(160deg, rgba(10,44,56,.97), rgba(5,26,34,.96) 60%, rgba(9,40,52,.97));   /* Bertie: opaque enough to read easily */
     border:1px solid rgba(140,235,255,.8); box-shadow:0 0 34px rgba(110,220,255,.4), inset 0 0 40px rgba(110,220,255,.14);
     clip-path:polygon(0 14px, 14px 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%);
     backdrop-filter:blur(5px); -webkit-backdrop-filter:blur(5px); animation:twbFlick 5s infinite; }
@@ -36,17 +36,17 @@
   .twb-win .hw::after{ content:""; position:absolute; left:0; right:0; height:40%; top:-40%; pointer-events:none; background:linear-gradient(transparent, rgba(160,240,255,.12), transparent); animation:twbSweep 2.6s ease-in-out infinite; }
   @keyframes twbSweep{ to{ top:100%; } }
   @keyframes twbFlick{ 0%,100%,92%,94%{ opacity:1; } 93%{ opacity:.6; } 97%{ opacity:.85; } }
-  .twb-t{ display:flex; justify-content:space-between; gap:12px; padding:8px 16px; border-bottom:1px solid rgba(140,235,255,.45); font-family:var(--font-ui, sans-serif); font-weight:700; font-size:12px; letter-spacing:.24em; color:#8feaff; }
+  .twb-t{ display:flex; justify-content:space-between; gap:12px; padding:10px 22px; border-bottom:1px solid rgba(140,235,255,.45); font-family:var(--font-ui, sans-serif); font-weight:700; font-size:12px; letter-spacing:.24em; color:#8feaff; }
   .twb-t i{ font-style:normal; color:#ff6b8a; animation:twbBlink 1s steps(2) infinite; } @keyframes twbBlink{ 50%{ opacity:.2; } }
-  .twb-b{ padding:16px 18px 14px; display:flex; flex-direction:column; gap:10px; }
-  .twb-step{ font-family:var(--font-ui, sans-serif); font-size:clamp(20px,2.6vw,27px); line-height:1.3; letter-spacing:.02em; color:#f2fdff; text-shadow:0 0 16px rgba(120,230,255,.55); }
-  .twb-step b{ color:#ffe68a; text-shadow:0 0 14px rgba(255,220,120,.6); }
-  .twb-goal{ font-size:15px; color:rgba(223,248,255,.78); } .twb-goal b{ color:#ffe68a; }
+  .twb-b{ padding:22px 26px 18px; display:flex; flex-direction:column; gap:16px; }
+  .twb-step{ font-family:var(--font-ui, sans-serif); font-size:clamp(22px,2.8vw,31px); line-height:1.4; letter-spacing:.02em; color:#f6feff; text-shadow:0 0 16px rgba(120,230,255,.45); }
+  .twb-step b{ color:#ffe68a; text-shadow:0 0 14px rgba(255,220,120,.5); }
+  .twb-goal{ font-size:18px; line-height:1.55; color:rgba(230,250,255,.9); } .twb-goal b{ color:#ffe68a; }
   .twb-goal:empty, .twb-ex:empty{ display:none; }
-  .twb-ex{ font-size:14px; color:rgba(223,248,255,.72); border-left:2px solid rgba(140,235,255,.55); padding-left:10px; } .twb-ex b{ color:#dff8ff; }
-  .twb-f{ display:flex; justify-content:space-between; align-items:center; gap:10px; padding:0 18px 14px; font-size:13px; color:rgba(160,235,255,.75); letter-spacing:.08em; }
+  .twb-ex{ font-size:16px; line-height:1.5; color:rgba(230,250,255,.82); border-left:3px solid rgba(140,235,255,.6); padding:2px 0 2px 14px; } .twb-ex b{ color:#ffffff; }
+  .twb-f{ display:flex; justify-content:space-between; align-items:center; gap:10px; padding:0 26px 18px; font-size:14px; color:rgba(180,240,255,.85); letter-spacing:.08em; }
   .twb-f kbd, .twb-chip kbd{ font-family:var(--font-ui, sans-serif); font-weight:700; font-size:12px; color:#062027; background:#8feaff; padding:1px 6px; box-shadow:0 0 10px rgba(140,235,255,.6); }
-  .twb-go{ font:inherit; font-family:var(--font-ui, sans-serif); font-weight:700; font-size:13px; letter-spacing:.18em; color:#062027; background:#8feaff; border:0; padding:9px 16px; cursor:pointer; box-shadow:0 0 18px rgba(140,235,255,.55); }
+  .twb-go{ font:inherit; font-family:var(--font-ui, sans-serif); font-weight:700; font-size:14px; letter-spacing:.18em; color:#062027; background:#8feaff; border:0; padding:11px 20px; cursor:pointer; box-shadow:0 0 18px rgba(140,235,255,.55); }
   .twb-go:focus-visible, .twb-chip:focus-visible{ outline:2px solid #ffe68a; outline-offset:3px; }
   .twb-chip{ position:fixed; right:18px; top:16px; z-index:8601; display:flex; align-items:center; gap:8px; font:inherit; font-family:var(--font-ui, sans-serif); font-weight:700; font-size:12px; letter-spacing:.22em;
     color:#8feaff; background:rgba(110,220,255,.12); border:1px solid rgba(140,235,255,.7); padding:8px 12px; cursor:pointer; box-shadow:0 0 16px rgba(110,220,255,.3);
@@ -199,13 +199,13 @@
   function showBrief(){
     if(!B || B.open || document.querySelector(".tw-result")) return;
     aimAtChip(); B.open = true; B.layer.classList.add("open"); window.dispatchEvent(new CustomEvent("pn-brief", { detail: { open: true } })); B.chip.classList.add("hide"); B.chip.classList.remove("ping");
-    SND("holo");
+    SND("zoom");
     setTimeout(() => { if(B.open) B.layer.querySelector(".twb-go").focus({ preventScroll: true }); }, 60);
   }
   function hideBrief(){
     if(!B || !B.open) return;
     aimAtChip(); B.open = false; B.layer.classList.remove("open"); window.dispatchEvent(new CustomEvent("pn-brief", { detail: { open: false } })); B.chip.classList.remove("hide");
-    SND("click");
+    SND("whooshDown");
   }
   function toggleBrief(){ if(B && B.open) hideBrief(); else showBrief(); }
   function step(html, opts = {}){

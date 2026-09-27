@@ -163,9 +163,24 @@
     radio(){ noise({ dur: 0.04, vol: 0.18, type:"highpass", freq: 2200 }); for(let i = 0; i < 7; i++) noise({ at: 0.04 + i * 0.07 + Math.random() * 0.03, dur: 0.05 + Math.random() * 0.05, vol: 0.05 + Math.random() * 0.05, freq: 900 + Math.random() * 1400, q: 1.4 }); noise({ at: 0.58, dur: 0.12, vol: 0.12, type:"highpass", freq: 3000 }); },
     beep(){ tone({ f: 1320, type:"square", dur: 0.07, vol: 0.03, lp: 4000, verb:false }); },
     verified(){ latch(0, 0.22); latch(0.1, 0.22); tone({ f: 330, type:"triangle", at: 0.14, dur: 0.3, vol: 0.07, lp: 1200 }); },
+
+    // Round 13 (Bertie: "electronic beeps, whooshes and scanline sounds" for the cinematic moments; no thuds)
+    whoosh(){ noise({ dur: 0.32, vol: 0.14, freq: 500, to: 2600, q: 0.9 }); noise({ at: 0.18, dur: 0.3, vol: 0.06, type:"highpass", freq: 2400 }); },   // air past the camera
+    whooshDown(){ noise({ dur: 0.34, vol: 0.13, freq: 2600, to: 400, q: 0.9 }); },
+    scanline(dur=0.55){ noise({ dur, vol: 0.05, freq: 900, to: 5000, q: 2.5 }); tone({ f: 1500, type:"triangle", dur, vol: 0.018, lp: 4000, verb:false }); for(let i = 0; i < Math.round(dur * 14); i++) tone({ f: 2400 + (i % 4) * 90, type:"square", at: i * dur / 14, dur: 0.01, vol: 0.012, verb:false }); },   // a line of light sweeping down
+    chirp(){ tone({ f: 1400, type:"square", dur: 0.035, vol: 0.03, lp: 5000, verb:false }); tone({ f: 2100, type:"square", at: 0.05, dur: 0.05, vol: 0.03, lp: 5000, verb:false }); },   // two flat blips, second higher
+    blip(i=0){ tone({ f: [1760, 1980, 2200, 2640][i % 4], type:"square", dur: 0.03, vol: 0.025, lp: 5000, verb:false }); },
+    ping(){ tone({ f: 1180, type:"sine", dur: 0.5, vol: 0.05, attack: 0.003 }); tone({ f: 2360, type:"sine", dur: 0.25, vol: 0.012 }); },   // sonar
+    lockon(){ [0, 0.16, 0.28, 0.36, 0.42].forEach((at, k) => tone({ f: 1320, type:"square", at, dur: 0.04, vol: 0.03, lp: 4000, verb:false })); tone({ f: 1760, type:"square", at: 0.5, dur: 0.16, vol: 0.04, lp: 4000, verb:false }); },   // beeps closing in, then a hold
+    powerup(){ latch(0, 0.18); tone({ f: 80, type:"sawtooth", dur: 0.7, vol: 0.05, lp: 500, attack: 0.05 }); [0.15, 0.3, 0.45, 0.6].forEach((at, k) => tone({ f: 660 + k * 220, type:"square", at, dur: 0.05, vol: 0.02, lp: 3000, verb:false })); },   // a system coming up
+    powerdown(){ tone({ f: 220, type:"sawtooth", dur: 0.6, vol: 0.04, lp: 600 }); [0, 0.14, 0.28].forEach((at, k) => tone({ f: 880 - k * 220, type:"square", at, dur: 0.06, vol: 0.022, lp: 3000, verb:false })); noise({ at: 0.3, dur: 0.4, vol: 0.05, type:"lowpass", freq: 300 }); },
+    typing(){ tone({ f: 900 + Math.random() * 900, type:"square", dur: 0.01, vol: 0.02, lp: 3500, verb:false }); noise({ dur: 0.008, vol: 0.05, type:"highpass", freq: 5000 }); },   // a keyboard, one key
+    zoom(){ noise({ dur: 0.26, vol: 0.09, freq: 700, to: 3200, q: 1.5 }); tone({ f: 2400, type:"square", at: 0.24, dur: 0.05, vol: 0.025, lp: 5000, verb:false }); },   // a camera pushing in, then a blip
+    static(dur=0.5){ noise({ dur, vol: 0.09, type:"highpass", freq: 1800 }); for(let i = 0; i < 5; i++) noise({ at: Math.random() * dur, dur: 0.04, vol: 0.14, freq: 600 + Math.random() * 2000, q: 3 }); },   // interference
+    tick(){ tone({ f: 1000, type:"square", dur: 0.012, vol: 0.02, lp: 3000, verb:false }); },
   };
 
-  const THROTTLE = { data: 30, holo: 60, hum: 60, key: 15, fill: 28, chatter: 45, laser: 120, pop: 40, seal: 50, click: 30 };
+  const THROTTLE = { data: 30, holo: 60, hum: 60, key: 15, fill: 28, chatter: 45, laser: 120, pop: 40, seal: 50, click: 30, typing: 20, blip: 40, tick: 30, chirp: 80, whoosh: 200, whooshDown: 200, zoom: 200 };
 
   function play(name, arg){
     if(!settings.on || !SOUNDS[name]) return;

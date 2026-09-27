@@ -567,6 +567,23 @@ function powerUpPrompt(title){
       function onResize(){
         const w = container.clientWidth, h = container.clientHeight;
         renderer.setSize(w, h); camera.aspect = w / h; camera.updateProjectionMatrix();
+        if(fitOn) fitCamera(true);
+      }
+      // Round 13 (Bertie: the building was getting cut off at the sides): once assembled, keep the camera at the
+      // distance where the whole building fits the stage, whatever its shape, and re-fit on every resize
+      let fitOn = false;
+      function fitCamera(instant){
+        const rot = mainGroup.rotation.y; mainGroup.rotation.y = 0; mainGroup.updateMatrixWorld(true);
+        const box = new THREE.Box3().setFromObject(mainGroup);
+        mainGroup.rotation.y = rot; mainGroup.updateMatrixWorld(true);
+        if(box.isEmpty()) return Promise.resolve();
+        const size = box.getSize(new THREE.Vector3()), centre = box.getCenter(new THREE.Vector3());
+        const R = Math.hypot(Math.hypot(size.x, size.z) / 2, size.y / 2) + centre.distanceTo(camLook);
+        const vF = camera.fov * Math.PI / 180, hF = 2 * Math.atan(Math.tan(vF / 2) * camera.aspect);
+        const d = R / Math.sin(Math.min(vF, hF) / 2) * 0.92;
+        const target = camLook.clone().add(camera.position.clone().sub(camLook).normalize().multiplyScalar(d));
+        if(instant){ camera.position.copy(target); return Promise.resolve(); }
+        const p0 = camera.position.clone(); return tween(900, e => camera.position.lerpVectors(p0, target, e));
       }
       window.addEventListener('resize', onResize);
 
@@ -914,6 +931,7 @@ function powerUpPrompt(title){
         floorGroups.forEach(f => { f.boxes.forEach(b => { b.scale.set(1, 1, 1); b.userData.win.draw(b.userData.win.a * b.userData.win.b); }); labelFor(f.n)?.classList.remove('waiting'); });
         shell.visible = true; shell.scale.y = 1; gridReferences.forEach(g => { g.visible = true; g.userData.fade = 1; }); beacon.visible = true;
         camera.position.copy(CAM_FINAL.pos); camLook.copy(CAM_FINAL.look); spinning = true;
+        { const fc = document.getElementById('floorsContainer'); if(fc && window.innerWidth > 900){ fc.classList.add('wide'); onResize(); } fitOn = true; fitCamera(true); }
         say('Blueprint assembled.');
         return afterAssembly();
       }
@@ -962,8 +980,8 @@ function powerUpPrompt(title){
         beacon.visible = true; beacon.material.transparent = true;
         spinning = true;
         await exterior();
-        { const fc = document.getElementById('floorsContainer'); if(fc && window.innerWidth > 900){ fc.classList.add('wide'); window.dispatchEvent(new Event('resize'));
-          const p0 = camera.position.clone(), p1 = p0.clone().lerp(camLook, 0.14); tween(900, e => camera.position.lerpVectors(p0, p1, e)); } }
+        { const fc = document.getElementById('floorsContainer'); if(fc && window.innerWidth > 900){ fc.classList.add('wide'); onResize(); }
+          fitOn = true; fitCamera(false); }
         say(`${PN ? PN.mission().target.toUpperCase() : 'TARGET'} // STRUCTURE ASSEMBLED`);
         SND("success");
         await wait(2400);
@@ -972,7 +990,8 @@ function powerUpPrompt(title){
           const tw = await PNTwistSlot.run("assembled");
           if(tw && tw.effect === "repaired"){
             say('Floor plan repaired');
-            for(const f of order){ ring(f.yOffset + 0.5, 0x3dffa8); SND("dock"); await wait(380); }
+            for(const f of order){ ring(f.yOffset + 0.5, 0x3dffa8); SND("chirp"); await wait(380); }
+            SND("scanline");
             if(window.PNHandler) PNHandler.say("Floor plan's back. The building's whole again.");
             await wait(700);
           }
