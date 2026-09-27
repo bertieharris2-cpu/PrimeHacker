@@ -286,7 +286,7 @@
   <div class="foot"><span>Maths training simulation. No real systems are harmed.</span><button class="ver" type="button" id="ver" aria-label="Version 1">v1</button></div>
 </div>
 
-<!-- Teacher controls: hold Shift and click "v1", or press Ctrl + Shift + Y, then enter the PIN -->
+<!-- Teacher controls: open index.html#teacher, hold Shift and click "v1", or press Ctrl + Shift + Y, then enter the PIN -->
 <div class="overlay" id="shopOverlay" hidden role="dialog" aria-modal="true" aria-labelledby="shopTitle">
   <div class="shop">
     <header><h2 id="shopTitle">Safehouse shop</h2><span class="wallet" id="shopWallet">£0</span></header>
@@ -480,6 +480,8 @@
     if(e.key === "Escape" && !overlay.hidden) closeTeacher();
     if(e.key === "Escape" && !pinOverlay.hidden) pinOverlay.hidden = true;
   });
+  // index.html#teacher opens the PIN box straight away (easier than the hidden shortcuts; bookmark it)
+  if(location.hash === "#teacher") setTimeout(openTeacher, 300);
   $("#closeTeacher").addEventListener("click", closeTeacher);
   overlay.addEventListener("click", e => { if(e.target === overlay) closeTeacher(); });
 

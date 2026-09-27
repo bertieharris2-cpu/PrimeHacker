@@ -29,6 +29,10 @@
   .go a{ font-family:var(--font-ui); font-weight:700; font-size:13px; letter-spacing:.1em; text-decoration:none; color:var(--text-primary); border:1px solid var(--line-strong); padding:7px 12px; }
   .go a:hover{ border-color:var(--c, var(--accent)); color:var(--c, var(--accent)); }
   .go small{ font-size:12px; color:var(--text-faint); }
+  .teach{ padding:12px 16px; display:flex; flex-wrap:wrap; align-items:center; gap:10px 14px; font-size:15px; color:var(--text-muted); }
+  .teach b{ color:var(--warning); font-family:var(--font-ui); letter-spacing:.12em; font-size:13px; }
+  .teach input{ width:110px; font-size:18px; letter-spacing:.3em; text-align:center; padding:6px 8px; }
+  .teach .err{ color:var(--danger); }
 </style>
 </head>
 <body>
@@ -41,6 +45,7 @@
     </div>
     <a class="pn-btn small" href="../index.html" style="text-decoration:none">← Title screen</a>
   </header>
+  <section class="pn-panel teach" id="teach"></section>
   <div id="points" style="display:flex;flex-direction:column;gap:30px"></div>
 </div>
 
@@ -75,6 +80,18 @@
       { t: "Getaway chase", d: "The tracking-map getaway. Opens Prime Hack with the getaway as this run's finale.", m: "pfact", mn: "Story", link: `<a href="prime_hack.html?finale=getaway">Open Prime Hack</a><small>title-screen level</small>` },
     ] },
   ];
+  // Teacher tools switch, so SKIP can be turned on from here
+  const PN = window.Primenet, teach = document.getElementById("teach");
+  function paintTeach(){
+    if(PN && PN.isTeacher()){
+      teach.innerHTML = `<b>TEACHER TOOLS ON</b><span>Every task shows TEST and SKIP ▸ buttons (bottom left). SKIP, or Ctrl + Shift + K, plays the current step for you.</span><button class="pn-btn small" type="button" id="tLock">Turn off</button>`;
+      teach.querySelector("#tLock").addEventListener("click", () => { PN.lockTeacher(); paintTeach(); });
+    } else {
+      teach.innerHTML = `<b>TEACHER TOOLS</b><span>Enter the teacher PIN to show SKIP on every task.</span><form id="tForm" style="display:flex;gap:8px;align-items:center"><label for="tPin" style="position:absolute;left:-9999px">Teacher PIN</label><input class="pn-input" id="tPin" type="password" inputmode="numeric" maxlength="8"><button class="pn-btn small primary" type="submit">Unlock</button></form><span class="err" id="tErr" aria-live="polite"></span>`;
+      teach.querySelector("#tForm").addEventListener("submit", e => { e.preventDefault(); if(PN && PN.unlockTeacher(teach.querySelector("#tPin").value)) paintTeach(); else teach.querySelector("#tErr").textContent = "That PIN isn't right."; });
+    }
+  }
+  paintTeach();
   const box = document.getElementById("points");
   POINTS.forEach(pt => {
     const sec = document.createElement("section"); sec.className = "point";
