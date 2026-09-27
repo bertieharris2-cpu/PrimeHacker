@@ -22,8 +22,8 @@
 
   const LEVELS = {
     L1: { id:"L1", rank:"Recruit",    factors:"numbers up to 24",  primes:"primes up to 19", reward:"£1,000–£9,000 a lock" },
-    L2: { id:"L2", rank:"Operative",  factors:"numbers up to 64",  primes:"primes up to 37", reward:"£10,000–£90,000 a lock" },
-    L3: { id:"L3", rank:"Specialist", factors:"numbers up to 100", primes:"primes up to 53", reward:"£100,000–£900,000 a lock" },
+    L2: { id:"L2", rank:"Operative",  factors:"numbers up to 64",  primes:"primes up to 29", reward:"£10,000–£90,000 a lock" },
+    L3: { id:"L3", rank:"Specialist", factors:"numbers up to 100", primes:"primes up to 41", reward:"£100,000–£900,000 a lock" },
   };
   const LEVEL_ORDER = ["L1","L2","L3"];
 
@@ -399,4 +399,42 @@
     SHOP, shopItem, lootFor, buyItem, equipItem, walletOf,
   };
   applyPrefs();   // every page opens with the current agent's settings
+
+  // ---------- Home button on every game screen (feedback: a way out to the main menu) ----------
+  // Bottom-left, small. Asks first, because leaving part-way through a stage loses that stage's progress.
+  function homeButton(){
+    if(!/\/modules\//.test(location.pathname.replace(/\\/g, "/"))) return;
+    const st = document.createElement("style");
+    st.textContent = `.pn-home{ all:unset; box-sizing:border-box; position:fixed; left:0; top:50%; transform:translateY(-50%); z-index:99990; writing-mode:vertical-rl; rotate:180deg;
+        font-family:"Chakra Petch","Inter",system-ui,sans-serif; font-weight:700; font-size:11px; letter-spacing:.2em; color:rgba(235,255,248,.75);
+        background:rgba(4,14,17,.9); border:1px solid rgba(40,120,140,.75); border-left:0; padding:12px 6px; cursor:pointer; }
+      .pn-home:hover, .pn-home:focus-visible{ color:#fff; border-color:#2fbf8a; outline:none; box-shadow:0 0 14px rgba(47,191,138,.35); }
+      .pn-home-ask{ position:fixed; inset:0; z-index:99995; display:flex; align-items:center; justify-content:center; padding:16px; background:rgba(2,8,10,.72); }
+      .pn-home-ask div{ width:min(420px,100%); background:#0a1c21; border:1px solid #2fbf8a; padding:20px; display:flex; flex-direction:column; gap:12px; font-family:"Courier Prime",monospace; color:rgba(235,255,248,.9); font-size:17px; }
+      .pn-home-ask b{ font-family:"Chakra Petch",sans-serif; letter-spacing:.14em; color:#2fbf8a; }
+      .pn-home-ask p{ margin:0; line-height:1.5; }
+      .pn-home-ask span{ display:flex; gap:8px; justify-content:flex-end; }
+      .pn-home-ask button{ font:inherit; font-family:"Chakra Petch",sans-serif; font-weight:700; letter-spacing:.1em; font-size:13px; padding:9px 14px; background:transparent; color:#eafff6; border:1px solid rgba(40,120,140,.75); cursor:pointer; }
+      .pn-home-ask button.go{ border-color:#2fbf8a; color:#2fbf8a; }
+`;
+    document.head.appendChild(st);
+    const b = document.createElement("button"); b.type = "button"; b.className = "pn-home"; b.textContent = "MENU ⌂"; b.title = "Back to the main menu";
+    b.addEventListener("click", e => {
+      e.stopPropagation();
+      const ov = document.createElement("div"); ov.className = "pn-home-ask";
+      ov.innerHTML = `<div role="dialog" aria-modal="true" aria-labelledby="pnHomeT"><b id="pnHomeT">LEAVE FOR THE MAIN MENU?</b><p>Progress on this stage will be lost. Cash and badges you've already earned are kept.</p>
+        <span><button type="button" class="stay">Stay</button><button type="button" class="go">Main menu</button></span></div>`;
+      document.body.appendChild(ov);
+      const close = () => ov.remove();
+      ov.querySelector(".stay").addEventListener("click", close);
+      ov.querySelector(".go").addEventListener("click", () => { location.href = "../index.html"; });
+      ov.addEventListener("click", ev => { if(ev.target === ov) close(); });
+      ov.addEventListener("keydown", ev => { ev.stopPropagation(); if(ev.key === "Escape") close(); });
+      ov.querySelector(".stay").focus();
+    });
+    // Keys typed in the games shouldn't be swallowed by the button
+    b.addEventListener("keydown", e => e.stopPropagation());
+    document.body.appendChild(b);
+  }
+  if(document.readyState === "loading") document.addEventListener("DOMContentLoaded", homeButton); else homeButton();
 })();

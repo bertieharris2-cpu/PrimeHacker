@@ -250,3 +250,19 @@ Every idea is a "maybe until I see it". Build these as prototypes to look at bef
 - [x] Shared frame for every twist (`shared/twist.js`): level switch, alarm meter (three strikes), ORACLE, result screen with Play again / Twist Lab / Continue (for when they join the mission), teacher SKIP
 - [x] Prime Hack accepts `?finale=blackout` or `?finale=getaway` to test a finale
 - [ ] Next: wire the rotation into the mission (one pick per point, no repeat for the same agent, teacher pin, twists logged in the record)
+
+## Twist review and levels
+
+- [x] MENU tab on every game screen (left edge, halfway down); asks before leaving because the stage's progress is lost
+- [x] Prime Hack levels rebalanced. Each lock has a product cap and the smaller prime stays small, so trial division is short:
+  - L1: products up to 35, 55, 77, 100 across the four locks (smaller prime at most 7)
+  - L2: up to 120, 160, 230, 300 (smaller prime at most 13)
+  - L3: up to 300, 400, 550, 700 (smaller prime at most 19). It was up to 2279 (43 × 53)
+  - Level cards now say primes up to 19 / 29 / 41
+- Review notes on the twists (to plan before building):
+  - Too many prime tasks: add square-number and cube-number tasks and a prime factorisation one
+  - Honeypot squares should be about finding square numbers; the product-and-clue lock leaves the bank (maybe another heist)
+  - Cube relays: L1 should build cubes to discover them (differentiate the task by level, not just number size)
+  - Deposit-box walls: loved; L1 should drag to experiment; "wall or basement" story unclear
+  - Instructions are too long to take in quickly; narrative first, then function, then visuals
+  - Teacher chooses which twists can appear (e.g. leave out prime factorisation until it's taught)

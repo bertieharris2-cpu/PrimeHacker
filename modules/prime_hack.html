@@ -1386,23 +1386,25 @@ const PRIME_NET_EFFECTS = {
 
 // --- Game difficulty bands (per lock index within run)
 const DIFF_BANDS = {
+  // Feedback: L3 was far too hard (43 × 53 = 2279 needs every prime up to 47 checked). Each lock now has a
+  // product cap, and the smaller prime is never above 7 (L1), 13 (L2) or 19 (L3), so trial division stays short.
   L1: [
-    { p:[2,3,5,7],     q:[2,3,5,7,11] },        // lock 1
-    { p:[2,3,5,7,11],  q:[3,5,7,11,13] },       // lock 2
-    { p:[3,5,7,11],    q:[5,7,11,13,17] },      // lock 3
-    { p:[5,7,11,13],   q:[7,11,13,17,19] },     // lock 4
+    { p:[2,3,5],        q:[3,5,7],           cap:35 },     // lock 1: e.g. 3 × 7 = 21
+    { p:[2,3,5,7],      q:[5,7,11],          cap:55 },     // lock 2
+    { p:[3,5,7],        q:[7,11,13],         cap:77 },     // lock 3
+    { p:[3,5,7],        q:[11,13,17,19],     cap:100 },    // lock 4
   ],
   L2: [
-    { p:[7,11,13],     q:[11,13,17,19] },
-    { p:[11,13,17],    q:[17,19,23,29] },
-    { p:[13,17,19,23], q:[23,29,31] },
-    { p:[17,19,23,29], q:[29,31,37] },
+    { p:[3,5,7],        q:[11,13,17],        cap:120 },
+    { p:[5,7,11],       q:[13,17,19],        cap:160 },
+    { p:[7,11,13],      q:[13,17,19,23],     cap:230 },
+    { p:[7,11,13],      q:[17,19,23,29],     cap:300 },
   ],
   L3: [
-    { p:[17,19,23,29], q:[23,29,31,37] },
-    { p:[23,29,31,37], q:[31,37,41,43] },
-    { p:[29,31,37,41], q:[37,41,43,47] },
-    { p:[31,37,41,43], q:[41,43,47,53] },
+    { p:[7,11,13],      q:[17,19,23,29],     cap:300 },
+    { p:[11,13,17],     q:[19,23,29],        cap:400 },
+    { p:[11,13,17,19],  q:[23,29,31,37],     cap:550 },
+    { p:[13,17,19],     q:[29,31,37,41],     cap:700 },
   ],
 };
 
@@ -1582,6 +1584,7 @@ function generatePairForLock(lockIndex){
   while(tries++<200){
     const p = pick(band.p);
     const q = pick(band.q);
+    if(p === q || (band.cap && p * q > band.cap)) continue;
     const a = Math.min(p,q), b = Math.max(p,q);
     const key = `${a}x${b}`;
     if(Run.usedPairs.has(key)) continue;
