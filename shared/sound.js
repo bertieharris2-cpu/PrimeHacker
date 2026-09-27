@@ -159,6 +159,9 @@
     // Sound board picks (round 7)
     trickle(dur=1.4){ for(let i = 0; i < Math.round(dur * 11); i++) tone({ f: 1300 + Math.random() * 500, type:"square", at: Math.random() * dur, dur: 0.012, vol: 0.012, lp: 3000, verb:false }); },   // a room filling with power
     clamp(){ thunk(0, 0.35); hiss(0.05, 0.25, 0.03); },   // a room locking in
+    // Round 9: police radio (a key-up squelch, crackly speech-band hiss and a squelch tail), and a countdown beep
+    radio(){ noise({ dur: 0.04, vol: 0.18, type:"highpass", freq: 2200 }); for(let i = 0; i < 7; i++) noise({ at: 0.04 + i * 0.07 + Math.random() * 0.03, dur: 0.05 + Math.random() * 0.05, vol: 0.05 + Math.random() * 0.05, freq: 900 + Math.random() * 1400, q: 1.4 }); noise({ at: 0.58, dur: 0.12, vol: 0.12, type:"highpass", freq: 3000 }); },
+    beep(){ tone({ f: 1320, type:"square", dur: 0.07, vol: 0.03, lp: 4000, verb:false }); },
     verified(){ latch(0, 0.22); latch(0.1, 0.22); tone({ f: 330, type:"triangle", at: 0.14, dur: 0.3, vol: 0.07, lp: 1200 }); },
   };
 

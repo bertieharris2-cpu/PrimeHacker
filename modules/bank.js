@@ -179,6 +179,25 @@ const Bank = (() => {
     return withdrawn;
   }
 
+  // Feedback round 9: nothing is taken while the locks are being cracked. After the hack, the siphon
+  // takes a share of what all four locks would have given: the faster the hack, the bigger the share.
+  function siphonPot(diff, locks) {
+    let pot = 0;
+    for (let i = 1; i <= (locks || 4); i++) pot += getWithdrawalAmount(diff, i);
+    return pot;
+  }
+  function siphon(amount) {
+    if (!state.currentAccountId) return 0;
+    const account = getCurrentAccount();
+    if (!account) return 0;
+    const taken = Math.max(0, Math.min(Math.floor(amount), account.balance));
+    account.balance -= taken;
+    state.runEarnings += taken;
+    state.ledger.push({ ts: Date.now(), type: 'withdraw', module: 'prime_hack', note: 'siphon', amount: taken, accountId: account.id });
+    save();
+    return taken;
+  }
+
   // Extra money for this run, e.g. the Blueprint quiz's intel bonus
   function addRunBonus(amount, note) {
     amount = Math.max(0, Math.floor(amount));
@@ -240,6 +259,8 @@ const Bank = (() => {
     selectAccountByName,
     getCurrentAccount,
     withdrawForLock,
+    siphonPot,
+    siphon,
     bankRun,
     addRunBonus,
     getState,
