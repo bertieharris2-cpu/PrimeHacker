@@ -77,39 +77,37 @@
   // Mechanical parts for the big moments: a metal latch, a motor, a burst of air
   function latch(at=0, vol=0.3){
     noise({ at, dur: 0.03, vol, freq: 2600, q: 5 });
-    tone({ f: 950, to: 520, type:"square", at, dur: 0.035, vol: vol * 0.18, lp: 2200, verb:false });
+    tone({ f: 700, type:"square", at, dur: 0.03, vol: vol * 0.16, lp: 2200, verb:false });
   }
-  function servo(at=0, dur=0.35, vol=0.05){ tone({ f: 70, to: 150, type:"sawtooth", at, dur, vol, lp: 800, attack: 0.03 }); }
-  function thunk(at=0, vol=0.5){ tone({ f: 92, to: 44, at, dur: 0.32, vol }); noise({ at, dur: 0.1, vol: vol * 0.7, type:"lowpass", freq: 420 }); }
+  function servo(at=0, dur=0.35, vol=0.05){ tone({ f: 95, type:"sawtooth", at, dur, vol, lp: 700, attack: 0.03 }); noise({ at, dur, vol: vol * 0.6, freq: 900, q: 2 }); }
+  function thunk(at=0, vol=0.5){ tone({ f: 70, to: 55, at, dur: 0.18, vol }); noise({ at, dur: 0.1, vol: vol * 0.7, type:"lowpass", freq: 420 }); }
   function hiss(at=0, dur=0.55, vol=0.05){ noise({ at, dur, vol, type:"highpass", freq: 2800, q: 0.5 }); }
 
   const LADDER = [523.3, 587.3, 659.3, 784.0, 880.0, 1046.5, 1174.7, 1318.5, 1568.0];   // pentatonic, rising
 
   const SOUNDS = {
+    /* Feedback 4: nothing slides in pitch or rings like a bell (they sounded "bouncy").
+       Everything is a click, a relay, a flat electronic tone, static or a mechanical thunk. */
     // Interface
-    click(){ tone({ f: 2100, type:"triangle", dur: 0.03, vol: 0.07, verb:false }); noise({ dur: 0.015, vol: 0.04, type:"highpass", freq: 4000 }); },
-    key(){ tone({ f: 1300 + Math.random()*400, type:"square", dur: 0.014, vol: 0.02, lp: 3200, verb:false }); },
-    tag(){ tone({ f: 620, to: 930, dur: 0.09, vol: 0.2 }); tone({ f: 1240, to: 1860, dur: 0.06, vol: 0.04, type:"triangle" }); },
-    untag(){ tone({ f: 800, to: 480, dur: 0.08, vol: 0.14 }); },
+    click(){ tone({ f: 2100, type:"triangle", dur: 0.025, vol: 0.06, verb:false }); noise({ dur: 0.015, vol: 0.04, type:"highpass", freq: 4000 }); },
+    key(){ tone({ f: 1300 + Math.random()*400, type:"square", dur: 0.012, vol: 0.018, lp: 3200, verb:false }); },
+    tag(){ noise({ dur: 0.02, vol: 0.12, freq: 3200, q: 4 }); tone({ f: 1180, type:"square", dur: 0.045, vol: 0.035, lp: 2600, verb:false }); },   // select: a click and a short flat beep
+    untag(){ noise({ dur: 0.02, vol: 0.08, freq: 1800, q: 4 }); tone({ f: 620, type:"square", dur: 0.035, vol: 0.025, lp: 1800, verb:false }); },
 
     // Answers
-    correct(i=0){   // a wooden knock and a bell that climbs with each correct answer
-      noise({ dur: 0.045, vol: 0.32, freq: 900, q: 1.5 });
-      bell(LADDER[Math.min(i, LADDER.length-1)], 0.012, 0.2, 0.6);
+    correct(i=0){   // a solid relay click and a short confirm tone, a step higher for each correct answer in a row
+      noise({ dur: 0.03, vol: 0.22, freq: 1400, q: 2 });
+      tone({ f: [440, 494, 523, 587, 659, 698, 784, 880, 988][Math.min(i, 8)], type:"triangle", at: 0.01, dur: 0.12, vol: 0.09, lp: 1600, verb:false });
     },
-    wrong(){
-      noise({ dur: 0.07, vol: 0.28, type:"lowpass", freq: 500 });
-      tone({ f: 196, to: 130, dur: 0.16, vol: 0.28 });
-      tone({ f: 150, to: 98, at: 0.11, dur: 0.18, vol: 0.24 });
-    },
+    wrong(){ noise({ dur: 0.06, vol: 0.24, type:"lowpass", freq: 500 }); tone({ f: 140, type:"square", dur: 0.22, vol: 0.06, lp: 700 }); },   // a flat low buzz
 
     // Big moments
-    lock(){   // the "checkmate": a heavy clunk, then a chord that blooms
+    lock(){   // the "checkmate": a heavy clunk, then a soft low chord
       latch(0, 0.25);
       thunk(0.05, 0.5);
-      [261.6, 329.6, 392.0].forEach((f, k) => tone({ f, type:"triangle", at: 0.12 + k*0.03, dur: 1.0, vol: 0.08, lp: 1200 }));
+      [261.6, 329.6, 392.0].forEach((f, k) => tone({ f, type:"triangle", at: 0.12 + k*0.03, dur: 1.0, vol: 0.07, lp: 1100 }));
     },
-    success(){   // stage complete: a motor winds, three bolts latch, the door thunks, air vents, power hums up
+    success(){   // stage complete: a motor, three bolts latch, the door thunks, air vents, power hums
       servo(0, 0.4);
       [0.32, 0.44, 0.56].forEach(at => latch(at));
       thunk(0.7);
@@ -121,51 +119,35 @@
       thunk(0.16, 0.35);
       [110, 164.8].forEach(f => tone({ f, type:"sawtooth", at: 0.2, dur: 0.9, vol: 0.035, lp: 600, attack: 0.15 }));
     },
-    newlock(){   // a new lock comes online
-      tone({ f: 110, to: 220, type:"sawtooth", dur: 0.4, vol: 0.07, lp: 500 });
-      tone({ f: 660, at: 0.05, dur: 0.08, vol: 0.16 });
-      tone({ f: 990, at: 0.15, dur: 0.12, vol: 0.16 });
-    },
-    denied(){
-      tone({ f: 330, to: 220, type:"triangle", dur: 0.25, vol: 0.18 });
-      tone({ f: 262, to: 175, type:"triangle", at: 0.15, dur: 0.3, vol: 0.16 });
-    },
+    newlock(){ latch(0, 0.2); latch(0.08, 0.14); tone({ f: 110, type:"sawtooth", at: 0.1, dur: 0.45, vol: 0.05, lp: 500, attack: 0.08 }); },   // relays, then the lock powers up
+    denied(){ tone({ f: 180, type:"square", dur: 0.16, vol: 0.06, lp: 900 }); tone({ f: 180, type:"square", at: 0.2, dur: 0.16, vol: 0.06, lp: 900 }); },   // two flat buzzes
 
     // Vault Grid and Blueprint
-    laser(){ tone({ f: 220, to: 1400, type:"sawtooth", dur: 0.45, vol: 0.05, lp: 1800 }); tone({ f: 1800, at: 0.4, dur: 0.12, vol: 0.035 }); },
-    fill(i=0){ tone({ f: Math.min(1700, 300 * Math.pow(2, i/24)), dur: 0.05, vol: 0.06, verb:false }); },
-    seal(){ tone({ f: 1200, type:"triangle", dur: 0.07, vol: 0.1 }); noise({ dur: 0.02, vol: 0.06, type:"highpass", freq: 3000 }); },
-    rise(){ noise({ dur: 1.0, vol: 0.16, freq: 200, to: 1400, q: 0.8 }); tone({ f: 70, to: 150, dur: 1.0, vol: 0.22 }); },
-    pop(i=0){ tone({ f: 420 + i*40, to: 640 + i*40, dur: 0.07, vol: 0.12 }); },
+    laser(){ noise({ dur: 0.35, vol: 0.06, freq: 2600, q: 8 }); tone({ f: 190, type:"sawtooth", dur: 0.35, vol: 0.035, lp: 1200, attack: 0.03 }); },   // an electric hum, no zap
+    fill(i=0){ tone({ f: 900 + (i % 3) * 40, type:"triangle", dur: 0.03, vol: 0.035, verb:false }); },   // a steady tick, not a rising scale
+    seal(){ noise({ dur: 0.025, vol: 0.1, freq: 3000, q: 3 }); tone({ f: 1000, type:"triangle", dur: 0.04, vol: 0.05, verb:false }); },
+    rise(){ noise({ dur: 1.0, vol: 0.14, type:"lowpass", freq: 500 }); tone({ f: 70, type:"sawtooth", dur: 1.0, vol: 0.06, lp: 300, attack: 0.3 }); },   // a low rumble
+    pop(i=0){ noise({ dur: 0.02, vol: 0.1, freq: 2400, q: 3 }); tone({ f: 700, type:"triangle", dur: 0.035, vol: 0.04, verb:false }); },
 
     // Prime Hack
-    cash(){ tone({ f: 1568, type:"triangle", dur: 0.08, vol: 0.14 }); tone({ f: 2093, type:"triangle", at: 0.07, dur: 0.4, vol: 0.14 }); },
-    ready(){ tone({ f: 1320, dur: 0.07, vol: 0.14 }); tone({ f: 1760, at: 0.07, dur: 0.12, vol: 0.14 }); },
-    commit(){ noise({ dur: 0.06, vol: 0.3, type:"lowpass", freq: 600 }); tone({ f: 880, at: 0.03, dur: 0.12, vol: 0.14 }); },
-    alarm(){ [0, 0.25, 0.5, 0.75].forEach((at, k) => tone({ f: k % 2 ? 420 : 560, type:"sawtooth", at, dur: 0.22, vol: 0.08, lp: 1500 })); },
+    cash(){ [0, 0.05, 0.1, 0.15].forEach(at => noise({ at, dur: 0.02, vol: 0.12, freq: 3500, q: 5 })); thunk(0.2, 0.2); },   // a counting machine
+    ready(){ latch(0, 0.18); tone({ f: 880, type:"triangle", at: 0.04, dur: 0.1, vol: 0.06, verb:false }); },
+    commit(){ noise({ dur: 0.06, vol: 0.3, type:"lowpass", freq: 600 }); tone({ f: 660, type:"triangle", at: 0.03, dur: 0.08, vol: 0.06, verb:false }); },
+    alarm(){ [0, 0.25, 0.5, 0.75].forEach((at, k) => tone({ f: k % 2 ? 420 : 560, type:"sawtooth", at, dur: 0.22, vol: 0.07, lp: 1500 })); },
     chatter(){ noise({ dur: 0.012, vol: 0.03, type:"highpass", freq: 5000 }); },
 
     // Whole game
-    glitch(){   // stage change: a burst of static, no tone (the falling blip sounded like a bounce)
-      noise({ dur: 0.22, vol: 0.18, freq: 2400, to: 500, q: 0.6 });
-      noise({ at: 0.05, dur: 0.05, vol: 0.16, type:"highpass", freq: 3500 });
-      noise({ at: 0.12, dur: 0.08, vol: 0.12, type:"highpass", freq: 5000 });
-    },
-    comms(){   // the handler's radio opens: a click, crackle, two soft pips
-      noise({ dur: 0.03, vol: 0.2, type:"highpass", freq: 2500 });
-      noise({ at: 0.03, dur: 0.18, vol: 0.05, freq: 1800, q: 0.7 });
-      tone({ f: 1760, at: 0.08, dur: 0.06, vol: 0.07, verb:false });
-      tone({ f: 2349, at: 0.16, dur: 0.08, vol: 0.07, verb:false });
-    },
-    badge(){ latch(0, 0.2); latch(0.09, 0.2); thunk(0.14, 0.3); [196, 293.7, 392].forEach((f, k) => tone({ f, type:"triangle", at: 0.2 + k * 0.06, dur: 0.9, vol: 0.07, lp: 1400 })); },
-    engine(){ tone({ f: 55, to: 140, type:"sawtooth", dur: 0.9, vol: 0.07, lp: 500, attack: 0.05 }); noise({ dur: 0.9, vol: 0.05, type:"lowpass", freq: 300 }); },
-    siren(){ [0, 0.3].forEach(at => { tone({ f: 700, to: 1050, type:"triangle", at, dur: 0.28, vol: 0.05, lp: 2500 }); }); },
-    dock(){ servo(0, 0.25, 0.04); latch(0.22, 0.3); thunk(0.26, 0.45); hiss(0.34, 0.4, 0.04); },   // a floor locks onto the building
-    holo(){ noise({ dur: 0.16, vol: 0.07, type:"highpass", freq: 6000 }); noise({ at: 0.03, dur: 0.22, vol: 0.05, freq: 3000, to: 5500, q: 3 }); tone({ f: 220, type:"triangle", at: 0.02, dur: 0.3, vol: 0.03, lp: 900 }); },
+    glitch(){ noise({ dur: 0.22, vol: 0.16, freq: 2400, q: 0.6 }); noise({ at: 0.05, dur: 0.05, vol: 0.14, type:"highpass", freq: 3500 }); noise({ at: 0.12, dur: 0.08, vol: 0.1, type:"highpass", freq: 5000 }); },
+    comms(){ noise({ dur: 0.03, vol: 0.2, type:"highpass", freq: 2500 }); noise({ at: 0.03, dur: 0.2, vol: 0.05, freq: 1800, q: 0.7 }); noise({ at: 0.22, dur: 0.02, vol: 0.12, type:"highpass", freq: 3000 }); },   // radio key-up click and crackle
+    badge(){ latch(0, 0.2); latch(0.09, 0.2); thunk(0.14, 0.3); [196, 293.7, 392].forEach((f, k) => tone({ f, type:"triangle", at: 0.2 + k * 0.06, dur: 0.9, vol: 0.06, lp: 1200 })); },
+    engine(){ tone({ f: 60, type:"sawtooth", dur: 0.9, vol: 0.06, lp: 400, attack: 0.08 }); noise({ dur: 0.9, vol: 0.05, type:"lowpass", freq: 300 }); },
+    siren(){ [0, 0.3].forEach((at, k) => tone({ f: k ? 740 : 988, type:"triangle", at, dur: 0.28, vol: 0.04, lp: 2200 })); },   // flat two-tone, far away
+    dock(){ servo(0, 0.25, 0.04); latch(0.22, 0.3); thunk(0.26, 0.45); hiss(0.34, 0.4, 0.04); },
+    holo(){ noise({ dur: 0.16, vol: 0.07, type:"highpass", freq: 6000 }); noise({ at: 0.03, dur: 0.22, vol: 0.04, freq: 4200, q: 3 }); },
     drone(sec=5){ tone({ f: 55, type:"sawtooth", dur: sec, vol: 0.04, lp: 260, attack: 0.4 }); tone({ f: 82.4, type:"sawtooth", dur: sec, vol: 0.025, lp: 380, attack: 0.8 }); },
     data(){ noise({ dur: 0.018, vol: 0.05, freq: 1500 + Math.random() * 3500, q: 6 }); },
-    hum(i=0){ tone({ f: 110 + i*6, type:"sawtooth", dur: 0.09, vol: 0.035, lp: 700, verb:false }); },   // fingerprint scanner
-    verified(){ latch(0, 0.22); latch(0.1, 0.22); tone({ f: 220, to: 330, type:"triangle", at: 0.14, dur: 0.4, vol: 0.1, lp: 1400 }); },
+    hum(i=0){ tone({ f: 110, type:"sawtooth", dur: 0.09, vol: 0.035, lp: 500 + i * 20, verb:false }); },   // fingerprint scanner: brighter, not higher
+    verified(){ latch(0, 0.22); latch(0.1, 0.22); tone({ f: 330, type:"triangle", at: 0.14, dur: 0.3, vol: 0.07, lp: 1200 }); },
   };
 
   const THROTTLE = { data: 30, holo: 60, hum: 60, key: 15, fill: 28, chatter: 45, laser: 120, pop: 40, seal: 50, click: 30 };
