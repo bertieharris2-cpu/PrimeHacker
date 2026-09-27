@@ -103,6 +103,7 @@
   function finishTree(){
     const n = locks[k], pf = primeFactors(n);
     const box = $("key"); box.hidden = false;
+    setTimeout(() => box.scrollIntoView({ block: "nearest", behavior: "smooth" }), 50);
     if(L !== "L3"){
       box.innerHTML = `<span class="lab">KEY</span><span>${n} = ${pf.map(p => `<span class="pk">${p}</span>`).join(" × ")}</span>`;
       T.SND("lock"); say("Every branch ends in a prime. Key accepted.", "ok");
