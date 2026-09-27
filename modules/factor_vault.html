@@ -340,6 +340,7 @@
     .drag-grid{ display:grid; gap:2px; touch-action:none; user-select:none; cursor:crosshair; }
     .drag-grid i{ background:rgba(var(--accent-rgb),.08); border:1px solid rgba(var(--accent-rgb),.25); }
     .drag-grid i.sel{ background:rgba(var(--accent-hack-rgb),.45); border-color:var(--accent-hack); }
+    .drag-grid i.kept{ background:rgba(var(--accent-rgb),.3); border-color:var(--accent); }
     .drag-grid.bad i.sel{ background:rgba(255,107,107,.45); border-color:#ff6b6b; }
     .drag-read{ font-family:var(--font-mono); font-size:18px; min-height:1.4em; color:var(--text-primary); }
     .drag-read .ok{ color:var(--accent-hack); } .drag-read .no{ color:#ff6b6b; }
@@ -2091,8 +2092,11 @@ body{ font-size: var(--font-size); }
       document.getElementById("dragN").textContent = N;
       const grid = document.getElementById("dragGrid");
       // Wider than N and several rows deep, so a 1 × N strip doesn't fill a whole row (feedback: too easy at N = 8)
-      const cols = Math.max(12, N + 4), rows = Math.min(N, Math.max(6, Math.floor(Math.sqrt(N)) + 3));
-      const size = Math.max(12, Math.min(34, Math.floor((window.innerWidth - 120) / cols) - 2, Math.floor((window.innerHeight * 0.42) / rows) - 2));
+      // Deep enough that most pairs can also be drawn turned round (3 × 8 and 8 × 3)
+      const cols = Math.max(12, N + 4), rows = Math.min(N, Math.max(8, Math.floor(Math.sqrt(N)) + 5));
+      const size = Math.max(12, Math.min(34, Math.floor((window.innerWidth - 120) / cols) - 2, Math.floor((window.innerHeight * 0.5) / rows) - 2));
+      grid.dataset.rows = rows; grid.dataset.cols = cols;
+      if(window.resetFlip) window.resetFlip();
       grid.style.gridTemplateColumns = `repeat(${cols}, ${size}px)`;
       grid.style.gridAutoRows = `${size}px`;
       grid.innerHTML = "";
@@ -2110,7 +2114,16 @@ body{ font-size: var(--font-size); }
     document.getElementById("dragClose").addEventListener("click", () => setBuildMode("type"));
     (function dragInput(){
       const grid = document.getElementById("dragGrid"), read = document.getElementById("dragRead");
-      let anchor = null, cur = null;
+      let anchor = null, cur = null, flip = null;   // flip: the first way round, waiting to be drawn turned round
+      const clearKept = () => grid.querySelectorAll("i.kept").forEach(i => i.classList.remove("kept"));
+      window.resetFlip = () => { flip = null; clearKept(); };
+      const fits = (h, w) => h <= +grid.dataset.rows && w <= +grid.dataset.cols;
+      function addPair(a, b){
+        const row = [...pairsTable.querySelectorAll("tr")].find(r => r.cells[0].contentEditable === "true" && !r.cells[0].textContent.trim() && !r.cells[1].textContent.trim());
+        if(!row) return;
+        row.cells[0].textContent = a; row.cells[1].textContent = b;
+        attemptSubmit();
+      }
       const cellFrom = e => { const t = document.elementFromPoint(e.clientX, e.clientY); return t && t.parentElement === grid ? { r: +t.dataset.r, c: +t.dataset.c } : null; };
       function paint(){
         if(!anchor || !cur) return;
@@ -2123,7 +2136,7 @@ body{ font-size: var(--font-size); }
         return { h, w, ok };
       }
       grid.addEventListener("pointerdown", e => { const c = cellFrom(e); if(!c) return; e.preventDefault(); grid.setPointerCapture(e.pointerId); anchor = cur = c; paint(); if(window.PNSound) PNSound.play("tag"); });
-      grid.addEventListener("pointermove", e => { if(!anchor) return; const c = cellFrom(e); if(c && (c.r !== cur.r || c.c !== cur.c)){ cur = c; paint(); if(window.PNSound) PNSound.play("fill", (cur.r + 1) * (cur.c + 1) % 48); } });
+      grid.addEventListener("pointermove", e => { if(!anchor) return; const c = cellFrom(e); if(c && (c.r !== cur.r || c.c !== cur.c)){ cur = c; paint(); if(window.PNSound) PNSound.play("plot"); } });
       grid.addEventListener("pointerup", () => {
         if(!anchor) return;
         const res = paint(); anchor = cur = null;
@@ -2131,11 +2144,26 @@ body{ font-size: var(--font-size); }
         if(!res) return;
         if(!res.ok){ if(window.PNSound) PNSound.play("wrong"); setHint(`${res.h} × ${res.w} = ${res.h * res.w}. You need exactly ${N} squares.`); return; }
         const a = Math.min(res.h, res.w), b = Math.max(res.h, res.w);
+        // Feedback round 6: draw each array both ways round (3 × 7 and 7 × 3) before it counts
+        if(flip){
+          if(res.h === flip.w && res.w === flip.h){
+            flip = null; clearKept();
+            read.innerHTML = `${res.h} × ${res.w} = <span class="ok">${N}</span> ✓ The same ${N} squares, turned round.`;
+            if(window.PNSound) PNSound.play("correct", 3);
+            addPair(a, b); return;
+          }
+          if(res.h === flip.h && res.w === flip.w){ setHint(`That's the same way round. Turn it: ${flip.w} rows and ${flip.h} columns.`); if(window.PNSound) PNSound.play("untag"); return; }
+          setHint(`First turn ${flip.h} × ${flip.w} round: draw ${flip.w} × ${flip.h}.`); if(window.PNSound) PNSound.play("untag"); return;
+        }
         if(found.has(keyOf(a, b))){ setHint(`${a} × ${b} is already found. Try another shape.`); if(window.PNSound) PNSound.play("untag"); return; }
-        const row = [...pairsTable.querySelectorAll("tr")].find(r => r.cells[0].contentEditable === "true" && !r.cells[0].textContent.trim() && !r.cells[1].textContent.trim());
-        if(!row) return;
-        row.cells[0].textContent = a; row.cells[1].textContent = b;
-        attemptSubmit();
+        if(a === b){ read.innerHTML = `${a} × ${a} = <span class="ok">${N}</span> ✓ A square: turned round, it's the same shape.`; addPair(a, b); return; }
+        if(!fits(res.w, res.h)){ read.innerHTML = `${res.h} × ${res.w} = <span class="ok">${N}</span> ✓ Turned round it's ${res.w} × ${res.h}: too tall for this grid, so that counts too.`; addPair(a, b); return; }
+        // Keep the first shape on the grid and ask for it turned round
+        flip = { h: res.h, w: res.w };
+        grid.querySelectorAll("i.sel").forEach(i => i.classList.add("kept"));
+        read.innerHTML = `${res.h} × ${res.w} = <span class="ok">${N}</span> ✓ Now draw it turned round: <b>${res.w} × ${res.h}</b>.`;
+        setHint(`Same squares, other way round: ${res.w} rows and ${res.h} columns.`);
+        if(window.PNSound) PNSound.play("tag");
       });
     })();
 

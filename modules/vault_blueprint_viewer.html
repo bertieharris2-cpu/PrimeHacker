@@ -223,6 +223,36 @@
   }
 
 
+/* ===== Round 6: the whole blueprint fits on one screen ===== */
+body{ padding:12px 16px !important; overflow-y:auto; }
+.container{ max-width:1500px !important; height:calc(100vh - 24px); min-height:560px; display:grid; grid-template-rows:auto minmax(0,1fr) auto; gap:10px; }
+.blueprint-header{ margin:0 !important; padding:10px 18px !important; display:flex; justify-content:space-between; align-items:baseline; gap:16px; flex-wrap:wrap; text-align:left !important; }
+.blueprint-header h1{ margin:0 !important; font-size:20px !important; }
+.floors-container{ display:grid !important; grid-template-columns:230px minmax(0,1fr) 290px; gap:18px; align-items:stretch !important; min-height:0; perspective:none !important; }
+.blueprint-labels{ display:flex; flex-direction:column; justify-content:center; gap:34px !important; padding-right:10px; }
+.floor-label{ font-size:12px !important; padding:6px 0 6px 12px !important; white-space:normal !important; }
+.bp-stage{ position:relative; min-height:0; border:1px solid var(--border); background:rgba(7,20,24,.55); box-shadow:inset 0 0 30px rgba(var(--accent-rgb),.05); }
+.bp-stage .blueprint-viewer-canvas{ width:100% !important; height:100% !important; border:0 !important; background:none !important; box-shadow:none !important; }
+.bp-stage .assembly-status{ position:absolute; left:0; right:0; top:10px; margin:0; pointer-events:none; }
+.bp-stage .floor-info{ position:absolute; left:12px; right:12px; bottom:10px; margin:0; pointer-events:none; }
+.bp-side{ display:flex; flex-direction:column; gap:10px; min-height:0; overflow-y:auto; padding-bottom:130px; }
+.bp-side .intel{ display:flex; flex-direction:column; gap:8px; width:auto; margin:0; }
+.bp-side .intel > div{ font-size:13px; }
+.bp-legend{ position:absolute; left:50%; transform:translateX(-50%); top:36px; display:none; flex-direction:row; flex-wrap:wrap; justify-content:center; gap:4px 16px; max-width:calc(100% - 24px); border:1px solid var(--line); background:rgba(4,14,17,.8); padding:8px 12px; font-size:12px; color:var(--text-muted); pointer-events:none; }
+.bp-legend.on{ display:flex; }
+.bp-legend b{ font-size:11px; letter-spacing:.16em; color:var(--accent); }
+.bp-legend span i{ display:inline-block; min-width:0; margin-right:6px !important; text-align:center; margin-right:8px; font-style:normal; font-weight:700; }
+.completion-section{ margin:0 !important; padding:10px 16px !important; display:flex; justify-content:space-between; align-items:center; gap:14px; flex-wrap:wrap; text-align:left !important; }
+.completion-text{ margin:0 !important; }
+.proceed-btn{ font-size:13px !important; padding:12px 24px !important; }
+.proceed-btn:disabled{ opacity:.4; cursor:default; }
+@media (max-width:1050px){
+  .container{ height:auto; }
+  .floors-container{ grid-template-columns:1fr; }
+  .blueprint-labels{ flex-direction:row; flex-wrap:wrap; gap:12px !important; }
+  .bp-stage{ height:62vh; }
+}
+
 .pn-powerup{ position:fixed; inset:0; z-index:9999; display:flex; align-items:center; justify-content:center; background:rgba(4,14,17,.72); font-family:var(--font-ui); }
 .pn-powerup div{ border:1px solid rgba(var(--accent-rgb),.6); background:rgba(9,32,38,.92); padding:22px 30px; text-align:center; letter-spacing:.16em; font-weight:700; color:var(--accent); animation:pnPulse 1.4s ease-in-out infinite; }
 .pn-powerup small{ display:block; margin-top:8px; letter-spacing:.06em; font-weight:400; color:var(--text-muted); }
@@ -248,7 +278,7 @@ button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [clas
   <div class="container">
     <div class="blueprint-header">
       <h1>Bank Blueprint Complete</h1>
-      <p>Facility reconstruction successful — 3-floor structure assembled</p>
+      <p>Three floors rebuilt from your factor pairs</p>
     </div>
 
     <div class="floors-container" id="floorsContainer">
@@ -256,7 +286,7 @@ button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [clas
     </div>
 
     <div class="completion-section">
-      <p class="completion-text">All vault structures decoded. Ready for access protocol initiation?</p>
+      <p class="completion-text" id="completionText">Assembling the building…</p>
       <button class="proceed-btn" id="proceedToHackBtn">Initiate Prime Hack Protocol</button>
     </div>
   </div>
@@ -315,10 +345,6 @@ function powerUpPrompt(title){
       
       const container = document.getElementById('floorsContainer');
       
-      // Create wrapper for labels + canvas side-by-side
-      const wrapper = document.createElement('div');
-      wrapper.className = 'blueprint-wrapper';
-      
       // Create labels column (left side)
       const labelsCol = document.createElement('div');
       labelsCol.className = 'blueprint-labels';
@@ -331,19 +357,24 @@ function powerUpPrompt(title){
         labelEl.innerHTML = `${floor.label}<span class="n-value">N=${floor.n}</span>${sq ? `<span class="reinforced">REINFORCED · ${Math.sqrt(floor.n)} × ${Math.sqrt(floor.n)}</span>` : ""}`;
         labelsCol.appendChild(labelEl);
       });
-      wrapper.appendChild(labelsCol);
+      container.appendChild(labelsCol);
       
-      // Create single shared 3D canvas container (right side)
+      // The 3D view fills the middle column; status and floor info sit over it
+      const stage = document.createElement('div'); stage.className = 'bp-stage';
       const canvasContainer = document.createElement('div');
       canvasContainer.className = 'blueprint-viewer-canvas';
-      wrapper.appendChild(canvasContainer);
-      
-      container.appendChild(wrapper);
+      stage.appendChild(canvasContainer);
+      container.appendChild(stage);
       const status = document.createElement('div');
       status.className = 'assembly-status'; status.id = 'assemblyStatus';
-      container.appendChild(status);
-      const info = document.createElement('div'); info.className = 'floor-info'; info.id = 'floorInfo'; container.appendChild(info);
-      const intel = document.createElement('div'); intel.className = 'intel'; intel.id = 'intel'; container.appendChild(intel);
+      stage.appendChild(status);
+      const info = document.createElement('div'); info.className = 'floor-info'; info.id = 'floorInfo'; stage.appendChild(info);
+      // Intel cards and the recon key down the right-hand side
+      const side = document.createElement('div'); side.className = 'bp-side';
+      const intel = document.createElement('div'); intel.className = 'intel'; intel.id = 'intel'; side.appendChild(intel);
+      const legend = document.createElement('div'); legend.className = 'bp-legend'; legend.id = 'bpLegend'; stage.appendChild(legend);
+      container.appendChild(side);
+      const goBtn = document.getElementById('proceedToHackBtn'); goBtn.disabled = true;
       const tip = document.createElement('div'); tip.className = 'room-tip'; tip.id = 'roomTip'; document.body.appendChild(tip);
       
       if(PN && !DEMO_MODE) PN.log("blueprint", { floors: sorted });
@@ -411,7 +442,7 @@ function powerUpPrompt(title){
       const scene = new THREE.Scene();
       const camera = new THREE.PerspectiveCamera(35, width / height, 1, 4000);
       // Closer cameras so the rebuilt floor plans fill the frame
-      const CAM_FINAL = { pos: new THREE.Vector3(130, 105, 265), look: new THREE.Vector3(0, 24, 0) };
+      const CAM_FINAL = { pos: new THREE.Vector3(124, 100, 252), look: new THREE.Vector3(0, 20, 0) };
       const CAM_WIDE  = { pos: new THREE.Vector3(95, 150, 360), look: new THREE.Vector3(0, 50, 0) };
       const camLook = CAM_WIDE.look.clone();
       camera.position.copy(CAM_WIDE.pos); camera.lookAt(camLook);
@@ -551,9 +582,157 @@ function powerUpPrompt(title){
         } else {
           card('i-hid', `<b>NO HIDDEN VAULT</b>${list} share no factor except 1, so there's no secret room this time.`);
         }
-        card('i-exp', `<b>EXPLORE</b>Drag to turn the building. Click a floor to pull it out and see its rooms.`);
+        await recon(weak);
         enableExplore();
+        document.getElementById('floorInfo').textContent = 'Drag to turn the building. Click a floor to pull it out.';
         say(`${PN ? PN.mission().target.toUpperCase() : 'TARGET'} // READY`);
+        const goBtn = document.getElementById('proceedToHackBtn'); goBtn.disabled = false;
+        const ct = document.getElementById('completionText'); if(ct) ct.textContent = 'Route planned. Ready to start the hack?';
+      }
+
+      // ---------- Recon: a scan sweeps up the building and shows the stairs, the people and the key;
+      // then the agent's route in is drawn from the street to the key room on the weak floor ----------
+      function badge(text, color, w = 150){
+        const cv = document.createElement('canvas'); cv.width = w * 2; cv.height = 72; const g = cv.getContext('2d');
+        g.fillStyle = 'rgba(4,14,17,.88)'; g.strokeStyle = color; g.lineWidth = 5;
+        g.beginPath(); g.roundRect(4, 4, cv.width - 8, 64, 32); g.fill(); g.stroke();
+        g.fillStyle = color; g.font = '700 38px "Chakra Petch", "Inter", sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+        g.fillText(text, cv.width / 2, 38);
+        const tex = new THREE.CanvasTexture(cv); tex.anisotropy = 4;
+        const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, depthTest: false, transparent: true, opacity: 0 }));
+        sp.scale.set(w / 8, 36 / 8, 1); sp.renderOrder = 20;
+        return sp;
+      }
+      function guardDot(){
+        const cv = document.createElement('canvas'); cv.width = cv.height = 64; const g = cv.getContext('2d');
+        g.fillStyle = '#ff4f6d'; g.beginPath(); g.arc(32, 32, 20, 0, Math.PI * 2); g.fill();
+        g.strokeStyle = 'rgba(255,255,255,.85)'; g.lineWidth = 5; g.stroke();
+        const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(cv), depthTest: false, transparent: true, opacity: 0 }));
+        sp.scale.set(4.2, 4.2, 1); sp.renderOrder = 20; sp.userData.dot = true; return sp;
+      }
+      function fadeIn(objs, ms = 350){ return tween(ms, e => objs.forEach(o => { o.visible = true; o.traverse(c => { if(c.material){ c.material.transparent = true; c.material.opacity = e * (c.userData.op ?? 1); } }); })); }
+      function stairsAt(sx, sz, y0, h, top){
+        const g = new THREE.Group(), c = 0xcfe8ff;
+        const well = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(12, h, 10)), new THREE.LineBasicMaterial({ color: c }));
+        well.position.set(sx, y0 + h / 2, sz); well.userData.op = 0.55; g.add(well);
+        if(!top){
+          const pts = [], n = 6;
+          for(let i = 0; i <= n; i++){ const t = i / n; pts.push(new THREE.Vector3(sx - 5 + 10 * t, y0 + t * h / 2, sz - 2.5)); }
+          for(let i = 0; i <= n; i++){ const t = i / n; pts.push(new THREE.Vector3(sx + 5 - 10 * t, y0 + h / 2 + t * h / 2, sz + 2.5)); }
+          const flight = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color: c }));
+          g.add(flight);
+        }
+        g.visible = false; return g;
+      }
+      async function recon(weak){
+        spinning = false;
+        // Face the building the way it was built, so the route reads clearly
+        const r0 = ((mainGroup.rotation.y % (Math.PI * 2)) + Math.PI * 3) % (Math.PI * 2) - Math.PI;
+        await tween(900, e => { mainGroup.rotation.y = rotationY = r0 * (1 - e); });
+        say('Recon scan…');
+        // Stairs: one spot that is clear of rooms on every floor, nearest the middle
+        const clear = (x, z) => floorGroups.every(f => f.rooms.every(r => Math.abs(x - r.x) > r.w / 2 + 7 || Math.abs(z - r.z) > r.d / 2 + 6));
+        let best = null;
+        for(let i = -8; i <= 8; i++) for(let j = -8; j <= 8; j++){
+          const x = i / 8 * (maxExtentX - 8), z = j / 8 * (maxExtentZ - 7);
+          if(clear(x, z) && (!best || Math.hypot(x, z) < Math.hypot(best.x, best.z))) best = { x, z };
+        }
+        if(!best) best = { x: -maxExtentX + 8, z: -maxExtentZ + 7 };
+        const S = best, TOP = boxHeight + 5;
+        // The key room: on the weak floor, the room furthest from the stairs
+        const far = weak.rooms.map((r, i) => ({ r, i, d: Math.hypot(r.x - S.x, r.z - S.z) })).sort((a, b) => b.d - a.d)[0];
+        const keyRoom = far ? far.r : null;
+        // The CEO: the top floor's most nearly square room (not the key room)
+        const topF = floorGroups[0];
+        const ceoRoom = topF.rooms.filter(r => r !== keyRoom).sort((a, b) => b.a / b.b - a.a / a.b)[0] || null;
+        const perFloor = new Map(); let guards = 0;
+        floorGroups.forEach(f => {
+          const items = [];
+          const st = stairsAt(S.x, S.z, f.yOffset, f === topF ? boxHeight : 24, f === topF); f.group.add(st); items.push(st);
+          if(f === floorGroups[2]){ const sl = badge('STAIRS', '#cfe8ff', 120); sl.position.set(S.x - 14, f.yOffset + 6, S.z); sl.visible = false; f.group.add(sl); items.push(sl); }
+          f.rooms.forEach(r => {
+            let b;
+            if(r === keyRoom) b = badge('KEY', '#ffe14d', 90);
+            else if(r === ceoRoom) b = badge('CEO', '#ffc94d', 90);
+            else { b = guardDot(); guards++; }
+            b.position.set(r.x, f.yOffset + (b.userData.dot ? boxHeight * 0.55 : TOP), r.z); b.visible = false; f.group.add(b); items.push(b);
+          });
+          perFloor.set(f, items);
+        });
+        // The scan: a sheet of light rising up the building, revealing each floor as it passes
+        const sheetMat = new THREE.MeshBasicMaterial({ color: 0x6ee7ff, transparent: true, opacity: 0.16, side: THREE.DoubleSide, depthWrite: false });
+        const sheet = new THREE.Mesh(new THREE.PlaneGeometry(maxExtentX * 2 + 16, maxExtentZ * 2 + 16), sheetMat);
+        sheet.rotation.x = -Math.PI / 2;
+        const rim = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.PlaneGeometry(maxExtentX * 2 + 16, maxExtentZ * 2 + 16)), new THREE.LineBasicMaterial({ color: 0xaff4ff, transparent: true, opacity: 0.9 }));
+        sheet.add(rim); mainGroup.add(sheet);
+        SND("scan");
+        const shown = new Set();
+        await tween(3600, e => {
+          sheet.position.y = -2 + e * (floorGroups[0].yOffset + boxHeight + 6);
+          [...order].forEach(f => { if(!shown.has(f) && sheet.position.y > f.yOffset + boxHeight * 0.6){ shown.add(f); fadeIn(perFloor.get(f)); SND("tag"); } });
+        }, p => p);
+        await tween(400, e => { sheetMat.opacity = 0.16 * (1 - e); rim.material.opacity = 0.9 * (1 - e); });
+        mainGroup.remove(sheet);
+        const wName = weak.label.split('—')[0].trim();
+        card('i-rec', `<b>RECON</b>Stairs found on every floor. ${guards} guard${guards === 1 ? '' : 's'}, one in each room. The CEO is on the top floor. The key is on ${wName}.`);
+        const lg = document.getElementById('bpLegend');
+        if(lg){ lg.innerHTML = `<span><i style="color:#ffe14d">●</i>You</span><span><i style="color:#ffe14d">→</i>Your route in</span><span><i style="color:#ff4f6d">●</i>Guard</span><span><i style="color:#ffc94d">CEO</i>The boss</span><span><i style="color:#ffe14d">KEY</i>The key</span><span><i style="color:#cfe8ff">⇅</i>Stairs</span><span><i style="color:#2fbf8a">■</i>Fire exit</span>`; lg.classList.add('on'); }
+        if(window.PNHandler) PNHandler.say(`Recon's in. The key is on ${wName}: fewest rooms, fewest guards. Here's your way in.`);
+        await wait(900);
+
+        // The route: from the street, in through the ground-floor fire exit, up the stairs, to the key
+        say('Planning the route…');
+        const ground = floorGroups[2], GL = LAYOUTS[ground.n];
+        let ex = { x: maxExtentX, z: 0 };
+        if(GL && GL.exit){ const cell = PLATE / GL.grid; ex = { x: (GL.exit.x + 0.5) * cell - PLATE / 2, z: (GL.exit.y + 0.5) * cell - PLATE / 2 }; }
+        // Step outside through whichever outer wall the exit is nearest
+        const dx = maxExtentX - Math.abs(ex.x), dz = maxExtentZ - Math.abs(ex.z);
+        const out = dx < dz ? { x: Math.sign(ex.x || 1) * (maxExtentX + 26), z: ex.z } : { x: ex.x, z: Math.sign(ex.z || 1) * (maxExtentZ + 26) };
+        const y0 = 1.2, yW = weak.yOffset + 1.2, V = (x, y, z) => new THREE.Vector3(x, y, z);
+        const pts = [V(out.x, y0, out.z), V(ex.x, y0, ex.z), V(S.x, y0, ex.z), V(S.x, y0, S.z)];
+        if(weak !== ground) pts.push(V(S.x, yW, S.z));
+        if(keyRoom){ pts.push(V(keyRoom.x, yW, S.z)); pts.push(V(keyRoom.x, yW, keyRoom.z)); }
+        const path = new THREE.CurvePath(); for(let i = 1; i < pts.length; i++) path.add(new THREE.LineCurve3(pts[i - 1], pts[i]));
+        const dense = path.getSpacedPoints(240);
+        const routeGeo = new THREE.BufferGeometry().setFromPoints(dense);
+        const route = new THREE.Line(routeGeo, new THREE.LineDashedMaterial({ color: 0xffe14d, dashSize: 3, gapSize: 2, depthTest: false, transparent: true }));
+        route.computeLineDistances(); route.renderOrder = 18; routeGeo.setDrawRange(0, 0); mainGroup.add(route);
+        // Arrowheads at each turn
+        const arrows = [];
+        for(let i = 1; i < pts.length; i++){
+          const d = pts[i].clone().sub(pts[i - 1]); if(d.length() < 1) continue;
+          const cone = new THREE.Mesh(new THREE.ConeGeometry(2.2, 5, 12), new THREE.MeshBasicMaterial({ color: 0xffe14d, depthTest: false, transparent: true }));
+          cone.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.clone().normalize());
+          cone.position.copy(pts[i - 1]).add(d.multiplyScalar(0.55)); cone.renderOrder = 19; cone.visible = false;
+          cone.userData.at = path.getCurveLengths()[i - 1] / path.getLength();
+          mainGroup.add(cone); arrows.push(cone);
+        }
+        // The agent: a glowing dot on the street with a pulsing ring
+        const dotTex = (() => { const cv = document.createElement('canvas'); cv.width = cv.height = 64; const g = cv.getContext('2d');
+          const gr = g.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, '#fffbe0'); gr.addColorStop(.35, '#ffe14d'); gr.addColorStop(1, 'rgba(255,225,77,0)');
+          g.fillStyle = gr; g.fillRect(0, 0, 64, 64); return new THREE.CanvasTexture(cv); })();
+        const agent = new THREE.Sprite(new THREE.SpriteMaterial({ map: dotTex, depthTest: false, transparent: true }));
+        agent.scale.set(9, 9, 1); agent.position.copy(pts[0]); agent.renderOrder = 21; mainGroup.add(agent);
+        const tag = badge('YOU', '#ffe14d', 80); tag.position.copy(pts[0]).add(V(0, 8, 0)); mainGroup.add(tag); fadeIn([tag]);
+        const halo = new THREE.Mesh(new THREE.RingGeometry(3, 3.6, 40), new THREE.MeshBasicMaterial({ color: 0xffe14d, transparent: true, side: THREE.DoubleSide, depthTest: false }));
+        halo.rotation.x = -Math.PI / 2; halo.position.copy(pts[0]); halo.renderOrder = 20; mainGroup.add(halo);
+        let pulsing = true; (function pulse(t){ if(!pulsing) return; const k = (t / 1200) % 1; halo.scale.setScalar(1 + k * 2.2); halo.material.opacity = 1 - k; requestAnimationFrame(pulse); })(0);
+        await wait(500);
+        SND("route");
+        await tween(2600, e => {
+          routeGeo.setDrawRange(0, Math.floor(e * dense.length));
+          arrows.forEach(a => { if(e >= a.userData.at + 0.02) a.visible = true; });
+        }, p => p);
+        arrows.forEach(a => a.visible = true);
+        // Walk the dot along the route
+        await tween(2400, e => { agent.position.copy(path.getPointAt(Math.min(1, e))); halo.position.copy(agent.position); tag.position.copy(agent.position).add(V(0, 8, 0)); });
+        if(keyRoom){ SND("verified"); ring(yW + 0.3, 0xffe14d); }
+        card('i-route', `<b>ROUTE IN</b>From the street, through the ground-floor fire exit, to the stairs${weak !== ground ? `, up to ${wName}` : ''}, then across to the key.`);
+        if(PN) PN.updateAgent({ route: { floor: wName, guards } });
+        // Back to the start so the route stays readable while exploring
+        await wait(700);
+        agent.position.copy(pts[0]); halo.position.copy(pts[0]); tag.position.copy(pts[0]).add(V(0, 8, 0));
+        spinning = true;
       }
 
       // Explore: drag to rotate, hover a room for its name, click a floor to pull it out
@@ -860,7 +1039,8 @@ function powerUpPrompt(title){
         m.position.set((ex.x + 0.5) * cell - PLATE / 2, yOffset + 0.6, (ex.y + 0.5) * cell - PLATE / 2);
         group.add(m);
       }
-      roomsFor(n, scale).forEach(r => {
+      const rooms = roomsFor(n, scale);
+      rooms.forEach(r => {
         // A square pair (6 × 6) is the reinforced strongroom: gold edges
         const strong = r.a === r.b;
         const color = 0x00ff99;
@@ -882,7 +1062,7 @@ function powerUpPrompt(title){
         mesh.scale.set(0.01, 0.01, 0.01);
         group.add(mesh); boxes.push(mesh);
       });
-      return { group, boxes, square, plate, lines };
+      return { group, boxes, square, plate, lines, rooms };
     }
 
     function getFactorPairs(n){

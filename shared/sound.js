@@ -147,6 +147,10 @@
     drone(sec=5){ tone({ f: 55, type:"sawtooth", dur: sec, vol: 0.04, lp: 260, attack: 0.4 }); tone({ f: 82.4, type:"sawtooth", dur: sec, vol: 0.025, lp: 380, attack: 0.8 }); },
     data(){ noise({ dur: 0.018, vol: 0.05, freq: 1500 + Math.random() * 3500, q: 6 }); },
     hum(i=0){ tone({ f: 110, type:"sawtooth", dur: 0.09, vol: 0.035, lp: 500 + i * 20, verb:false }); },   // fingerprint scanner: brighter, not higher
+    // Round 6: a soft scanner pass (steady filtered air and a low flat hum), a quiet plotter tick, and a motor for the route
+    scan(dur=3.6){ noise({ dur, vol: 0.035, freq: 1600, q: 0.8 }); tone({ f: 110, type:"sine", dur, vol: 0.05, lp: 400, attack: 0.3 }); },
+    plot(){ noise({ dur: 0.018, vol: 0.035, freq: 2400, q: 3 }); },
+    route(){ servo(0, 0.6, 0.035); },
     verified(){ latch(0, 0.22); latch(0.1, 0.22); tone({ f: 330, type:"triangle", at: 0.14, dur: 0.3, vol: 0.07, lp: 1200 }); },
   };
 

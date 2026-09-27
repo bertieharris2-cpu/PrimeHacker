@@ -54,7 +54,7 @@
     filter: blur(8px);
   }
 
-  .wrap{ width:min(860px, 96vw); position:relative; z-index:1; }
+  .wrap{ width:min(1180px, 98vw); position:relative; z-index:1; }
   .title{
     display:flex;
     justify-content:space-between;
@@ -122,6 +122,22 @@
   }
 
   svg.overlay{ position:absolute; inset:18px; pointer-events:none; z-index:4; }
+  /* Round 6 */
+  .stage{ padding:56px 190px !important; }
+  .cell.hall{ background:linear-gradient(135deg, rgba(40,110,120,.20), rgba(30,80,92,.14)); border-color:rgba(74,163,255,.10); }
+  .plotBar{ position:absolute; left:10px; right:10px; top:18px; height:2px; z-index:6; pointer-events:none; background:#bfe6ff;
+    box-shadow:0 0 10px 2px rgba(110,190,255,.85), 0 0 36px 8px rgba(74,163,255,.35); animation:plotSweep 2.6s ease-in-out infinite alternate; transition:opacity .4s ease; }
+  .plotBar::after{ content:""; position:absolute; left:0; right:0; top:2px; height:60px; background:linear-gradient(rgba(110,190,255,.12), transparent); }
+  @keyframes plotSweep{ from{ top:18px; } to{ top:calc(100% - 20px); } }
+  .plotBar.off{ opacity:0; }
+  .gridTags{ position:fixed; inset:0; pointer-events:none; z-index:55; }
+  .gridTag{ position:absolute; transform:translate(-50%,-50%); white-space:nowrap; font-family:var(--font-ui); font-weight:700; font-size:12px; letter-spacing:.08em;
+    color:#dffff4; background:rgba(3,22,20,.82); border:1px solid rgba(60,255,200,.6); padding:2px 8px; line-height:1.3; }
+  .gridTag small{ font-family:var(--font-mono); font-weight:400; color:#9fe8d2; margin-left:6px; letter-spacing:0; font-size:12px; }
+  .gridTag.hot{ background:rgba(60,35,0,.9); border-color:#ffc94d; color:#ffe7a8; }
+  .gridTag.hot small{ color:#ffd98a; }
+  .gridTag.exit{ border-color:#78ffbe; color:#a0ffd2; }
+  @media (max-width:1100px){ .stage{ padding:56px 120px !important; } }
   svg.scan{ position:absolute; inset:18px; pointer-events:none; z-index:2; opacity:.60; mix-blend-mode:screen; }
   svg.labels{ position:absolute; inset:0; pointer-events:none; z-index:10; }
 
@@ -189,7 +205,7 @@
       transform:rotateX(0deg) rotateZ(0deg) scale(1);
     }
     100%{
-      transform:rotateX(65deg) rotateZ(-18deg) scale(0.92);
+      transform:rotateX(65deg) rotateZ(-18deg) scale(1.18);
     }
   }
 
@@ -282,10 +298,10 @@ button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [clas
   </div>
 
   <div class="legend">
-    <div><span class="sw" style="background:#4aa3ff"></span>Laser outline</div>
-    <div><span class="sw" style="background:#6fb8ff"></span>Power flow</div>
-    <div><span class="sw" style="background:var(--accent-hack)"></span>Array fill</div>
-    <div><span class="sw" style="background:#00d7b8"></span>Locked border</div>
+    <div><span class="sw" style="background:var(--accent-hack)"></span>Room: one factor pair</div>
+    <div><span class="sw" style="background:rgba(40,110,120,.6)"></span>Corridors and open floor</div>
+    <div><span class="sw" style="background:#ffbe5a"></span>Door</div>
+    <div><span class="sw" style="background:#2fbf8a"></span>Fire exit</div>
   </div>
   <div class="hint">Now uses a random non-overlapping layout each run, and arrays animate with staggered overlap (smoother, less “one-by-one”).</div>
 
@@ -543,7 +559,7 @@ function generatePlacements(seed, wanted){
 /* ---------- Visual engine ---------- */
 function drawLaser(rect, ms=920){
   if(window.PNTest) ms = ms / PNTest.speed();
-  SND("laser");
+  SND("plot");
   const r=document.createElementNS("http://www.w3.org/2000/svg","rect");
   r.setAttribute("x",rect.x*STEP);
   r.setAttribute("y",rect.y*STEP);
@@ -567,7 +583,6 @@ function drawLaser(rect, ms=920){
 }
 
 function lockBorder(rect){
-  SND("seal");
   const r=document.createElementNS("http://www.w3.org/2000/svg","rect");
   r.setAttribute("x",rect.x*STEP);
   r.setAttribute("y",rect.y*STEP);
@@ -591,7 +606,7 @@ async function fillOutsideInPower(rect){
   let l=rect.x,r=rect.x+rect.w-1,t=rect.y,b=rect.y+rect.h-1;
 
   async function flowThenSet(x,y){
-    if((fillCount++) % 4 === 0) SND("fill", fillCount);   // feedback: every-cell ticking felt gimmicky
+    fillCount++;   // feedback round 6: no ticking while the rooms fill; one soft scanner hum covers the whole build
     setCell(x,y,"flow");
     await pause(settle);
     setCell(x,y,"on");
@@ -853,7 +868,7 @@ async function run(seed, wanted){
   seedInfo.textContent = `seed: ${currentSeed}`;
 
   // reset visuals and label tracker
-  cells.forEach(c=>c.classList.remove("on","flow"));
+  cells.forEach(c=>c.classList.remove("on","flow","hall"));
   overlay.innerHTML="";
   labelSvg.innerHTML="";
   clearLabelTracker();
@@ -874,6 +889,9 @@ async function run(seed, wanted){
   window.lastSeed = currentSeed;
   window.lastN = currentN;
 
+  // A blueprint laser bar sweeps the site while the rooms are drawn, over one soft scanner hum
+  const bar = document.createElement("div"); bar.className = "plotBar"; vaultEl.appendChild(bar);
+  SND("scan", Math.min(8, 2.4 + placements.length * 0.35));
   // border sweep (faint to strong, slightly longer)
   await drawLaser({x:0,y:0,w:GRID,h:GRID,label:""}, 1350);
 
@@ -889,6 +907,9 @@ async function run(seed, wanted){
   });
 
   await Promise.all(tasks);
+  bar.classList.add("off"); setTimeout(() => bar.remove(), 500);
+  // Everything that isn't a room is corridor and open floor inside the same building
+  cells.forEach(c => { if(!c.classList.contains("on")) c.classList.add("hall"); });
 }
 
 // init button - change N and rebuild
@@ -991,6 +1012,7 @@ function exitIsometricView(){
   const modePanel = document.getElementById("extrusionModePanel");
   
   vaultEl.classList.remove("tilting-to-iso");
+  placeGridTags([]);
   labelSvg.style.display = "";
   overlay.style.display = "";
   
@@ -1196,6 +1218,8 @@ async function droneFlythrough(placements){
     { transform: "none" },
   ], { duration: dur, easing: "ease-in-out" });
   const log = hud.querySelector(".log"), alt = hud.querySelector(".a");
+  // Keep the room labels pinned to the rooms while the camera moves
+  let live = true; (function follow(){ if(!live) return; rerenderGrid(); requestAnimationFrame(follow); })();
   const lines = [];
   const altTimer = setInterval(() => { alt.textContent = (8 + Math.random() * 6).toFixed(1); }, 180);
   for(const [i, r] of rooms.entries()){
@@ -1207,6 +1231,7 @@ async function droneFlythrough(placements){
     SND("tag");
   }
   await anim.finished.catch(() => {});
+  live = false;
   clearInterval(altTimer);
   window.gridHighlight = null; rerenderGrid();
   hud.remove();
@@ -1221,7 +1246,7 @@ function floorAnalysis(placements){
   const strong = placements.some(r => r.w === r.h);
   const col = rating === "WEAK" ? "bad" : rating === "SECURE" ? "ok" : "yl";
   const why = rating === "WEAK" ? "Few rooms, few guards. A possible way in." : rating === "SECURE" ? "Lots of rooms to guard. Hard to cross." : "Average security.";
-  analysisWin = PNHolo.open({ title: `FLOOR ANALYSIS · N=${currentN}`, flag: rating, x: 84, y: 30, w: 300, tilt: -16,
+  analysisWin = PNHolo.open({ title: `FLOOR ANALYSIS · N=${currentN}`, flag: rating, x: 87, y: 28, w: 300, tilt: -16,
     html: `ROOMS <span class="yl">${placements.length}</span> (${pairs} factor pair${pairs === 1 ? "" : "s"}, both ways round)<br>DOORS <span class="yl">${placements.length}</span> · FIRE EXITS <span class="yl">1</span><br>${strong ? '<span class="yl">STRONGROOM</span> present<br>' : ""}SECURITY <span class="${col}">${rating}</span><br><span class="k">${why}</span>` });
 }
 
@@ -1244,10 +1269,10 @@ const EXTRUSION_MODES = {
 };
 
 const TILT_ANGLES = {
-  60: "rotateX(60deg) rotateZ(-18deg) scale(0.92)",
-  65: "rotateX(65deg) rotateZ(-18deg) scale(0.92)",
-  70: "rotateX(70deg) rotateZ(-18deg) scale(0.92)",
-  75: "rotateX(75deg) rotateZ(-18deg) scale(0.92)"
+  60: "rotateX(60deg) rotateZ(-18deg) scale(1.18)",
+  65: "rotateX(65deg) rotateZ(-18deg) scale(1.18)",
+  70: "rotateX(70deg) rotateZ(-18deg) scale(1.18)",
+  75: "rotateX(75deg) rotateZ(-18deg) scale(1.18)"
 };
 window.currentTiltAngle = 65;
 
@@ -1432,33 +1457,69 @@ function renderRectCuboids(ctx, rects, GRID, cellSize, gap, heightPx, mode=1){
     ctx.fillStyle = "rgba(47, 191, 138, 0.35)"; ctx.fillRect(x0, y0, cellSize, cellSize);
     ctx.strokeStyle = "rgba(120, 255, 190, 1)"; ctx.lineWidth = 1.5; ctx.strokeRect(x0, y0, cellSize, cellSize);
     ctx.fillStyle = "rgba(160, 255, 210, 1)"; ctx.font = `700 ${Math.max(9, Math.min(13, cellSize * 1.1))}px "Chakra Petch", sans-serif`;
-    ctx.textAlign = "right"; ctx.textBaseline = "middle"; ctx.fillText("FIRE EXIT ▸", x0 - 4, y0 + cellSize / 2);
+    window._exitAt = { x: x0 + cellSize / 2, y: y0 + cellSize / 2 };
   }
 
+  // One building: the whole plate is floor (corridors and open space), with a low outer wall.
+  // Back walls go behind the rooms, front walls in front of them (see-through).
+  const step0 = cellSize + gap, full = GRID * step0 - gap;
+  const mc = EXTRUSION_MODES[mode] || EXTRUSION_MODES[1], wh = heightPx * 0.4, wx = mc.hx(wh), wy = mc.hy(wh);
+  ctx.fillStyle = "rgba(40, 110, 120, 0.16)"; ctx.fillRect(0, 0, full, full);
+  const wall = (x0, y0, x1, y1, a) => {
+    ctx.fillStyle = `rgba(74, 163, 255, ${a})`; ctx.strokeStyle = "rgba(120, 190, 255, 0.7)"; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.lineTo(x1 + wx, y1 + wy); ctx.lineTo(x0 + wx, y0 + wy); ctx.closePath(); ctx.fill(); ctx.stroke();
+  };
+  if(heightPx > 1){ wall(0, 0, full, 0, 0.14); wall(0, 0, 0, full, 0.10); wall(full, 0, full, full, 0.10); }
   // Draw each rectangle as a cuboid
   for(const rect of sorted){
     drawCuboid(ctx, rect, cellSize, gap, heightPx, mode);
   }
+  if(heightPx > 1) wall(0, full, full, full, 0.07);
 
-  // Labels on the rooms themselves (feedback: label the cuboids), once they've risen
+  // Labels on the rooms, as crisp HTML over the view (text painted on the tilted canvas looked pixelated)
   if(heightPx > 1){
     const modeConfig = EXTRUSION_MODES[mode] || EXTRUSION_MODES[1];
     const hx = modeConfig.hx(heightPx), hy = modeConfig.hy(heightPx), step = cellSize + gap;
-    for(const r of sorted){
-      const w = r.w * step, h = r.h * step, cx = r.x * step + w / 2 + hx, cy = r.y * step + h / 2 + hy;
-      const name = roomName(r), dims = `${Math.min(r.w, r.h)}×${Math.max(r.w, r.h)}`;
-      const size = Math.max(8, Math.min(14, cellSize * 1.15));
-      ctx.font = `700 ${size}px "Chakra Petch", sans-serif`;
-      const tw = Math.max(ctx.measureText(name).width, ctx.measureText(dims).width);
-      const hot = window.gridHighlight === r;
-      if(tw > w - 4 || size * 2.3 > h){ if(!hot) continue; }   // too small: only the drone's current room gets a label
-      ctx.textAlign = "center"; ctx.textBaseline = "middle";
-      ctx.fillStyle = hot ? "rgba(40, 20, 0, 0.95)" : "rgba(3, 25, 20, 0.9)";
-      ctx.fillText(name, cx, cy - size * 0.55);
-      ctx.font = `700 ${size * 0.95}px "Courier Prime", monospace`;
-      ctx.fillText(dims, cx, cy + size * 0.6);
+    const spots = sorted.map(r => ({ key: r, x: r.x * step + r.w * step / 2 + hx, y: r.y * step + r.h * step / 2 + hy,
+      html: `${roomName(r)}<small>${Math.min(r.w, r.h)}×${Math.max(r.w, r.h)}</small>`, hot: window.gridHighlight === r }));
+    if(window._exitAt) spots.push({ key: "exit", x: window._exitAt.x, y: window._exitAt.y, html: "FIRE EXIT", exit: true });
+    placeGridTags(spots);
+  } else placeGridTags([]);
+}
+window.addEventListener("resize", () => rerenderGrid());
+window.addEventListener("scroll", () => rerenderGrid(), { passive: true });
+// Projects canvas points to the screen with tiny probe elements inside the tilted canvas wrapper,
+// then places plain (untilted) labels there
+const gridTagEls = new Map(), gridProbes = new Map();
+function placeGridTags(spots){
+  const wrapEl = document.querySelector(".vault3d-wrap");
+  let layer = document.querySelector(".gridTags");
+  if(!layer){ layer = document.createElement("div"); layer.className = "gridTags"; document.body.appendChild(layer); }
+  const seen = new Set(), pad = window.gridPad || { h: 0, v: 0 };
+  spots.forEach(sp => {
+    seen.add(sp.key);
+    let pr = gridProbes.get(sp.key);
+    if(!pr){ pr = document.createElement("i"); pr.style.cssText = "position:absolute;width:1px;height:1px;pointer-events:none"; wrapEl.appendChild(pr); gridProbes.set(sp.key, pr); }
+    pr.style.left = (pad.h + sp.x) + "px"; pr.style.top = (pad.v + sp.y) + "px";
+    let el = gridTagEls.get(sp.key);
+    if(!el){ el = document.createElement("div"); layer.appendChild(el); gridTagEls.set(sp.key, el); }
+    el.className = "gridTag" + (sp.hot ? " hot" : "") + (sp.exit ? " exit" : "");
+    el.innerHTML = sp.html;
+    const q = pr.getBoundingClientRect();
+    el.style.left = q.left + "px"; el.style.top = q.top + "px";
+  });
+  // Nudge labels apart so neighbouring rooms' labels never sit on top of each other
+  const boxes = [];
+  [...gridTagEls.values()].sort((a, b) => parseFloat(a.style.top) - parseFloat(b.style.top)).forEach(el => {
+    const w = el.offsetWidth, h = el.offsetHeight, x = parseFloat(el.style.left);
+    let y = parseFloat(el.style.top), moved = true, guard = 0;
+    while(moved && guard++ < 8){
+      moved = false;
+      for(const b of boxes){ if(Math.abs(x - b.x) < (w + b.w) / 2 + 4 && Math.abs(y - b.y) < (h + b.h) / 2 + 2){ y = b.y + (h + b.h) / 2 + 3; moved = true; } }
     }
-  }
+    el.style.top = y + "px"; boxes.push({ x, y, w, h });
+  });
+  [...gridTagEls.keys()].forEach(k => { if(!seen.has(k)){ gridTagEls.get(k).remove(); gridTagEls.delete(k); const p = gridProbes.get(k); if(p){ p.remove(); gridProbes.delete(k); } } });
 }
 function rerenderGrid(){
   const a = window.animationState; if(!a) return;
@@ -1495,6 +1556,7 @@ function animateRectExtrusion(canvas, rects, GRID, duration=650){
   
   // Translate canvas context to account for padding
   ctx.setTransform(dpr, 0, 0, dpr, horizontalPad * dpr, verticalPad * dpr);
+  window.gridPad = { h: horizontalPad, v: verticalPad };
   
   console.log("Canvas setup: gridW=", gridW, "gridH=", gridH, "cellSize=", cellSize, "gap=", gap, "GRID=", GRID, "canvasW=", canvasW, "canvasH=", canvasH);
   console.log("Padding: horizontalPad=", horizontalPad, "verticalPad=", verticalPad);

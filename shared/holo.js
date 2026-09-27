@@ -6,7 +6,9 @@
   "use strict";
   const css = `
   .pnHoloLayer{ position:fixed; inset:0; z-index:8500; pointer-events:none; perspective:1100px; }
-  .pnHolo{ position:absolute; transform-style:preserve-3d; transform:translate(-50%,-50%) rotateY(var(--tilt,0deg)) rotateX(var(--tiltx,0deg)); }
+  .pnHolo{ position:absolute; transform-style:preserve-3d; transform:translate(-50%,-50%) rotateY(var(--tilt,0deg)) rotateX(var(--tiltx,0deg)); transition:transform .6s ease; }
+  /* Feedback round 6: tilted text looked pixelated, so windows swing in at an angle and settle flat */
+  .pnHolo.settled{ transform:translate(-50%,-50%); }
   .pnHolo .hw{ position:relative; color:#dff8ff; font-family:var(--font-mono, "Courier Prime", monospace); font-size:15px; line-height:1.45;
     background:linear-gradient(160deg, rgba(110,220,255,.16), rgba(110,220,255,.05) 60%, rgba(110,220,255,.10));
     border:1px solid rgba(140,235,255,.75); box-shadow:0 0 26px rgba(110,220,255,.35), inset 0 0 34px rgba(110,220,255,.12);
@@ -52,6 +54,7 @@
     if(sound && window.PNSound) PNSound.play("holo");
     requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add("line")));
     setTimeout(() => el.classList.add("open"), 200 / speed());
+    setTimeout(() => el.classList.add("settled"), 420 / speed());
     let closed = false;
     const api = {
       el, body: el.querySelector(".hb"),

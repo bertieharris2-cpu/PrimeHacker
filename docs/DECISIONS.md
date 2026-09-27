@@ -202,3 +202,16 @@ Every idea is a "maybe until I see it". Build these as prototypes to look at bef
 - ORACLE stays the only voice on the radio for now (a named crew member is still an open question)
 - Laser corridor: out of the route, kept in the code and previewable from the teacher controls. Its place in the story is to be decided
 - Next: finish the 3D floor-plan sequence, then write the bank mission script, then build the tech company and museum variants
+
+## Play-test feedback 6 (3D sequence review)
+
+- [x] Drag tray: each array is drawn both ways round (3 × 8, then 8 × 3) before the pair counts. The tray is deeper so most pairs fit turned round; a square only needs drawing once, and a pair too tall to turn round (1 × 24) says so and counts
+- [x] Vault Grid sounds: the laser, seal and fill ticks are gone. One soft scanner hum covers the build, with a quiet plotter tick per room
+- [x] A blueprint laser bar sweeps the site while the rooms are drawn
+- [x] Wider stage, so the room labels at the sides are no longer cut off
+- [x] One building: everything that isn't a room is shaded as corridors and open floor, and in 3D the plate has a floor and a low outer wall. The legend now says what each colour means
+- [x] Sharp text: room labels in 3D are ordinary text placed over the view (they were painted on the tilted canvas, which blurred them), nudged apart so they never overlap. Holographic windows swing in at an angle and settle flat. The title panels are flat
+- [x] 3D floor is bigger in its stage
+- [x] Blueprint fits on one screen: floor labels on the left with more room, the building in the middle, intel down the right, and the Prime Hack button always visible (enabled once the route is planned)
+- [x] Recon: a sheet of light rises up the building and reveals the stairs on every floor, a guard in each room (red dots), the CEO on the top floor and the key on the weak floor
+- [x] Route: the agent is a glowing dot on the street. A dashed route with arrows is drawn in through the ground-floor fire exit, up the stairs to the weak floor and across to the key, then the dot walks it
