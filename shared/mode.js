@@ -66,6 +66,11 @@
   .pnm-type .meter{ height:14px; border:1px solid #2fbf8a; } .pnm-type .meter i{ display:block; height:100%; width:0; background:#2fbf8a; box-shadow:0 0 14px #2fbf8a; }
   .pnm-type .hint{ font-family:"Chakra Petch", sans-serif; font-size:18px; letter-spacing:.1em; color:#eafff4; text-align:center; }
   .pnm-type .hint kbd{ font:inherit; font-weight:700; color:#03170e; background:#2fbf8a; padding:2px 8px; }
+  .pnm-chap{ position:fixed; inset:0; z-index:9420; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; pointer-events:none;
+    background:radial-gradient(ellipse at 50% 50%, rgba(4,26,36,.92), rgba(1,8,12,.96)); opacity:0; transition:opacity .3s; font-family:"Chakra Petch", sans-serif; }
+  .pnm-chap.on{ opacity:1; }
+  .pnm-chap small{ font-size:18px; letter-spacing:.4em; color:#8feaff; }
+  .pnm-chap b{ font-size:clamp(34px,6vw,72px); letter-spacing:.14em; color:#eafcff; text-shadow:0 0 30px rgba(110,220,255,.5); text-transform:uppercase; }
   @media (max-width:900px){ .pnm .stages{ display:none; } .pnm-rain{ display:none; } }
   @media (prefers-reduced-motion: reduce){ .pnm{ transition:none; } .pnm.pulse .chip, .pnm-type .code::after{ animation:none; } }
   html.pn-reduce-motion .pnm.pulse .chip{ animation:none; }`;
@@ -114,29 +119,51 @@
     requestAnimationFrame(() => bar.classList.add("on"));
   }
 
-  // ---------- Stage strip ----------
-  let moneyShown = false;
+  // ---------- Chapter strip (round 15: the mission as chapters of a heist film) ----------
+  const CHAPTERS = [
+    { key: "intercept", name: "INTERCEPT" }, { key: "decrypt", name: "DECRYPT" }, { key: "building", name: "BUILDING" },
+    { key: "plan", name: "PLAN" }, { key: "heist", name: "HEIST" }, { key: "vault", name: "VAULT" }, { key: "money", name: "£" },
+  ];
+  let moneyShown = false, forced = null;
   function where(){
     const p = location.pathname;
     const floors = (() => { try{ return (JSON.parse(localStorage.getItem("blueprintProgress") || "[]") || []).length; }catch(e){ return 0; } })();
+    if(forced) return { now: forced };
     if(/briefing/.test(p)) return { now: "brief" };
-    if(/prime_frequency_scan/.test(p)) return { now: "scan" };
-    if(/factor_vault/.test(p)) return { now: "vault", floor: Math.min(3, floors + 1) };
-    if(/vault_grid_demo/.test(p)) return { now: "vault", floor: Math.max(1, Math.min(3, floors)) };
-    if(/vault_blueprint_viewer/.test(p)) return { now: "blueprint" };
-    if(/prime_hack/.test(p)) return { now: moneyShown ? "money" : "hack" };
+    if(/prime_frequency_scan/.test(p)) return { now: "intercept" };
+    if(/target_locked/.test(p)) return { now: "decrypt", floor: 1 };
+    if(/factor_vault/.test(p)) return { now: "decrypt", floor: Math.min(3, floors + 1) };
+    if(/vault_grid_demo/.test(p)) return { now: "decrypt", floor: Math.max(1, Math.min(3, floors)) };
+    if(/vault_blueprint_viewer/.test(p)) return { now: "building" };
+    if(/prime_hack/.test(p)) return { now: moneyShown ? "money" : "vault" };
     return null;
   }
   function renderStages(){
     if(!bar) return;
     const box = bar.querySelector(".stages"), w = where();
     if(!w || PRACTICE){ box.style.display = "none"; return; }
-    const order = ["scan", "vault", "blueprint", "hack", "money"], at = order.indexOf(w.now);
-    const cls = k => { const i = order.indexOf(k); return w.now === "brief" ? "" : i < at ? "done" : i === at ? "now" : ""; };
+    const order = CHAPTERS.map(c => c.key), at = order.indexOf(w.now);
     const wallet = (() => { try{ const a = PN && PN.getAgent && PN.getAgent(); return a && PN.walletOf ? PN.walletOf(a.codename) : 0; }catch(e){ return 0; } })();
-    const floors = w.now === "vault" ? ` ${[1, 2, 3].map(n => n < w.floor ? "●" : n === w.floor ? "◉" : "○").join("")}` : "";
-    box.innerHTML = `<span class="st ${cls("scan")}">SCAN</span><span class="st ${cls("vault")}">VAULT${floors}</span><span class="st ${cls("blueprint")}">BLUEPRINT</span><span class="st ${cls("hack")}">HACK</span>`
-      + `<span class="st money ${cls("money")}" title="The money comes after the hack">£ ${moneyShown ? `<small>THE MONEY</small>` : `<small>AFTER THE HACK</small>`}${wallet ? ` · WALLET £${Number(wallet).toLocaleString("en-GB")}` : ""}</span>`;
+    box.innerHTML = CHAPTERS.map((c, i) => {
+      const cls = w.now === "brief" ? "" : i < at ? "done" : i === at ? "now" : "";
+      if(c.key === "money") return `<span class="st money ${cls}" title="The money comes after the vault">£ ${moneyShown ? `<small>THE MONEY</small>` : `<small>AFTER THE VAULT</small>`}${wallet ? ` · £${Number(wallet).toLocaleString("en-GB")}` : ""}</span>`;
+      const floors = c.key === "decrypt" && w.now === "decrypt" && w.floor ? ` ${[1, 2, 3].map(n => n < w.floor ? "●" : n === w.floor ? "◉" : "○").join("")}` : "";
+      return `<span class="st ${cls}">${c.name}${floors}</span>`;
+    }).join("");
+  }
+  // PNMode.chapter("plan") : which chapter this page is on now (the blueprint page moves through three)
+  function chapter(key){ forced = key; if(bar) renderStages(); }
+  // PNMode.chapterCard(3, "Decrypt the plans") : a short title card between chapters, ~1.6 s, as a WATCH
+  function chapterCard(num, title, { seconds = 1.6 } = {}){
+    if(EMBED || PRACTICE) return Promise.resolve();
+    build();
+    const card = document.createElement("div"); card.className = "pnm-chap"; card.setAttribute("role", "status");
+    card.innerHTML = `<small>CHAPTER ${num}</small><b>${title}</b>`;
+    document.body.appendChild(card);
+    const h = watch(title, { seconds });
+    SND("scanline");
+    requestAnimationFrame(() => card.classList.add("on"));
+    return new Promise(r => setTimeout(() => { card.classList.remove("on"); setTimeout(() => { card.remove(); h.end(); r(); }, 350); }, seconds * 1000 / speed()));
   }
 
   // ---------- WATCH / YOUR TURN ----------
@@ -214,5 +241,5 @@
   function money(){ moneyShown = true; renderStages(); }
   function refresh(){ renderStages(); }
 
-  window.PNMode = { watch, turn, done, idle, during, typeThrough, money, refresh, codeLine, get state(){ return state; } };
+  window.PNMode = { watch, turn, done, idle, during, typeThrough, money, refresh, codeLine, chapter, chapterCard, get state(){ return state; } };
 })();

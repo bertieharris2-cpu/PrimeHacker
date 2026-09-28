@@ -7,15 +7,16 @@
   "use strict";
   const PN = window.Primenet;
   const qs = new URLSearchParams(location.search);
+  // Round 15: ORACLE's line as each twist starts, in the heist story
   const INTRO = {
-    sieve:      "Change of plan: their motion sensors run on number patterns. Knock out everything that isn't prime.",
-    strongroom: "Hold on. This floor has a strongroom with a pressure-plated floor. Map it before we move on.",
-    walls:      "Deposit boxes on this floor. Work out which rectangles fit the wall and we'll know where the key is.",
-    primefloor: "One of these floors is a fake. Prove which ones are real.",
-    cubes:      "Lights are on, and so are their cameras. The ceiling relays power them. Knock them out.",
-    patrols:    "Recon update: more guards than we expected. Watch the camera and work out when they're at the door, so we slip in past them.",
-    factortree: "Crew's at the key room door. It's bolted, and the bolts want prime factors.",
+    corrupt:    "Interference. One floor came through wrong. Fix the plan before we go in.",
+    patrols:    "Guards on the door. Watch their timings and we slip past.",
+    cubes:      "Fuse box. Wire the relays and we black out their cameras.",
+    walls:      "Change of plan. The key card is in a deposit box in the basement.",
+    strongroom: "Strongroom ahead. The floor is pressure plated. Find the safe way across.",
+    factortree: "We're at the key room door. It's bolted, and the bolts want prime factors.",
   };
+
   const css = `
   .pnts{ position:fixed; inset:0; z-index:99980; background:rgba(2,8,10,.94); display:flex; align-items:center; justify-content:center; }
   .pnts-card{ font-family:"Chakra Petch",sans-serif; text-align:center; color:#ffc94d; letter-spacing:.2em; display:flex; flex-direction:column; gap:10px; animation:pntsIn .4s ease-out; }
@@ -32,11 +33,18 @@
   @keyframes pntsIn{ from{ opacity:0; transform:scale(1.15); } }`;
   let styled = false;
   // Round 14: a twist never opens in the middle of a WATCH section; it waits for the cinematic to finish
-  async function run(point){
+  // run(point, { intro }) : intro is an async function the page plays first (its own cinematic of what's happening,
+  // e.g. the crew walking to the fuse box). With an intro there's no generic CHANGE OF PLAN card.
+  async function run(point, opts = {}){
     if(window.PNMode) await PNMode.idle();
-    return runNow(point);
+    if(!PN || !PN.twistAt || qs.get("notwist")) return null;
+    const t = PN.twistAt(point) || (qs.get("twist") && PN.TWISTS.find(x => x.id === qs.get("twist") && x.point === point && (x.page || x.proto)));
+    if(!t) return null;
+    if(opts.intro){ try{ await opts.intro(t); }catch(e){} if(window.PNMode) await PNMode.idle(); }
+    return runNow(point, !!opts.intro);
   }
-  function runNow(point){
+  function has(point){ return !!(PN && PN.twistAt && !qs.get("notwist") && (PN.twistAt(point) || (qs.get("twist") && PN.TWISTS.find(x => x.id === qs.get("twist") && x.point === point)))); }
+  function runNow(point, introPlayed){
     if(!PN || !PN.twistAt || qs.get("notwist")) return Promise.resolve(null);
     let t = PN.twistAt(point);
     const force = qs.get("twist") && PN.TWISTS.find(x => x.id === qs.get("twist") && x.point === point && (x.page || x.proto));
@@ -47,9 +55,9 @@
     const o = document.createElement("div"); o.className = "pnts"; o.setAttribute("role", "dialog"); o.setAttribute("aria-label", t.name);
     // Some twists aren't a change of plan: the guards are recon (more guards than we expected)
     const CARD = { patrols: ["RECON UPDATE", "MORE GUARDS THAN EXPECTED"] }[t.id] || ["CHANGE OF PLAN", t.name.toUpperCase()];
-    o.innerHTML = `<div class="pnts-card"><b>${CARD[0]}</b><span>${CARD[1]}</span></div>`;
+    o.innerHTML = introPlayed ? "" : `<div class="pnts-card"><b>${CARD[0]}</b><span>${CARD[1]}</span></div>`;
     // Round 12: the corrupted blueprint arrives as crackling interference over the stage first
-    const STATIC = t.id === "corrupt";
+    const STATIC = t.id === "corrupt" && !introPlayed;
     if(STATIC){
       o.classList.add("static");
       const cv = document.createElement("canvas"); cv.className = "pnts-noise"; cv.width = 320; cv.height = 180; o.appendChild(cv);
@@ -59,8 +67,8 @@
       setTimeout(() => { o.classList.remove("static"); on = false; cv.remove(); }, 1500);
     }
     document.body.appendChild(o); document.body.classList.add("pnts-on");
-    if(window.PNSound) PNSound.play("glitch");
-    if(window.PNHandler && INTRO[t.id]) PNHandler.say(INTRO[t.id]);
+    if(window.PNSound) PNSound.play(introPlayed ? "zoom" : "glitch");
+    if(window.PNHandler && INTRO[t.id] && !introPlayed) PNHandler.say(INTRO[t.id]);
     PN.log("twist-start", { id: t.id, point });
     return new Promise(resolve => {
       setTimeout(() => {
@@ -70,7 +78,7 @@
         f.src = `${page}?level=${lv}&mission=1`; f.title = t.name;
         o.appendChild(f);
         f.addEventListener("load", () => { f.classList.add("on"); try{ f.contentWindow.focus(); }catch(e){} });
-      }, STATIC ? 2600 : 1600);
+      }, STATIC ? 2600 : introPlayed ? 300 : 1600);
       const onMsg = e => {
         const d = e.data || {};
         if(d.type === "pn-twist-say"){ if(window.PNHandler) PNHandler.say(d.text); return; }   // the twist's ORACLE lines use the stage's ORACLE
@@ -83,5 +91,5 @@
       window.addEventListener("message", onMsg);
     });
   }
-  window.PNTwistSlot = { run };
+  window.PNTwistSlot = { run, has, INTRO };
 })();
