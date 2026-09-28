@@ -41,7 +41,7 @@
     <div>
       <div class="eb">PRIMENET · BANK HEIST</div>
       <h1>TWIST LAB</h1>
-      <p class="lede">Every rotating task from the bank heist map, playable on its own. Pick a level to jump straight in. These pages don't change a mission. Once they're right, the mission will pick one twist at each point.</p>
+      <p class="lede">Every rotating task from the bank heist map, playable on its own. Pick a level to jump straight in. These pages don't change a mission. Each mission plays three of them, each at its own place in the story.</p>
     </div>
     <a class="pn-btn small" href="../index.html" style="text-decoration:none">← Title screen</a>
   </header>
@@ -61,7 +61,7 @@
   const CORR = { L1: [12, 18, 20, 24], L2: [36, 40, 48, 60], L3: [72, 84, 90, 96] };
   const POINTS = [
     // Round 12: new versions that happen in the building (3D floor, the room, the door). Separate pages, so the main game is untouched.
-    { name: "Prototypes (rounds 12 and 13)", when: "In the building, not on a grid. Try them here, or switch missions over to them with the switch at the top. Where a task has options, the first link is the one a mission uses. The deposit-box room, strongroom, ceiling relays and corrupted blueprint are live in every mission now; the rest still need the switch.", items: [
+    { name: "Prototypes (rounds 12 and 13)", when: "In the building, not on a grid. These are the ones missions use: the corrupted blueprint as the building assembles; guard patrols, ceiling relays, deposit boxes (Plan B) and the strongroom during the heist; the key room door in the vault. The sieve is the warm-up on the title screen. Where a task has options, the first link is the one a mission uses.", items: [
       { id: "corrupt", t: "Corrupted blueprint", d: "Arrives with crackling interference as the blueprint's floors assemble. A spatial puzzle: fit a mix of room arrays onto a 16 × 11 floor around blacked-out corridors, open space, the lift, stairs and fire exit. Tap a room to turn it. When it fits, the rooms rise in 3D and the floor rejoins the building.", m: "factors", mn: "Arrays and area", page: "twist_corrupt.html", isNew: 1, other: 1 },
       { id: "cubes3d", t: "Ceiling relays (two options)", d: "Their own floor in 3D, large on the left. Option A, Stack the relay: drag a square layer onto the pallet, then stack layers until the count is the room's cube number (27 = 3³). Option B, Load the crates: cube crates roll down a conveyor into the transformer bay; load the cube numbers, reject the rest. Both end with the relay board and the blackout, which then takes the blueprint's floors dark one by one.", m: "cubes", mn: "Cube numbers (3³)", page: "twist_cubes3d.html", links: L("twist_cubes3d.html", [["", "A · stack"], ["mode=B", "B · crates"]]), isNew: 1, other: 1 },
       { id: "door2", t: "Key room door (two options)", d: "A first-person walk-up to the door and its keypad. Option A: factor trees, then key the primes into the keypad in any order; a live line shows what your code makes. Option B: the number is an array of lights you cut into equal strips until a strip can't be cut (a prime). Bigger numbers than before, a third bolt at L3, and why primes matter (card encryption).", m: "pfact", mn: "Prime factorisation", page: "twist_door2.html", links: L("twist_door2.html", [["", "A · tree"], ["mode=B", "B · arrays"]]), isNew: 1, other: 1 },
@@ -70,18 +70,18 @@
       { id: "sieve2", t: "Motion-sensor sieve (two options)", d: "Choose each prime yourself and its multiples switch off. Then the corridor run: the sieved corridor in perspective, prime sensors sweeping lasers, our agent running through, and ORACLE on why the sieve works. Default (calm): at L2 and L3 someone sieved before you and you must say which prime they used from the dark sensors. Option A, under pressure: no hints at L2/L3, a wrong prime costs a strike, and a guard's torch creeps along the corridor.", m: "primes", mn: "Primes and multiples", page: "twist_sieve2.html", links: L("twist_sieve2.html", [["", "Default · calm"], ["mode=A", "A · pressure"]]), isNew: 1, other: 1 },
       { id: "strongroom3d", t: "The strongroom (two options)", d: "The camera pushes in on the strongroom on their 3D floor. Stage 1 lays its square floors: each one becomes a coloured array card stacked in the room, then a multi-coloured snake scans the plates. Stage 2 is inside the room: big numbered pressure plates. Default (B): only square plates are safe and only in order (1, 4, 9, 16…), so you tap the next square each time. Option A: the square-numbered plates are live, mark every one and the agent walks round them to the safe.", m: "squares", mn: "Square numbers", page: "twist_strongroom3d.html", links: L("twist_strongroom3d.html", [["", "B · in order"], ["mode=A", "A · live plates"]]), isNew: 1, other: 1 },
     ] },
-    { name: "Frequency Scan", when: "After the scan, before the vault", items: [
+    { name: "Older version: sieve", when: "Not in missions. The title-screen warm-up uses the new sieve above.", items: [
       { id: "sieve", t: "Motion-sensor sieve", d: "Knock out every number that isn't prime, a prime at a time. The last prime's multiples are found by hand.", m: "primes", mn: "Primes and multiples", page: "twist_sieve.html", isNew: 1 },
       { id: "jammer", t: "Jammer", d: "Already in every band of the Frequency Scan. In the rotation it will only appear in band 2.", m: "multiples", mn: "Multiples", link: `<a href="prime_frequency_scan.html">Open the scan</a><small>uses the title-screen level</small>` },
     ] },
-    { name: "Factor Vault", when: "After floor 2 is mapped", items: [
+    { name: "Older versions: strongroom and deposit boxes", when: "Not in missions. Missions use the 3D versions above, during the heist.", items: [
       { id: "strongroom", t: "Square strongroom", d: "Step 1 builds the square room (L1 drag, L2 can it be square?, L3 side length). Step 2 finds the live pressure plates: the square numbers (L1 to 48, L2 to 150, L3 to 400). Replaces square channels.", m: "squares", mn: "Square numbers", page: "twist_strongroom.html", isNew: 1 },
       { id: "walls", t: "Deposit-box walls", d: "Which rectangles of boxes fit on the wall? The ones that fit slide in as deposit boxes and one glows gold: the key box. L1 lets you drag boxes out to experiment.", m: "factors", mn: "Factor pairs", page: "twist_walls.html", isNew: 1 },
     ] },
-    { name: "Blueprint", when: "Once the building's lights come on", items: [
+    { name: "Older version: ceiling relays", when: "Not in missions. Missions use the 3D version above, at the fuse box.", items: [
       { id: "cubes", t: "Ceiling relays (cubes)", d: "Power the relays in the target floor's ceiling. L1: build cubes with + and −. L2: draw each cube layer by layer. L3: give the cube root. Then find the cube numbers on the relay board; each one lights a circuit.", m: "cubes", mn: "Cube numbers", page: "twist_cubes.html", isNew: 1 },
     ] },
-    { name: "Getting in", when: "New step between the Blueprint and Prime Hack", items: [
+    { name: "Older versions: getting in", when: "Not in missions. Missions use the 3D guard patrols above, at the way in.", items: [
       { id: "patrols", t: "Guard patrols", d: "Mark each guard's timetable, find when both meet (the LCM), then open the door in a safe gap.", m: "lcm", mn: "Multiples and LCM", page: "twist_patrols.html", isNew: 1 },
       { id: "corridor", t: "Laser corridor", d: "Step only on the factors of N, in order.", m: "factors", mn: "Factors", corridor: 1 },
     ] },

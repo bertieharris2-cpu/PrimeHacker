@@ -1097,17 +1097,17 @@ html.pn-mode-on .devPanel{ top: calc(var(--pn-mode-h, 62px) + 50px); }
       <div class="perk">${decoders ? `Strong signal: ${decoders} decoder charge${decoders === 1 ? "" : "s"} for the Factor Vault. Each one cracks a factor pair for you.` : "Weak signal: no decoder charges this time. A cleaner scan earns them."}</div>` });
     const sub = el("div", { class: "sub", text: "All bands verified. Secure channels stabilised." });
 
-    MODE.turn("Head to the vault");
+    MODE.turn("Lock on to the target");
     const proceed = el("button", {
       class: "pn-go",
-      text: "PROCEED TO THE VAULT",
+      text: "PROCEED TO THE TARGET",
       onClick: async () => {
         proceed.disabled = true; restart.disabled = true;
-        setConsole("ROUTE SET", "Next module: FACTOR VAULT.");
+        setConsole("ROUTE SET", "Next: LOCK ON TO THE TARGET.");
         if(PN) PN.log("scan-complete", { signal, bands: CONFIG.bands.map(b => `${b.start}-${b.end}`) });
-        if(window.PNTwistSlot) await PNTwistSlot.run("scan");   // round 11: a twist here if the mission has one (never inside a WATCH)
-        const w = MODE.watch("Access granted. Going to the vault", { seconds: 2.4 });
-        flashAccessGranted(() => { w.end(); window.PNGlitch ? PNGlitch.go("factor_vault.html") : (location.href = "factor_vault.html"); });
+        // Round 15: no twist here any more; the scan goes straight on to the target (chapter 2 opener)
+        const w = MODE.watch("Access granted. Locking on to the target", { seconds: 2.4 });
+        flashAccessGranted(() => { w.end(); window.PNGlitch ? PNGlitch.go("target_locked.html") : (location.href = "target_locked.html"); });
       }
     });
 
@@ -1366,10 +1366,11 @@ html.pn-mode-on .devPanel{ top: calc(var(--pn-mode-h, 62px) + 50px); }
     });
     PNTest.add("Finish the live intercept", () => { if(interceptDone) interceptDone(); else return "The intercept isn't running."; });
     PNTest.skip("Solve this band", () => { if(state === State.INTERCEPT){ if(interceptDone) interceptDone(); return "Intercept finished."; } verifyBand(tagPrimes()); });
-    PNTest.add("Skip to Factor Vault", () => { if(PN) PN.log("scan-complete"); location.href = "factor_vault.html"; });
+    PNTest.add("Skip to Target locked", () => { if(PN) PN.log("scan-complete"); location.href = "target_locked.html"; });
   }
 
-  renderBoot();
+  // Round 15: chapter card first, then the boot
+  (window.PNMode && PNMode.chapterCard ? PNMode.chapterCard(1, "Intercept") : Promise.resolve()).then(renderBoot, renderBoot);
 
   // Keyboard convenience: Enter triggers primary button on BRIEF/COMPLETE
   document.addEventListener("keydown", (e) => {

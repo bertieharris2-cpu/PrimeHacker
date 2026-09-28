@@ -903,7 +903,7 @@ body{ font-size: var(--font-size); }
       <!-- CENTER TABLE -->
       <div class="panel-center">
         <div class="seccam" id="secCam" aria-hidden="true"><div class="cone"></div><div class="body"></div></div>
-        <div class="n-badge" id="nBadge" aria-live="polite"><div class="big">N = <span id="nBig">12</span></div><div class="sub" id="nSub">FLOOR 1 OF 3 · FIND EVERY PAIR THAT MAKES 12</div></div>
+        <div class="n-badge" id="nBadge" aria-live="polite"><div class="big">N = <span id="nBig">12</span></div><div class="sub" id="nSub">FLOOR 1 OF 3 · ENCRYPTED WITH 12</div></div>
         <h2>Factor Pairs</h2>
         <div class="strip">
           <div class="cam-status" id="camStatus" title="Submitting while the camera watches the terminal raises the alert. Three alerts lock the terminal for a moment."><span>Cam</span><span class="state">Clear</span><span class="alert"><i></i><i></i><i></i></span></div>
@@ -1544,7 +1544,7 @@ body{ font-size: var(--font-size); }
           setMode("Blueprint Decryption");
           setHint(`All pairs verified. Reconstructing floor plan for N=${N}…`);
           submitAllBtn.disabled = true;
-          if(window.PNMode) PNMode.watch(`Floor ${floorDone} solved. Building it…`, { seconds: 1.8 + 0.52 });
+          if(window.PNMode) PNMode.watch(`Floor ${floorDone} decrypted. Building it…`, { seconds: 1.8 + 0.52 });
           setTimeout(() => (window.PNGlitch ? PNGlitch.go(`vault_grid_demo.html?n=${N}`, { style: "sweep" }) : (location.href = `vault_grid_demo.html?n=${N}`)), 1800);
         }
       } else if(totalEntered === 0){
@@ -1900,7 +1900,7 @@ body{ font-size: var(--font-size); }
       setMode("Vault Analysis Terminal");
       const floor = Math.min(getCompletedLevels().length + 1, FLOORS_NEEDED);
       requestAnimationFrame(fitBadge);
-      document.getElementById("nSub").textContent = PRACTICE ? `PRACTICE · FIND EVERY PAIR THAT MAKES ${N}` : `FLOOR ${floor} OF ${FLOORS_NEEDED} · FIND EVERY PAIR THAT MAKES ${N}`;
+      document.getElementById("nSub").textContent = PRACTICE ? `PRACTICE · FIND EVERY PAIR THAT MAKES ${N}` : `FLOOR ${floor} OF ${FLOORS_NEEDED} · ENCRYPTED WITH ${N}`;
       setHint(PRACTICE ? `Practice: find all ${allPairs.length} factor pairs for N=${N}.` : `Floor ${floor} of ${FLOORS_NEEDED}: find all ${allPairs.length} factor pairs for N=${N}.`);
       if(PN && !PRACTICE) PN.log("vault", { floor, n: N, level: currentDifficulty });
       floorMisses = 0;
@@ -1928,9 +1928,9 @@ body{ font-size: var(--font-size); }
     function floorIntro(floor){
       const badge = document.getElementById("nBadge");
       badge.classList.remove("pulse"); void badge.offsetWidth; badge.classList.add("pulse");
-      if(window.PNMode) PNMode.turn(`Find every pair that makes ${N}`);
+      if(window.PNMode) PNMode.turn(PRACTICE ? `Find every pair that makes ${N}` : `Find every pair that makes ${N} to decrypt floor ${floor}`);
       if(!PRACTICE && window.PNHandler) PNHandler.once(`vault-floor-${floor}-${N}`, [
-        "This is {target}'s vault system. Each factor pair of N is a room on one floor. Find every pair and we can map it.",
+        "These are {target}'s plans. Each factor pair of N is a room on this floor. Find every pair and the floor decrypts.",
         "Floor two. Same drill: every pair, and don't forget 1 × N.",
         "Last floor, {agent}. Then we'll have the whole building.",
       ][floor - 1] || "Find every pair.", { delay: 900 });

@@ -3341,7 +3341,7 @@ hiddenInput.addEventListener("keydown", async (e)=>{
 });
 
 // --- Boot
-function boot(){
+async function boot(){
   MODE = "math";   // roleplay is its own terminal now (title screen → Roleplay terminal). The first-lock hint appears via updateRunUI.
   btnMode.style.display = "none";
   setDiff(PN ? PN.level() : "L1");   // the level chosen on the title screen
@@ -3378,6 +3378,8 @@ function boot(){
     const g = PN.shopItem(loot.equip.gadget);
     if(g && g.perk && g.perk.trace){ const tl = document.querySelector(".trace .tl span"); if(tl) tl.insertAdjacentHTML("beforeend", `<small class="gad" style="display:block;margin:2px 0 0;color:#7dffc4">${g.name.toUpperCase()} ON · CLIMBS SLOWER</small>`); }
   }
+  // Round 15: chapter 6 title card before the intro lines (not in practice)
+  if(!PRACTICE && window.PNMode && PNMode.chapterCard){ try{ await PNMode.chapterCard(6, "The vault"); }catch(e){} }
   const target = Bank.getCurrentAccount();
   const howMany = PRACTICE ? "Two" : "Four";
   addLine(PRACTICE ? "PRIME HACK // PRACTICE" : "PRIME HACK // TERMINAL ONLINE", "ok");

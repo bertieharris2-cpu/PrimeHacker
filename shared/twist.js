@@ -119,10 +119,11 @@
     const lv = ["L1", "L2", "L3"].map(l => { const u = new URL(location.href); u.searchParams.set("level", l); return `<a href="${u.pathname.split("/").pop()}${u.search}" aria-current="${l === level}">${l}</a>`; }).join("");
     head.innerHTML = MISSION
       ? `<div class="l"><span class="eb">${eyebrow || "CHANGE OF PLAN"} · ${level}</span><h1>${title}</h1></div>`
+      : qs.get("warmup") === "1" ? `<div class="l"><span class="eb">WARM-UP · OPTIONAL</span><h1>${title}</h1></div><div class="r"><a class="pn-btn small" href="../index.html" style="text-decoration:none">Main menu</a></div>`
       : `<div class="l"><span class="eb">TWIST LAB · ${stage}</span><h1>${title}</h1></div>
       <div class="r"><nav class="tw-lv" aria-label="Level">${lv}</nav><button class="pn-btn small" type="button" id="twNew">New round</button><a class="pn-btn small" href="twist_lab.html" style="text-decoration:none">Twist Lab</a></div>`;
     wrap.prepend(head);
-    if(!MISSION) head.querySelector("#twNew").addEventListener("click", () => location.reload());
+    if(!MISSION && head.querySelector("#twNew")) head.querySelector("#twNew").addEventListener("click", () => location.reload());
     buildBrief(goal || brief || "", example, briefTitle, context || story);
     if(story && window.PNHandler && !EMBED) setTimeout(() => PNHandler.say(story), 500);   // in a mission the stage's ORACLE introduces it
     if(PN) PN.log("twist", { id, level });

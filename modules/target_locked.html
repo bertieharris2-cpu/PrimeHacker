@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="en" class="phase-build">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PRIMENET · Target Locked</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Inter:wght@400;600;700;800&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../shared/primenet.css">
+<style>
+  /* Round 15: chapter 2 opener. A hologram of the bank's building from the outside (no floor plans yet: they're
+     encrypted), then TARGET LOCKED and ORACLE's line about decrypting each floor. About 6 seconds, WATCH, skippable. */
+  html, body{ height:100%; }
+  body{ margin:0; overflow:hidden; background:radial-gradient(ellipse at 50% 55%, #0b2a33 0%, #04101a 55%, #01060a 100%); color:var(--text-primary); font-family:var(--font-ui); }
+  .tl-stage{ position:fixed; inset:0; }
+  .tl-stage canvas{ display:block; width:100%; height:100%; }
+  .tl-scan{ position:fixed; inset:0; pointer-events:none; z-index:2;
+    background:repeating-linear-gradient(0deg, rgba(120,230,255,.05) 0 1px, transparent 1px 4px); mix-blend-mode:screen; }
+  .tl-scan::after{ content:""; position:absolute; left:0; right:0; height:120px; top:-120px;
+    background:linear-gradient(180deg, transparent, rgba(120,230,255,.10), transparent); animation:tlSweep 3.2s linear infinite; }
+  @keyframes tlSweep{ to{ top:100%; } }
+  .tl-vig{ position:fixed; inset:0; pointer-events:none; z-index:2; box-shadow:inset 0 0 180px rgba(0,0,0,.85); }
+  .tl-head{ position:fixed; left:22px; top:calc(var(--pn-mode-h, 62px) + 16px); z-index:3; font-family:var(--font-mono); font-size:13px; letter-spacing:.14em; color:rgba(140,230,255,.75); line-height:1.7; }
+  .tl-head b{ color:#bff4ff; font-weight:700; }
+  /* the lock-on brackets close in on the building */
+  .tl-ret{ position:fixed; left:50%; top:54%; width:720px; height:620px; transform:translate(-50%,-50%); z-index:3; pointer-events:none; opacity:0;
+    transition:width 1.1s cubic-bezier(.2,.8,.2,1), height 1.1s cubic-bezier(.2,.8,.2,1), opacity .3s, border-color .3s; }
+  .tl-ret i{ position:absolute; width:34px; height:34px; border:3px solid #6fe8ff; filter:drop-shadow(0 0 6px rgba(111,232,255,.7)); }
+  .tl-ret i:nth-child(1){ left:0; top:0; border-right:0; border-bottom:0; }
+  .tl-ret i:nth-child(2){ right:0; top:0; border-left:0; border-bottom:0; }
+  .tl-ret i:nth-child(3){ left:0; bottom:0; border-right:0; border-top:0; }
+  .tl-ret i:nth-child(4){ right:0; bottom:0; border-left:0; border-top:0; }
+  .tl-ret.on{ opacity:1; }
+  .tl-ret.close{ width:min(46vw, 480px); height:min(62vh, 470px); }
+  .tl-ret.locked i{ border-color:#ffc94d; filter:drop-shadow(0 0 10px rgba(255,201,77,.8)); }
+  /* the stamp */
+  .tl-stamp{ position:fixed; left:50%; top:72%; z-index:4; transform:translate(-50%,-50%) rotate(-6deg) scale(2.4); opacity:0; pointer-events:none; text-align:center;
+    border:5px solid #ffc94d; padding:14px 34px 12px; background:rgba(20,12,0,.55); box-shadow:0 0 40px rgba(255,201,77,.35), inset 0 0 30px rgba(255,201,77,.18); }
+  .tl-stamp b{ display:block; font-size:clamp(30px, 4vw, 54px); letter-spacing:.14em; white-space:nowrap; color:#ffc94d; text-shadow:0 0 24px rgba(255,201,77,.6); line-height:1; }
+  .tl-stamp span{ display:block; margin-top:10px; font-size:clamp(16px, 1.9vw, 24px); letter-spacing:.22em; color:#fff3cf; text-transform:uppercase; }
+  .tl-stamp.on{ animation:tlStamp .38s cubic-bezier(.3,1.6,.5,1) forwards; }
+  @keyframes tlStamp{ 0%{ opacity:0; transform:translate(-50%,-50%) rotate(-6deg) scale(2.4); } 100%{ opacity:1; transform:translate(-50%,-50%) rotate(-6deg) scale(1); } }
+  .tl-stamp.shake{ animation:tlStamp .38s cubic-bezier(.3,1.6,.5,1) forwards, tlShake .3s .38s steps(3) 1; }
+  @keyframes tlShake{ 33%{ margin-left:4px; } 66%{ margin-left:-3px; } }
+  /* the three floors, each still encrypted */
+  .tl-floors{ position:fixed; left:22px; top:calc(var(--pn-mode-h, 62px) + 110px); z-index:3; display:flex; flex-direction:column; gap:8px; }
+  .tl-floors div{ font-family:var(--font-ui); font-weight:700; font-size:16px; letter-spacing:.16em; padding:8px 14px; border:1px solid rgba(255,107,107,.6); background:rgba(40,6,10,.6); color:#ffb0b0;
+    opacity:0; transform:translateX(-20px); transition:opacity .35s, transform .35s; }
+  .tl-floors div.on{ opacity:1; transform:none; }
+  .tl-floors div small{ color:#ff6b6b; margin-left:10px; letter-spacing:.2em; }
+  .tl-nogl{ position:fixed; left:50%; top:54%; transform:translate(-50%,-50%); color:rgba(140,230,255,.6); font-family:var(--font-mono); letter-spacing:.2em; z-index:1; }
+  .pn-powerup{ position:fixed; inset:0; z-index:9999; display:flex; align-items:center; justify-content:center; background:rgba(4,14,17,.72); font-family:var(--font-ui); }
+  .pn-powerup div{ border:1px solid rgba(var(--accent-rgb),.6); background:rgba(9,32,38,.92); padding:22px 30px; text-align:center; letter-spacing:.16em; font-weight:700; color:var(--accent); animation:pnPulse 1.4s ease-in-out infinite; }
+  .pn-powerup small{ display:block; margin-top:8px; letter-spacing:.06em; font-weight:400; color:var(--text-muted); }
+  @media (max-width:700px){ .tl-floors{ top:auto; bottom:24px; left:16px; } .tl-head{ left:16px; } }
+  @media (prefers-reduced-motion: reduce){ .tl-scan::after{ animation:none; } .tl-ret{ transition:none; } }
+</style>
+</head>
+<body>
+<div class="tl-stage" id="stage" aria-hidden="true"></div>
+<div class="tl-scan"></div><div class="tl-vig"></div>
+<div class="tl-head" id="head"></div>
+<div class="tl-ret" id="ret"><i></i><i></i><i></i><i></i></div>
+<div class="tl-stamp" id="stamp" role="status" aria-live="polite"><b>TARGET LOCKED</b><span id="bank"></span></div>
+<div class="tl-floors" id="floors">
+  <div>FLOOR 3<small>ENCRYPTED</small></div>
+  <div>FLOOR 2<small>ENCRYPTED</small></div>
+  <div>FLOOR 1<small>ENCRYPTED</small></div>
+</div>
+
+<script src="../shared/vendor/three.min.js"></script>
+<script src="../shared/sound.js"></script>
+<script src="../shared/primenet.js"></script>
+<script src="../shared/voice.js"></script>
+<script src="../shared/mode.js"></script>
+<script src="../shared/badges.js"></script>
+<script src="../shared/testtools.js"></script>
+<script src="../shared/handler.js"></script>
+<script src="../shared/glitch.js"></script>
+<script>
+(function(){
+  "use strict";
+  const PN = window.Primenet;
+  const NEXT = "factor_vault.html";
+  const SND = (n, a) => { if(window.PNSound) PNSound.play(n, a); };
+  const speed = () => (window.PNTest ? PNTest.speed() : 1);
+  const sleep = ms => new Promise(r => setTimeout(r, ms / speed()));
+  const reduced = () => !!(PN && PN.reducedMotion && PN.reducedMotion());
+  const M = PN ? PN.mission() : { target: "Rivercross Utilities", operation: "SILENT HERON", codename: "AGENT" };
+  document.getElementById("bank").textContent = M.target;
+  document.getElementById("head").innerHTML = `PRIMENET // TARGET ACQUISITION<br>OPERATION <b>${M.operation}</b><br>SIGNAL TRACED TO <b>${M.target.toUpperCase()}</b>`;
+  if(PN) PN.log("target-locked", { target: M.target });
+
+  // ---------- The hologram: the building's outside, three storeys, no plans inside ----------
+  const CYAN = 0x6fe8ff;
+  let reveal = 0, tint = 0;   // 0..1 floors appearing; 0..1 how gold the lock-on has turned it
+  const floors = [];
+  (function scene(){
+    if(!window.THREE){ return nogl(); }
+    let renderer;
+    try{ renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true }); }catch(e){ return nogl(); }
+    const host = document.getElementById("stage");
+    renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+    host.appendChild(renderer.domElement);
+    const sc = new THREE.Scene();
+    const cam = new THREE.PerspectiveCamera(38, 1, 0.1, 100);
+    cam.position.set(0, 4.2, 15.5); cam.lookAt(0, 2.1, 0);
+    const W = 6, D = 4, H = 1.35;
+    const line = (op = .9) => new THREE.LineBasicMaterial({ color: CYAN, transparent: true, opacity: op, blending: THREE.AdditiveBlending, depthWrite: false });
+    const root = new THREE.Group(); sc.add(root);
+    // Windows on each face of a storey, as one set of line segments
+    function windows(w, d, h){
+      const pts = [], rect = (a, b, c, e, f) => { // quad corners in 3D
+        [[a, b], [b, c], [c, e], [e, a]].forEach(([p, q]) => pts.push(...p, ...q)); };
+      const wh = h * .42, y0 = h * .3, y1 = y0 + wh;
+      const face = (n, len, place) => { const gap = len / n; for(let i = 0; i < n; i++){ const x0 = -len / 2 + gap * i + gap * .22, x1 = x0 + gap * .56; place(x0, x1); } };
+      face(6, w, (x0, x1) => { const z = d / 2 + .001; rect([x0, y0, z], [x1, y0, z], [x1, y1, z], [x0, y1, z]); rect([x0, y0, -z], [x1, y0, -z], [x1, y1, -z], [x0, y1, -z]); });
+      face(4, d, (z0, z1) => { const x = w / 2 + .001; rect([x, y0, z0], [x, y0, z1], [x, y1, z1], [x, y1, z0]); rect([-x, y0, z0], [-x, y0, z1], [-x, y1, z1], [-x, y1, z0]); });
+      const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute(pts, 3)); return g;
+    }
+    for(let i = 0; i < 3; i++){
+      const f = new THREE.Group(); f.position.y = i * H;
+      const box = new THREE.BoxGeometry(W, H, D); box.translate(0, H / 2, 0);
+      const shell = new THREE.LineSegments(new THREE.EdgesGeometry(box), line(.95));
+      const glass = new THREE.Mesh(box, new THREE.MeshBasicMaterial({ color: CYAN, transparent: true, opacity: .07, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }));
+      const win = new THREE.LineSegments(windows(W, D, H), line(.55));
+      f.add(glass, shell, win); root.add(f); floors.push({ g: f, mats: [shell.material, win.material, glass.material], base: [.95, .55, .07] });
+    }
+    // Roof: parapet, plant rooms and an antenna
+    const roof = new THREE.Group(); roof.position.y = 3 * H; root.add(roof);
+    const addEdges = (geo, x, y, z, op) => { geo.translate(x, y, z); const l = new THREE.LineSegments(new THREE.EdgesGeometry(geo), line(op)); roof.add(l); return l; };
+    const roofMats = [];
+    roofMats.push(addEdges(new THREE.BoxGeometry(W + .12, .22, D + .12), 0, .11, 0, .9).material);
+    roofMats.push(addEdges(new THREE.BoxGeometry(1.4, .6, 1.1), -1.5, .3, -.5, .7).material);
+    roofMats.push(addEdges(new THREE.BoxGeometry(.9, .4, .9), 1.4, .2, .6, .7).material);
+    const ant = new THREE.BufferGeometry(); ant.setAttribute("position", new THREE.Float32BufferAttribute([1.9, 0, -1.1, 1.9, 1.6, -1.1, 1.7, 1.2, -1.1, 2.1, 1.2, -1.1], 3));
+    const antL = new THREE.LineSegments(ant, line(.8)); roof.add(antL); roofMats.push(antL.material);
+    const beacon = new THREE.Mesh(new THREE.SphereGeometry(.07, 10, 8), new THREE.MeshBasicMaterial({ color: 0xff6b6b })); beacon.position.set(1.9, 1.62, -1.1); roof.add(beacon);
+    // Ground: target rings and a faint grid
+    const rings = new THREE.Group(); sc.add(rings);
+    [4.6, 5.4, 6.4].forEach((r, k) => {
+      const c = new THREE.BufferGeometry().setFromPoints(Array.from({ length: 97 }, (_, i) => { const a = i / 96 * Math.PI * 2; return new THREE.Vector3(Math.cos(a) * r, 0, Math.sin(a) * r); }));
+      const l = new THREE.Line(c, line(k === 0 ? .55 : .25)); rings.add(l);
+    });
+    const grid = new THREE.GridHelper(16, 32, CYAN, CYAN); grid.material.transparent = true; grid.material.opacity = .08; sc.add(grid);
+
+    function size(){ const w = window.innerWidth, h = window.innerHeight; renderer.setSize(w, h, false); cam.aspect = w / h; cam.updateProjectionMatrix(); }
+    size(); window.addEventListener("resize", size);
+    const gold = new THREE.Color(0xffc94d), cyan = new THREE.Color(CYAN), col = new THREE.Color();
+    const t0 = performance.now();
+    (function frame(now){
+      const t = (now - t0) / 1000;
+      root.rotation.y = reduced() ? .6 : .6 + t * .32;
+      rings.rotation.y = -t * .15;
+      col.copy(cyan).lerp(gold, tint * .55);
+      floors.forEach((f, i) => {
+        const k = Math.max(0, Math.min(1, reveal * 3 - i));   // bottom floor first
+        f.g.scale.y = .001 + .999 * k; f.g.visible = k > 0;
+        const flick = reduced() ? 1 : .88 + .12 * Math.sin(t * 23 + i * 2.1) * Math.sin(t * 7.3);
+        f.mats.forEach((m, j) => { m.opacity = f.base[j] * k * flick; if(m.color) m.color.copy(col); });
+      });
+      const rk = Math.max(0, Math.min(1, reveal * 3 - 2.6) / .4);
+      roof.visible = rk > 0; roofMats.forEach(m => { m.opacity = .8 * rk; m.color.copy(col); });
+      beacon.visible = rk > 0 && Math.sin(t * 6) > 0;
+      renderer.render(sc, cam);
+      requestAnimationFrame(frame);
+    })(t0);
+  })();
+  function nogl(){ const d = document.createElement("div"); d.className = "tl-nogl"; d.textContent = "HOLOGRAM OFFLINE"; document.body.appendChild(d); }
+
+  // ---------- The cinematic ----------
+  let left = false, watchH = null;
+  function goOn(){
+    if(left) return; left = true;
+    if(watchH){ watchH.end(); watchH = null; }
+    window.PNGlitch ? PNGlitch.go(NEXT) : (location.href = NEXT);
+  }
+  if(window.PNTest){
+    PNTest.skip("Go to the Factor Vault", () => { goOn(); return "Going to the Factor Vault."; });
+    PNTest.add("Go to the Factor Vault", () => { goOn(); });
+  }
+  function powerUpPrompt(title){
+    const ov = document.createElement("div"); ov.className = "pn-powerup";
+    ov.innerHTML = `<div>${title}<small>Press any key or click to continue</small></div>`;
+    document.body.appendChild(ov);
+    return () => ov.remove();
+  }
+  async function animateReveal(ms){
+    const t0 = performance.now(), dur = ms / speed();
+    await new Promise(res => (function f(now){ reveal = Math.min(1, (now - t0) / dur); if(reveal < 1 && !left) requestAnimationFrame(f); else { reveal = 1; res(); } })(t0));
+  }
+  async function play(){
+    await (window.PNSound ? PNSound.whenUnlocked(() => powerUpPrompt("LOCK ON TO THE TARGET")) : Promise.resolve());
+    if(window.PNMode) await PNMode.chapterCard(2, "Decrypt the plans");
+    if(left) return;
+    watchH = window.PNMode ? PNMode.watch("Target locked", { seconds: 6.8, onSkip: goOn }) : null;
+    const ret = document.getElementById("ret"), stamp = document.getElementById("stamp");
+    SND("scanline", 1.1);
+    ret.classList.add("on"); requestAnimationFrame(() => requestAnimationFrame(() => ret.classList.add("close")));
+    await animateReveal(1400);
+    if(left) return;
+    await sleep(150);
+    ret.classList.add("locked"); tint = 1;
+    stamp.classList.add("on", "shake"); SND("lockon");
+    await sleep(700);
+    if(left) return;
+    if(window.PNHandler) PNHandler.say("Their plans are encrypted. Each floor is locked with a number. Find its factor pairs and the floor decrypts.");
+    const rows = [...document.querySelectorAll("#floors div")];
+    for(const r of rows){ if(left) return; r.classList.add("on"); SND("chirp"); await sleep(280); }
+    await sleep(6000);   // time to read (or hear) ORACLE's line
+    goOn();
+  }
+  play();
+})();
+</script>
+</body>
+</html>

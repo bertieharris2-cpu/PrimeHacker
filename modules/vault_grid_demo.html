@@ -1182,8 +1182,7 @@ function setNextButton(){
   nextFloorBtn.textContent = blueprintReady() ? "Assemble the blueprint" : `Next floor (${Math.min(floorsBuilt() + 1, FLOORS_NEEDED)} of ${FLOORS_NEEDED})`;
 }
 nextFloorBtn.addEventListener("click", async ()=>{
-  // Round 11: after floor 2, the mission's Factor Vault twist (if it has one)
-  if(floorsBuilt() === 2 && window.PNTwistSlot && !nextFloorBtn.dataset.twisted){ nextFloorBtn.dataset.twisted = "1"; analysisWins.forEach(w => w.close()); await PNTwistSlot.run("vault"); }
+  // Round 15: no twist between floors any more (twists happen once we're in the building)
   // After three floors, the laser corridor (then the Blueprint); otherwise back to Factor Vault for a new number
   // Feedback: straight to the Blueprint after the third floor (the laser corridor is out of the route for now)
   const next = blueprintReady() ? "vault_blueprint_viewer.html" : "factor_vault.html";
@@ -1224,7 +1223,7 @@ document.querySelector(".title div:first-child").insertAdjacentHTML("afterend",
 .then(() => {
   window.scrollTo(0, 0); setTimeout(() => window.scrollTo(0, 0), 60);
   // Round 14: one WATCH for the laser build, the tilt and the drone, timed from the real durations
-  buildWatch = window.PNMode ? PNMode.watch(`Building floor ${Math.max(1, Math.min(floorsBuilt(), FLOORS_NEEDED))} from your pairs`, { seconds: buildSeconds(initialN), onSkip: skipBuild }) : null;
+  buildWatch = window.PNMode ? PNMode.watch(`Decrypting floor ${Math.max(1, Math.min(floorsBuilt(), FLOORS_NEEDED))}`, { seconds: buildSeconds(initialN), onSkip: skipBuild }) : null;
   return initVault(initialN);
 }).then(async () => {
   await pause(700);

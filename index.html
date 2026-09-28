@@ -243,6 +243,7 @@
   .core .idcard .nm{ font-size:26px; }
   .core .hint{ margin:-4px 0 4px; font-size:13px; }
   .core #startBtn{ font-size:17px; padding:15px 28px; width:100%; }
+  .core #warmupBtn{ align-self:center; margin-top:2px; }
   .core .status{ font-size:14px; color:var(--text-muted); text-align:center; min-height:1.4em; }
 
   @media (max-width:980px){
@@ -302,6 +303,7 @@
       <p class="hint">A made-up name, not your real one.</p>
       <button class="pn-btn primary pn-go" type="submit" id="startBtn" disabled>Start mission</button>
       <span class="status" id="status">Enter a codename and choose a level.</span>
+      <button class="pn-btn small" type="button" id="warmupBtn" title="Optional: practise spotting primes before a mission">Warm up: prime sensors</button>
     </div>
 
     <section class="hp bl" aria-label="Mission route">
@@ -309,7 +311,7 @@
       <div class="hb">
         <ol class="route">
           <li class="h"><b>01</b> Frequency Scan <small>find the primes</small></li>
-          <li class="b"><b>02</b> Factor Vault <small>rebuild 3 floors</small></li>
+          <li class="b"><b>02</b> Factor Vault <small>decrypt 3 floors</small></li>
           <li class="b"><b>03</b> Blueprint <small>assemble the building</small></li>
           <li class="h"><b>04</b> Prime Hack <small>crack the locks</small></li>
         </ol>
@@ -439,7 +441,7 @@
 
     <section>
       <span class="pn-label">Twists in the bank heist</span>
-      <p class="msg">Each mission picks one twist at each point from the ones ticked here. Untick anything your class hasn't learned yet. Try any of them in the <a href="modules/twist_lab.html" style="color:var(--accent)">Twist Lab</a>.</p>
+      <p class="msg">Each mission picks three twists from the ones ticked here, each at its own place in the story. Untick anything your class hasn't learned yet. Try any of them in the <a href="modules/twist_lab.html" style="color:var(--accent)">Twist Lab</a>.</p>
       <div class="twistRules" id="twistRules"></div>
     </section>
 
@@ -537,6 +539,13 @@
     setTimeout(() => PNGlitch.go("modules/briefing.html"), 900);
   });
 
+  // Round 15: the sieve is an optional warm-up, not part of a mission
+  $("#warmupBtn").addEventListener("click", () => {
+    PNSound.play("click");
+    const lv = chosen && P.allowedLevels().includes(chosen) ? chosen : "L1";
+    PNGlitch.go(`modules/twist_sieve2.html?level=${lv}&warmup=1&next=${encodeURIComponent("../index.html")}`);
+  });
+
   /* Teacher panel */
   const overlay = $("#teacherOverlay"), pinOverlay = $("#pinOverlay");
   function openTeacher(){
@@ -570,12 +579,17 @@
   // Twists the teacher allows in the bank rotation
   (function twistRules(){
     const box = $("#twistRules"); if(!box || !P.TWISTS) return;
-    const POINTS = P.TWIST_POINTS;
-    // Round 11: each mission picks two of the ticked twists (each plays at its own point); one can be pinned
-    const pinOpts = P.TWISTS.filter(t => t.page || t.proto).map(t => `<option value="${t.id}" ${P.twistPin() === t.id ? "selected" : ""}>${t.name}</option>`).join("");
-    box.innerHTML = Object.entries(POINTS).map(([k, name]) => `<fieldset><legend>${name}</legend>${P.TWISTS.filter(t => t.point === k).map(t =>
+    // Round 15: ticks grouped by chapter of the story. The warm-up (sieve) is on the title screen, not in missions.
+    const GROUPS = [
+      ["The building", ["assembled"]],
+      ["The heist", ["entry", "power", "planb", "strongroom"]],
+      ["The vault", ["hack", "finale"]],
+    ];
+    const inMission = t => t.point !== "warmup";
+    const pinOpts = P.TWISTS.filter(t => inMission(t) && (t.page || t.proto)).map(t => `<option value="${t.id}" ${P.twistPin() === t.id ? "selected" : ""}>${t.name}</option>`).join("");
+    box.innerHTML = GROUPS.map(([name, points]) => `<fieldset><legend>${name}</legend>${P.TWISTS.filter(t => inMission(t) && points.includes(t.point)).map(t =>
       `<label><input type="checkbox" data-twist="${t.id}" ${P.twistOn(t.id) ? "checked" : ""}> ${t.name} <small>${t.maths}${t.page ? "" : t.proto ? " · prototype (Twist Lab switch)" : " · built into its stage"}</small></label>`).join("")}</fieldset>`).join("")
-      + `<fieldset><legend>Every mission</legend><label style="flex-direction:column;align-items:stretch;gap:6px">Always include<select id="twistPin" class="pn-input" style="font-size:15px;padding:6px"><option value="">No, rotate them</option>${pinOpts}</select><small>Each mission plays two ticked twists, at their own points.</small></label></fieldset>`;
+      + `<fieldset><legend>Every mission</legend><label style="flex-direction:column;align-items:stretch;gap:6px">Always include<select id="twistPin" class="pn-input" style="font-size:15px;padding:6px"><option value="">No, rotate them</option>${pinOpts}</select><small>Each mission plays three: the corrupted blueprint or the key room door, and two heist twists.</small></label></fieldset>`;
     box.querySelectorAll("input").forEach(i => i.addEventListener("change", () => P.setTwistOn(i.dataset.twist, i.checked)));
     box.querySelector("#twistPin").addEventListener("change", e => P.setTwistPin(e.target.value));
   })();
