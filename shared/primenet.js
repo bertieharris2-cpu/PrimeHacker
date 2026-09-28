@@ -542,4 +542,24 @@
     document.body.appendChild(b);
   }
   if(document.readyState === "loading") document.addEventListener("DOMContentLoaded", homeButton); else homeButton();
+
+  // ---------- Full screen button (Bertie): every page, top-left of the MENU tab; F11 or Escape leave as usual ----------
+  function fullscreenButton(){
+    if(window.parent !== window || !document.documentElement.requestFullscreen) return;
+    const st = document.createElement("style");
+    st.textContent = `.pn-full{ all:unset; box-sizing:border-box; position:fixed; right:12px; bottom:12px; z-index:99990; font-family:"Chakra Petch",sans-serif; font-weight:700; font-size:11px; letter-spacing:.16em; color:rgba(235,255,248,.75);
+        background:rgba(6,20,25,.9); border:1px solid rgba(40,120,140,.7); padding:7px 10px; cursor:pointer; }
+      .pn-full:hover, .pn-full:focus-visible{ color:#fff; border-color:#2fbf8a; box-shadow:0 0 14px rgba(47,191,138,.35); }
+      .pnt ~ .pn-full{ bottom:12px; }
+      @media (max-width:700px){ .pn-full{ bottom:auto; top:12px; } }`;
+    document.head.appendChild(st);
+    const b = document.createElement("button"); b.type = "button"; b.className = "pn-full"; b.title = "Full screen (Escape leaves it)";
+    const label = () => { b.textContent = document.fullscreenElement ? "EXIT FULL SCREEN ⤡" : "FULL SCREEN ⤢"; };
+    label();
+    b.addEventListener("click", e => { e.stopPropagation(); if(document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen().catch(() => {}); });
+    b.addEventListener("keydown", e => e.stopPropagation());
+    document.addEventListener("fullscreenchange", label);
+    document.body.appendChild(b);
+  }
+  if(document.readyState === "loading") document.addEventListener("DOMContentLoaded", fullscreenButton); else fullscreenButton();
 })();
