@@ -70,6 +70,7 @@
   const T = window.PNTwist, $ = id => document.getElementById(id);
   const L = T.peekLevel();
   T.init({ id: "factortree", stage: "PRIME HACK", title: "KEY ROOM DOOR",
+    context: "Two bolts lock the key room. Each has a number.",
     goal: L === "L3" ? "Split the number until every branch ends in a <b>prime</b>. Then write the key with powers." : "Split the number until every branch ends in a <b>prime</b>.",
     example: "Under 12, press ÷2: it splits into 2 × 6. Under 6, press ÷2 again: 2 × 3. The primes are 2, 2 and 3: 12 = 2 × 2 × 3.",
     story: "Crew's at the key room door on the weak floor. It's bolted twice, and each bolt wants its number broken down into primes. Build a factor tree." });
@@ -154,6 +155,7 @@
     const tree = $("tree"); tree.innerHTML = ""; tree.appendChild(makeNode(n));
     $("leftLab").textContent = "1 to split";
     say(`Press a prime under ${n} that divides into it.`);
+    T.step(`Press a prime under <b>${n}</b> that divides into it. Keep going until every branch ends in a prime.`, { quiet: true, name: `Bolt ${k + 1} of ${locks.length}` });
   }
   function nextLock(){
     if(over) return;

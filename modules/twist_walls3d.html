@@ -98,6 +98,7 @@
   const MODE = (() => { const q = new URLSearchParams(location.search).get("mode"); if(q === "A" || q === "B") return q;
     try{ const last = localStorage.getItem("primenet_walls_finale"), next = last === "A" ? "B" : "A"; localStorage.setItem("primenet_walls_finale", next); return next; }catch(e){ return "A"; } })();
   const L = T.init({ id: "walls3d", stage: "FACTOR VAULT", title: "DEPOSIT-BOX ROOM",
+    context: "The key is in one of these deposit boxes.",
     goal: T.peekLevel() === "L1" ? "Which rectangles of boxes fit on the <b>back wall</b>? Tap a rectangle to try it on the wall. Tap it again to <b>turn it round</b>. Or drag boxes out on the wall. Then use the box numbers to find the <b>key box</b>." : "Which rectangles of boxes fit on the <b>back wall</b>? They can be <b>turned round</b>. Then use the box numbers to find the <b>key box</b>.",
     example: "On a back wall 8 wide and 6 high, 4 × 6 fits. 2 × 12 doesn't: 12 is too wide and too tall.",
     story: `We're in ${T.targets()} deposit-box room. The key's box is in a bank on the back wall, and the bank has to fit the wall. Work out which rectangles fit.` });
@@ -199,9 +200,8 @@
     const [N, W, H] = rounds[r];
     $("round").textContent = r + 1; $("nLab").textContent = `N = ${N} boxes`;
     $("wallSize").textContent = `${W} WIDE × ${H} HIGH`; $("wallNote").textContent = "";
-    // The wall's job goes in the hologram brief. Wall 1 zooms it open; later walls are the same job,
-    // so they just update it and ping the BRIEF tab.
-    T.step(`Wall ${r + 1}: <b>${N}</b> boxes. The back wall is <b>${W}</b> wide and <b>${H}</b> high. Mark each rectangle <b>Fits</b> or <b>Doesn't fit</b>.`, { quiet: r > 0 });
+    // The wall's job goes in HINTS; the brief just names the step ("Wall 1 of 2")
+    T.step(`<b>${N}</b> boxes, on a back wall <b>${W}</b> wide and <b>${H}</b> high. Mark each rectangle <b>Fits</b> or <b>Doesn't fit</b>.`, { quiet: r > 0, name: `Wall ${r + 1} of ${rounds.length}` });
     $("room").classList.add("walls"); geo = drawRoom(W, H); sweep();
     afterBrief(() => { if(!over && stage === "walls") $("under").scrollIntoView({ block: "nearest", behavior: reduced ? "auto" : "smooth" }); });   // the pairs and their buttons in view, whatever the screen height
     const box = $("pairs"); box.innerHTML = "";
@@ -329,7 +329,7 @@
     });
     function pick(){
       stage = "pick"; vg.classList.add("pick");
-      T.step(`The key box is the <b>biggest number in both</b> circles. Tap it.`);
+      T.step(`The key box is the <b>biggest number in both</b> circles. Tap it.`, { name: "Find the key box" });
     }
     function choose(v, t){
       if(v === G) return win(t);
@@ -395,8 +395,8 @@
     };
     vPick = () => { const t = nums.querySelector(`[data-v="${G}"]`); if(t) win(t); };
     T.step(L === "L1"
-      ? `Every box has a number. The key box number is a <b>factor of ${A}</b> and a <b>factor of ${B}</b>. Watch the numbers sort into the circles.`
-      : `Every box has a number. Tap where each number goes: <b>factors of ${A}</b>, <b>factors of ${B}</b>, or the middle for <b>both</b>.`);
+      ? `The key box number is a <b>factor of ${A}</b> and a <b>factor of ${B}</b>. Watch the box numbers sort into the circles.`
+      : `Tap where each box number goes: <b>factors of ${A}</b>, <b>factors of ${B}</b>, or the middle for <b>both</b>.`, { name: "Find the key box" });
     afterBrief(reveal);
   }
   function end(ok){

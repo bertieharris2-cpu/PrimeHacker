@@ -1224,6 +1224,19 @@ html,body{ font-family: var(--font-ui); }
 
 /* ===================== SUCCESS SCREENS ===================== */
 .fxOverlay{ position:fixed; inset:0; z-index:8000; display:flex; align-items:center; justify-content:center; padding:20px; background:rgba(3,12,14,.78); font-family:var(--font-ui); }
+/* Round 14: the WATCH / YOUR TURN bar sits at the top; the terminal and the overlays make room for it */
+.pnm .lab{ white-space:normal !important; line-height:1.2; }   /* the lock's N must never be cut off */
+html.pn-mode-on .terminalWindow{ height: calc(100vh - 310px - var(--pn-mode-h, 62px)); }
+html.pn-mode-on .fxOverlay, html.pn-mode-on .codeFloodOverlay, html.pn-mode-on .miniFloodOverlay, html.pn-mode-on .bufferDock, html.pn-mode-on .miniOverlay{ top: var(--pn-mode-h, 62px); }
+/* Practice mode: the end card */
+.practiceEnd{ width:min(620px,100%); background:#041318; border:1px solid rgba(47,191,138,.55); box-shadow:0 0 40px rgba(47,191,138,.18); padding:24px 26px; display:flex; flex-direction:column; gap:16px; font-family:var(--font-ui); color:#eafff4; }
+.practiceEnd h2{ margin:0; font-size:28px; letter-spacing:.12em; color:#7dffc4; }
+.practiceEnd .pe-locks{ font-family:var(--font-mono); font-size:24px; line-height:1.5; }
+.practiceEnd .pe-row{ display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
+.practiceEnd .pe-new{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; font-size:18px; border-top:1px solid rgba(255,255,255,.1); padding-top:14px; }
+.practiceEnd .pe-new input{ width:84px; font-family:var(--font-mono); font-size:20px; padding:8px 10px; background:rgba(0,0,0,.35); color:#eafff4; border:1px solid rgba(140,235,255,.45); }
+.practiceEnd .pe-msg{ min-height:1.3em; color:#ffc94d; font-size:16px; }
+.practiceEnd a.pnBtn{ text-decoration:none; }
 .ffHint{ position:fixed; left:50%; bottom:86px; transform:translateX(-50%); z-index:9500; font-family:var(--font-ui); font-size:12px; font-weight:700; letter-spacing:.16em; color:var(--text-muted); border:1px solid var(--line); background:rgba(3,12,14,.85); padding:6px 12px; }
 .ffHint.on{ color:var(--warning); border-color:rgba(242,193,78,.6); }
 
@@ -1423,6 +1436,7 @@ button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [clas
 
 <!-- Mission data (agent, level, record), then the banking system, which keeps a wallet per codename -->
 <script src="../shared/primenet.js"></script>
+<script src="../shared/mode.js"></script>
 <script src="../shared/badges.js"></script>
 <script src="../shared/testtools.js"></script>
 <script src="../shared/handler.js"></script>
@@ -1438,10 +1452,25 @@ button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [clas
 
 const PN = window.Primenet;
 const TEACHER = !!(PN && PN.isTeacher());   // level buttons and test controls are teacher-only
+// Round 14: teacher practice. ?practice=1 plays two locks and ends on a plain card: no finale, no money, no record.
+// ?p=P&q=Q (both prime) makes every lock that pair; ?tier=T gives random pairs from that rung of the ladder.
+const QS = new URLSearchParams(location.search);
+const PRACTICE = QS.get("practice") === "1";
+const PRACTICE_PAIR = (() => {
+  const p = parseInt(QS.get("p"), 10), q = parseInt(QS.get("q"), 10);
+  const prime = n => { if(!Number.isInteger(n) || n < 2) return false; for(let d = 2; d * d <= n; d++) if(n % d === 0) return false; return true; };
+  return PRACTICE && prime(p) && prime(q) ? { p: Math.min(p, q), q: Math.max(p, q) } : null;
+})();
+// WATCH / YOUR TURN bar (shared/mode.js). Safe no-ops if it isn't loaded.
+const Mode = {
+  watch(label, opts){ return window.PNMode ? PNMode.watch(label, opts) : { progress(){}, end(){} }; },
+  turn(label){ if(window.PNMode) PNMode.turn(label); },
+};
+function lockTurn(){ Mode.turn(`Lock ${Run.index} of ${Run.locksPerRun} · type the two primes that make ${Run.n}`); }
 
 // --- Timing & structure config (edit these numbers)
 const PRIME_NET_EFFECTS = {
-  locksPerRun: 4,
+  locksPerRun: PRACTICE ? 2 : 4,
   preludeSeconds: 8,
   bufferStages: 4,
   keysPerStage: 16,
@@ -1588,6 +1617,7 @@ function lockBanner(note){
     `<span class="${i < Run.index - 1 ? "done" : i === Run.index - 1 ? "cur" : ""}"></span>`).join("");
   addBlock(`<span class="lb-top">LOCK ${Run.index} OF ${Run.locksPerRun}</span><span class="lb-n">N = ${Run.n}</span><span class="lb-pips" aria-hidden="true">${pips}</span>${note ? `<span class="lb-note">${note}</span>` : ""}`, "lockBanner");
   if(window.PNSound) PNSound.play("newlock");
+  lockTurn();
 }
 
 function randInt(n){ return Math.floor(Math.random()*n); }
@@ -1674,7 +1704,9 @@ function isPrime(n){
 }
 
 function generatePairForLock(lockIndex){
-  const band = LADDER[Math.min((Run.tier || 0) + lockIndex - 1, LADDER.length - 1)];
+  if(PRACTICE_PAIR) return { p: PRACTICE_PAIR.p, q: PRACTICE_PAIR.q, n: PRACTICE_PAIR.p * PRACTICE_PAIR.q };
+  // Practice at a chosen rung: every lock comes from that one rung
+  const band = LADDER[Math.min((Run.tier || 0) + (PRACTICE ? 0 : lockIndex - 1), LADDER.length - 1)];
   let tries=0;
   while(tries++<200){
     const p = pick(band.p);
@@ -1704,7 +1736,8 @@ function newRunSameDifficulty(){
   Run.p=lock.p; Run.q=lock.q; Run.n=lock.n;
   Run.solved=false;
   // The first run hits the bank named in the briefing; later runs pick a new one
-  if(!Run.missionBankUsed && PN && PN.getAgent() && PN.getAgent().target){ Run.missionBankUsed = true; Bank.selectAccountByName(DIFF, PN.mission().target); }
+  if(PRACTICE){ /* practice: leave the agent's bank choice alone */ }
+  else if(!Run.missionBankUsed && PN && PN.getAgent() && PN.getAgent().target){ Run.missionBankUsed = true; Bank.selectAccountByName(DIFF, PN.mission().target); }
   else Bank.selectAccountForRun(DIFF);
   updateRunUI();
   Run.runNo = (Run.runNo || 0) + 1;
@@ -1728,6 +1761,8 @@ function newTargetManual(){
   Run.solved=false;
   updateRunUI();
   addLine(`LOCK RESET // N=${Run.n}`, "sys");
+  if(typeof Rig !== "undefined") Rig.reset();
+  lockTurn();
 }
 
 // --- Typewriter helpers
@@ -2138,6 +2173,7 @@ async function runBufferSequence(){
   Buffer.stages = PRIME_NET_EFFECTS.bufferStages;
   Buffer.required = PRIME_NET_EFFECTS.keysPerStage;
   buildBufferDock();
+  Mode.turn("Type anything to charge the buffer");
   Buffer.press.textContent = "KEEP TYPING";
   resetBufferStage();
   const chatter = setInterval(() => { addLine(randChatterLine(), clsPickChatter()); }, 140);
@@ -2316,10 +2352,13 @@ async function siphonScreen({ acct, pot, frac, secs, blackout }){
   // The full pot takes FULL ms to move; the line stays open for FULL × share (a little longer if it all gets through)
   const FULL = 8000, open = FULL * frac + (frac >= 1 ? 1200 : 0);
   rate.textContent = `${gbp(Math.round(pot / (FULL / 1000)))} a second`;
+  if(window.PNMode) PNMode.money();   // the £ step on the stage strip lights up: this is where the money comes
+  const w = Mode.watch("The money: siphoning from the vault");
   setCinematic(true);
   SFX("drone", open / 1000 + 1);
   let ticks = 0, lastBeep = 99;
   await animate(open, pr => {
+    w.progress(pr * open / (open + 3200));
     const el = pr * open, left = (open - el) / 1000, got = Math.min(1, el / FULL);
     red.style.width = ((1 - pr) * 100) + "%";
     green.style.width = (got * 100) + "%";
@@ -2341,8 +2380,9 @@ async function siphonScreen({ acct, pot, frac, secs, blackout }){
     msg.innerHTML = `<span class="big">LINE CUT</span>${pace} Security cut the line at <b>${Math.round(frac * 100)}%</b>: ${gbp(taken)} got through. Crack the locks faster and the line stays open longer.`;
   }
   if(window.PNHandler) PNHandler.say(frac >= 1 ? "Every penny's through. Now move." : "They've cut the line. Take what we've got and move.");
-  await animate(3200, () => {});
+  await animate(3200, pr => w.progress((open + pr * 3200) / (open + 3200)));
   setCinematic(false);
+  w.end();
   o.remove();
   return taken;
 }
@@ -2350,6 +2390,7 @@ async function siphonScreen({ acct, pot, frac, secs, blackout }){
 async function getOut(){
   const o = overlay("getOutOverlay");
   o.innerHTML = `<div class="getOut" role="alert"><span>GET OUT</span><span>GET OUT</span><span>GET OUT</span><small>POLICE ARE ON THE WAY</small></div>`;
+  const w = Mode.watch("Get out! The police are coming", { seconds: 2.7 });
   setCinematic(true);
   if(window.PNHandler) PNHandler.say("Get out, get out, get out! Police are on their way.");
   SFX("radio");
@@ -2358,6 +2399,7 @@ async function getOut(){
   o.querySelector("small").classList.add("on"); SFX("radio"); SFX("siren");
   await animate(1100, () => {});
   setCinematic(false);
+  w.end();
   o.remove();
 }
 
@@ -2454,6 +2496,7 @@ async function getaway(){
   })(last);
   const say = t => { radio.textContent = "📻 " + t; SFX("radio"); };
   say(pickOne(RADIO.start)); SFX("engine"); SFX("siren");
+  Mode.turn("Getaway! Answer each call: Y for yes, N for no");
   let score = 0;
   for(let i = 0; i < qs.length; i++){
     const { k, n } = qs[i], P = GA_PROPS[k], yes = P.test(n);
@@ -2516,6 +2559,7 @@ async function serverBlackout(cracked){
       <div class="doorPrompt">BLACKOUT. SHUT DOWN EVERY PRIME SERVER: ${primes.length} LEFT</div>
     </div>`;
   const room = o.querySelector(".bo-room"), dark = o.querySelector(".bo-dark"), prompt = o.querySelector(".doorPrompt");
+  Mode.turn("Click every PRIME server to switch it off");
   SFX("rise");
   const aim = (x, y) => { dark.style.setProperty("--x", x + "px"); dark.style.setProperty("--y", y + "px"); };
   room.addEventListener("pointermove", e => { const r = room.getBoundingClientRect(); aim(e.clientX - r.left, e.clientY - r.top); });
@@ -2712,6 +2756,7 @@ async function lockCard(lockIdx, p, q){
 async function alarmSequence(){
   const o = overlay("alarmOverlay");
   o.innerHTML = `<div class="a-big">⚠ INTRUSION DETECTED</div><div class="a-sub">COUNTER-TRACE IN <span class="c">3</span></div>`;
+  const w = Mode.watch("Alarm! ORACLE is hiding you from their trace", { seconds: 3.4 });
   setCinematic(true);
   for(let c = 3; c >= 1; c--){ o.querySelector(".c").textContent = c; SFX("alarm"); await animate(750, () => {}); }
   o.classList.add("clear");
@@ -2719,6 +2764,7 @@ async function alarmSequence(){
   SFX("correct", 5);
   await animate(1100, () => {});
   setCinematic(false);
+  w.end();
   o.remove();
 }
 
@@ -2776,9 +2822,11 @@ async function drainAndStamp(o, { acct, banked, walletBefore, walletAfter, coden
     </div>
     <div class="stamp">ACCESS GRANTED<small></small></div>`;
   const bal = stage.querySelector(".bal"), wal = stage.querySelector(".wal"), run = stage.querySelector(".run");
+  const w = Mode.watch("The money: banking it in your wallet");
   setCinematic(true);
   let ticks = 0;
   await animate(2600, pr => {
+    w.progress(pr * 2600 / 4300);
     const e = ease(pr);
     bal.textContent = gbp(acct.balance);
     wal.textContent = gbp(walletBefore + banked * e);
@@ -2795,10 +2843,13 @@ async function drainAndStamp(o, { acct, banked, walletBefore, walletAfter, coden
     : `${codename} · ${after ? after.rank.toUpperCase() : "AGENT"}${after && after.next ? ` · ${after.toNext} MORE TO ${after.next.toUpperCase()}` : ""}`;
   stamp.classList.add("on"); SFX("success");
   if(promoted) setTimeout(() => SFX("lock"), 700);
-  await animate(1300, () => {});
+  await animate(1300, pr => w.progress((3000 + pr * 1300) / 4300));
   setCinematic(false);
-  const btn = document.createElement("button"); btn.type = "button"; btn.className = "pnBtn primary fxBtn"; btn.textContent = "Open case file";
+  w.end();
+  if(window.PNMode) PNMode.refresh();   // the wallet on the stage strip shows the new total
+  const btn = document.createElement("button"); btn.type = "button"; btn.className = "pnBtn primary fxBtn pn-go"; btn.textContent = "Open case file";
   stage.appendChild(btn); btn.focus();
+  Mode.turn("Press Open case file to see how you did");
   await waitForKeyOrClick(btn, ["Enter", " "]);
   SFX("click");
   o.remove();
@@ -2839,9 +2890,10 @@ function caseFile({ codename, levelId, cracked, wrong, banked, walletAfter, afte
       ${window.PNBadges && PNBadges.thisMission().length ? `<div class="cf-sec"><small>BADGES THIS MISSION</small><div class="cf-badges">${PNBadges.thisMission().map(id => `<span class="bn">${PNBadges.hex(id, true)}${PNBadges.byId(id).name}</span>`).join("")}</div></div>` : ""}
       ${tierMove ? `<div class="cf-sec"><small>LOCK DIFFICULTY</small><span>Lock difficulty ${tierMove.from + 1} of ${TIER_MAX + 1} this run (${Math.round(tierMove.avg)}s a lock on average). ${tierMove.move > 0 ? `Next run: <b>up to ${tierMove.to + 1}</b>.` : tierMove.move < 0 ? `Next run: <b>down to ${tierMove.to + 1}</b>.` : "Next run: <b>the same</b>."} Siphoned <b>${Math.round((frac || 0) * 100)}%</b> of the funds in reach.</span></div>` : ""}
       ${after && after.next ? `<div class="cf-sec"><small>NEXT RANK</small><span>${after.toNext} more vault${after.toNext === 1 ? "" : "s"} to become <b>${after.next}</b>.</span></div>` : ""}
-      <div class="cf-actions"><a class="pnBtn" href="../index.html" style="text-decoration:none">Return to base</a><button type="button" class="pnBtn primary" id="cfAgain">Start a new run</button></div>
+      <div class="cf-actions"><a class="pnBtn" href="../index.html" style="text-decoration:none">Return to base</a><button type="button" class="pnBtn primary pn-go" id="cfAgain">Start a new run</button></div>
     </div>`;
     SFX("pop", 2);
+    Mode.turn("Your case file. Then press Start a new run");
     const again = o.querySelector("#cfAgain"); again.focus();
     again.addEventListener("click", () => { SFX("click"); o.remove(); resolve(); });
   });
@@ -2852,21 +2904,33 @@ async function onLockSolved(){
   const last = Run.cracked[Run.cracked.length - 1] || { p: Run.p, q: Run.q };
   if(Run.index < Run.locksPerRun){
     Sound.ok();
+    // Round 14: the lock card and the key rotation are a WATCH; the next lock is YOUR TURN (lockBanner)
+    let w = Mode.watch(`Lock ${Run.index} cracked. Loading lock ${Run.index + 1}`, { seconds: 2.4 });
     await lockCard(Run.index, last.p, last.q);
     if(window.PNHandler){
       const left = Run.locksPerRun - Run.index;
-      PNHandler.say(left === 1 ? "Last lock, {agent}. Their security team is waking up. Make it count." : `Lock ${Run.index} down. ${left} to go.`);
+      if(PRACTICE) PNHandler.say(`Lock ${Run.index} down. One more.`);
+      else PNHandler.say(left === 1 ? "Last lock, {agent}. Their security team is waking up. Make it count." : `Lock ${Run.index} down. ${left} to go.`);
     }
     Run.index += 1;
-    // Round 11: the key room door (factor tree) comes before lock 3 when the mission has it
-    if(Run.index === 3 && window.PNTwistSlot){ Rig.busy = true; const tw = await PNTwistSlot.run("hack"); Rig.busy = false; if(tw) focusInput(); }
+    // Round 11: the key room door (factor tree) comes before lock 3 when the mission has it (never in practice).
+    // The WATCH ends first so the twist doesn't wait on it.
+    if(Run.index === 3 && !PRACTICE && window.PNTwistSlot){
+      w.end();
+      Rig.busy = true; const tw = await PNTwistSlot.run("hack"); Rig.busy = false; if(tw) focusInput();
+      w = Mode.watch(`Loading lock ${Run.index}`, { seconds: 1.8 });
+    }
     newTargetNextLock();
     await lockTransition(last);
-    lockBanner(Run.index === Run.locksPerRun ? "Final lock: crack it to breach the vault" : "");
+    w.end();
+    lockBanner(Run.index === Run.locksPerRun ? (PRACTICE ? "Last lock" : "Final lock: crack it to breach the vault") : "");
     Run.lockStart = Date.now();
     Run.busy = false;
     return;
   }
+
+  // Practice: no finale, no money, no record. A plain card instead.
+  if(PRACTICE){ Sound.ok(); await lockCard(Run.index, last.p, last.q); practiceEnd(); return; }
 
   // Final lock: alarm, breach chatter, buffer charge, code flood, (sometimes) blackout, siphon, get out, getaway, case file
   const hackSecs = Run.cracked.reduce((a, c) => a + (c.ms || 0), 0) / 1000;
@@ -2875,17 +2939,22 @@ async function onLockSolved(){
   await sleep(500);
   await alarmSequence();
   if(typeof Rig !== "undefined" && Rig.setBreach) Rig.setBreach(Run.locksPerRun);
+  let w = Mode.watch("ORACLE is opening a way into the vault", { seconds: 2.8 });
   setCinematic(true);
   await breachPrelude(PRIME_NET_EFFECTS.preludeSeconds);
   setCinematic(false);
+  w.end();
   await runBufferSequence();
   if(PRIME_NET_EFFECTS.finalFloodSeconds > 0){
-    setCinematic(true);
     // Feedback: one flood per run, taking turns: the big breach channel, or the small fast handshake box
     Run.floodTurn = (Run.floodTurn === undefined ? Math.round(Math.random()) : Run.floodTurn + 1);
-    if(Run.floodTurn % 2 === 0) await codeFlood("BREACH CHANNEL", PRIME_NET_EFFECTS.finalFloodSeconds);
+    const big = Run.floodTurn % 2 === 0;
+    w = Mode.watch("Breaking through the vault firewall", { seconds: big ? PRIME_NET_EFFECTS.finalFloodSeconds + 1.3 : PRIME_NET_EFFECTS.miniFloodSeconds + 0.9 });
+    setCinematic(true);
+    if(big) await codeFlood("BREACH CHANNEL", PRIME_NET_EFFECTS.finalFloodSeconds);
     else await miniFlood("ENCRYPTION HANDSHAKE", PRIME_NET_EFFECTS.miniFloodSeconds);
     setCinematic(false);
+    w.end();
   }
 
   const acct = Bank.getCurrentAccount() || { name:"TARGET", balance:0 };
@@ -2924,6 +2993,7 @@ async function onLockSolved(){
     if(extra) addLine(`CLEAN GETAWAY +${Bank.formatGBP(extra)}`, "ok");
   }
   const banked = Bank.bankRun(DIFF);
+  if(window.PNMode) PNMode.refresh();
   if(PN) PN.log("complete", { level: DIFF, banked, locks: Run.cracked, wrong: Run.wrongTotal || 0, finale: blackout ? "blackout" : "none", getaway: escape.score, target: acctSnapshot.name, hackTier: tierMove.from + 1, nextTier: tierMove.to + 1, siphoned: Math.round(frac * 100) });
   // Badges for this run
   if(window.PNBadges){
@@ -2951,6 +3021,44 @@ async function onLockSolved(){
   lockBanner(tierMove.move > 0 ? "New run. They've seen how fast you are: tougher locks." : tierMove.move < 0 ? "New run. A quieter bank this time." : "New run. A new bank.");
   if(window.PNHandler && tierMove.move > 0) PNHandler.say("Word's out about how fast you crack locks, {agent}. This bank has upgraded its security.");
   focusInput();
+}
+
+// --- Practice end: what was cracked, and three ways on. Nothing is banked or recorded.
+function practiceEnd(){
+  Run.busy = true;   // the terminal ignores answers until they pick an option
+  clearInterval(Rig.timer);
+  const locks = Run.cracked.map(c => `${c.n} = ${c.p} × ${c.q}`).join(", ");
+  addLine(`PRACTICE DONE // ${locks}`, "ok");
+  const o = overlay("practiceOverlay");
+  o.innerHTML = `<div class="practiceEnd" role="dialog" aria-label="Practice finished">
+    <h2>PRACTICE DONE</h2>
+    <div class="pe-locks">Locks cracked: ${locks}</div>
+    <div class="pe-row">
+      <button type="button" class="pnBtn primary pn-go" id="peAgain">Play again</button>
+      <a class="pnBtn" id="peBack" href="../index.html#teacher">Back to teacher tools</a>
+    </div>
+    <form class="pe-new" id="peNew" autocomplete="off">
+      <span>New pair:</span>
+      <input id="peP" inputmode="numeric" aria-label="First prime" value="${PRACTICE_PAIR ? PRACTICE_PAIR.p : ""}">
+      <span>×</span>
+      <input id="peQ" inputmode="numeric" aria-label="Second prime" value="${PRACTICE_PAIR ? PRACTICE_PAIR.q : ""}">
+      <button type="submit" class="pnBtn">New pair</button>
+    </form>
+    <div class="pe-msg" aria-live="polite"></div>
+  </div>`;
+  Mode.turn("Practice done. Play again or pick a new pair");
+  SFX("success");
+  o.querySelector("#peAgain").addEventListener("click", () => { SFX("click"); location.reload(); });
+  o.querySelector("#peNew").addEventListener("submit", e => {
+    e.preventDefault();
+    const p = parseInt(o.querySelector("#peP").value, 10), q = parseInt(o.querySelector("#peQ").value, 10);
+    const msg = o.querySelector(".pe-msg");
+    if(!isPrime(p) || !isPrime(q)){ msg.textContent = `Both numbers must be prime.${Number.isInteger(p) && !isPrime(p) ? ` ${p} is not prime.` : ""}${Number.isInteger(q) && !isPrime(q) ? ` ${q} is not prime.` : ""}`; SFX("denied"); return; }
+    const qs = new URLSearchParams(location.search);
+    qs.set("p", p); qs.set("q", q); qs.set("practice", "1"); qs.delete("tier");
+    location.search = qs.toString();
+  });
+  o.querySelector("#peAgain").focus();
 }
 
 // --- Prime checking
@@ -3107,7 +3215,13 @@ async function handleRoleplay(text){
   await typeOut(pack, "sys", 55);
 }
 
-function focusInput(){ hiddenInput.focus(); }
+function focusInput(){
+  // Don't pull focus away from a real text box (the practice card's new pair)
+  const a = document.activeElement;
+  if(a && a !== hiddenInput && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)) return;
+  if(document.querySelector(".practiceEnd")) return;
+  hiddenInput.focus();
+}
 
 document.addEventListener("click", ()=>focusInput());
 
@@ -3237,7 +3351,7 @@ function boot(){
     document.getElementById("levelControls").style.display = "none";
     document.getElementById("hudBtnTestFlood").style.display = "none";
   }
-  if(PN) PN.log("hack", { level: DIFF });
+  if(PN && !PRACTICE) PN.log("hack", { level: DIFF });
   updateLevelButtons();
   Run.locksPerRun = PRIME_NET_EFFECTS.locksPerRun;
   newRunSameDifficulty();
@@ -3265,13 +3379,17 @@ function boot(){
     if(g && g.perk && g.perk.trace){ const tl = document.querySelector(".trace .tl span"); if(tl) tl.insertAdjacentHTML("beforeend", `<small class="gad" style="display:block;margin:2px 0 0;color:#7dffc4">${g.name.toUpperCase()} ON · CLIMBS SLOWER</small>`); }
   }
   const target = Bank.getCurrentAccount();
-  addLine("PRIME HACK // TERMINAL ONLINE", "ok");
-  addLine(`Target bank: ${target ? target.name : "unknown"}. Four locks stand between you and its vault.`, "sys");
-  addLine("Each lock is a number made by multiplying two primes. Type the two primes to crack it.", "sys");
-  addLine("Type HELP for commands.", "sys");
-  if(window.PNHandler) PNHandler.once("hack-start", `You're at ${target ? target.name : "{target}"}'s vault, {agent}. Four locks. Each one is two primes multiplied together. Type the pair.`, { delay: 1200 });
+  const howMany = PRACTICE ? "Two" : "Four";
+  addLine(PRACTICE ? "PRIME HACK // PRACTICE" : "PRIME HACK // TERMINAL ONLINE", "ok");
+  // Round 14: two short lines, not three
+  addLine(`${howMany} locks. Each is two primes multiplied.`, "sys");
+  addLine("Type the two primes, then ENTER.", "sys");
+  if(window.PNHandler){
+    if(PRACTICE) PNHandler.say("Practice run. Two locks. Type the two primes.", { delay: 1200 });
+    else PNHandler.once("hack-start", `${target ? target.name : "{target}"}'s vault. Four locks. Type the two primes for each.`, { delay: 1200 });
+  }
   addBlank();
-  lockBanner(`Clearance ${DIFF}`);
+  lockBanner(PRACTICE ? (PRACTICE_PAIR ? "Practice" : `Practice · lock difficulty ${(Run.tier || 0) + 1}`) : `Clearance ${DIFF}`);
   addBlank();
   focusInput();
 }

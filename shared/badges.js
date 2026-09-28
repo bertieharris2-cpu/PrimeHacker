@@ -39,6 +39,7 @@
 
   // ---------- Unlock toast ----------
   const css = `
+  html.pn-mode-on .pnb-toast{ top:calc(var(--pn-mode-h, 62px) + 14px); }
   .pnb-toast{ position:fixed; left:50%; top:18px; z-index:99990; transform:translate(-50%,-140%); transition:transform .45s cubic-bezier(.3,1.4,.5,1);
     display:flex; align-items:center; gap:14px; background:rgba(4,14,17,.97); border:1px solid var(--c); box-shadow:0 12px 50px rgba(0,0,0,.7), 0 0 30px color-mix(in srgb, var(--c) 35%, transparent);
     padding:12px 18px 12px 12px; font-family:var(--font-ui, sans-serif); color:#eafff6; pointer-events:none; max-width:min(520px, 92vw); }

@@ -56,6 +56,7 @@
   "use strict";
   const T = window.PNTwist, $ = id => document.getElementById(id);
   const L = T.init({ id: "patrols", stage: "GETTING IN", title: "GUARD PATROLS",
+    context: "Two guards pass the vault door on a timetable.",
     goal: "Find a safe moment to open the vault door. Follow the steps below.",
     example: "A guard who passes every 3 minutes is at the door at 3, 6, 9, 12… (the multiples of 3).",
     story: `Two guards walk past ${T.targets()} vault door on a timetable. Work out when they pass and we'll open the door while nobody's there.` });
@@ -76,7 +77,8 @@
     mins.appendChild(b2);
   });
   function say(t, cls){ const el = $("msg"); el.textContent = t; el.className = "tw-msg" + (cls ? " " + cls : ""); }
-  function step(k, t){ $("stepN").textContent = `STEP ${k}`; $("stepT").innerHTML = t; }
+  const STEP_NAME = { 1: "Guard A", 2: "Guard B", 3: "Together when?", 4: "Open the door" };
+  function step(k, t){ $("stepN").textContent = `STEP ${k}`; $("stepT").innerHTML = t; T.step(t, { quiet: true, name: STEP_NAME[k] }); }   // HINTS gets the step too; the brief just its name
   const dot = (m, cls) => cell(m).querySelector(".dots").insertAdjacentHTML("beforeend", `<b class="${cls}"></b>`);
   function setStage(s){
     stage = s;

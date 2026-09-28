@@ -46,7 +46,7 @@
   @keyframes bar{ from{ height:5px } to{ height:38px } }
   .comms .who{ font-family:var(--font-ui); font-weight:700; letter-spacing:.22em; color:var(--accent); }
   .comms .sub{ color:var(--text-faint); font-size:14px; letter-spacing:.08em; }
-  .lines{ min-height:12.5em; font-size:19px; line-height:1.65; cursor:pointer; }
+  .lines{ min-height:5.4em; font-size:19px; line-height:1.65; cursor:pointer; }
   .lines p{ margin:0 0 6px; }
   .lines b{ color:#ffe14d; font-weight:700; }
   .dossier{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin:18px 0 6px; }
@@ -133,7 +133,7 @@
       </div>
       <div class="actions">
         <span class="note">Press <b>Enter</b> or click to accept.</span>
-        <button class="pn-btn primary" type="button" id="acceptBtn" disabled>Accept mission</button>
+        <button class="pn-btn primary pn-go" type="button" id="acceptBtn" disabled>Accept mission</button>
       </div>
     </div>
   </section>
@@ -141,6 +141,8 @@
 
 <script src="../shared/sound.js"></script>
 <script src="../shared/primenet.js"></script>
+<script src="../shared/voice.js"></script>
+<script src="../shared/mode.js"></script>
 <script src="../shared/badges.js"></script>
 <script src="../shared/testtools.js"></script>
 <script src="../shared/glitch.js"></script>
@@ -156,6 +158,8 @@
   if(!agent){ location.href = "../index.html"; return; }
   const NEXT = "prime_frequency_scan.html";
   const go = () => PNGlitch.go(NEXT);
+  const MODE = window.PNMode || { turn(){}, watch(){ return { end(){}, progress(){} }; }, typeThrough(){ return Promise.resolve(); } };
+  MODE.turn("Hold SPACE to scan your finger");
 
   setInterval(() => { $("#clock").textContent = new Date().toLocaleTimeString("en-GB"); }, 1000);
 
@@ -253,6 +257,7 @@
       $("#stepId").hidden = true; $("#stepMap").hidden = false;
       $("#mapNote").textContent = `CLEARANCE ${agent.level} · ${DISTRICT[agent.level].toUpperCase()}`;
       drawCity();
+      MODE.turn("Pick a bank on the map");
       if(window.PNHandler) PNHandler.say("Pick your target, {agent}. Banks in your clearance are lit up on the map.");
       const map = $("#map"), card = $("#tcard");
       let chosen = null;
@@ -266,7 +271,7 @@
           if(!open){ SND("denied"); card.innerHTML = `<div class="meta"><b>${name}</b> is in the ${DISTRICT[lvl]}. It needs clearance ${lvl}. Pick a higher level on the title screen to hit it.</div>`; return; }
           map.querySelectorAll(".pin").forEach(p => p.classList.remove("sel")); b.classList.add("sel"); chosen = name; SND("tag");
           card.innerHTML = `<div><div class="nm">${name}</div><div class="meta">${DISTRICT[lvl]} · security <b>${SECURITY[lvl]}</b> · vault holds <b>${VAULT[lvl]}</b>${hits ? ` · you've hit it <b>${hits}</b> time${hits > 1 ? "s" : ""}` : ""}</div></div>
-            <button class="pn-btn primary" type="button" id="lockTarget">Lock target</button>`;
+            <button class="pn-btn primary pn-go" type="button" id="lockTarget">Lock target</button>`;
           $("#lockTarget").addEventListener("click", () => { PN.setMissionTarget(chosen); SND("lock"); $("#stepMap").hidden = true; resolve(); });
           $("#lockTarget").focus();
         });
@@ -278,11 +283,9 @@
 
   // ---------- Briefing ----------
   const LINES = () => [
-    `*${m.codename}*, ORACLE here. Channel's secure.`,
-    `Tonight's target: *${m.target}*. Operation ${m.operation}.`,
-    `Their network hides its keys among prime signals. Scan the bands and tag every prime.`,
-    `Then rebuild the bank's blueprint, one floor at a time, from factor pairs.`,
-    `Once we know the building, crack the prime locks and empty the vault. I'll be on comms the whole way.`,
+    `*${m.codename}*, ORACLE here. Tonight's target: *${m.target}*.`,
+    `Find the primes. Build the bank. Crack the locks. Then the money.`,
+    `I'm on comms the whole way.`,
   ];
   let skipTyping = false;
   async function brief(){
@@ -290,11 +293,19 @@
     $("#opName").textContent = "OPERATION " + m.operation;
     $("#dTarget").textContent = m.target; $("#dOp").textContent = m.operation;
     $("#dAgent").textContent = `${m.codename} · ${agent.level}`;
+    MODE.turn("Type to open comms");
+    await MODE.typeThrough({ label: "OPENING COMMS", keys: 12 });
     SND("comms");
+    const lines = LINES();
+    // How long the typing takes: 24ms a letter, a short pause after each line, then the cards
+    const secs = (350 + lines.join("").replace(/\*/g, "").length * 24 + lines.length * 320 + 6 * 160) / 1000;
+    const skip = () => { skipTyping = true; };
+    const w = MODE.watch("ORACLE is briefing you", { seconds: secs, onSkip: skip });
+    if(window.PNVoice) PNVoice.speak(lines.join(" "), { interrupt: false });
     await sleep(350);
     const box = $("#lines");
-    box.addEventListener("click", () => { skipTyping = true; });
-    for(const text of LINES()){
+    box.addEventListener("click", skip);
+    for(const text of lines){
       const p = document.createElement("p"); box.appendChild(p);
       const parts = text.split(/(\*[^*]+\*)/); let html = "";
       for(const part of parts){
@@ -311,6 +322,8 @@
     $("#comms").classList.remove("talking");
     const cards = [...document.querySelectorAll("#dossier > div")], steps = [...document.querySelectorAll("#route .st")];
     for(const el of [...cards, ...steps]){ el.classList.add("on"); SND("tag"); await sleep(skipTyping ? 40 : 160); }
+    w.end();
+    MODE.turn("Accept the mission");
     const btn = $("#acceptBtn"); btn.disabled = false; btn.focus();
     SND("ready");
   }

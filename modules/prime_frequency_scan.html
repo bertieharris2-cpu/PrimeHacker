@@ -506,6 +506,14 @@ body::before{
     repeating-linear-gradient(120deg, rgba(var(--accent-rgb), .06) 0 1px, transparent 2px 44px) !important;
 }
 button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [class*="Title"]{ font-family: var(--font-ui); }
+/* Round 14: the WATCH / YOUR TURN bar pads the top of the body, so keep the page inside the window */
+html.pn-mode-on body{ box-sizing: border-box; }
+/* Go buttons: green when you can press them, grey until then (beats the page's own button rules above) */
+.main .btnRow button.pn-go{ color:#03170e !important; background:#2fbf8a !important; border-color:#7dffc4 !important; box-shadow:0 0 18px rgba(47,191,138,.45); }
+.main .btnRow button.pn-go:hover:not(:disabled){ background:#46d9a0 !important; box-shadow:0 0 26px rgba(47,191,138,.7); }
+.main .btnRow button.pn-go:disabled{ color:rgba(235,255,248,.55) !important; background:rgba(0,0,0,.25) !important; border-color:rgba(var(--accent-rgb),.3) !important; box-shadow:none; opacity:1; }
+html.pn-mode-on .devBtn{ top: calc(var(--pn-mode-h, 62px) + 10px); }
+html.pn-mode-on .devPanel{ top: calc(var(--pn-mode-h, 62px) + 50px); }
 .cell{ font-family: var(--font-mono) !important; min-width: 0 !important; }  /* the general button min-width squashed the number grid */
 </style>
 </head>
@@ -539,6 +547,8 @@ button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [clas
   </div>
 
 <script src="../shared/primenet.js"></script>
+<script src="../shared/voice.js"></script>
+<script src="../shared/mode.js"></script>
 <script src="../shared/badges.js"></script>
 <script src="../shared/testtools.js"></script>
 <script src="../shared/handler.js"></script>
@@ -551,6 +561,10 @@ button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [clas
   const PN = window.Primenet;
   const SND = (name, arg) => { if(window.PNSound) PNSound.play(name, arg); };
   if(PN) PN.log("scan");
+  // Round 14: WATCH (nothing to do) and YOUR TURN bar
+  const MODE = window.PNMode || { turn(){}, watch(){ return { end(){}, progress(){} }; } };
+  let verifyBtnEl = null;
+  const syncVerify = () => { if(verifyBtnEl) verifyBtnEl.disabled = selected.size === 0; };
 
   // ====== CONFIG (edit safely, no spaghetti) ======
   const CONFIG = {
@@ -711,6 +725,7 @@ button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [clas
     const note = el("div", { class: "small", text: "Synchronising channels…" });
 
     main.append(title, barWrap, note);
+    const w = MODE.watch("Starting the scanner", { seconds: CONFIG.bootDurationMs / 1000 });
 
     // animate loading fill
     let p = 0;
@@ -725,6 +740,7 @@ button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [clas
     }, 80);
 
     setTimeout(() => {
+      w.end();
       renderBrief();
     }, CONFIG.bootDurationMs);
   }
@@ -739,7 +755,9 @@ button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [clas
     const sub = el("div", { class: "sub", text: "Secure channels require stable numerical signals. Noise must be filtered before access is granted." });
     const divider = el("div", { class: "divider" });
 
+    MODE.turn("Start the scan");
     const btn = el("button", {
+      class: "pn-go",
       text: "BEGIN SCAN",
       onClick: () => {
         SND("start");
@@ -761,6 +779,7 @@ button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [clas
     const b = CONFIG.bands[bandIndex];
     setStatus(`SCANNING: ${bandLabel(b)}`);
     setConsole("Scanning number band…", `Target range loaded: ${b.start}\u2013${b.end}`);
+    MODE.turn(`Tag every prime · band ${bandIndex + 1} of ${CONFIG.bands.length}`);
     clearMain();
 
     const heading = el("div", { class: "scanHead" }, [el("div", { class: "gridTitle", text: `SCANNING ${b.start}\u2013${b.end}` }), signalMeter()]);
@@ -784,15 +803,18 @@ button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [clas
           const pressed = selected.has(n);
           e.currentTarget.classList.toggle("selected", pressed);
           e.currentTarget.setAttribute("aria-pressed", pressed ? "true" : "false");
+          syncVerify();
         }
       });
       grid.appendChild(cell);
     }
 
     const verifyBtn = el("button", {
+      class: "pn-go",
       text: "VERIFY SIGNALS",
       onClick: () => verifyBand(b)
     });
+    verifyBtnEl = verifyBtn; syncVerify();   // grey until at least one signal is tagged
 
     const resetBtn = el("button", {
       text: "CLEAR TAGS",
@@ -804,6 +826,7 @@ button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [clas
           btn.setAttribute("aria-pressed", "false");
         });
         setConsole("TAGS CLEARED", "All signal tags removed.");
+        syncVerify();
       }
     });
 
@@ -835,7 +858,7 @@ button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [clas
           const n = Number(c.textContent);
           if(n !== p && n % p === 0 && !c.classList.contains("jammed")){
             hit.push(n);
-            setTimeout(() => { c.classList.add("jammed", "jamHit"); c.classList.remove("selected", "wrongTag", "missed"); c.setAttribute("aria-disabled", "true"); selected.delete(n); SND("pop", hit.indexOf(n)); }, 120 + hit.length * 70);
+            setTimeout(() => { c.classList.add("jammed", "jamHit"); c.classList.remove("selected", "wrongTag", "missed"); c.setAttribute("aria-disabled", "true"); selected.delete(n); syncVerify(); SND("pop", hit.indexOf(n)); }, 120 + hit.length * 70);
           }
         });
         setConsole(`JAMMER ×${p}`, hit.length ? `Knocked out ${hit.join(", ")}: all multiples of ${p}, so none of them is prime.` : `No multiples of ${p} left in this band.`);
@@ -912,6 +935,7 @@ button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [clas
     const note = el("div", { class: "small", text: "Writing verification token…" });
 
     main.append(title, segs, barWrap, note);
+    const w = MODE.watch(`Band ${bandIndex + 1} done. Saving it`, { seconds: (CONFIG.verifiedPauseMs + 450) / 1000 });
 
     // animate the commit bar quickly
     let p = 0;
@@ -923,6 +947,7 @@ button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [clas
     }, 90);
 
     setTimeout(() => {
+      w.end();
       bandIndex += 1;
       if (bandIndex >= CONFIG.bands.length){
         renderIntercept();
@@ -948,6 +973,7 @@ button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [clas
     const sp = () => (window.PNTest ? PNTest.speed() : 1);
     setStatus("LIVE INTERCEPT");
     setConsole("Live traffic detected.", "Click the prime peaks before they leave the scope.");
+    MODE.turn("Grab the prime peaks");
     clearMain();
     if(window.PNHandler) PNHandler.once("scan-intercept", "Live traffic from {target}. Grab the prime peaks as they pass. Leave the noise.", { delay: 200 });
 
@@ -1071,13 +1097,17 @@ button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [clas
       <div class="perk">${decoders ? `Strong signal: ${decoders} decoder charge${decoders === 1 ? "" : "s"} for the Factor Vault. Each one cracks a factor pair for you.` : "Weak signal: no decoder charges this time. A cleaner scan earns them."}</div>` });
     const sub = el("div", { class: "sub", text: "All bands verified. Secure channels stabilised." });
 
+    MODE.turn("Head to the vault");
     const proceed = el("button", {
+      class: "pn-go",
       text: "PROCEED TO THE VAULT",
       onClick: async () => {
+        proceed.disabled = true; restart.disabled = true;
         setConsole("ROUTE SET", "Next module: FACTOR VAULT.");
         if(PN) PN.log("scan-complete", { signal, bands: CONFIG.bands.map(b => `${b.start}-${b.end}`) });
-        if(window.PNTwistSlot) await PNTwistSlot.run("scan");   // round 11: a twist here if the mission has one
-        flashAccessGranted(() => (window.PNGlitch ? PNGlitch.go("factor_vault.html") : (location.href = "factor_vault.html")));
+        if(window.PNTwistSlot) await PNTwistSlot.run("scan");   // round 11: a twist here if the mission has one (never inside a WATCH)
+        const w = MODE.watch("Access granted. Going to the vault", { seconds: 2.4 });
+        flashAccessGranted(() => { w.end(); window.PNGlitch ? PNGlitch.go("factor_vault.html") : (location.href = "factor_vault.html"); });
       }
     });
 
@@ -1320,7 +1350,7 @@ button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [clas
     const tagPrimes = () => {
       if(state !== State.SCAN){ if(state !== State.VERIFIED) { bandIndex = 0; progress = new Array(CONFIG.bands.length).fill(false); } renderScan(); }
       const b = CONFIG.bands[bandIndex], ps = new Set(primesInBand(b.start, b.end));
-      selected = new Set(ps);
+      selected = new Set(ps); syncVerify();
       main.querySelectorAll(".cell").forEach(c => { const on = ps.has(Number(c.textContent)); c.classList.toggle("selected", on); c.setAttribute("aria-pressed", on ? "true" : "false"); });
       return b;
     };

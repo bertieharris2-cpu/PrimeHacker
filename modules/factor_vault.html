@@ -162,7 +162,7 @@
 
     main{
       display:grid;
-      grid-template-columns: 1.25fr 0.75fr 1.25fr;
+      grid-template-columns: 1.2fr minmax(380px, 0.9fr) 1.2fr;
       grid-template-rows: 1fr auto;
       gap:20px;
       flex:1;
@@ -326,6 +326,28 @@
     .lockdown{ position:absolute; inset:0; z-index:8; background:rgba(40,4,10,.86); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; text-align:center; padding:16px; color:#ffd3da; }
     .lockdown b{ font-size:22px; letter-spacing:.18em; color:#ff4f6d; }
     .lockdown .count{ font-size:40px; font-weight:700; color:#fff; }
+    /* Round 14: N is the biggest thing on the page (Bertie: "the N= number needs to be waaaaay more obvious") */
+    .n-badge{ text-align:center; padding:2px 0 8px; border-bottom:1px solid var(--panel-border); position:relative; z-index:6; }
+    .n-badge .big{ font-family:"Chakra Petch", var(--font-ui); font-weight:700; font-size:clamp(56px, 7vw, 96px); line-height:1; letter-spacing:0; word-spacing:-.12em; white-space:nowrap;
+      color:#ffc94d; text-shadow:0 0 18px rgba(255,201,77,.55), 0 0 42px rgba(255,201,77,.25); }
+    .n-badge .sub{ margin-top:6px; font-family:"Chakra Petch", var(--font-ui); font-weight:700; font-size:13px; letter-spacing:.05em; color:#ffe3a1; white-space:nowrap; }
+    .n-badge.pulse .big{ animation:nPulse 1.1s ease-out 1; }
+    @keyframes nPulse{ 0%{ transform:scale(1); } 30%{ transform:scale(1.14); text-shadow:0 0 30px #ffc94d, 0 0 70px rgba(255,201,77,.6); } 100%{ transform:scale(1); } }
+    html.pn-reduce-motion .n-badge.pulse .big{ animation:none; }
+    @media (prefers-reduced-motion: reduce){ .n-badge.pulse .big{ animation:none; } }
+    .panel-center > h2{ display:none; }   /* the N badge and "? × ? = N" say it now */
+    .panel-center td{ padding-top:9px; padding-bottom:9px; }
+    th.n-head{ font-family:"Chakra Petch", var(--font-ui); font-size:22px; letter-spacing:.08em; color:var(--text-primary); }
+    th.n-head b{ color:#ffc94d; }
+    /* Practice mode end card */
+    .practice-end{ position:fixed; inset:0; z-index:9300; display:flex; align-items:center; justify-content:center; padding:16px; background:rgba(2,10,14,.8); }
+    .practice-end .card{ width:min(560px, 100%); background:rgba(6,16,20,.98); border:2px solid #2fbf8a; box-shadow:0 0 40px rgba(47,191,138,.25); padding:24px; display:flex; flex-direction:column; gap:16px; text-align:center; font-family:"Chakra Petch", var(--font-ui); }
+    .practice-end h3{ margin:0; font-size:30px; letter-spacing:.08em; color:#7dffc4; }
+    .practice-end .pairs{ font-family:var(--font-mono); font-size:22px; color:#ffc94d; line-height:1.5; }
+    .practice-end .row{ display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
+    .practice-end button, .practice-end a{ font:inherit; font-weight:700; font-size:16px; letter-spacing:.06em; padding:12px 18px; border:1px solid rgba(var(--accent-rgb),.6); background:rgba(0,0,0,.3); color:var(--text-primary); cursor:pointer; text-decoration:none; }
+    .practice-end input{ width:110px; font-family:var(--font-mono); font-size:20px; padding:10px; text-align:center; background:rgba(0,0,0,.3); border:1px solid rgba(var(--accent-rgb),.6); color:var(--text-primary); }
+    .practice-end .msg{ min-height:1.2em; color:#ffb3c0; font-size:14px; }
     /* Drag to build */
     .mode-switch{ display:flex; gap:6px; }
     .mode-switch button{ flex:1; padding:6px 8px; font-size:12px; letter-spacing:.08em; text-transform:uppercase; background:rgba(0,0,0,.25); color:var(--text-muted); border:1px solid var(--panel-border); cursor:pointer; }
@@ -881,6 +903,7 @@ body{ font-size: var(--font-size); }
       <!-- CENTER TABLE -->
       <div class="panel-center">
         <div class="seccam" id="secCam" aria-hidden="true"><div class="cone"></div><div class="body"></div></div>
+        <div class="n-badge" id="nBadge" aria-live="polite"><div class="big">N = <span id="nBig">12</span></div><div class="sub" id="nSub">FLOOR 1 OF 3 · FIND EVERY PAIR THAT MAKES 12</div></div>
         <h2>Factor Pairs</h2>
         <div class="strip">
           <div class="cam-status" id="camStatus" title="Submitting while the camera watches the terminal raises the alert. Three alerts lock the terminal for a moment."><span>Cam</span><span class="state">Clear</span><span class="alert"><i></i><i></i><i></i></span></div>
@@ -890,7 +913,7 @@ body{ font-size: var(--font-size); }
         <div class="table-wrapper">
           <table>
             <thead>
-              <tr><th>a</th><th>b</th></tr>
+              <tr><th colspan="2" class="n-head">? × ? = <b id="nHead">12</b></th></tr>
             </thead>
             <tbody id="pairsTable"></tbody>
           </table>
@@ -899,7 +922,7 @@ body{ font-size: var(--font-size); }
           <span>Progress: <span id="progress">0/0</span></span>
           <span id="msgSpan"></span>
         </div>
-        <button id="submitAllBtn" class="submit-all-btn">Submit All Pairs</button>
+        <button id="submitAllBtn" class="submit-all-btn pn-go">Submit All Pairs</button>
         <button id="dragToggle" class="submit-all-btn drag-toggle" type="button" hidden>Draw the arrays instead</button>
         <button id="decodeBtn" class="submit-all-btn decode-btn" type="button" hidden title="Earned in the Frequency Scan: cracks one factor pair for you">Decoder</button>
       </div>
@@ -933,7 +956,7 @@ body{ font-size: var(--font-size); }
       <p><strong>All pairs verified!</strong></p>
       <p>Proceed to Facility Reconstruction?</p>
       <div class="button-group">
-        <button id="proceedBtn">Reconstruct</button>
+        <button id="proceedBtn" class="pn-go">Reconstruct</button>
       </div>
     </div>
     <!-- Blueprint complete prompt -->
@@ -942,12 +965,13 @@ body{ font-size: var(--font-size); }
       <p class="blueprint-complete-text">Blueprint Complete</p>
       <p class="blueprint-complete-subtext">All 3 floors successfully reconstructed</p>
       <div class="button-group">
-        <button id="buildBlueprintBtn">Build Blueprint</button>
+        <button id="buildBlueprintBtn" class="pn-go">Build Blueprint</button>
       </div>
     </div>
   </div>
 
   <script src="../shared/primenet.js"></script>
+  <script src="../shared/mode.js"></script>
   <script src="../shared/badges.js"></script>
   <script src="../shared/testtools.js"></script>
   <script src="../shared/handler.js"></script>
@@ -957,6 +981,8 @@ body{ font-size: var(--font-size); }
     const PN = window.Primenet;
     const TEACHER = !!(PN && PN.isTeacher());
     const FLOORS_NEEDED = 3;
+    // Round 14: ?practice=1 (from the teacher's Practice box): one floor, no camera, no mission state saved
+    const PRACTICE = new URLSearchParams(location.search).get("practice") === "1";
 
     // ===== AUDIO MANAGER =====
     class AudioManager {
@@ -1308,6 +1334,7 @@ body{ font-size: var(--font-size); }
 
     // ===== BLUEPRINT PROGRESS SYSTEM =====
     function saveCompletedLevel(){
+      if(PRACTICE) return getCompletedLevels();
       let completed = JSON.parse(localStorage.getItem('blueprintProgress') || '[]');
       if(!completed.includes(N)){
         completed.push(N);
@@ -1502,7 +1529,14 @@ body{ font-size: var(--font-size); }
         renderVaults();
 
         // Check for completion
-        if(found.size === allPairs.length){
+        if(found.size === allPairs.length && PRACTICE){
+          setTimeout(() => { if(window.PNSound) PNSound.play("success"); }, 350);
+          setMode("Blueprint Decryption");
+          setHint(`All ${allPairs.length} pairs found for N=${N}.`);
+          submitAllBtn.disabled = true;
+          setTimeout(showPracticeEnd, 700);
+        } else if(found.size === allPairs.length){
+          const floorDone = Math.min(getCompletedLevels().length + 1, FLOORS_NEEDED);
           saveCompletedLevel(); // Save progress
           if(PN) PN.log("vault-complete", { n: N, level: currentDifficulty });
           if(window.PNBadges && Number.isInteger(Math.sqrt(N))) PNBadges.award("square-hunter");
@@ -1510,6 +1544,7 @@ body{ font-size: var(--font-size); }
           setMode("Blueprint Decryption");
           setHint(`All pairs verified. Reconstructing floor plan for N=${N}…`);
           submitAllBtn.disabled = true;
+          if(window.PNMode) PNMode.watch(`Floor ${floorDone} solved. Building it…`, { seconds: 1.8 + 0.52 });
           setTimeout(() => (window.PNGlitch ? PNGlitch.go(`vault_grid_demo.html?n=${N}`, { style: "sweep" }) : (location.href = `vault_grid_demo.html?n=${N}`)), 1800);
         }
       } else if(totalEntered === 0){
@@ -1850,6 +1885,8 @@ body{ font-size: var(--font-size); }
       // Update all UI elements to reflect new N
       document.title = `Factor Pair Array Vault — N=${N}`;
       nDisplay.textContent = String(N);
+      document.getElementById("nBig").textContent = String(N);
+      document.getElementById("nHead").textContent = String(N);
       
       const vaultPanels = document.querySelectorAll(".panel-vault");
       vaultPanels.forEach(panel => {
@@ -1862,19 +1899,66 @@ body{ font-size: var(--font-size); }
       gameStage = 0;
       setMode("Vault Analysis Terminal");
       const floor = Math.min(getCompletedLevels().length + 1, FLOORS_NEEDED);
-      setHint(`Floor ${floor} of ${FLOORS_NEEDED}: find all ${allPairs.length} factor pairs for N=${N}.`);
-      if(PN) PN.log("vault", { floor, n: N, level: currentDifficulty });
+      requestAnimationFrame(fitBadge);
+      document.getElementById("nSub").textContent = PRACTICE ? `PRACTICE · FIND EVERY PAIR THAT MAKES ${N}` : `FLOOR ${floor} OF ${FLOORS_NEEDED} · FIND EVERY PAIR THAT MAKES ${N}`;
+      setHint(PRACTICE ? `Practice: find all ${allPairs.length} factor pairs for N=${N}.` : `Floor ${floor} of ${FLOORS_NEEDED}: find all ${allPairs.length} factor pairs for N=${N}.`);
+      if(PN && !PRACTICE) PN.log("vault", { floor, n: N, level: currentDifficulty });
       floorMisses = 0;
-      if(window.PNHandler) PNHandler.once(`vault-floor-${floor}-${N}`, [
-        "This is {target}'s vault system. Each factor pair of N is a room on one floor. Find every pair and we can map it.",
-        "Floor two. Same drill: every pair, and don't forget 1 × N.",
-        "Last floor, {agent}. Then we'll have the whole building.",
-      ][floor - 1] || "Find every pair.", { delay: 900 });
+      if(!init.holdIntro) floorIntro(floor);
       renderTable();
       renderVaults();
       setupFloorExtras();
       // Hide completion prompt when starting new game
       completionPrompt.classList.remove("show");
+    }
+
+    // Keep "N = 100" and its line inside the panel: shrink only as far as needed
+    function fitBadge(){
+      const badge = document.getElementById("nBadge"), w = badge.clientWidth;
+      [[badge.querySelector(".big"), 44], [badge.querySelector(".sub"), 10]].forEach(([el, min]) => {
+        el.style.fontSize = "";
+        let fs = parseFloat(getComputedStyle(el).fontSize);
+        while(el.scrollWidth > w && fs > min){ fs -= 1; el.style.fontSize = fs + "px"; }
+      });
+    }
+    window.addEventListener("resize", fitBadge);
+    if(document.fonts && document.fonts.ready) document.fonts.ready.then(fitBadge);
+
+    // Round 14: the floor starts. N pulses once, YOUR TURN, then ORACLE's line.
+    function floorIntro(floor){
+      const badge = document.getElementById("nBadge");
+      badge.classList.remove("pulse"); void badge.offsetWidth; badge.classList.add("pulse");
+      if(window.PNMode) PNMode.turn(`Find every pair that makes ${N}`);
+      if(!PRACTICE && window.PNHandler) PNHandler.once(`vault-floor-${floor}-${N}`, [
+        "This is {target}'s vault system. Each factor pair of N is a room on one floor. Find every pair and we can map it.",
+        "Floor two. Same drill: every pair, and don't forget 1 × N.",
+        "Last floor, {agent}. Then we'll have the whole building.",
+      ][floor - 1] || "Find every pair.", { delay: 900 });
+    }
+
+    // Practice mode: a plain end card. Nothing is saved.
+    function showPracticeEnd(){
+      if(document.querySelector(".practice-end")) return;
+      if(window.PNMode) PNMode.done();
+      const list = allPairs.map(([a, b]) => `${a} × ${b}`).join(", ");
+      const ov = document.createElement("div"); ov.className = "practice-end"; ov.setAttribute("role", "dialog"); ov.setAttribute("aria-label", "All pairs found");
+      ov.innerHTML = `<div class="card"><h3>NICE WORK</h3>
+        <div class="pairs">All pairs found: ${list}</div>
+        <div class="row"><button type="button" class="pn-go" id="peAgain">Play again</button></div>
+        <div class="row"><input id="peN" type="number" min="2" max="200" inputmode="numeric" aria-label="New number" placeholder="${N}"><button type="button" class="pn-go" id="peNew">New number</button></div>
+        <div class="msg" id="peMsg"></div>
+        <div class="row"><a href="../index.html#teacher" id="peBack">Back to teacher tools</a></div></div>`;
+      document.body.appendChild(ov);
+      ov.querySelector("#peAgain").addEventListener("click", () => location.reload());
+      const inp = ov.querySelector("#peN");
+      const goNew = () => {
+        const v = Number(inp.value);
+        if(!Number.isInteger(v) || v < 2 || v > 200){ ov.querySelector("#peMsg").textContent = "Pick a whole number from 2 to 200."; inp.focus(); return; }
+        location.href = `factor_vault.html?n=${v}&practice=1`;
+      };
+      ov.querySelector("#peNew").addEventListener("click", goNew);
+      inp.addEventListener("keydown", e => { if(e.key === "Enter"){ e.preventDefault(); goNew(); } });
+      ov.querySelector("#peAgain").focus();
     }
 
     // ===== EVENT LISTENERS =====
@@ -2025,6 +2109,7 @@ body{ font-size: var(--font-size); }
       document.querySelector(".settings-levels").style.display = "none";
       settingsBtnNewGame.style.display = "none";
     }
+    if(PRACTICE) settingsBtnNewGame.style.display = "none";   // practice never touches mission progress
 
     // Level button event listeners
     btnL1.addEventListener("click", () => { setDifficulty('L1'); init(); updateLevelButtons(); settingsDropdown.classList.remove('open'); });
@@ -2055,7 +2140,8 @@ body{ font-size: var(--font-size); }
     // the alert. Three alerts and the terminal locks for a few seconds. Nothing is lost.
     const cam = { angle: 0, alert: 0, locked: false, t0: performance.now(), el: document.getElementById("secCam"), status: document.getElementById("camStatus") };
     const CAM_PERIOD = 7000;   // one full sweep there and back
-    const camWatching = () => Math.abs(cam.angle) < 13;
+    const camWatching = () => !PRACTICE && Math.abs(cam.angle) < 13;
+    if(PRACTICE){ cam.el.style.display = "none"; cam.status.style.display = "none"; cam.el = null; }   // practice: no camera
     (function camTick(now){
       const phase = ((now - cam.t0) % CAM_PERIOD) / CAM_PERIOD;
       cam.angle = Math.sin(phase * Math.PI * 2) * 55;
@@ -2213,11 +2299,11 @@ body{ font-size: var(--font-size); }
     const decodeBtn = document.getElementById("decodeBtn");
     function syncDecoder(){
       const a = PN && PN.getAgent(), left = a && a.decoders ? a.decoders : 0;
-      decodeBtn.hidden = left <= 0;
+      decodeBtn.hidden = PRACTICE || left <= 0;
       decodeBtn.textContent = `Decoder: crack one pair (${left} left)`;
     }
     decodeBtn.addEventListener("click", () => {
-      const a = PN && PN.getAgent(); if(!a || !a.decoders) return;
+      const a = PN && PN.getAgent(); if(PRACTICE || !a || !a.decoders) return;
       const todo = allPairs.filter(([x, y]) => !found.has(keyOf(x, y)));
       if(!todo.length) return;
       const [x, y] = todo[Math.floor(Math.random() * todo.length)];
@@ -2251,6 +2337,9 @@ body{ font-size: var(--font-size); }
     }
 
     // Start the game
+    // Round 14: floors 2 and 3 open with a short hack-in (any key types) before YOUR TURN
+    const startFloor = Math.min(getCompletedLevels().length + 1, FLOORS_NEEDED);
+    init.holdIntro = !PRACTICE && startFloor >= 2 && !!window.PNMode;
     // Check URL parameters for N value from vault_grid_demo
     const urlParams = new URLSearchParams(window.location.search);
     const urlN = parseInt(urlParams.get('n'), 10);
@@ -2271,6 +2360,13 @@ body{ font-size: var(--font-size); }
       updateLevelButtons();
       init();
       console.log(`Loading Factor Vault with random N from Difficulty: ${currentDifficulty}`);
+    }
+    if(init.holdIntro){
+      PNMode.typeThrough({ label: `CONNECTING TO FLOOR ${startFloor}`, keys: 12 }).then(() => {
+        init.holdIntro = false;
+        floorIntro(startFloor);
+        const cell = pairsTable.querySelector('td[contenteditable="true"]'); if(cell) cell.focus();
+      });
     }
   </script>
 </body>

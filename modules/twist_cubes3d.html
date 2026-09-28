@@ -158,6 +158,7 @@
   };
   const GOAL2 = "Tap every <b>cube number</b> on the relay board. Each one powers another room.";
   T.init({ id: "cubes3d", stage: "BLUEPRINT", title: "CEILING RELAYS", goal: GOALS[MODE][L],
+    context: "Every light on this floor runs back to one transformer.",
     example: "<b>27 = 3³</b>, a cube number: 3 blocks along each side and 3 layers, 3 × 3 × 3 = 27. The small ³ means three of that number multiplied together.",
     story: `This is the target floor of ${T.target()}. Every room's lights and cameras run back to one transformer. Wire each room in with a cube-number relay, then overload it: the whole floor blacks out.` });
   $("st1").textContent = MODE === "B" ? "1 · LOAD THE CRATES" : "1 · STACK THE RELAYS";
@@ -287,10 +288,11 @@
     await wait(1000);
     end(true);
   }
-  // Instructions live in the hologram brief. A new kind of step zooms it open; the same job again
-  // (the next relay, a new number) just updates it and pings the BRIEF tab.
+  // Instructions live in the HINTS window (opens only on request). A new step updates it and pings its tab.
   const seen = new Set();
-  function brief(kind, html){ T.step(html, { quiet: seen.has(kind) }); seen.add(kind); }
+  // The brief only names the step ("Relay 2 of 4"); the how-to goes to HINTS
+  const stepName = () => MODE === "B" ? "Load the crates" : `Relay ${Math.min(i1 + 1, s1.length)} of ${s1.length}`;
+  function brief(kind, html){ T.step(html, { quiet: seen.has(kind), name: stepName() }); seen.add(kind); }
   let i1 = 0;
   const want = () => s1[i1];
   let M = null;   // the mode: { ask, reset, skip }
@@ -476,7 +478,7 @@
     }
     $("lockBtn").addEventListener("click", () => {
       if(over || locked) return;
-      if(!base){ say("No layer yet. Drag a square on the pallet first.", "warn"); T.showBrief(); return; }
+      if(!base){ say("No layer yet. Drag a square on the pallet first.", "warn"); T.showHints(); return; }
       const n = base * base * layers, w = want();
       if(n === w && base === layers) return lock();
       if(n === w){ say(`${n} blocks, but ${base} along each side and ${layers} layers isn't a cube. Make them match.`, "warn"); T.SND("untag"); return; }
@@ -492,7 +494,7 @@
     $("rootBtn").addEventListener("click", () => {
       if(over || locked) return;
       const n = want(), v = parseInt($("rootIn").value, 10);
-      if(!Number.isInteger(v)){ say("No side length yet.", "warn"); T.showBrief(); return; }   // stuck: the brief comes back to explain
+      if(!Number.isInteger(v)){ say("No side length yet.", "warn"); T.showHints(); return; }   // stuck: the brief comes back to explain
       if(v ** 3 === n){ setRoot(v); return lock(); }
       say(T.isCube(n) ? `${v} × ${v} × ${v} = ${v ** 3}, not ${n}.` : `${v} × ${v} × ${v} = ${v ** 3}. In fact ${n} isn't a cube: ${between(n)}.`, "bad"); alarm.hit();
     });
@@ -506,7 +508,7 @@
     function ask(){
       const n = want();
       $("needLine").innerHTML = `Relay ${L3 ? "has" : "needs"} <b>${n}</b> blocks`;
-      if(L3) brief("root", `Relay has <b>${n}</b> blocks. How many blocks along each side? Drag a square on the pallet, or type it. Not a cube? Press <b>It can't be a cube</b>.`);
+      if(L3) brief("root", `Relay has <b>${n}</b> blocks: how many along each side? Drag a square on the pallet or type it, or press <b>It can't be a cube</b>.`);
       else brief("draw", `Relay needs <b>${n}</b> blocks. Drag on the pallet to draw one <b>square layer</b>.`);
     }
     function reset(){ locked = false; svg.classList.remove("locked"); base = 0; layers = 0; anchor = cur = null; clearSel(); killGhost(); $("rootIn").value = ""; const ov = $("reveal"); if(ov) ov.remove(); paint(); }
@@ -588,7 +590,7 @@
         $("rootQLab").textContent = `${c.n} IS A CUBE. WHICH CUBE? TAP IT.`;
         $("chips").innerHTML = T.shuffle([r, ...others]).map(k => `<button class="pn-btn" type="button" data-v="${k}">${k}<sup>3</sup></button>`).join("");
       }
-      brief("root", L3 ? `<b>${c.n}</b> is a cube. How many blocks along each side? Type it and press <b>Check</b>.` : `<b>${c.n}</b> is a cube. Which cube is it? Tap it.`);
+      brief("root", L3 ? `<b>${c.n}</b> is a cube. Type how many blocks along each side and press <b>Check</b>.` : `<b>${c.n}</b> is a cube. Which cube is it? Tap it.`);
     }
     function answerRoot(v, btn){
       const c = pending; if(!c || over) return;
@@ -600,7 +602,7 @@
       if(btn){ btn.classList.add("bad"); btn.disabled = true; }
     }
     $("chips").addEventListener("click", e => { const b = e.target.closest("button"); if(b && !b.disabled) answerRoot(+b.dataset.v, b); });
-    $("rootBtnB").addEventListener("click", () => { const v = parseInt($("rootInB").value, 10); if(!Number.isInteger(v)){ say("No side length yet.", "warn"); T.showBrief(); return; } answerRoot(v); });
+    $("rootBtnB").addEventListener("click", () => { const v = parseInt($("rootInB").value, 10); if(!Number.isInteger(v)){ say("No side length yet.", "warn"); T.showHints(); return; } answerRoot(v); });
     $("rootInB").addEventListener("keydown", e => { if(e.key === "Enter") $("rootBtnB").click(); });
     // A loaded crate slides into the bay and the spark runs; a rejected one drops off the belt
     function retire(c){ crates.splice(crates.indexOf(c), 1); c.state = "gone"; c.g.classList.remove("front", "held"); nudged = false; heldAt = 0; if(!crates.length) setTimeout(() => { if(!over) step2(); }, 1400 / sp()); }
@@ -629,7 +631,7 @@
   function step2(){
     ["pallet", "beltPanel"].forEach(id => $(id).hidden = true); $("spot").hidden = false;
     $("st1").className = "done"; $("st2").className = "on";
-    T.setGoal(GOAL2);
+    T.setGoal(GOAL2, { name: "Stage 2: the relay board" });
     const pool = new Set();
     s2.forEach(c => { if(c > 2){ pool.add(c - 1); pool.add(c + 1); } });
     [4, 9, 16, 25, 32, 36, 49, 81, 100, 121, 128, 144, 169, 196, 12, 18, 24, 30, 45, 54, 60, 72, 90, 96, 108, 120, 150, 180, 200, 256, 300, 400, 500, 600, 800, 900].forEach(n => pool.add(n));

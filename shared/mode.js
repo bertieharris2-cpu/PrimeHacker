@@ -16,7 +16,8 @@
   const PRACTICE = qs.get("practice") === "1";
   const SND = (n, a) => { if(window.PNSound) PNSound.play(n, a); };
   const speed = () => (window.PNTest ? PNTest.speed() : 1);
-  const say = t => { if(window.PNVoice) PNVoice.speak(t); };
+  // voice.js may still be loading when a page sets its first label, so wait a moment for it
+  const say = (t, tries = 0) => { if(window.PNVoice) PNVoice.speak(t); else if(tries < 10) setTimeout(() => say(t, tries + 1), 200); };
 
   const css = `
   html.pn-mode-on body{ padding-top:var(--pn-mode-h, 62px) !important; }
@@ -27,7 +28,7 @@
   .pnm .chip{ flex:0 0 auto; display:flex; align-items:center; gap:10px; padding:0 20px; font-weight:700; font-size:22px; letter-spacing:.18em; }
   .pnm .chip svg{ width:28px; height:28px; }
   .pnm .mid{ flex:1 1 auto; min-width:0; display:flex; flex-direction:column; justify-content:center; gap:5px; padding:8px 16px; }
-  .pnm .lab{ font-size:19px; font-weight:600; letter-spacing:.04em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .pnm .lab{ font-size:19px; font-weight:600; letter-spacing:.04em; line-height:1.25; }   /* long jobs wrap rather than get cut off */
   .pnm .bar{ height:12px; background:rgba(110,200,255,.14); border:1px solid rgba(110,200,255,.45); display:none; }
   .pnm .bar i{ display:block; height:100%; width:0; background:linear-gradient(90deg,#3aa7ff,#8feaff); box-shadow:0 0 12px #6ec8ff; transition:width .25s linear; }
   .pnm .tick{ font-family:"Courier Prime", monospace; font-size:13px; color:rgba(160,230,255,.75); white-space:nowrap; overflow:hidden; display:none; }
@@ -51,9 +52,9 @@
   .pnm .st.money.now{ color:#041318; background:#ffc94d; }
   .pnm .st small{ font-weight:600; letter-spacing:.06em; opacity:.85; }
   /* WATCH: hacker code streaming down the right edge. Code on screen = nothing for you to do. */
-  .pnm-rain{ position:fixed; right:0; top:var(--pn-mode-h, 62px); width:min(300px, 24vw); height:min(46vh, 420px); z-index:9390; pointer-events:none; overflow:hidden;
-    font-family:"Courier Prime", monospace; font-size:12px; line-height:1.45; color:rgba(110,220,255,.6); padding:8px 10px;
-    background:linear-gradient(180deg, rgba(3,14,20,.82), rgba(3,14,20,0)); opacity:0; transition:opacity .4s; }
+  .pnm-rain{ position:fixed; right:0; top:var(--pn-mode-h, 62px); width:min(260px, 20vw); height:min(32vh, 300px); z-index:9390; pointer-events:none; overflow:hidden;
+    font-family:"Courier Prime", monospace; font-size:12px; line-height:1.45; color:rgba(110,220,255,.42); padding:8px 10px;
+    background:linear-gradient(180deg, rgba(3,14,20,.55), rgba(3,14,20,0)); opacity:0; transition:opacity .4s; }
   .pnm-rain.on{ opacity:1; }
   .pnm-rain b{ color:#ffe68a; font-weight:400; }
   /* typeThrough: a short hack where any key types */
@@ -135,7 +136,7 @@
     const wallet = (() => { try{ const a = PN && PN.getAgent && PN.getAgent(); return a && PN.walletOf ? PN.walletOf(a.codename) : 0; }catch(e){ return 0; } })();
     const floors = w.now === "vault" ? ` ${[1, 2, 3].map(n => n < w.floor ? "●" : n === w.floor ? "◉" : "○").join("")}` : "";
     box.innerHTML = `<span class="st ${cls("scan")}">SCAN</span><span class="st ${cls("vault")}">VAULT${floors}</span><span class="st ${cls("blueprint")}">BLUEPRINT</span><span class="st ${cls("hack")}">HACK</span>`
-      + `<span class="st money ${cls("money")}" title="The money comes after the hack">£ ${moneyShown ? "" : `<small>AFTER THE HACK</small>`}${wallet ? ` · WALLET £${Number(wallet).toLocaleString("en-GB")}` : ""}</span>`;
+      + `<span class="st money ${cls("money")}" title="The money comes after the hack">£ ${moneyShown ? `<small>THE MONEY</small>` : `<small>AFTER THE HACK</small>`}${wallet ? ` · WALLET £${Number(wallet).toLocaleString("en-GB")}` : ""}</span>`;
   }
 
   // ---------- WATCH / YOUR TURN ----------

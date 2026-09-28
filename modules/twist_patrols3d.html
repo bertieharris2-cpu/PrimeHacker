@@ -62,7 +62,7 @@
     <div class="legend" id="legend"></div><div class="log" id="log"></div><div class="tag" id="tag"></div><div class="lost" id="lost">FEED LOST</div></section>
   <section class="pn-panel task" id="task">
     <div id="rows"></div>
-    <div class="ans" id="ansRow" hidden><label for="ansIn" id="ansLab">They're both at the door together first at minute</label><input class="pn-input" id="ansIn" inputmode="numeric" maxlength="3"><button class="pn-btn small primary" type="button" id="ansBtn">Check on the feed</button></div>
+    <div class="ans" id="ansRow" hidden><label for="ansIn" id="ansLab">They're both at the door together first at minute</label><input class="pn-input" id="ansIn" inputmode="numeric" maxlength="3"><button class="pn-btn small primary pn-go" type="button" id="ansBtn">Check on the feed</button></div>
     <div class="choices" id="choices" hidden></div>
   </section>
   <div class="tw-msg" id="msg" aria-live="polite"></div>
@@ -93,6 +93,7 @@
       C: "When are the guards both at the door <b>together</b> for the first time? Choose the time.",
       D: "Door 1: watch the feed, then say when the guards are both at the door <b>together</b>. Door 2: work it out first, then watch the feed prove it." }[MODE],
     example: "Every 4 minutes (4, 8, 12…) and every 6 minutes (6, 12…): together at minute 12, the lowest common multiple of 4 and 6.",
+    context: "More guards than we thought. We need their timings.",
     story: "Recon update: more guards than we expected. We need to know where they'll be, and when, before we go in." });
   const a0 = window.Primenet && Primenet.getAgent();
   if(a0 && a0.weakFloor) $("floorName").textContent = a0.weakFloor.toUpperCase();
@@ -269,7 +270,7 @@
     if(MODE === "A"){
       $("cctv").classList.add("small");
       const maxT = Math.min(36, Math.max(M + 2, 18));
-      T.step(`Mark every minute <b>guard A</b> passes the door (every ${periods[0]} minutes).`);
+      T.step(`Mark every minute <b>guard A</b> passes the door (every ${periods[0]} minutes).`, { name: `Door ${r + 1}: mark the times` });
       $("rows").innerHTML = periods.map((p, i) => `<div class="row" data-g="${i}" ${i ? "hidden" : ""}><div class="rowlab"><i style="background:${CSS[i]}"></i>GUARD ${NAMES[i]} · EVERY ${p} MIN</div><div class="tl" style="--n:${maxT}">${T.range(1, maxT).map(t => `<button type="button" data-t="${t}">${t}</button>`).join("")}</div></div>`).join("");
       let g = 0, need = new Set(T.range(1, maxT).filter(t => t % periods[0] === 0));
       $("rows").onclick = e => {
@@ -290,7 +291,7 @@
       // L3's long ones, where the LCM can be 120.
       const watchTo = MODE === "D" ? M + 1 : Math.max(...periods) * 2 + 1;
       if(MODE === "D") rate = Math.min(6, Math.max(1, (M + 1) / 20));
-      T.step(`Watch the feed. Note when each guard reaches the door.`);
+      T.step(`Watch the feed. Note when each guard reaches the door.`, { name: `Door ${r + 1}: watch` });
       say("The feed is live. It won't last long.");
       const iv = setInterval(() => { if(minute >= watchTo){ clearInterval(iv); rate = 0; $("lost").classList.add("on"); T.SND("static"); timers.push(setTimeout(() => { $("lost").classList.remove("on"); minute = 0; askAnswer(periods); }, 1400 / sp())); } }, 100);
       timers.push(iv);
@@ -303,7 +304,7 @@
     const M = lcmAll(periods), who = periods.length === 3 ? "all three guards" : "both guards";
     rate = 0; minute = 0;
     const lead = MODE === "D" && r === 1 ? "This time, work it out first. " : "";
-    T.step(`${lead}When are ${who} at the door <b>together</b> for the first time?${isWatch() ? "" : ` (${periods.map((p, i) => `${NAMES[i]} every ${p} min`).join(", ")})`}`);
+    T.step(`${lead}When are ${who} at the door <b>together</b> for the first time?${isWatch() ? "" : ` (${periods.map((p, i) => `${NAMES[i]} every ${p} min`).join(", ")})`}`, { name: `Door ${r + 1}: together when?` });
     if(MODE === "C"){
       const opts = T.shuffle([...new Set([M, periods.reduce((a, b) => a * b), periods.reduce((a, b) => a + b), M * 2, Math.max(...periods) * 2].filter(v => v !== M))]).slice(0, 2).concat(M);
       $("choices").hidden = false; $("choices").innerHTML = T.shuffle(opts).map(v => `<button type="button" data-v="${v}">${v} min</button>`).join("");
@@ -391,7 +392,7 @@
     const trail = await F.pulse(agent.at().setY(3), BW.clone().setY(3), 0x6ec8ff, 450);
     const ring = beaconRing(); tag("DISTRACTION ▸ BEACON", "gold");
     lure = true; rate = 0.6;
-    T.step("Watch the way in. The beacon pulls the guards away. Our agent sneaks round the rooms, well away from them.", { quiet: true });
+    T.step("The beacon pulls the guards away. Watch our agent sneak round the rooms, well away from them.", { quiet: true, name: "The way in" });
     guards.forEach((g, i) => setLure(g, LURE[i] || out1, 500 + i * 280));
     const arrive = Promise.all(guards.map(g => g.lure.done));
     await wait(900); T.SND("radio"); tag("GUARDS DIVERTED ▸ DOOR CLEAR");

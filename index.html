@@ -151,6 +151,13 @@
   .toggle .t{ display:flex; flex-direction:column; gap:2px; }
   .toggle .t small{ color:var(--text-faint); font-size:13px; }
   .toggle input{ width:22px; height:22px; accent-color:var(--accent); }
+  .practice{ display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:12px; }
+  .practice .pbox{ border:1px solid var(--line); padding:14px; display:flex; flex-direction:column; gap:10px; }
+  .practice h3{ margin:0; font-family:var(--font-ui); font-size:15px; letter-spacing:.12em; text-transform:uppercase; color:var(--accent); }
+  .practice .msg{ margin:0; }
+  .practice .row{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; }
+  .practice input.pn-input{ width:90px; font-size:18px; padding:6px 8px; }
+  .practice .err{ margin:0; min-height:1.2em; font-size:14px; color:var(--danger, #ff6b6b); }
   .settings .sample{ border:1px dashed var(--line); padding:10px 12px; color:var(--text-muted); font-size:15px; }
   .settings footer{ display:flex; justify-content:flex-end; gap:8px; }
 
@@ -293,7 +300,7 @@
         <button class="pn-btn small" type="button" id="randomName" title="Pick a random codename">Random</button>
       </div>
       <p class="hint">A made-up name, not your real one.</p>
-      <button class="pn-btn primary" type="submit" id="startBtn" disabled>Start mission</button>
+      <button class="pn-btn primary pn-go" type="submit" id="startBtn" disabled>Start mission</button>
       <span class="status" id="status">Enter a codename and choose a level.</span>
     </div>
 
@@ -349,6 +356,7 @@
     <fieldset><legend>Reading and motion</legend>
       <label class="toggle"><span class="t">Easy-read font<small>Letters that are easier to tell apart (Atkinson Hyperlegible)</small></span><input type="checkbox" id="optFont"></label>
       <label class="toggle"><span class="t">Reduce motion<small>Stops the drifting background, shaking and glitch effects</small></span><input type="checkbox" id="optMotion"></label>
+      <label class="toggle"><span class="t">Read aloud<small>The computer reads ORACLE and your jobs out loud</small></span><input type="checkbox" id="optVoice"></label>
       <label class="toggle"><span class="t">Sound<small>For the whole game on this computer</small></span><input type="checkbox" id="optSound"></label>
     </fieldset>
     <div class="sample">Sample: 7 × 13 = 91. Is 91 prime? No: it has the factors 1, 7, 13 and 91.</div>
@@ -408,6 +416,25 @@
         <button class="pn-btn small primary" type="button" id="testMission">Start a test mission (agent TEST)</button>
       </div>
       <p class="msg">While unlocked, every game shows a yellow <b>TEST</b> button (bottom left) with shortcuts to skip the maths, and you also see Vault Grid's layout controls and can preview the Blueprint without finishing three floors. Unlocking lasts until you press Lock or close the browser tab.</p>
+    </section>
+
+    <section>
+      <span class="pn-label">Practice (no mission, nothing saved)</span>
+      <div class="practice">
+        <div class="pbox">
+          <h3>Factor pairs</h3>
+          <p class="msg">One vault floor with your number. Pupils find every factor pair.</p>
+          <div class="row"><label for="pracN" class="msg">Number</label><input class="pn-input" id="pracN" type="number" min="2" max="999" value="12" inputmode="numeric"><button class="pn-btn small pn-go" type="button" id="pracVault">Go</button></div>
+          <p class="err" id="pracVaultErr" aria-live="polite"></p>
+        </div>
+        <div class="pbox">
+          <h3>Prime hack locks</h3>
+          <p class="msg">Two locks made from your two primes (p × q).</p>
+          <div class="row"><label for="pracP" class="msg">p</label><input class="pn-input" id="pracP" type="number" min="2" max="997" value="3" inputmode="numeric"><label for="pracQ" class="msg">q</label><input class="pn-input" id="pracQ" type="number" min="2" max="997" value="5" inputmode="numeric"><button class="pn-btn small pn-go" type="button" id="pracHack">Go</button></div>
+          <p class="err" id="pracHackErr" aria-live="polite"></p>
+          <div class="row"><label for="pracTier" class="msg">or a random pair at level</label><select class="pn-input" id="pracTier" aria-label="Level for a random pair"><option value="1">L1</option><option value="3">L2</option><option value="5">L3</option></select><button class="pn-btn small" type="button" id="pracTierGo">Go</button></div>
+        </div>
+      </div>
     </section>
 
     <section>
@@ -601,6 +628,23 @@
     location.href = "modules/briefing.html";
   });
 
+  // Practice launchers: one mini game with numbers the teacher picks, no mission state
+  const isPrime = n => { if(!Number.isInteger(n) || n < 2) return false; for(let d = 2; d * d <= n; d++) if(n % d === 0) return false; return true; };
+  $("#pracVault").addEventListener("click", () => {
+    const n = Number($("#pracN").value);
+    if(!Number.isInteger(n) || n < 2 || n > 999){ $("#pracVaultErr").textContent = "Pick a whole number from 2 to 999."; return; }
+    $("#pracVaultErr").textContent = "";
+    location.href = `modules/factor_vault.html?n=${n}&practice=1`;
+  });
+  $("#pracHack").addEventListener("click", () => {
+    const p = Number($("#pracP").value), q = Number($("#pracQ").value);
+    const bad = [[$("#pracP").value, p], [$("#pracQ").value, q]].filter(([raw, v]) => !isPrime(v)).map(([raw]) => raw.trim() || "A blank box");
+    if(bad.length){ $("#pracHackErr").textContent = `${bad.join(" and ")} ${bad.length > 1 ? "are" : "is"} not prime. Both numbers must be prime, like 3 and 5.`; return; }
+    $("#pracHackErr").textContent = "";
+    location.href = `modules/prime_hack.html?p=${p}&q=${q}&practice=1`;
+  });
+  $("#pracTierGo").addEventListener("click", () => { location.href = `modules/prime_hack.html?tier=${$("#pracTier").value}&practice=1`; });
+
   $("#downloadBtn").addEventListener("click", () => {
     const name = P.downloadRecord();
     $("#fileMsg").textContent = `Downloaded ${name}. Check your Downloads folder.`;
@@ -636,11 +680,16 @@
       b.addEventListener("click", () => { prefs.text = k; savePrefs(); PNSound.play("click"); renderSettings(); });
       seg.appendChild(b);
     });
-    $("#optFont").checked = prefs.font; $("#optMotion").checked = prefs.motion; $("#optSound").checked = PNSound.isOn();
+    $("#optFont").checked = prefs.font; $("#optMotion").checked = prefs.motion; $("#optVoice").checked = !!prefs.voice; $("#optSound").checked = PNSound.isOn();
   }
   function savePrefs(){ prefs = codename.value.trim() ? P.setPrefs(codename.value, prefs) : (P.applyPrefs(prefs), prefs); }
   $("#optFont").addEventListener("change", e => { prefs.font = e.target.checked; savePrefs(); });
   $("#optMotion").addEventListener("change", e => { prefs.motion = e.target.checked; savePrefs(); });
+  $("#optVoice").addEventListener("change", e => {
+    prefs.voice = e.target.checked; savePrefs();
+    if(!window.PNVoice) return;
+    if(prefs.voice) PNVoice.speak("Read aloud is on.", { force:true }); else PNVoice.stop();
+  });
   $("#optSound").addEventListener("change", e => { PNSound.setOn(e.target.checked); syncSound(); PNSound.play("click"); });
   $("#settingsBtn").addEventListener("click", () => { renderSettings(); settingsOverlay.hidden = false; PNSound.play("click"); $("#settingsDone").focus(); });
   $("#settingsDone").addEventListener("click", () => { settingsOverlay.hidden = true; });

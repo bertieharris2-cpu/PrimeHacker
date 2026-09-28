@@ -99,7 +99,7 @@
     <div class="sensors" id="grid"></div>
     <div class="sweepbar" id="sweepbar"></div>
   </section>
-  <div class="ctrl" id="ctrl"><button class="pn-btn" type="button" id="doneBtn">Only primes are left on</button></div>
+  <div class="ctrl" id="ctrl"><button class="pn-btn pn-go" type="button" id="doneBtn">Only primes are left on</button></div>
   <section class="pn-panel run" id="run" hidden>
     <svg viewBox="0 0 1000 520" id="rsvg" aria-label="Corridor run">
       <defs>
@@ -133,6 +133,7 @@
   // The brief carries the "what's a sieve?" explainer under each step, with the sieved 1 to 12 as the example.
   // Under pressure it no longer says which number to pick.
   const L = T.init({ id: "sieve2", stage: "FREQUENCY SCAN", title: "MOTION-SENSOR SIEVE",
+    context: "Motion sensors line this corridor. Only the prime ones are blind.",
     goal: PRESSURE
       ? "A <b>sieve</b> keeps some things and lets the rest fall through. This one keeps the <b>primes</b>.<br>Choose a prime and switch off its multiples. Keep going until only primes are left. A guard's torch is sweeping this way: every prime you sieve pushes it back."
       : "A <b>sieve</b> keeps some things and lets the rest fall through. This one keeps the <b>primes</b>.<br>Every number that isn't prime is a <b>multiple</b> of a smaller prime. So choose the smallest prime and switch off its multiples. The next number still on is prime too: nothing smaller divides it. Keep going.",
@@ -162,7 +163,9 @@
   function strike(n){ wrongs++; alarm.hit(); const b = tile(n); if(b){ b.classList.add("bad"); setTimeout(() => b.classList.remove("bad"), 700); } }
   // The brief's steps. Choosing is the same job every time, so its text never changes and it only zooms in once.
   const CHOOSE = PRESSURE ? "Choose the <b>next prime</b>. A sensor that isn't prime is a strike." : "Choose the next prime. It's the <b>smallest number still on</b>.";
-  const handStep = n => `<b>${n}</b> is prime. Now <b>you</b> switch off its multiples. Tap every sensor still on that ${n} goes into.`;
+  const handStep = n => `<b>${n}</b> is prime. Now <b>you</b> tap every sensor still on that ${n} goes into.`;
+  // Step names for the brief (the how-to above goes to HINTS)
+  const N_CHOOSE = { name: "Choose a prime" }, N_ONE = { name: "Switch off 1" };
   const ONE = "First, switch off <b>1</b>. It isn't prime: it has only one factor.";
   const WHY = "<b>ORACLE:</b> every number that isn't prime is a multiple of a smaller prime. So when you sieve the primes in order, every other sensor goes off by itself. Only primes are left. That's why the sieve works.";
 
@@ -184,8 +187,8 @@
       if(btn){ btn.disabled = true; btn.classList.add("primary"); }
       T.SND("chirp");
       say(`Yes: ${q}. ${nums.filter(m => m > q && m % q === 0).slice(0, 3).join(", ")}… are off, and ${q} itself is still on.`, "ok"); status();
-      if(found.length < pre.length){ T.step("One found. <b>Another prime</b> was used too. Which one?"); return; }
-      phase = "one"; $("guess").hidden = true; T.step(ONE.replace("First, s", "Now s")); return;
+      if(found.length < pre.length){ T.step("One found. <b>Another prime</b> was used too. Which one?", { name: "Who sieved before us?" }); return; }
+      phase = "one"; $("guess").hidden = true; T.step(ONE.replace("First, s", "Now s"), N_ONE); return;
     }
     wrongs++; alarm.hit();
     const el = btn || tile(q); if(el){ el.classList.add("bad"); setTimeout(() => el.classList.remove("bad"), 700); }
@@ -195,9 +198,9 @@
   }
 
   // Quiet: the brief zooms in by itself a moment after load, with this on top and the explainer underneath
-  T.step(PRE === 2 ? "Some sensors are already off. Someone sieved with <b>two primes</b>. Which two? Tap them one at a time."
-    : PRE ? "Some sensors are already off. Someone sieved with <b>one prime</b>. Which prime? Look at the dark numbers, then tap that prime."
-    : ONE, { quiet: true });
+  T.step(PRE === 2 ? "Someone sieved with <b>two primes</b> before us: some sensors are already off. Tap the two primes they used."
+    : PRE ? "Someone sieved with <b>one prime</b> before us: the dark sensors are off. Tap the prime they used."
+    : ONE, { quiet: true, name: PRE ? "Who sieved before us?" : N_ONE.name });
   // Folding the brief away the first time is walking into the corridor (and the guard starts his sweep)
   const enter = e => { if(e.detail.open || over) return; window.removeEventListener("pn-brief", enter); T.SND("scan", 1); guard.on = PRESSURE; };
   window.addEventListener("pn-brief", enter);
@@ -206,7 +209,7 @@
     if(over) return;
     if(phase === "inverse") return guess(n);
     if(phase === "one"){
-      if(n === 1){ kill(1); T.SND("untag"); phase = "choose"; say("1 is off.", "ok"); T.step(CHOOSE); status(); return; }
+      if(n === 1){ kill(1); T.SND("untag"); phase = "choose"; say("1 is off.", "ok"); T.step(CHOOSE, N_CHOOSE); status(); return; }
       say("Start with 1: it isn't prime, so switch it off first.", "warn"); return;
     }
     if(phase === "choose"){
@@ -234,13 +237,13 @@
     primes.push(p); current = p; tile(p).classList.add("prime", "sieving"); tile(p).disabled = true; T.SND("correct", primes.length); guardPush(0.3);
     const left = leftOf(p);
     if(!left.length){ tile(p).classList.remove("sieving"); current = 0; say(`${p} is prime, and none of its multiples are still on.`, "ok");
-      T.step("No multiples left to switch off. Choose the next prime, or press <b>Only primes are left on</b> if you're done."); status(); return; }
+      T.step("No multiples left to switch off. Choose the next prime, or press <b>Only primes are left on</b> if you're done.", N_CHOOSE); status(); return; }
     if(instant){ left.forEach(kill); say(`All multiples of ${p} are off.`, "ok"); stepDone(); status(); return; }
     if(autoFor(p)){ say(`${p} is prime. The sensors switch off its multiples: ${left.slice(0, 4).join(", ")}…`, "ok"); await autoSweep(p, left); return; }
     phase = "multiples"; say(`${p} is prime. ${left.length} of its multiples are still on.`, "ok");
-    T.step(handStep(p), { quiet: handTold }); handTold = true; status();   // new job the first time; after that, just a new number
+    T.step(handStep(p), { quiet: handTold, name: `Switch off the multiples of ${p}` }); handTold = true; status();   // new job the first time; after that, just a new number
   }
-  function stepDone(){ tile(current).classList.remove("sieving"); current = 0; phase = "choose"; T.step(CHOOSE, { quiet: true }); }
+  function stepDone(){ tile(current).classList.remove("sieving"); current = 0; phase = "choose"; T.step(CHOOSE, { quiet: true, ...N_CHOOSE }); }
   async function autoSweep(p, list){
     const bar = $("sweepbar"); bar.style.transition = "none"; bar.style.opacity = "1";
     for(const m of list){ kill(m); T.SND("plot"); await wait(45); }
@@ -400,7 +403,7 @@
   function explain(){   // why the sieve works, in the brief. The result follows when it's folded away (or after a while)
     if(phase === "why") return;
     phase = "why"; T.say("Corridor's clear. Every sensor still on is a prime, and the primes are blind.");
-    T.step(WHY);
+    T.step(WHY, { quiet: true, name: "Corridor clear" }); T.showHints();   // the "why it works" moment: shown once, like the old brief did
     window.addEventListener("pn-brief", function f(e){ if(e.detail.open) return; window.removeEventListener("pn-brief", f); finishNow(); });
     setTimeout(finishNow, 9000 / sp());
   }

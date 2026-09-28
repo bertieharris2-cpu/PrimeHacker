@@ -333,7 +333,7 @@ button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [clas
     <button id="rerunBtn">RERUN (new layout)</button>
     <button id="view3dBtn" style="background: linear-gradient(135deg, rgba(var(--accent-rgb),.15), rgba(var(--accent-rgb),.15)); border-color: rgba(var(--accent-rgb),.45); color: rgba(var(--accent-rgb),.85);">3D VIEW</button>
     <button id="exit3dBtn" style="display:none; background: linear-gradient(135deg, rgba(255,100,0,.15), rgba(255,163,74,.15)); border-color: rgba(255,100,0,.45); color: rgba(255,100,0,.85);">EXIT 3D</button>
-    <button id="nextFloorBtn" class="next-floor-btn">Next Floor Reconstruction</button>
+    <button id="nextFloorBtn" class="next-floor-btn pn-go">Next Floor Reconstruction</button>
     <span class="mini" id="seedInfo"></span>
   </div>
 
@@ -356,6 +356,7 @@ button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [clas
 </div>
 
 <script src="../shared/primenet.js"></script>
+<script src="../shared/mode.js"></script>
 <script src="../shared/badges.js"></script>
 <script src="../shared/testtools.js"></script>
 <script src="../shared/handler.js"></script>
@@ -451,7 +452,24 @@ function setCell(x,y,state){
   c.classList.toggle("on", state==="on");
   if(state==="off") c.classList.remove("flow","on");
 }
-const pause=(ms)=>new Promise(r=>setTimeout(r, ms / (window.PNTest ? PNTest.speed() : 1)));   // test tools can speed this up
+// Round 14: TAP TO SKIP on the WATCH bar sets SKIPPING. Every pause then ends at once (waiting ones too),
+// so the build runs straight through to the same final state as when it plays out.
+let SKIPPING = false;
+const pausing = new Set();
+const pause=(ms)=>SKIPPING ? Promise.resolve() : new Promise(r=>{   // test tools can speed this up
+  const done = () => { clearTimeout(t); pausing.delete(done); r(); };
+  const t = setTimeout(done, ms / (window.PNTest ? PNTest.speed() : 1));
+  pausing.add(done);
+});
+let droneAnim = null;
+function finishNow(el){ if(el) el.getAnimations({ subtree: true }).forEach(a => { try{ a.finish(); }catch(e){} }); }
+function skipBuild(){
+  if(SKIPPING) return;
+  SKIPPING = true;
+  [...pausing].forEach(f => f());
+  finishNow(vaultEl);
+  if(droneAnim){ try{ droneAnim.finish(); }catch(e){} }
+}
 
 /* ---------- Seeded RNG so reruns are stable per seed ---------- */
 function mulberry32(a){
@@ -559,7 +577,9 @@ function generatePlacements(seed, wanted){
 
 /* ---------- Visual engine ---------- */
 function drawLaser(rect, ms=920){
+  const wait = ms;
   if(window.PNTest) ms = ms / PNTest.speed();
+  if(SKIPPING) ms = 0;
   SND("plot");
   const r=document.createElementNS("http://www.w3.org/2000/svg","rect");
   r.setAttribute("x",rect.x*STEP);
@@ -580,7 +600,7 @@ function drawLaser(rect, ms=920){
     r.style.strokeDashoffset="0";
     r.setAttribute("opacity","0.90");
   });
-  return new Promise(res=>setTimeout(()=>res(r),ms+60));
+  return pause(wait + 60).then(() => r);
 }
 
 function lockBorder(rect){
@@ -616,6 +636,7 @@ async function fillOutsideInPower(rect){
   }
 
   while(l<=r && t<=b){
+    if(SKIPPING){ for(let y=rect.y;y<rect.y+rect.h;y++) for(let x=rect.x;x<rect.x+rect.w;x++) setCell(x,y,"on"); break; }   // skipped: fill the rest at once
     for(let x=l;x<=r;x++){ await flowThenSet(x,t); await pause(perCell); }
     for(let y=t+1;y<=b;y++){ await flowThenSet(r,y); await pause(perCell); }
     if(b>t) for(let x=r-1;x>=l;x--){ await flowThenSet(x,b); await pause(perCell); }
@@ -941,7 +962,7 @@ async function triggerIsometricMorph(placements){
   
   // Start vault tilt animation (800ms total duration)
   vaultEl.classList.add("tilting-to-iso");
-  SND("rise");
+  if(SKIPPING) finishNow(vaultEl); else SND("rise");
   
   // Show canvas but keep it invisible while tilting
   const canvasWrapper = document.querySelector(".vault3d-wrap");
@@ -1182,6 +1203,16 @@ if(window.PNTest){
   PNTest.add("Go to the next step", () => { window.location.href = blueprintReady() ? "vault_blueprint_viewer.html" : "factor_vault.html"; });
 }
 
+// How long the build, tilt and drone take, in seconds at normal speed (matches the pauses in run(), the morph and the drone)
+let buildWatch = null;
+function buildSeconds(n){
+  const wanted = generateFactorPairs(n), k = wanted.length, pairs = wanted.filter(p => p.w <= p.h).length;
+  const rings = Math.ceil(Math.min(...wanted.map(p => Math.min(p.w, p.h))) / 2);
+  const build = 1.41 + (k - 1) * 0.26 + 0.96 + n * 0.1 + rings * 0.04;   // border, stagger, laser, then one room's squares fill (all rooms have n squares)
+  const drone = (PN && PN.reducedMotion && PN.reducedMotion()) ? 0 : Math.max(9, pairs * 1.6);
+  return build + 0.7 + 1.3 + 1.9 + drone + 0.5;
+}
+
 // Initialize with N from URL or default to 18.
 // Students: lasers build the floor plan, then it rises into 3D, then the next step appears.
 if(PN) PN.log("grid", { n: initialN });
@@ -1190,11 +1221,18 @@ nextFloorBtn.style.visibility = "hidden";
 document.querySelector(".title div:first-child").insertAdjacentHTML("afterend",
   `<div>FLOOR ${Math.max(1, Math.min(floorsBuilt(), FLOORS_NEEDED))} OF ${FLOORS_NEEDED}</div>`);
 (window.PNSound ? PNSound.whenUnlocked(() => powerUpPrompt("POWER UP THE GRID")) : Promise.resolve())
-.then(() => { window.scrollTo(0, 0); setTimeout(() => window.scrollTo(0, 0), 60); return initVault(initialN); }).then(async () => {
+.then(() => {
+  window.scrollTo(0, 0); setTimeout(() => window.scrollTo(0, 0), 60);
+  // Round 14: one WATCH for the laser build, the tilt and the drone, timed from the real durations
+  buildWatch = window.PNMode ? PNMode.watch(`Building floor ${Math.max(1, Math.min(floorsBuilt(), FLOORS_NEEDED))} from your pairs`, { seconds: buildSeconds(initialN), onSkip: skipBuild }) : null;
+  return initVault(initialN);
+}).then(async () => {
   await pause(700);
   if(window.lastPlacements && window.lastPlacements.length) await triggerIsometricMorph(window.lastPlacements);
   await pause(1900);
   await droneFlythrough(window.lastPlacements || []);
+  if(buildWatch){ buildWatch.end(); buildWatch = null; }
+  if(window.PNMode) PNMode.turn(blueprintReady() ? "Press Assemble the blueprint" : "Press Next floor");
   nextFloorBtn.style.visibility = "visible";
   SND("success");
   if(window.PNHandler){
@@ -1252,7 +1290,7 @@ async function droneFlythrough(placements){
   hud.innerHTML = `<div class="vign"></div><div class="corner tl"></div><div class="corner tr"></div><div class="corner bl"></div><div class="corner br"></div><div class="cross"></div>
     <div class="top"><span class="rec">● REC</span> DRONE CAM 02</div><div class="alt">ALT <span class="a">12.0</span>m<br>N=${currentN}</div><div class="log"></div>`;
   document.body.appendChild(hud);
-  SND("rise");
+  if(!SKIPPING) SND("rise");
   const sp = window.PNTest ? PNTest.speed() : 1, dur = Math.max(9000, rooms.length * 1600) / sp;   // feedback: slower, calmer camera
   const anim = stageEl.animate([
     { transform: "none" },
@@ -1261,16 +1299,17 @@ async function droneFlythrough(placements){
     { transform: "scale(1.6) translate(-8%, -12%) rotate(-1deg)", offset: .8 },
     { transform: "none" },
   ], { duration: dur, easing: "ease-in-out" });
+  droneAnim = anim; if(SKIPPING) anim.finish();
   const log = hud.querySelector(".log"), alt = hud.querySelector(".a");
   // Keep the room labels pinned to the rooms while the camera moves
   // Round 10: the drone spots the floor's security cameras one by one (on corridor cells beside rooms), with a beep
   window.cams = pickCameras(placements);
   window.guards = pickGuards(placements);
-  window.cams.forEach((c, i) => setTimeout(() => { c.shown = performance.now(); SND("beep"); }, (dur * sp) * (0.18 + 0.6 * i / Math.max(1, window.cams.length)) / sp));
+  window.cams.forEach((c, i) => pause((dur * sp) * (0.18 + 0.6 * i / Math.max(1, window.cams.length))).then(() => { c.shown = performance.now(); if(!SKIPPING) SND("beep"); }));
   // Feedback round 9: a laser sweeps across the floor, showing the square grid of every room as it passes
   const sweepMs = Math.min(dur * 0.45, 5200), t0 = performance.now();
   window.sweepTrail = 0.22;
-  SND("scan", sweepMs / 1000);
+  if(!SKIPPING) SND("scan", sweepMs / 1000);
   let live = true; (function follow(now){ if(!live) return; const k = ((now || performance.now()) - t0) / sweepMs; window.sweep = k <= 1 ? -1 + k * (GRID + 2) : null; if(k > 1) window.roofGrid = Math.max(window.roofGrid || 0, 0.22); rerenderGrid(); requestAnimationFrame(follow); })();
   const lines = [];
   const altTimer = setInterval(() => { alt.textContent = (8 + Math.random() * 6).toFixed(1); }, 180);
@@ -1280,10 +1319,13 @@ async function droneFlythrough(placements){
     window.gridHighlight = r; rerenderGrid();
     lines.push(`<div class="${a === b ? "strong" : ""}">ROOM ${String(i + 1).padStart(2, "0")} · ${roomName(r)} ${a}×${b} · ${a * b} squares ✓</div>`);
     log.innerHTML = lines.slice(-4).join("");
-    SND("tag");
+    if(!SKIPPING) SND("tag");
   }
   await anim.finished.catch(() => {});
+  droneAnim = null;
   live = false; window.sweep = null;
+  if(SKIPPING) await new Promise(r => requestAnimationFrame(r));   // let the rise's last frame land first
+  window.roofGrid = Math.max(window.roofGrid || 0, 0.22);   // as when the sweep passes (also when skipped)
   if(!window._idleAnim) window._idleAnim = setInterval(() => { if(!document.hidden) rerenderGrid(); }, 120);   // guards keep walking, cameras keep blinking
   clearInterval(altTimer);
   window.gridHighlight = null; rerenderGrid();
@@ -1760,7 +1802,7 @@ function animateRectExtrusion(canvas, rects, GRID, duration=650){
   function easeOutCubic(t){ return 1 - Math.pow(1 - t, 3); }
   
   function frame(now){
-    const t = Math.min(1, (now - start) / duration);
+    const t = SKIPPING ? 1 : Math.min(1, (now - start) / duration);
     // The first third holds the flat arrays while their squares fade; then the rooms rise
     window.roofGrid = Math.max(0, 1 - t * 2.4) * 0.9;
     const heightPx = easeOutCubic(Math.max(0, (t - 0.18) / 0.82)) * targetHeight;

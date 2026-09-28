@@ -62,7 +62,8 @@
   "use strict";
   const T = window.PNTwist, $ = id => document.getElementById(id);
   const L = T.init({ id: "corrupt", stage: "BLUEPRINT", title: "CORRUPTED BLUEPRINT",
-    goal: "The plan for this floor came through scrambled. Rooms can't <b>overlap</b>. Keep the <b>corridors</b> (black), lift, stairs and fire exit clear.",
+    context: "The plan for this floor came through scrambled.",
+    goal: "Rooms can't <b>overlap</b>. Keep the <b>corridors</b> (black), lift, stairs and fire exit clear.",
     example: "Each room is an array of squares. A 3 × 4 room can turn round to 4 × 3: same 12 squares, different shape.",
     story: `Interference on the file. The plan for one of ${T.targets()} floors is scrambled. The rooms came through, but not where they go. Fit them back together.` });
 
@@ -205,7 +206,7 @@
   }
   layoutTray();
   // Quiet: the brief zooms in by itself a moment after load, with this on top and the goal underneath
-  T.step(`Drag all <b>${pieces.length} rooms</b> onto the floor. <b>Tap</b> a room to turn it round.`, { quiet: true });
+  T.step(`Drag all <b>${pieces.length} rooms</b> onto the floor. <b>Tap</b> a room to turn it round.`, { quiet: true, name: "Rebuild the floor" });
   if(window.PNTest) PNTest.skip("Fit every room", () => {
     pieces.forEach(p => { if(p.onBoard) return; const s = p.sol; if(p.w !== s.w){ [p.w, p.h] = [p.h, p.w]; paint(p); } toBoard(p, s.x, s.y); });
     layoutTray(); update();

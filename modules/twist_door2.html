@@ -163,7 +163,7 @@
   // Instructions live in the hologram brief. A new kind of step zooms it open; the same job again (bolt 2) just
   // updates it and pings the BRIEF tab. The first is quiet too: the brief zooms in by itself after the walk-up.
   const seen = new Set();
-  function brief(kind, html){ T.step(html, { quiet: !seen.size || seen.has(kind) }); seen.add(kind); }
+  function brief(kind, html, name){ T.step(html, { quiet: !seen.size || seen.has(kind), name }); seen.add(kind); }   // html to HINTS, name to the brief
   // Buttons the student taps must not keep keyboard focus: a later ENTER or space would press them again
   const noFocus = el => el.addEventListener("mousedown", e => { if(e.target.closest("button")) e.preventDefault(); });
 
@@ -280,7 +280,7 @@
 
   // ----- Keypad -----
   const KEYS = ["7", "8", "9", "×", "4", "5", "6", "^", "1", "2", "3", "⌫", "0", "C", "ENTER"];
-  $("keys").innerHTML = KEYS.map(x => `<button type="button" data-k="${x}" class="${x === "ENTER" ? "enter" : ""}"${x === "ENTER" ? ' style="grid-column:span 2"' : ""} aria-label="${x === "⌫" ? "Backspace" : x === "×" ? "Times" : x === "C" ? "Clear" : x}">${x}</button>`).join("");
+  $("keys").innerHTML = KEYS.map(x => `<button type="button" data-k="${x}" class="${x === "ENTER" ? "enter pn-go" : ""}"${x === "ENTER" ? ' style="grid-column:span 2"' : ""} aria-label="${x === "⌫" ? "Backspace" : x === "×" ? "Times" : x === "C" ? "Clear" : x}">${x}</button>`).join("");
   noFocus($("keys"));
   const screen = $("screen"), live = $("live");
   function setKeypad(on){
@@ -392,7 +392,7 @@
   }
   function unlocked(){
     brief("keypad", MODE === "B" ? `Key the primes from your cuts into the keypad, with × between them. Then press <b>ENTER</b>.${POW}`
-      : `Key the primes of <b>${locks[k]}</b> into the keypad, with × between them. Then press <b>ENTER</b>.${POW}`);
+      : `Key the primes of <b>${locks[k]}</b> into the keypad, with × between them. Then press <b>ENTER</b>.${POW}`, `Bolt ${k + 1}: key it in`);
     setKeypad(true); T.SND("ready");
     $("kp").scrollIntoView({ block: "nearest", behavior: "smooth" });
   }
@@ -495,17 +495,18 @@
     if(k === 1) T.setGoal(GOAL, { quiet: true });   // bolt 2: the goal without the "why primes" story
     if(MODE === "B"){
       piece = shape(n); cuts = []; arrBusy = false; renderArr();
-      brief("cut", `Cut the <b>${n}</b> lights into equal strips: press a prime that goes into ${n}. Keep one strip and cut it again, until a strip cannot be cut.`);
+      brief("cut", `Cut the <b>${n}</b> lights into equal strips: press a prime that goes into ${n}. Keep one strip and cut it again, until a strip cannot be cut.`, `Bolt ${k + 1} of ${BOLTS}`);
       return;
     }
     const tree = $("tree"); tree.innerHTML = ""; tree.appendChild(makeNode(n, mode));
-    if(mode === "always") brief("buttons", `Press a prime button under <b>${n}</b> that divides into it. Keep going until every branch ends in a prime.`);
-    else brief("pair", `Split <b>${n}</b> into a factor pair. Keep going until every branch ends in a prime. A wrong try unlocks prime buttons.`);
+    if(mode === "always") brief("buttons", `Press a prime button under <b>${n}</b> that divides into it. Keep going until every branch ends in a prime.`, `Bolt ${k + 1} of ${BOLTS}`);
+    else brief("pair", `Split <b>${n}</b> into a factor pair, until every branch ends in a prime. A wrong try unlocks prime buttons.`, `Bolt ${k + 1} of ${BOLTS}`);
   }
 
   // ----- Start: the frame and the brief build under the walk-up; the brief zooms in once the camera has docked -----
   if(MODE === "B"){ $("tree").hidden = true; $("arr").hidden = false; $("workKind").textContent = "LIGHTS"; }
   T.init({ id: "door2", stage: "PRIME HACK", title: "KEY ROOM DOOR", goal: `${GOAL}<br><br>${WHY}`, example: EXAMPLE,
+    context: `${BOLTS === 3 ? "Three" : "Two"} bolts lock the key room. Each has a number.`,
     story: `Crew's at the key room door. ${BOLTS === 3 ? "Three" : "Two"} bolts, each locked with a number. Break the numbers into primes and key them in.` });
   show();
   (async () => {

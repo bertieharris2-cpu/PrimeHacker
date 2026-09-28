@@ -31,7 +31,7 @@
   <div class="tw-bar"><span class="knocked" id="knocked"></span></div>
   <section class="pn-panel board"><div class="beam" id="beam"></div><div class="tw-grid" id="grid"></div></section>
   <div class="tw-msg" id="msg" aria-live="polite"></div>
-  <div style="display:flex;justify-content:flex-end"><button class="pn-btn primary" type="button" id="lockBtn" hidden>Lock in every prime</button></div>
+  <div style="display:flex;justify-content:flex-end"><button class="pn-btn primary pn-go" type="button" id="lockBtn" hidden>Lock in every prime</button></div>
 </main>
 
 <script src="../shared/sound.js"></script>
@@ -44,6 +44,7 @@
   "use strict";
   const T = window.PNTwist, $ = id => document.getElementById(id);
   const L = T.init({ id: "sieve", stage: "FREQUENCY SCAN", title: "MOTION-SENSOR SIEVE",
+    context: "Motion sensors cover this trading floor. Only the prime ones are blind.",
     goal: "Knock out every number that isn't prime. Follow the step line below.",
     example: "A sieve keeps some things and lets the rest fall through. This one keeps the primes: 2 is prime, so every multiple of 2 (4, 6, 8…) is switched off.",
     story: `${T.targets()} trading floor has a motion sensor for every number. Knock out all the ones that aren't prime; the prime ones are our way through.` });
@@ -61,7 +62,7 @@
     grid.appendChild(b);
   });
   function say(t, cls){ const m = $("msg"); m.textContent = t; m.className = "tw-msg" + (cls ? " " + cls : ""); }
-  function step(k, t){ $("stepN").textContent = `STEP ${k}`; $("stepT").innerHTML = t; }
+  function step(k, t){ $("stepN").textContent = `STEP ${k}`; $("stepT").innerHTML = t; T.step(t, { quiet: true, name: `Step ${k}` }); }   // HINTS gets the step too; the brief just its number
   const smallestLit = () => nums.find(n => n > 1 && !dark.has(n) && !locked.has(n));
   const knockOut = n => { dark.add(n); const b = tile(n); b.classList.remove("on", "bad"); b.classList.add("x"); b.disabled = true; };
   const lock = n => { locked.add(n); const b = tile(n); b.classList.add("gold"); };

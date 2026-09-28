@@ -238,12 +238,6 @@ body{ padding:12px 16px !important; overflow-y:auto; }
 .bp-stage{ position:relative; min-height:0; border:1px solid var(--border); background:rgba(7,20,24,.55); box-shadow:inset 0 0 30px rgba(var(--accent-rgb),.05); }
 .bp-stage .blueprint-viewer-canvas{ width:100% !important; height:100% !important; border:0 !important; background:none !important; box-shadow:none !important; }
 .bp-stage .assembly-status{ position:absolute; left:0; right:0; top:10px; margin:0; pointer-events:none; }
-/* Round 12: a yellow power bar fills while the plan builds itself, so students know to sit back and watch */
-.planBar{ position:absolute; left:50%; bottom:14px; transform:translateX(-50%); width:min(360px, 70%); pointer-events:none; opacity:0; transition:opacity .4s; }
-.planBar.on{ opacity:1; }
-.planBar .pl{ display:flex; justify-content:space-between; font-family:var(--font-ui); font-size:11px; letter-spacing:.18em; color:#ffe14d; margin-bottom:4px; }
-.planBar .pb{ height:8px; border:1px solid rgba(255,225,77,.7); background:rgba(0,0,0,.45); overflow:hidden; }
-.planBar .pb i{ display:block; height:100%; width:0; background:linear-gradient(90deg, #ffe14d, #ffb347 60%, #ff7a1a); box-shadow:0 0 12px rgba(255,200,60,.8); transition:width .5s linear; }
 .bp-stage .floor-info{ position:absolute; left:12px; right:12px; bottom:10px; margin:0; pointer-events:none; }
 .bp-side{ display:flex; flex-direction:column; gap:10px; min-height:0; overflow-y:auto; padding-bottom:130px; }
 .bp-side .intel{ display:flex; flex-direction:column; gap:8px; width:auto; margin:0; }
@@ -292,7 +286,7 @@ body::before{
     repeating-linear-gradient(120deg, rgba(var(--accent-rgb), .06) 0 1px, transparent 2px 44px) !important;
 }
 button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [class*="Title"]{ font-family: var(--font-ui); }
-.proceed-btn{ color: var(--accent-hack) !important; border-color: rgba(var(--accent-hack-rgb),.7) !important; background: rgba(var(--accent-hack-rgb),.12) !important; }
+.proceed-btn:not(.pn-go){ color: var(--accent-hack) !important; border-color: rgba(var(--accent-hack-rgb),.7) !important; background: rgba(var(--accent-hack-rgb),.12) !important; }
 </style>
 </head>
 <body>
@@ -308,13 +302,14 @@ button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [clas
 
     <div class="completion-section">
       <p class="completion-text" id="completionText">Assembling the building…</p>
-      <button class="proceed-btn" id="proceedToHackBtn">Initiate Prime Hack Protocol</button>
+      <button class="proceed-btn pn-go" id="proceedToHackBtn">Initiate Prime Hack Protocol</button>
     </div>
   </div>
 
   <!-- Three.js is included with the game so the 3D view works without internet -->
   <script src="../shared/vendor/three.min.js"></script>
   <script src="../shared/primenet.js"></script>
+  <script src="../shared/mode.js"></script>
   <script src="../shared/badges.js"></script>
   <script src="../shared/testtools.js"></script>
   <script src="../shared/handler.js"></script>
@@ -390,7 +385,6 @@ function powerUpPrompt(title){
       const status = document.createElement('div');
       status.className = 'assembly-status'; status.id = 'assemblyStatus';
       stage.appendChild(status);
-      const planBar = document.createElement('div'); planBar.className = 'planBar'; planBar.innerHTML = `<div class="pl"><span>POWERING UP THE PLAN · WATCH</span><b>0%</b></div><div class="pb"><i></i></div>`; stage.appendChild(planBar);
       const info = document.createElement('div'); info.className = 'floor-info'; info.id = 'floorInfo'; stage.appendChild(info);
       // Intel cards and the recon key down the right-hand side
       const side = document.createElement('div'); side.className = 'bp-side';
@@ -429,7 +423,7 @@ function powerUpPrompt(title){
       // protocol typing straight away. The button is only used when the quiz has already been done.
       window.bpReady = () => {
         const a = PN && PN.getAgent(), btn = document.getElementById('proceedToHackBtn'), ct = document.getElementById('completionText');
-        if(DEMO_MODE || (a && a.quizDone)){ btn.disabled = false; if(ct) ct.textContent = 'Route planned. Ready to start the hack?'; return; }
+        if(DEMO_MODE || (a && a.quizDone)){ btn.disabled = false; if(ct) ct.textContent = 'Route planned. Ready to start the hack?'; if(window.PNMode) PNMode.turn('Press the green button to start the hack'); return; }
         btn.hidden = true;
         if(ct) ct.textContent = "Answer ORACLE's question to start the hack protocol.";
         setTimeout(() => floorQuiz(floors, () => armProtocol(floors, goHack)), 1200 / (window.PNTest ? PNTest.speed() : 1));
@@ -462,8 +456,14 @@ function powerUpPrompt(title){
     const wait = ms => new Promise(r => setTimeout(r, ms / speedUp()));
     const reduced = () => !!(PN && PN.reducedMotion && PN.reducedMotion());
     function say(text){ const el = document.getElementById('assemblyStatus'); if(el) el.textContent = text; }
-    // The plan bar: 0 as the lights come on, full as the agent reaches the key
-    function planAt(k){ const b = document.querySelector('.planBar'); if(!b) return; b.classList.toggle('on', k < 1.001); b.querySelector('i').style.width = Math.round(Math.min(1, k) * 100) + '%'; b.querySelector('b').textContent = Math.round(Math.min(1, k) * 100) + '%'; if(k >= 1) setTimeout(() => b.classList.remove('on'), 1600); }
+    // Round 14: one WATCH bar for the whole cinematic, from the start of the assembly to the route being drawn.
+    // The assembly fills it to 45%; planAt(k) maps the lights-to-route part (0..1) onto the rest.
+    let bpWatch = null;
+    function watchStart(){ if(!bpWatch && window.PNMode) bpWatch = PNMode.watch('ORACLE is building the bank'); }
+    function watchAt(k){ if(bpWatch) bpWatch.progress(k); }
+    function watchLabel(t){ if(bpWatch && bpWatch.label) bpWatch.label(t); }
+    function watchEnd(){ if(bpWatch){ bpWatch.progress(1); bpWatch.end(); bpWatch = null; } if(window.PNMode) PNMode.done(); }
+    function planAt(k){ watchAt(0.45 + 0.55 * Math.min(1, k)); }
 
     function initializeSharedScene(floors, container){
       const width = container.clientWidth;
@@ -636,41 +636,61 @@ function powerUpPrompt(title){
 
       // ---------- After assembly: lights, weak point, hidden vault, explore ----------
       const card = (cls, html) => { const d = document.createElement('div'); d.className = cls; d.innerHTML = html; document.getElementById('intel').appendChild(d); requestAnimationFrame(() => d.classList.add('on')); return d; };
+      // Round 14: both blueprint twists wait until the WATCH is over (the route is drawn), so they never cut into it.
+      // Their effects still play, each as a short WATCH of its own.
+      async function blueprintTwists(){
+        if(!window.PNTwistSlot) return;
+        // Round 12: the corrupted-blueprint twist (the floor plan is repaired)
+        const ta = await PNTwistSlot.run("assembled");
+        if(ta && ta.effect === "repaired"){
+          const w = window.PNMode ? PNMode.watch('Floor plan repaired') : null;
+          say('Floor plan repaired');
+          for(const [i, f] of order.entries()){ ring(f.yOffset + 0.5, 0x3dffa8); SND("chirp"); if(w) w.progress((i + 1) / (order.length + 1)); await wait(380); }
+          SND("scanline");
+          if(window.PNHandler) PNHandler.say("Floor plan's back. The building's whole again.");
+          await wait(700);
+          if(w){ w.end(); PNMode.done(); }
+        }
+        // Round 11: the ceiling relays (cubes) twist
+        const tw = await PNTwistSlot.run("lights");
+        // Round 12: the relays twist ends with the whole building going dark
+        if(tw && tw.effect === "dark"){
+          const wd = window.PNMode ? PNMode.watch('Cameras going dark') : null;
+          say('Cameras going dark…');
+          SND("rise");
+          // Round 12: the floors black out one at a time, with a flicker, as the power drops through the building
+          for(const [i, f] of order.slice().reverse().entries()){
+            const ws = f.boxes.map(b => b.userData.win);
+            for(let k = 0; k < 3; k++){ ws.forEach(w => w.draw(k % 2 ? w.a * w.b : Math.round(w.a * w.b * 0.3))); await wait(90); }
+            await tween(420, e => ws.forEach(w => w.draw(Math.round((1 - e) * w.a * w.b))));
+            // the whole floor goes black: edges and room glass dim right down
+            f.lines.forEach(m => { m.transparent = true; m.opacity = 0.18; m.needsUpdate = true; });
+            f.boxes.forEach(b => { b.material.emissiveIntensity = 0.02; b.material.opacity = 0.06; b.material.needsUpdate = true; });
+            if(f.plate && f.plate.material){ f.plate.material.opacity = 0.15; f.plate.material.needsUpdate = true; }
+            SND("clamp"); ring(f.yOffset + 0.5, 0x333333);
+            if(wd) wd.progress((i + 1) / (order.length + 1));
+            await wait(380);
+          }
+          card('i-dark', `<b>CAMERAS DARK</b>Every ceiling relay powered: the lights and cameras on the target floor are off.`);
+          if(window.PNHandler) PNHandler.say("Lights out. Their cameras are blind. Now we use that route.");
+          await wait(900);
+          if(wd){ wd.end(); PNMode.done(); }
+        }
+      }
+
       async function afterAssembly(){
         // Lit windows: every room has a × b windows, so every room on a floor has exactly N lights
-        say('Powering up…');
+        say('Powering up…'); watchLabel('Lights on');
         for(const [fi, f] of order.entries()){
           const rooms = f.boxes.map(b => b.userData.win);
           await tween(900, e => { rooms.forEach(w => w.draw(Math.round(e * w.a * w.b))); planAt((fi + e) / order.length * 0.2); }, p => p);
           SND("seal");
         }
         card('i-win', `<b>LIGHTS ON</b>Every room has a × b ceiling lights, so every room on a floor has exactly N lights. A 4 × 6 office has 24.`);
-        // Round 11: with the lights on, the ceiling relays (cubes) twist fits here
-        if(window.PNTwistSlot){
-          await wait(1200);
-          const tw = await PNTwistSlot.run("lights");
-          // Round 12: the relays twist ends with the whole building going dark
-          if(tw && tw.effect === "dark"){
-            SND("rise");
-            // Round 12: the floors black out one at a time, with a flicker, as the power drops through the building
-            for(const f of order.slice().reverse()){
-              const ws = f.boxes.map(b => b.userData.win);
-              for(let k = 0; k < 3; k++){ ws.forEach(w => w.draw(k % 2 ? w.a * w.b : Math.round(w.a * w.b * 0.3))); await wait(90); }
-              await tween(420, e => ws.forEach(w => w.draw(Math.round((1 - e) * w.a * w.b))));
-              // the whole floor goes black: edges and room glass dim right down
-              f.lines.forEach(m => { m.transparent = true; m.opacity = 0.18; m.needsUpdate = true; });
-              f.boxes.forEach(b => { b.material.emissiveIntensity = 0.02; b.material.opacity = 0.06; b.material.needsUpdate = true; });
-              if(f.plate && f.plate.material){ f.plate.material.opacity = 0.15; f.plate.material.needsUpdate = true; }
-              SND("clamp"); ring(f.yOffset + 0.5, 0x333333);
-              await wait(380);
-            }
-            card('i-dark', `<b>CAMERAS DARK</b>Every ceiling relay powered: the lights and cameras on the target floor are off.`);
-            if(window.PNHandler) PNHandler.say("Lights out. Their cameras are blind. Let's find our way in.");
-            await wait(900);
-          }
-        }
+        await wait(1200);
 
         // Weak point: the floor with the fewest rooms (factor pairs)
+        watchLabel('Finding the weak point'); planAt(0.22);
         const pairsOf = n => getFactorPairs(n).length;
         const fewest = Math.min(...floorGroups.map(f => pairsOf(f.n)));
         const weak = floorGroups.filter(f => pairsOf(f.n) === fewest).sort((a, b) => a.n - b.n)[0];
@@ -704,8 +724,12 @@ function powerUpPrompt(title){
           card('i-hid', `<b>NO HIDDEN VAULT</b>${list} share no factor except 1, so there's no secret room this time.`);
         }
         planAt(0.3);
+        watchLabel('Planning the way in');
         await recon(weak);
         enableExplore();
+        // Round 14: the WATCH ends with the route drawn; only then can the blueprint twists play
+        watchEnd();
+        await blueprintTwists();
         document.getElementById('floorInfo').textContent = 'Drag to turn the building. Click a floor to pull it out.';
         say(`${PN ? PN.mission().target.toUpperCase() : 'TARGET'} // READY`);
         if(window.bpReady) window.bpReady();
@@ -933,6 +957,7 @@ function powerUpPrompt(title){
         camera.position.copy(CAM_FINAL.pos); camLook.copy(CAM_FINAL.look); spinning = true;
         { const fc = document.getElementById('floorsContainer'); if(fc && window.innerWidth > 900){ fc.classList.add('wide'); onResize(); } fitOn = true; fitCamera(true); }
         say('Blueprint assembled.');
+        watchStart(); watchAt(0.45);
         return afterAssembly();
       }
 
@@ -941,7 +966,9 @@ function powerUpPrompt(title){
         // Feedback round 9: floor 3 sat too high to see; the exploded floors are closer together and lower down
         const GAP = 38, BASE = -22;
         say('Decrypting floor plans…');
+        watchStart();
         for(const [k, f] of order.entries()){
+          watchAt(0.02 + 0.05 * k);
           labelFor(f.n)?.classList.remove('waiting');
           f.group.position.set(-420, BASE + k * GAP, 0);
           SND("laser");
@@ -964,6 +991,7 @@ function powerUpPrompt(title){
           f.group.position.set(0, 0, 0);
           SND("dock"); ring(f.yOffset + 0.5, f.square ? 0xffc94d : 0x00ffcc);
           label?.classList.remove('docking');
+          watchAt(0.17 + 0.05 * (k + 1));
           await wait(320);
         }
 
@@ -979,23 +1007,15 @@ function powerUpPrompt(title){
         ]);
         beacon.visible = true; beacon.material.transparent = true;
         spinning = true;
+        watchAt(0.35);
         await exterior();
         { const fc = document.getElementById('floorsContainer'); if(fc && window.innerWidth > 900){ fc.classList.add('wide'); onResize(); }
           fitOn = true; fitCamera(false); }
         say(`${PN ? PN.mission().target.toUpperCase() : 'TARGET'} // STRUCTURE ASSEMBLED`);
         SND("success");
-        await wait(2400);
-        // Round 12: the corrupted-blueprint twist arrives here, as the floors come together
-        if(window.PNTwistSlot){
-          const tw = await PNTwistSlot.run("assembled");
-          if(tw && tw.effect === "repaired"){
-            say('Floor plan repaired');
-            for(const f of order){ ring(f.yOffset + 0.5, 0x3dffa8); SND("chirp"); await wait(380); }
-            SND("scanline");
-            if(window.PNHandler) PNHandler.say("Floor plan's back. The building's whole again.");
-            await wait(700);
-          }
-        }
+        watchAt(0.42);
+        // Round 14: the blueprint twists no longer cut in here; they wait until the route is drawn (blueprintTwists)
+        await wait(1600);
         await afterAssembly();
       })();
     }
@@ -1127,6 +1147,7 @@ function powerUpPrompt(title){
         <div class="st"><span class="msg">Type anything to upload the breach kit.</span><span class="pct">0%</span></div>`;
       document.body.appendChild(ov);
       SND("comms");
+      if(window.PNMode) PNMode.turn('Type to upload the breach kit');
       const scr = ov.querySelector('.scr'), bar = ov.querySelector('.bar b'), msg = ov.querySelector('.msg'), pct = ov.querySelector('.pct'), st = ov.querySelector('.st');
       const lines = [''], NEED = 60; let n = 0, cur = LINES[0](), cls = 'c1', pos = 0, done = false;
       function show(){ scr.innerHTML = lines.slice(-8).map((l, i, arr) => i === arr.length - 1 ? `<span class="${cls}">${l}</span>▌` : l).join('\n'); }
@@ -1180,6 +1201,7 @@ function powerUpPrompt(title){
         <button class="pn-btn primary go" type="button" hidden>Arm the protocol</button></div>`;
       document.body.appendChild(ov);
       SND("comms");
+      if(window.PNMode) PNMode.turn("Answer ORACLE's question");
       const box = ov.querySelector('.opts'), why = ov.querySelector('.why'), go = ov.querySelector('.go');
       Q.opts.forEach(o => {
         const b = document.createElement('button'); b.type = 'button'; b.textContent = o;
