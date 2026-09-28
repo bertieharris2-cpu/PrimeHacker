@@ -454,10 +454,10 @@
   const TWISTS = [
     { id:"sieve",      point:"scan",   name:"Motion-sensor sieve",    maths:"Primes and multiples", page:"twist_sieve.html", proto:"twist_sieve2.html" },
     { id:"jammer",     point:"scan",   name:"Jammer",                 maths:"Multiples" },
-    { id:"strongroom", point:"vault",  name:"Square strongroom",      maths:"Square numbers", page:"twist_strongroom.html", proto:"twist_strongroom3d.html" },
+    { id:"strongroom", point:"vault",  name:"Square strongroom",      maths:"Square numbers", page:"twist_strongroom3d.html" },   // round 13: live in every mission
     { id:"walls",      point:"vault",  name:"Deposit-box walls",      maths:"Factor pairs", page:"twist_walls3d.html" },   // round 13: the deposit-box room is live in every mission (both finales alternate)
-    { id:"corrupt",    point:"assembled",  name:"Corrupted blueprint",    maths:"Factor pairs as arrays", proto:"twist_corrupt.html" },
-    { id:"cubes",      point:"lights", name:"Ceiling relays (cubes)", maths:"Cube numbers", page:"twist_cubes.html", proto:"twist_cubes3d.html" },
+    { id:"corrupt",    point:"assembled",  name:"Corrupted blueprint",    maths:"Factor pairs as arrays", page:"twist_corrupt.html" },   // round 13: live in every mission
+    { id:"cubes",      point:"lights", name:"Ceiling relays (cubes)", maths:"Cube numbers", page:"twist_cubes3d.html" },   // round 13: live in every mission
     { id:"patrols",    point:"getin",  name:"Guard patrols",          maths:"Multiples and LCM", page:"twist_patrols.html", proto:"twist_patrols3d.html" },
     { id:"corridor",   point:"getin",  name:"Laser corridor",         maths:"Factors" },
     { id:"factortree", point:"hack",   name:"Key room door (factor tree)", maths:"Prime factorisation", page:"twist_factortree.html", proto:"twist_door2.html" },
