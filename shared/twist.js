@@ -26,10 +26,11 @@
   .twb-layer{ position:fixed; inset:0; z-index:8600; pointer-events:none; perspective:1200px; }
   .twb-dim{ position:absolute; inset:0; background:radial-gradient(ellipse at 50% 40%, rgba(0,20,26,.25), rgba(0,4,6,.62)); opacity:0; transition:opacity .3s; pointer-events:none; }
   .twb-layer.open .twb-dim{ opacity:1; pointer-events:auto; cursor:pointer; }
-  .twb-win{ position:absolute; left:50%; top:44%; width:min(860px, calc(100vw - 32px)); pointer-events:auto;
-    transform:translate(-50%,-50%) translate(var(--dx,0px), var(--dy,0px)) scale(.04); opacity:0; filter:blur(4px);
+  /* Bertie: the brief sits on the left, like a comms panel, and only pops up by itself if the tick box says so */
+  .twb-win{ position:absolute; left:24px; top:50%; width:min(760px, calc(100vw - 48px)); pointer-events:auto;
+    transform:translate(0,-50%) translate(var(--dx,0px), var(--dy,0px)) scale(.04); opacity:0; filter:blur(4px);
     transition:transform .42s cubic-bezier(.2,1.1,.35,1), opacity .3s, filter .3s; }
-  .twb-layer.open .twb-win{ transform:translate(-50%,-50%); opacity:1; filter:none; }
+  .twb-layer.open .twb-win{ transform:translate(0,-50%); opacity:1; filter:none; }
   .twb-win .hw{ position:relative; color:#dff8ff; font-family:var(--font-mono, "Courier Prime", monospace);
     background:linear-gradient(160deg, rgba(10,44,56,.97), rgba(5,26,34,.96) 60%, rgba(9,40,52,.97));   /* Bertie: opaque enough to read easily */
     border:1px solid rgba(var(--hb-rgb),.8); box-shadow:0 0 34px rgba(var(--hb-rgb),.4), inset 0 0 40px rgba(var(--hb-rgb),.14);
@@ -47,11 +48,12 @@
   .twb-goal{ font-size:18px; line-height:1.55; color:rgba(230,250,255,.9); } .twb-goal b{ color:#ffe68a; }
   .twb-goal:empty, .twb-ex:empty{ display:none; }
   .twb-ex{ font-size:16px; line-height:1.5; color:rgba(230,250,255,.82); border-left:3px solid rgba(var(--hb-rgb),.6); padding:2px 0 2px 14px; } .twb-ex b{ color:#ffffff; }
-  .twb-f{ display:flex; justify-content:space-between; align-items:center; gap:10px; padding:0 26px 18px; font-size:14px; color:rgba(180,240,255,.85); letter-spacing:.08em; }
+  .twb-auto{ display:flex; align-items:center; gap:8px; cursor:pointer; } .twb-auto input{ width:18px; height:18px; accent-color:var(--hb-hi); cursor:pointer; }
+  .twb-f{ display:flex; justify-content:space-between; align-items:center; gap:10px 18px; flex-wrap:wrap; padding:0 26px 18px; font-size:14px; color:rgba(180,240,255,.85); letter-spacing:.08em; }
   .twb-f kbd, .twb-chip kbd{ font-family:var(--font-ui, sans-serif); font-weight:700; font-size:12px; color:#062027; background:var(--hb-hi); padding:1px 6px; box-shadow:0 0 10px rgba(var(--hb-rgb),.6); }
   .twb-go{ font:inherit; font-family:var(--font-ui, sans-serif); font-weight:700; font-size:14px; letter-spacing:.18em; color:#062027; background:var(--hb-hi); border:0; padding:11px 20px; cursor:pointer; box-shadow:0 0 18px rgba(var(--hb-rgb),.55); }
   .twb-go:focus-visible, .twb-chip:focus-visible{ outline:2px solid #ffe68a; outline-offset:3px; }
-  .twb-chip{ position:fixed; right:18px; top:16px; z-index:8601; display:flex; align-items:center; gap:8px; font:inherit; font-family:var(--font-ui, sans-serif); font-weight:700; font-size:12px; letter-spacing:.22em;
+  .twb-chip{ position:fixed; left:18px; bottom:96px; z-index:8601; display:flex; align-items:center; gap:8px; font:inherit; font-family:var(--font-ui, sans-serif); font-weight:700; font-size:12px; letter-spacing:.22em;
     color:var(--hb-hi); background:rgba(var(--hb-rgb),.12); border:1px solid rgba(var(--hb-rgb),.7); padding:8px 12px; cursor:pointer; box-shadow:0 0 16px rgba(var(--hb-rgb),.3);
     clip-path:polygon(0 8px, 8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%); transition:opacity .25s, transform .25s; }
   .twb-chip.hide{ opacity:0; transform:scale(.8); pointer-events:none; }
@@ -105,7 +107,7 @@
 
   // The level from ?level=, else the agent's level, else L1 (safe to call before init)
   function peekLevel(){ const a = PN && PN.getAgent(); return ["L1", "L2", "L3"].includes(qs.get("level")) ? qs.get("level") : (a && a.level) || "L1"; }
-  function init({ id, stage, title, goal, story, brief, example, eyebrow }){
+  function init({ id, stage, title, goal, story, brief, example, eyebrow, briefTitle }){
     const st = document.createElement("style"); st.textContent = css + (EMBED ? " .pnh{ display:none !important; }" : ""); document.head.appendChild(st);
     if(PN && PN.applyLoot) PN.applyLoot();   // safehouse shop: hologram tint and night lens
     level = peekLevel();
@@ -118,7 +120,7 @@
       <div class="r"><nav class="tw-lv" aria-label="Level">${lv}</nav><button class="pn-btn small" type="button" id="twNew">New round</button><a class="pn-btn small" href="twist_lab.html" style="text-decoration:none">Twist Lab</a></div>`;
     wrap.prepend(head);
     if(!MISSION) head.querySelector("#twNew").addEventListener("click", () => location.reload());
-    buildBrief(goal || brief || "", example);
+    buildBrief(goal || brief || "", example, briefTitle);
     if(story && window.PNHandler && !EMBED) setTimeout(() => PNHandler.say(story), 500);   // in a mission the stage's ORACLE introduces it
     if(PN) PN.log("twist", { id, level });
     return level;
@@ -169,14 +171,18 @@
   // The brief holds the goal (and an example). step() puts the current instruction on top and zooms it back in,
   // because it's new; step(html, { quiet: true }) just updates it. H, the GOT IT button or a click outside folds it away.
   let B = null;
-  function buildBrief(goal, example){
+  // Whether the brief pops up by itself for every new step (Bertie: after the first run it got annoying). Saved on this device.
+  const AUTO_KEY = "primenet_brief_auto";
+  const autoBrief = () => { try{ return localStorage.getItem(AUTO_KEY) !== "0"; }catch(e){ return true; } };
+  function buildBrief(goal, example, title){
     const layer = document.createElement("div"); layer.className = "twb-layer";
     layer.innerHTML = `<div class="twb-dim"></div><div class="twb-win" role="dialog" aria-label="Brief"><div class="hw">
-      <div class="twb-t"><span>BRIEF</span><span><i>●</i> LIVE</span></div>
+      <div class="twb-t"><span>${title || "BRIEF"}</span><span><i>●</i> LIVE</span></div>
       <div class="twb-b"><div class="twb-step"></div><div class="twb-goal"></div><div class="twb-ex"></div></div>
-      <div class="twb-f"><span>Press <kbd>H</kbd> to hide or show this</span><button class="twb-go" type="button">GOT IT ▸</button></div></div></div>
+      <div class="twb-f"><span>Press <kbd>H</kbd> to hide or show this</span><label class="twb-auto"><input type="checkbox" class="twb-autoIn" ${autoBrief() ? "checked" : ""}> Pop up for every new step</label><button class="twb-go" type="button">GOT IT ▸</button></div></div></div>
       <div class="twb-sr" aria-live="polite"></div>`;
-    const chip = document.createElement("button"); chip.type = "button"; chip.className = "twb-chip hide"; chip.innerHTML = `BRIEF <kbd>H</kbd>`; chip.setAttribute("aria-label", "Show the brief (H)");
+    layer.querySelector(".twb-autoIn").addEventListener("change", e => { try{ localStorage.setItem(AUTO_KEY, e.target.checked ? "1" : "0"); }catch(err){} SND("click"); });
+    const chip = document.createElement("button"); chip.type = "button"; chip.className = "twb-chip hide"; chip.innerHTML = `${title || "BRIEF"} <kbd>H</kbd>`; chip.setAttribute("aria-label", "Show the brief (H)");
     document.body.append(layer, chip);
     B = { layer, chip, win: layer.querySelector(".twb-win"), step: layer.querySelector(".twb-step"), goal: layer.querySelector(".twb-goal"), ex: layer.querySelector(".twb-ex"), sr: layer.querySelector(".twb-sr"), open: false, goalHTML: goal, stepHTML: "" };
     B.ex.innerHTML = example ? `Example: ${example}` : "";
@@ -187,12 +193,13 @@
     document.addEventListener("keydown", e => {
       if(e.key !== "h" && e.key !== "H") return;
       if(e.ctrlKey || e.metaKey || e.altKey) return;
-      const t = e.target, typing = t && (t.isContentEditable || t.tagName === "TEXTAREA" || (t.tagName === "INPUT" && !/numeric|decimal/.test(t.inputMode || "") && t.type !== "number"));
+      const t = e.target, typing = t && (t.isContentEditable || t.tagName === "TEXTAREA" || (t.tagName === "INPUT" && /^(text|search|password|email|url|tel)$/.test(t.type || "text") && !/numeric|decimal/.test(t.inputMode || "")));
       if(typing) return;
       e.preventDefault(); toggleBrief();
     });
-    setTimeout(() => showBrief(), 350);
+    setTimeout(() => { if(autoBrief()) showBrief(); else { chip.classList.remove("hide"); ping(); } }, 350);
   }
+  function ping(){ if(!B || B.open) return; B.chip.classList.remove("ping"); void B.chip.offsetWidth; B.chip.classList.add("ping"); }
   function render(){
     if(!B) return;
     // With no step yet, the goal is the headline; once there's a step, the goal sits underneath it
@@ -202,7 +209,7 @@
   }
   function aimAtChip(){   // the window zooms out of / back into the BRIEF tab
     const r = B.chip.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2;
-    B.win.style.setProperty("--dx", (cx - innerWidth * 0.5) + "px"); B.win.style.setProperty("--dy", (cy - innerHeight * 0.42) + "px");
+    B.win.style.setProperty("--dx", (cx - 24 - B.win.offsetWidth / 2) + "px"); B.win.style.setProperty("--dy", (cy - innerHeight * 0.5) + "px");
   }
   function showBrief(){
     if(!B || B.open || document.querySelector(".tw-result")) return;
@@ -220,10 +227,10 @@
     if(!B) return;
     if(B.stepHTML === html) return;
     B.stepHTML = html; render();
-    if(opts.quiet){ if(!B.open){ B.chip.classList.remove("ping"); void B.chip.offsetWidth; B.chip.classList.add("ping"); } }
+    if(opts.quiet || !autoBrief()) ping();
     else showBrief();
   }
-  function setGoal(html, opts = {}){ if(!B) return; B.goalHTML = html; B.stepHTML = ""; if(opts.example !== undefined) B.ex.innerHTML = opts.example ? `Example: ${opts.example}` : ""; render(); if(!opts.quiet) showBrief(); }   // opts.example: a new example for the new goal ("" clears it)
+  function setGoal(html, opts = {}){ if(!B) return; B.goalHTML = html; B.stepHTML = ""; if(opts.example !== undefined) B.ex.innerHTML = opts.example ? `Example: ${opts.example}` : ""; render(); if(!opts.quiet && autoBrief()) showBrief(); else ping(); }   // opts.example: a new example for the new goal ("" clears it)
   function say(text, opts){ if(EMBED){ window.parent.postMessage({ type: "pn-twist-say", text }, "*"); return; } if(window.PNHandler) PNHandler.say(text, opts); }
   const target = () => (PN && PN.mission && PN.mission().target) || "Sentinel Finance";
   const targets = () => { const t = target(); return /s$/i.test(t) ? t + "'" : t + "'s"; };   // possessive: "Rivercross Utilities'"
