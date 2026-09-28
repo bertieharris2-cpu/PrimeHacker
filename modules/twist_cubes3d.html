@@ -38,7 +38,20 @@
   .steps span.done{ color:var(--ok); border-color:rgba(61,220,151,.5); }
   .lab{ font-family:var(--font-ui); font-size:12px; letter-spacing:.16em; color:var(--text-faint); }
   .need{ font-family:var(--font-ui); font-size:19px; } .need b{ color:var(--accent); font-size:28px; }
-  .count{ font-family:var(--font-mono); font-size:22px; min-height:1.5em; } .count b{ color:var(--warning); } .count sup{ font-size:.6em; color:var(--warning); }
+  .count{ font-family:var(--font-mono); font-size:22px; min-height:1.5em; } .count b{ color:var(--warning); } .count small{ font-size:14px; color:var(--text-faint); }
+  /* Cube notation, the same everywhere: 3³ with the small 3 bright so it stands out (Bertie, round 15) */
+  .cu{ font-family:var(--font-ui); font-weight:700; color:var(--warning); white-space:nowrap; }
+  .cu sup{ font-size:.72em; line-height:0; color:#ffe14d; text-shadow:0 0 12px rgba(255,225,77,.9); }
+  /* The reveal: when the stack locks, the finished cube lifts off the pallet, turns once in the middle of the panel and is named */
+  .reveal{ position:absolute; inset:0; z-index:3; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; padding:16px; border-radius:inherit; background:radial-gradient(ellipse at 50% 42%, rgba(18,54,64,.985), rgba(3,10,13,.99)); opacity:0; transition:opacity .4s; }
+  .reveal.on{ opacity:1; }
+  .rv-cube{ width:min(62%, 250px); height:auto; filter:drop-shadow(0 0 16px rgba(255,201,77,.5)); transition:transform .65s cubic-bezier(.2,.9,.3,1); }
+  .rv-cube polygon{ stroke:#ffe7a8; stroke-width:1.2; stroke-linejoin:round; } .rv-cube line{ stroke:#ffe7a8; stroke-width:.8; opacity:.8; }
+  .rv-eq{ display:flex; flex-wrap:wrap; justify-content:center; align-items:baseline; gap:2px 14px; font-family:var(--font-mono); font-size:clamp(22px, 2.2vw, 30px); color:#fff3cf; text-align:center; }
+  .rv-eq b{ color:var(--warning); }
+  .rv-eq .pw{ opacity:0; transform:scale(.6); transition:opacity .3s, transform .45s cubic-bezier(.2,1.2,.3,1); }
+  .rv-eq .cu{ font-size:1.55em; }
+  .reveal.named .rv-eq .pw{ opacity:1; transform:none; }
   .row{ display:flex; gap:8px; flex-wrap:wrap; }
   .answer{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; font-size:17px; }
   .answer input{ width:80px; font-size:20px; text-align:center; padding:6px; }
@@ -79,7 +92,8 @@
   .chips button.bad{ border-color:var(--danger); color:var(--danger); }
   .board{ padding:16px; }
   .spot .tw-grid{ grid-template-columns:repeat(4, minmax(0,1fr)); }
-  @media (max-width:980px){ .layout{ grid-template-columns:1fr; } .stage3d{ height:420px; } }
+  @media (max-width:1240px){ .stage3d .cam{ top:30px; } }   /* a narrow stage: the camera label drops under the HUD line instead of over it */
+  @media (max-width:980px){ .layout{ grid-template-columns:1fr; } .stage3d{ height:420px; } .stage3d .cam{ top:10px; } }
   /* Two columns: the controls are on the right, so ORACLE's panel docks bottom left, over the floor view, never over a button */
   @media (min-width:981px){ body .pnh{ right:auto; left:18px; } }
   @media (prefers-reduced-motion: reduce){ .stage3d .scan.go{ animation:none; } }
@@ -156,10 +170,10 @@
   // Camera: HOME frames the floor and the transformer; the page opens on a fly-in from FAR once the brief folds away
   const HOME = { pos: new TH.Vector3(-4, 150, 166), look: new TH.Vector3(-14, 0, 4) };
   const FAR = { pos: new TH.Vector3(-90, 300, 360), look: new TH.Vector3(-14, 0, 4) };
-  F.camera.position.copy(REDUCE ? HOME.pos : FAR.pos); F.look.copy(HOME.look);
+  F.look.copy(HOME.look);
   F.lightsOn(1000);
   F.setSpin(0.0005);
-  afterBrief(() => { if(!REDUCE){ T.SND("whoosh"); F.flyTo(HOME, 1800); } });
+  afterBrief(() => { if(!REDUCE){ T.SND("whoosh"); F.flyTo(HOME, 1800).then(() => { if(!camBusy && !over) atHome = true; }); } });
   // Round 12 feedback: wiring. One transformer outside the wall; a cable from it to each room's lights runs
   // along the ceiling in straight lines. Each cube number wires a room in; with every room on it, it overloads.
   const CY = F.H + 1.6, TX = -F.PLATE / 2 - 10;
@@ -177,8 +191,38 @@
   // Cameras: red lights on the floor corners (a slow blink, well under 1 Hz)
   const cams = [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([sx, sz]) => { const m = new TH.Mesh(new TH.SphereGeometry(1.8, 10, 10), new TH.MeshBasicMaterial({ color: 0xff3355 })); m.position.set(sx * (F.PLATE / 2 - 3), F.H - 2, sz * (F.PLATE / 2 - 3)); F.root.add(m); return m; });
   F.onTick(now => cams.forEach((c, i) => { if(!c.userData.off) c.material.color.setHex(Math.sin(now / 320 + i) > 0 ? 0xff3355 : 0x661122); }));
+  // Round 15 (Bertie): the floor must never be cut off at the sides of its panel. HOME keeps its direction, but its
+  // distance is worked out from the floor's bounds: the plate, every room and the transformer. The floor spins slowly,
+  // so the bounds are taken as a drum round the spin axis (the widest sweep at any angle), and the camera backs off
+  // until the drum's rim fits both the vertical and the horizontal view with a margin. Done once now and on every resize.
+  const fit = (() => {
+    const spin0 = F.root.rotation.y; F.root.rotation.y = 0; F.root.updateMatrixWorld(true);
+    const box = new TH.Box3().setFromObject(F.root); F.root.rotation.y = spin0;
+    const rim = Math.hypot(Math.max(-box.min.x, box.max.x), Math.max(-box.min.z, box.max.z));
+    const samples = [];
+    for(let k = 0; k < 36; k++){ const a = k / 36 * Math.PI * 2; samples.push(new TH.Vector3(rim * Math.cos(a), box.min.y, rim * Math.sin(a)), new TH.Vector3(rim * Math.cos(a), box.max.y, rim * Math.sin(a))); }
+    const dir = HOME.pos.clone().sub(HOME.look).normalize();   // from the look point out to the camera: the direction never changes
+    const fwd = dir.clone().negate(), right = fwd.clone().cross(new TH.Vector3(0, 1, 0)).normalize(), up = right.clone().cross(fwd).normalize();
+    const MIN = 190;   // never closer than this, however wide the panel
+    return () => {
+      const st = $("stage"), w = st.clientWidth, h = st.clientHeight; if(!w || !h) return;
+      const tanV = Math.tan(F.camera.fov / 2 * Math.PI / 180), tanH = tanV * (w / h);
+      let d = MIN;
+      samples.forEach(q => {
+        const rel = q.clone().sub(HOME.look), along = rel.dot(dir), v = rel.dot(up), x = Math.abs(rel.dot(right));
+        d = Math.max(d, x / (tanH * 0.92) + along, (v > 0 ? v / (tanV * 0.80) : -v / (tanV * 0.92)) + along);   // extra room at the top, under the HUD line
+      });
+      HOME.pos.copy(HOME.look).addScaledVector(dir, d);
+      if(atHome) F.camera.position.copy(HOME.pos);
+    };
+  })();
+  let atHome = REDUCE;   // true while the camera rests at HOME, so a resize can move it straight there
+  fit();
+  F.camera.position.copy(REDUCE ? HOME.pos : FAR.pos);
+  new ResizeObserver(fit).observe($("stage"));
 
   const cubeRoot = n => Math.round(Math.cbrt(n));
+  const cu = a => `<span class="cu">${a}<sup>3</sup></span>`;   // 3³, styled the same everywhere
   const STEP1 = { L1: () => [8, 27, 64], L2: () => T.shuffle([27, 64, 125]), L3: () => T.shuffle([...T.shuffle([216, 343, 512, 729, 1000]).slice(0, 3), T.pick([100, 200, 300, 400, 500])]) };
   const s1 = STEP1[L]();
   const BOARD = { L1: { max: 70, size: 16 }, L2: { max: 130, size: 20 }, L3: { max: 1000, size: 24 } }[L];
@@ -203,7 +247,7 @@
     T.SND("correct", found);
     const cine = !REDUCE && !camBusy && !over;
     if(cine){
-      camBusy = true; T.SND("zoom");
+      camBusy = true; atHome = false; T.SND("zoom");
       const mid = world(new TH.Vector3((TX + room.x) / 2, 6, room.z / 2));
       F.flyTo({ pos: mid.clone().add(new TH.Vector3(14, 72, 96)), look: mid }, 900);
     }
@@ -215,7 +259,7 @@
     $("hudN").textContent = cables.filter(q => q.wired).length;
     scanline(); T.SND("chirp");
     const last = found === RELAYS.length;
-    if(cine){ await wait(500); if(!last) await F.flyTo(HOME, 1000); camBusy = false; }
+    if(cine){ await wait(500); if(!last){ await F.flyTo(HOME, 1000); atHome = !over; } camBusy = false; }
     if(last) blackout();
   }
   // Overload: the camera swings round to the transformer, which swells white-hot and throws sparks; then room by
@@ -225,6 +269,7 @@
     await wait(400);
     T.say("Everything's on the one transformer. Overload it.");
     T.SND("alarm");
+    atHome = false;
     if(!REDUCE) F.flyTo({ pos: new TH.Vector3(-80, 84, 140), look: new TH.Vector3(-24, 8, 0) }, 1500);
     tr.material.emissive.setHex(0xffffff);
     await F.tween(1400, e => { tr.material.emissiveIntensity = 0.4 + e * 1.8; F.rooms.forEach(r => r.lights.draw(r.a * r.b, `rgba(255,${Math.round(240 - 90 * e)},${Math.round(120 - 110 * e)},1)`)); });
@@ -292,7 +337,7 @@
       if(drop && layers && !REDUCE){ const top = st.lastElementChild; top.style.transition = "none"; top.style.transform = `translateY(${-u * 1.6}px)`; requestAnimationFrame(() => { top.style.transition = `transform ${240 / sp()}ms ease-out`; top.style.transform = "translateY(0)"; }); }
       svg.classList.toggle("taken", !!base && !L3);
       const n = base * base * layers, cube = base === layers;
-      $("countLine").innerHTML = !base ? (L3 ? "No cube yet." : "No layer yet.") : `${base} × ${base} × ${layers} = <b>${n}</b>${cube ? ` = ${base}<sup>3</sup>` : ` <small>(${layers} layer${layers === 1 ? "" : "s"} of ${base * base})</small>`}`;
+      $("countLine").innerHTML = !base ? (L3 ? "No cube yet." : "No layer yet.") : `${base} × ${base} × ${layers} = <b>${n}</b>${cube ? ` = ${cu(base)}` : ` <small>${layers} layer${layers === 1 ? "" : "s"} of ${base * base} · not a cube yet</small>`}`;
       $("unstackBtn").disabled = layers < 1 || locked; $("clearBtn").disabled = !base || locked; $("addBtn").disabled = !base || layers >= MAXL || locked;
       $("trayWrap").hidden = !base || L3 || locked; if(base && !L3) $("tray").innerHTML = traySVG();
     }
@@ -373,12 +418,58 @@
     $("addBtn").addEventListener("click", addLayer);
     $("unstackBtn").addEventListener("click", removeLayer);
     $("clearBtn").addEventListener("click", clearPallet);
-    // The cube is right: it locks, then the spark runs the cable to the room
+    // ----- The reveal (Bertie, round 15): the finished cube lifts off the pallet to the middle of the panel, turns
+    // once so its three equal sides can be seen, and is named: 3 × 3 × 3 = 27 = 3³. -----
+    const RV = 260;
+    // The cube of side a, turned by yaw about its middle, in the pallet's isometric style. Yaw 0 matches the pallet view.
+    function cubeSVG(a, yaw){
+      const c = Math.cos(yaw), s = Math.sin(yaw), u = Math.min(RV / (2 * a * C30), RV / (2 * a)) * 0.86;
+      const P2 = (x, y, z) => { const xr = (x - a / 2) * c - (z - a / 2) * s, zr = (x - a / 2) * s + (z - a / 2) * c; return [RV / 2 + (xr - zr) * C30 * u, RV / 2 + (xr + zr) * 0.5 * u - (y - a / 2) * u]; };
+      const pt = p => P2(...p).map(v => v.toFixed(1)).join(",");
+      // A face: corner o, edge vectors e1 and e2 (each a long), with block lines across it
+      const face = (o, e1, e2, fill) => {
+        const at = (i, j) => [o[0] + e1[0] * i + e2[0] * j, o[1] + e1[1] * i + e2[1] * j, o[2] + e1[2] * i + e2[2] * j];
+        let g = `<polygon points="${[at(0, 0), at(a, 0), at(a, a), at(0, a)].map(pt).join(" ")}" fill="${fill}"/>`;
+        for(let k = 1; k < a; k++){ const [x1, y1] = P2(...at(k, 0)), [x2, y2] = P2(...at(k, a)), [x3, y3] = P2(...at(0, k)), [x4, y4] = P2(...at(a, k)); g += `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}"/><line x1="${x3.toFixed(1)}" y1="${y3.toFixed(1)}" x2="${x4.toFixed(1)}" y2="${y4.toFixed(1)}"/>`; }
+        return g;
+      };
+      // The four sides: outward normal (nx, nz) turned by the yaw; a side shows when it faces the viewer, lit from the front right
+      const sides = [{ o: [a, 0, 0], e1: [0, 0, 1], n: [1, 0] }, { o: [0, 0, 0], e1: [0, 0, 1], n: [-1, 0] }, { o: [0, 0, a], e1: [1, 0, 0], n: [0, 1] }, { o: [0, 0, 0], e1: [1, 0, 0], n: [0, -1] }];
+      let g = "";
+      sides.forEach(f => {
+        const nx = f.n[0] * c - f.n[1] * s, nz = f.n[0] * s + f.n[1] * c;
+        if(nx + nz <= 0.001) return;
+        const lit = Math.max(0, nx * 0.92 + nz * 0.4);
+        g += face(f.o, f.e1, [0, 1, 0], `rgba(255,201,77,${(0.16 + 0.26 * lit).toFixed(2)})`);
+      });
+      g += face([0, a, 0], [1, 0, 0], [0, 0, 1], "rgba(255,201,77,.62)");
+      return g;
+    }
+    async function reveal(a, n){
+      const old = $("reveal"); if(old) old.remove();
+      const ov = document.createElement("div"); ov.className = "reveal"; ov.id = "reveal";
+      ov.innerHTML = `<svg class="rv-cube" viewBox="0 0 ${RV} ${RV}" aria-hidden="true"></svg><div class="rv-eq"><span>${a} × ${a} × ${a} = <b>${n}</b></span><span class="pw">= ${cu(a)}</span></div>`;
+      $("pallet").appendChild(ov);
+      const cube = ov.firstElementChild, draw = yaw => { cube.innerHTML = cubeSVG(a, yaw); };
+      draw(0);
+      if(!REDUCE){   // start exactly over the stack on the pallet, then glide to the middle
+        const sr = $("stack").getBoundingClientRect(), cr = cube.getBoundingClientRect();
+        if(sr.width && cr.width){ cube.style.transition = "none"; cube.style.transform = `translate(${(sr.left + sr.width / 2 - cr.left - cr.width / 2).toFixed(1)}px, ${(sr.top + sr.height / 2 - cr.top - cr.height / 2).toFixed(1)}px) scale(${(sr.width / cr.width).toFixed(3)})`; cube.getBoundingClientRect(); cube.style.transition = ""; }   // the rect call flushes the start position (an svg has no offsetWidth), so the glide has somewhere to start from
+      }
+      requestAnimationFrame(() => { ov.classList.add("on"); cube.style.transform = ""; });
+      T.SND("whoosh");
+      await wait(700);
+      if(!REDUCE) await F.tween(1500, e => draw(e * Math.PI * 2));   // one slow turn, back to the pallet view
+      ov.classList.add("named"); T.SND("blip");
+      await wait(700);
+    }
+    // The cube is right: it locks, lifts off and is named, then the spark runs the cable to the room
     async function lock(){
       locked = true; svg.classList.add("locked"); paint(); T.SND("lockon");
       const w = want();
-      $("countLine").innerHTML = `${base} × ${base} × ${base} = <b>${w}</b> = ${base}<sup>3</sup> · LOCKED`;
-      await wait(700);
+      $("countLine").innerHTML = `${base} × ${base} × ${base} = <b>${w}</b> = ${cu(base)} · LOCKED`;
+      await wait(500);
+      await reveal(base, w);
       light(w); say(`${base}³ = ${base} × ${base} × ${base} = ${w}. A cube: that room is wired in.`, "ok");
       await wait(1100);
       nextRelay();
@@ -418,7 +509,7 @@
       if(L3) brief("root", `Relay has <b>${n}</b> blocks. How many blocks along each side? Drag a square on the pallet, or type it. Not a cube? Press <b>It can't be a cube</b>.`);
       else brief("draw", `Relay needs <b>${n}</b> blocks. Drag on the pallet to draw one <b>square layer</b>.`);
     }
-    function reset(){ locked = false; svg.classList.remove("locked"); base = 0; layers = 0; anchor = cur = null; clearSel(); killGhost(); $("rootIn").value = ""; paint(); }
+    function reset(){ locked = false; svg.classList.remove("locked"); base = 0; layers = 0; anchor = cur = null; clearSel(); killGhost(); $("rootIn").value = ""; const ov = $("reveal"); if(ov) ov.remove(); paint(); }
     function skip(){
       if(locked) return;
       const n = want(); if(n === undefined) return;
