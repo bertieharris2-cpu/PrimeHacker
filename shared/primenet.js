@@ -143,7 +143,7 @@
      an easy-read font and reduced motion. */
   const TEXT_SIZES = { S:{ id:"S", label:"Small", zoom:.9 }, M:{ id:"M", label:"Medium", zoom:1 }, L:{ id:"L", label:"Large", zoom:1.15 }, XL:{ id:"XL", label:"Extra large", zoom:1.3 } };
   const TEXT_ORDER = ["S","M","L","XL"];
-  const DEFAULT_PREFS = { text:"M", font:false, motion:false };
+  const DEFAULT_PREFS = { text:"M", font:false, motion:false, voice:false };   // voice: read instructions aloud (shared/voice.js)
   const cleanName = n => String(n).trim().toUpperCase().slice(0, 20);
   function prefsFor(codename){
     const name = cleanName(codename || (getAgent() || {}).codename || "");
@@ -503,6 +503,13 @@
   Object.assign(window.Primenet, { TWISTS, TWIST_POINTS, twistsOff, setTwistOn, twistOn, twistPin, setTwistPin, twistPlan, twistAt, setTwistPlan, twistProtos, setTwistProtos });
 
   applyPrefs();   // every page opens with the current agent's settings
+  // Round 14: shared helpers every page gets without its own script tag: the read-aloud voice
+  (function loadShared(){
+    const me = document.currentScript && document.currentScript.src;
+    if(!me) return;
+    const base = me.replace(/primenet\.js(\?.*)?$/, "");
+    ["voice.js"].forEach(f => { if(document.querySelector(`script[src$="${f}"]`)) return; const sc = document.createElement("script"); sc.src = base + f; document.head.appendChild(sc); });
+  })();
 
   // ---------- Home button on every game screen (feedback: a way out to the main menu) ----------
   // Bottom-left, small. Asks first, because leaving part-way through a stage loses that stage's progress.

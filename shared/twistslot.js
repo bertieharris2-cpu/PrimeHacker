@@ -31,7 +31,12 @@
   @keyframes pntsJit{ 50%{ transform:translate(3px,-2px); } }
   @keyframes pntsIn{ from{ opacity:0; transform:scale(1.15); } }`;
   let styled = false;
-  function run(point){
+  // Round 14: a twist never opens in the middle of a WATCH section; it waits for the cinematic to finish
+  async function run(point){
+    if(window.PNMode) await PNMode.idle();
+    return runNow(point);
+  }
+  function runNow(point){
     if(!PN || !PN.twistAt || qs.get("notwist")) return Promise.resolve(null);
     let t = PN.twistAt(point);
     const force = qs.get("twist") && PN.TWISTS.find(x => x.id === qs.get("twist") && x.point === point && (x.page || x.proto));

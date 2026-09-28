@@ -41,6 +41,9 @@
   @keyframes twbSweep{ to{ top:100%; } }
   @keyframes twbFlick{ 0%,100%,92%,94%{ opacity:1; } 93%{ opacity:.6; } 97%{ opacity:.85; } }
   .twb-t{ display:flex; justify-content:space-between; gap:12px; padding:10px 22px; border-bottom:1px solid rgba(var(--hb-rgb),.45); font-family:var(--font-ui, sans-serif); font-weight:700; font-size:12px; letter-spacing:.24em; color:var(--hb-hi); }
+  .twb-say{ all:unset; cursor:pointer; font-size:15px; margin-right:6px; filter:grayscale(.3); } .twb-say:hover{ filter:none; }
+  .twb-hints .twb-win .hw{ border-color:rgba(255,230,138,.8); box-shadow:0 0 34px rgba(255,230,138,.3); } .twb-hints .twb-t{ color:#ffe68a; }
+  .twb-chip-hints{ color:#ffe68a !important; border-color:rgba(255,230,138,.7) !important; }
   .twb-t i{ font-style:normal; color:#ff6b8a; animation:twbBlink 1s steps(2) infinite; } @keyframes twbBlink{ 50%{ opacity:.2; } }
   .twb-b{ padding:22px 26px 18px; display:flex; flex-direction:column; gap:16px; }
   .twb-step{ font-family:var(--font-ui, sans-serif); font-size:clamp(22px,2.8vw,31px); line-height:1.4; letter-spacing:.02em; color:#f6feff; text-shadow:0 0 16px rgba(var(--hb-rgb),.45); }
@@ -107,7 +110,7 @@
 
   // The level from ?level=, else the agent's level, else L1 (safe to call before init)
   function peekLevel(){ const a = PN && PN.getAgent(); return ["L1", "L2", "L3"].includes(qs.get("level")) ? qs.get("level") : (a && a.level) || "L1"; }
-  function init({ id, stage, title, goal, story, brief, example, eyebrow, briefTitle }){
+  function init({ id, stage, title, goal, story, brief, example, eyebrow, briefTitle, context }){
     const st = document.createElement("style"); st.textContent = css + (EMBED ? " .pnh{ display:none !important; }" : ""); document.head.appendChild(st);
     if(PN && PN.applyLoot) PN.applyLoot();   // safehouse shop: hologram tint and night lens
     level = peekLevel();
@@ -120,7 +123,7 @@
       <div class="r"><nav class="tw-lv" aria-label="Level">${lv}</nav><button class="pn-btn small" type="button" id="twNew">New round</button><a class="pn-btn small" href="twist_lab.html" style="text-decoration:none">Twist Lab</a></div>`;
     wrap.prepend(head);
     if(!MISSION) head.querySelector("#twNew").addEventListener("click", () => location.reload());
-    buildBrief(goal || brief || "", example, briefTitle);
+    buildBrief(goal || brief || "", example, briefTitle, context || story);
     if(story && window.PNHandler && !EMBED) setTimeout(() => PNHandler.say(story), 500);   // in a mission the stage's ORACLE introduces it
     if(PN) PN.log("twist", { id, level });
     return level;
@@ -148,7 +151,7 @@
 
   function finish({ ok = true, title, lines = [], note = "", effect = "", auto = 0 }){   // auto: in a mission, carry on by itself after this many ms   // effect: something the stage shows afterwards (e.g. "dark")
     if(document.querySelector(".tw-result")) return;   // one result screen only (a twist could end twice)
-    hideBrief(); if(B) B.chip.classList.add("hide");
+    hideBrief(); if(W.brief){ W.brief.chip.classList.add("hide"); W.hints.chip.classList.add("hide"); }
     const ov = document.createElement("div"); ov.className = "tw-result" + (ok ? "" : " fail");
     const next = qs.get("next");
     ov.innerHTML = `<div class="card" role="dialog" aria-modal="true" aria-labelledby="twResT"><h2 id="twResT">${title || (ok ? "TWIST CLEARED" : "ALARM TRIPPED")}</h2>
@@ -167,70 +170,104 @@
     if(PN) PN.log("twist-done", { ok, level });
   }
 
-  // ---------- Hologram brief ----------
-  // The brief holds the goal (and an example). step() puts the current instruction on top and zooms it back in,
-  // because it's new; step(html, { quiet: true }) just updates it. H, the GOT IT button or a click outside folds it away.
+  // ---------- Brief (context) and HINTS (instructions) ----------
+  // Round 14 (Bertie: "I never read instructions, I work it out"): two hologram windows.
+  //  BRIEF: the story of this task in one line, plus the name of the current step ("Wall 1 of 2"). Opens at the start.
+  //  HINTS: how to do it (the goal, the current step's instruction, an example). Never opens by itself unless the
+  //  pupil ticks "Pop up for every new step". H opens/closes the brief, ? (or /) the hints.
+  //  step(html, { name }) : html goes to HINTS, name (if given) to the brief. setGoal(html, { example, name }) likewise.
+  //  briefOpen() is true while either window is open, so timed things wait for the pupil.
+  const AUTO_KEY = "primenet_hints_auto";
+  const autoHints = () => { try{ return localStorage.getItem(AUTO_KEY) === "1"; }catch(e){ return false; } };
   let B = null;
-  // Whether the brief pops up by itself for every new step (Bertie: after the first run it got annoying). Saved on this device.
-  const AUTO_KEY = "primenet_brief_auto";
-  const autoBrief = () => { try{ return localStorage.getItem(AUTO_KEY) !== "0"; }catch(e){ return true; } };
-  function buildBrief(goal, example, title){
-    const layer = document.createElement("div"); layer.className = "twb-layer";
-    layer.innerHTML = `<div class="twb-dim"></div><div class="twb-win" role="dialog" aria-label="Brief"><div class="hw">
-      <div class="twb-t"><span>${title || "BRIEF"}</span><span><i>●</i> LIVE</span></div>
+  const W = {};   // the two windows: W.brief, W.hints
+  function makeWin(kind, title, chipLabel, key, chipPos){
+    const layer = document.createElement("div"); layer.className = "twb-layer twb-" + kind;
+    layer.innerHTML = `<div class="twb-dim"></div><div class="twb-win" role="dialog" aria-label="${title}"><div class="hw">
+      <div class="twb-t"><span>${title}</span><span><button class="twb-say" type="button" aria-label="Read it aloud" title="Read it aloud">🔊</button> <i>●</i> LIVE</span></div>
       <div class="twb-b"><div class="twb-step"></div><div class="twb-goal"></div><div class="twb-ex"></div></div>
-      <div class="twb-f"><span>Press <kbd>H</kbd> to hide or show this</span><label class="twb-auto"><input type="checkbox" class="twb-autoIn" ${autoBrief() ? "checked" : ""}> Pop up for every new step</label><button class="twb-go" type="button">GOT IT ▸</button></div></div></div>
+      <div class="twb-f"><span>Press <kbd>${key}</kbd> to hide or show this</span>${kind === "hints" ? `<label class="twb-auto"><input type="checkbox" class="twb-autoIn" ${autoHints() ? "checked" : ""}> Pop up for every new step</label>` : ""}<button class="twb-go pn-go" type="button">GOT IT</button></div></div></div>
       <div class="twb-sr" aria-live="polite"></div>`;
-    layer.querySelector(".twb-autoIn").addEventListener("change", e => { try{ localStorage.setItem(AUTO_KEY, e.target.checked ? "1" : "0"); }catch(err){} SND("click"); });
-    const chip = document.createElement("button"); chip.type = "button"; chip.className = "twb-chip hide"; chip.innerHTML = `${title || "BRIEF"} <kbd>H</kbd>`; chip.setAttribute("aria-label", "Show the brief (H)");
+    const chip = document.createElement("button"); chip.type = "button"; chip.className = "twb-chip hide twb-chip-" + kind; chip.style.bottom = chipPos + "px";
+    chip.innerHTML = `${chipLabel} <kbd>${key}</kbd>`; chip.setAttribute("aria-label", `${chipLabel} (${key})`);
     document.body.append(layer, chip);
-    B = { layer, chip, win: layer.querySelector(".twb-win"), step: layer.querySelector(".twb-step"), goal: layer.querySelector(".twb-goal"), ex: layer.querySelector(".twb-ex"), sr: layer.querySelector(".twb-sr"), open: false, goalHTML: goal, stepHTML: "" };
-    B.ex.innerHTML = example ? `Example: ${example}` : "";
+    const w = { kind, layer, chip, win: layer.querySelector(".twb-win"), step: layer.querySelector(".twb-step"), goal: layer.querySelector(".twb-goal"), ex: layer.querySelector(".twb-ex"), sr: layer.querySelector(".twb-sr"), open: false };
+    layer.querySelector(".twb-go").addEventListener("click", () => hideWin(w));
+    layer.querySelector(".twb-dim").addEventListener("click", () => hideWin(w));
+    layer.querySelector(".twb-say").addEventListener("click", e => { e.stopPropagation(); if(window.PNVoice) PNVoice.speak(w.win.querySelector(".twb-b").innerText, { force: true }); });
+    chip.addEventListener("click", () => showWin(w));
+    const auto = layer.querySelector(".twb-autoIn");
+    if(auto) auto.addEventListener("change", e => { try{ localStorage.setItem(AUTO_KEY, e.target.checked ? "1" : "0"); }catch(err){} SND("click"); });
+    return w;
+  }
+  function buildBrief(goal, example, title, context){
+    W.brief = makeWin("brief", title || "BRIEF", title || "BRIEF", "H", 96);
+    W.hints = makeWin("hints", "HINTS", "? HINTS", "?", 146);
+    B = { goalHTML: goal, stepHTML: "", context: context || goal, name: "", example: example || "" };
     render();
-    layer.querySelector(".twb-go").addEventListener("click", () => hideBrief());
-    layer.querySelector(".twb-dim").addEventListener("click", () => hideBrief());
-    chip.addEventListener("click", () => showBrief());
     document.addEventListener("keydown", e => {
-      if(e.key !== "h" && e.key !== "H") return;
       if(e.ctrlKey || e.metaKey || e.altKey) return;
       const t = e.target, typing = t && (t.isContentEditable || t.tagName === "TEXTAREA" || (t.tagName === "INPUT" && /^(text|search|password|email|url|tel)$/.test(t.type || "text") && !/numeric|decimal/.test(t.inputMode || "")));
       if(typing) return;
-      e.preventDefault(); toggleBrief();
+      if(e.key === "h" || e.key === "H"){ e.preventDefault(); toggleWin(W.brief); }
+      else if(e.key === "?" || e.key === "/"){ e.preventDefault(); toggleWin(W.hints); }
     });
-    setTimeout(() => { if(autoBrief()) showBrief(); else { chip.classList.remove("hide"); ping(); } }, 350);
+    setTimeout(() => { showWin(W.brief); W.hints.chip.classList.remove("hide"); }, 350);
   }
-  function ping(){ if(!B || B.open) return; B.chip.classList.remove("ping"); void B.chip.offsetWidth; B.chip.classList.add("ping"); }
   function render(){
     if(!B) return;
-    // With no step yet, the goal is the headline; once there's a step, the goal sits underneath it
-    B.step.innerHTML = B.stepHTML || B.goalHTML;
-    B.goal.innerHTML = B.stepHTML ? B.goalHTML : "";
-    B.sr.textContent = B.step.textContent;
+    W.brief.step.innerHTML = B.context;
+    W.brief.goal.innerHTML = B.name ? `<b>${B.name}</b>` : "";
+    W.brief.ex.innerHTML = "";
+    W.hints.step.innerHTML = B.stepHTML || B.goalHTML;
+    W.hints.goal.innerHTML = B.stepHTML ? B.goalHTML : "";
+    W.hints.ex.innerHTML = B.example ? `Example: ${B.example}` : "";
+    W.brief.sr.textContent = W.brief.step.textContent;
+    W.hints.sr.textContent = W.hints.step.textContent;
   }
-  function aimAtChip(){   // the window zooms out of / back into the BRIEF tab
-    const r = B.chip.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2;
-    B.win.style.setProperty("--dx", (cx - 24 - B.win.offsetWidth / 2) + "px"); B.win.style.setProperty("--dy", (cy - innerHeight * 0.5) + "px");
+  function aimAtChip(w){   // the window zooms out of / back into its tab
+    const r = w.chip.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+    w.win.style.setProperty("--dx", (cx - 24 - w.win.offsetWidth / 2) + "px"); w.win.style.setProperty("--dy", (cy - innerHeight * 0.5) + "px");
   }
-  function showBrief(){
-    if(!B || B.open || document.querySelector(".tw-result")) return;
-    aimAtChip(); B.open = true; B.layer.classList.add("open"); window.dispatchEvent(new CustomEvent("pn-brief", { detail: { open: true } })); B.chip.classList.add("hide"); B.chip.classList.remove("ping");
+  const anyOpen = () => !!((W.brief && W.brief.open) || (W.hints && W.hints.open));
+  function showWin(w){
+    if(!w || w.open || document.querySelector(".tw-result")) return;
+    const other = w === W.brief ? W.hints : W.brief; if(other && other.open) hideWin(other, true);
+    const was = anyOpen();
+    aimAtChip(w); w.open = true; w.layer.classList.add("open"); w.chip.classList.add("hide"); w.chip.classList.remove("ping");
+    if(!was) window.dispatchEvent(new CustomEvent("pn-brief", { detail: { open: true } }));
     SND("zoom");
-    setTimeout(() => { if(B.open) B.layer.querySelector(".twb-go").focus({ preventScroll: true }); }, 60);
+    if(window.PNVoice) PNVoice.speak(w.win.querySelector(".twb-b").innerText);
+    setTimeout(() => { if(w.open) w.layer.querySelector(".twb-go").focus({ preventScroll: true }); }, 60);
   }
-  function hideBrief(){
-    if(!B || !B.open) return;
-    aimAtChip(); B.open = false; B.layer.classList.remove("open"); window.dispatchEvent(new CustomEvent("pn-brief", { detail: { open: false } })); B.chip.classList.remove("hide");
-    SND("whooshDown");
+  function hideWin(w, swapping){
+    if(!w || !w.open) return;
+    aimAtChip(w); w.open = false; w.layer.classList.remove("open"); w.chip.classList.remove("hide");
+    if(!swapping && !anyOpen()){ window.dispatchEvent(new CustomEvent("pn-brief", { detail: { open: false } })); SND("whooshDown"); }
   }
-  function toggleBrief(){ if(B && B.open) hideBrief(); else showBrief(); }
+  function toggleWin(w){ if(w.open) hideWin(w); else showWin(w); }
+  function ping(w){ if(!w || w.open) return; w.chip.classList.remove("ping"); void w.chip.offsetWidth; w.chip.classList.add("ping"); }
+  function showBrief(){ showWin(W.brief); }
+  function hideBrief(){ hideWin(W.hints, true); hideWin(W.brief); if(W.hints) hideWin(W.hints); }
+  function showHints(){ showWin(W.hints); }
   function step(html, opts = {}){
     if(!B) return;
-    if(B.stepHTML === html) return;
-    B.stepHTML = html; render();
-    if(opts.quiet || !autoBrief()) ping();
-    else showBrief();
+    const nameChanged = opts.name !== undefined && opts.name !== B.name;
+    if(B.stepHTML === html && !nameChanged) return;
+    B.stepHTML = html; if(opts.name !== undefined) B.name = opts.name; render();
+    if(nameChanged) ping(W.brief);
+    if(!opts.quiet && autoHints()) showWin(W.hints); else ping(W.hints);
   }
-  function setGoal(html, opts = {}){ if(!B) return; B.goalHTML = html; B.stepHTML = ""; if(opts.example !== undefined) B.ex.innerHTML = opts.example ? `Example: ${opts.example}` : ""; render(); if(!opts.quiet && autoBrief()) showBrief(); else ping(); }   // opts.example: a new example for the new goal ("" clears it)
+  function setGoal(html, opts = {}){   // a new goal for a new stage; opts.example replaces the example ("" clears it), opts.name / opts.context update the brief
+    if(!B) return;
+    B.goalHTML = html; B.stepHTML = "";
+    if(opts.example !== undefined) B.example = opts.example || "";
+    if(opts.name !== undefined) B.name = opts.name;
+    if(opts.context !== undefined) B.context = opts.context;
+    render();
+    if(opts.context !== undefined && !opts.quiet) showWin(W.brief); else ping(W.brief);
+    if(!opts.quiet && autoHints() && opts.context === undefined) showWin(W.hints); else ping(W.hints);
+  }
   function say(text, opts){ if(EMBED){ window.parent.postMessage({ type: "pn-twist-say", text }, "*"); return; } if(window.PNHandler) PNHandler.say(text, opts); }
   const target = () => (PN && PN.mission && PN.mission().target) || "Sentinel Finance";
   const targets = () => { const t = target(); return /s$/i.test(t) ? t + "'" : t + "'s"; };   // possessive: "Rivercross Utilities'"
@@ -247,5 +284,5 @@
   const gcd = (a, b) => b ? gcd(b, a % b) : a;
   const lcm = (a, b) => a * b / gcd(a, b);
 
-  window.PNTwist = { init, peekLevel, setGoal, step, showBrief, hideBrief, briefOpen: () => !!(B && B.open), alarm, finish, say, target, targets, level: () => level, SND, isPrime, isSquare, isCube, pairs, smallestFactor, shuffle, pick, range, gcd, lcm };
+  window.PNTwist = { init, peekLevel, setGoal, step, showBrief, hideBrief, showHints, briefOpen: anyOpen, alarm, finish, say, target, targets, level: () => level, SND, isPrime, isSquare, isCube, pairs, smallestFactor, shuffle, pick, range, gcd, lcm };
 })();

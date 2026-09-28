@@ -55,6 +55,7 @@
     box.addEventListener("click", () => { if(!skip) skip = true; else close(); });
     requestAnimationFrame(() => box.classList.add("on"));
     SND("comms");
+    if(window.PNVoice) PNVoice.speak(text);   // read aloud, when the pupil has it on
     await sleep(260);
     // Type it out. Words in *stars* are highlighted.
     const el = box.querySelector(".pnh-text");

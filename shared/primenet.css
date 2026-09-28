@@ -100,6 +100,12 @@ body::before{
 .pn-btn:disabled{ opacity: .45; cursor: not-allowed; box-shadow: none; }
 .pn-btn.primary{ color: var(--accent); border-color: rgba(var(--accent-rgb), .8); box-shadow: 0 0 18px rgba(var(--accent-rgb), var(--glow-strength)); }
 .pn-btn.small{ font-size: 12px; padding: 8px 12px; }
+/* Round 14 (Bertie): a button that moves you on is green, keeps its own words, and only glows when you can press it */
+.pn-go, .pn-btn.pn-go{ color:#03170e !important; background:#2fbf8a !important; border-color:#7dffc4 !important; font-weight:700; box-shadow:0 0 18px rgba(47,191,138,.45) !important; }
+.pn-go::after{ content:" ▸"; }
+.pn-go:hover:not(:disabled){ background:#46d9a0 !important; box-shadow:0 0 26px rgba(47,191,138,.7) !important; }
+.pn-go:disabled, .pn-go[aria-disabled="true"]{ color:rgba(235,255,248,.55) !important; background:rgba(0,0,0,.25) !important; border-color:var(--line-strong) !important; box-shadow:none !important; }
+.pn-go:disabled::after{ content:""; }
 
 .pn-input{
   font-family: var(--font-mono);
