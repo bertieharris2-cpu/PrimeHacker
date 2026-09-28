@@ -15,7 +15,10 @@
      ?mode=B watch the feed until it cuts out then predict, ?mode=C choose from three times.
      Round 13 (Bertie): with no ?mode, door 1 plays watch-then-predict (the feed shows what "together" means) and door 2
      plays predict-then-watch. When the answer is right the camera pushes in on the meeting, our agent throws a beacon
-     to the far side of the floor, the guards go to look, and the agent walks in on a path that keeps clear of them. */
+     to the far side of the floor, the guards go to look, and the agent walks in on a path that keeps clear of them.
+     Round 14 (Bertie: "the blue dot just ran straight over towards the guards"): the way in now heads for the other side
+     of the floor from the beacon, is planned once the guards are well on their way, hugs the rooms instead of crossing
+     open floor, and is drawn as a faint line of light before the agent walks it. */
   main.tw{ width:min(1280px, 100%); }
   .cctv{ position:relative; height:500px; padding:0; overflow:hidden; background:#020a0c; border:1px solid #2c4c55; transition:height .6s; }
   .cctv.small{ height:300px; }
@@ -84,7 +87,7 @@
   const sp = () => (window.PNTest ? PNTest.speed() : 1);
   const wait = ms => new Promise(res => setTimeout(res, ms / sp()));
   $("modeLab").textContent = { A: "Option A · mark, then predict", B: "Option B · watch, then predict", C: "Option C · choose the time", D: "Door 1 watch first · Door 2 predict first" }[MODE];
-  T.init({ id: "patrols3d", stage: "GETTING IN", title: "RECON: GUARD PATROLS", eyebrow: "RECON UPDATE",
+  T.init({ id: "patrols3d", stage: "GETTING IN", title: "RECON: GUARD PATROLS", eyebrow: "RECON UPDATE", briefTitle: "COMMS · ORACLE",
     goal: { A: "Mark when each guard passes the door. Then, on the camera, work out when they're both there <b>together</b>.",
       B: "Watch the camera. When it cuts out, work out when the guards are both at the door <b>together</b>.",
       C: "When are the guards both at the door <b>together</b> for the first time? Choose the time.",
@@ -158,13 +161,45 @@
   const midPath = bfs(door, mid) || [door];
   const ROUTES = [toPts([door, aEnd, door]), toPts(out1.concat(back1.slice(1))), toPts(midPath.concat(midPath.slice(0, -1).reverse()))];
   function routeFor(i){ return { pts: ROUTES[i] }; }
-  // The way in (round 13). The beacon lands on the far side of the floor. The guards go to it: A the direct way, B round
-  // the other side, C behind A. Our agent's way in is the square that is far from the beacon AND far from the door,
-  // reached without coming within two squares of the beacon.
+  // The way in (round 13). The beacon lands on the free square farthest from the door. The guards go to it: A the direct
+  // way, B round the other side, C behind A.
   const beacon = far, BW = W(beacon.x, beacon.y);
   const LURE = [out1, back1.slice().reverse(), out1];
-  const wayIn = (() => { const dB = dists(beacon), dD = dists(door, around([beacon], 2)); let best = door, bs = -1;
-    dD.forEach((v, k) => { const s = Math.min(v, dB.get(k) || 0); if(s > bs){ bs = s; const [x, y] = k.split(",").map(Number); best = { x, y }; } }); return best; })();
+  const DIRS = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+  const byRoom = (x, y) => DIRS.some(([dx, dy]) => { const nx = x + dx, ny = y + dy; return nx >= 0 && ny >= 0 && nx < G && ny < G && occ[nx][ny]; });   // a square right beside a room: a wall to hug
+  const onEdge = (x, y) => x === 0 || y === 0 || x === G - 1 || y === G - 1;   // the outside wall of the floor
+  // How close every square is to the nearest of `cells` (squares in a box round each one), up to `cap` squares away
+  function nearMap(cells, cap){ const m = new Map(); for(let r = 0; r <= cap; r++) around(cells, r).forEach(k => { if(!m.has(k)) m.set(k, r); }); return m; }
+  // Round 14: the destination is on the other side of the floor from the beacon. It is far from the beacon and far from
+  // the door, never within 5 squares of the beacon or of any guard's route to it (fewer on a small floor), and by a room if it can be.
+  const LURE_CELLS = [beacon].concat(...LURE.slice(0, 3));
+  const wayIn = (() => { const dB = dists(beacon), dD = dists(door), nm = nearMap(LURE_CELLS, 5);
+    for(let rad = 5; rad >= 1; rad--){ let best = null, bs = -1;
+      dD.forEach((v, k) => { const n = nm.get(k); if(n !== undefined && n < rad) return; const [x, y] = k.split(",").map(Number);
+        const s = Math.min(v, dB.get(k) || 0) + (byRoom(x, y) ? 1.5 : 0); if(s > bs){ bs = s; best = { x, y }; } });
+      if(best) return best; }
+    return door; })();
+  // The sneak route: the cheapest walk from the door to the way in. Squares within `rad` of where the guards still are or
+  // are still going (`hard`) are out. Squares just beyond that cost more; so do the corridors the guards walked down.
+  // Squares beside a room cost half as much, so the route threads between the rooms instead of crossing open floor.
+  function plan(from, to, hard, near, nearAll, rad){
+    if(hard.has(key(from.x, from.y)) || hard.has(key(to.x, to.y))) return null;
+    const stepCost = (x, y) => { const k = key(x, y); let c = byRoom(x, y) ? 0.5 : onEdge(x, y) ? 0.75 : 1;
+      const d = near.get(k); if(d !== undefined && d <= rad + 1) c += 3;
+      const d2 = nearAll.get(k); if(d2 !== undefined && d2 <= 2) c += 1.5;
+      return c; };
+    const best = new Map([[key(from.x, from.y), 0]]), prev = new Map(), open = [from], done = new Set();
+    while(open.length){
+      let bi = 0; for(let i = 1; i < open.length; i++) if(best.get(key(open[i].x, open[i].y)) < best.get(key(open[bi].x, open[bi].y))) bi = i;
+      const c = open.splice(bi, 1)[0], ck = key(c.x, c.y); if(done.has(ck)) continue; done.add(ck);
+      if(c.x === to.x && c.y === to.y) break;
+      for(const [dx, dy] of DIRS){ const nx = c.x + dx, ny = c.y + dy, k = key(nx, ny); if(!free(nx, ny) || hard.has(k) || done.has(k)) continue;
+        const v = best.get(ck) + stepCost(nx, ny); if(!best.has(k) || v < best.get(k)){ best.set(k, v); prev.set(k, c); open.push({ x: nx, y: ny }); } }
+    }
+    if(!done.has(key(to.x, to.y))) return null;
+    const out = []; for(let c = to; c; c = prev.get(key(c.x, c.y))) out.unshift(c); return out;
+  }
+  const NEAR_ALL = nearMap(LURE_CELLS, 2);
   let guards = [], minute = 0, rate = 0, target = null, onArrive = null, lure = false, agentWalking = false;
   const agent = F.dot(0x6ec8ff, 2.8); agent.set(D.x + N[0] * 6, D.z + N[1] * 6);
   function setupGuards(periods){
@@ -185,12 +220,12 @@
     l.done = new Promise(res => { l.res = res; });
     g.lure = l;
   }
-  // Squares the agent must keep out of right now: a square round wherever each guard is or is still going, two round the beacon
-  function avoidNow(){ const s = around([beacon], 2); guards.forEach(g => { const l = g.lure; if(l) around(l.cells.slice(Math.max(0, l.k - 1)), 1).forEach(k => s.add(k)); }); return s; }
+  // The squares the guards are on or still have to walk (from the one just behind each guard to the beacon), and the beacon
+  function guardCells(){ const s = [beacon]; guards.forEach(g => { const l = g.lure; if(l) s.push(...l.cells.slice(Math.max(0, l.k - 1))); }); return s; }
   const atDoor = g => { const k = (minute % g.p) / g.p; return k < 0.05 || k > 0.97; };
   let last = performance.now(), lastWhole = -1, walkMin = Infinity;
   // Debug hook for the tests: where everyone is (world units), and the closest the agent came to a guard while walking in
-  window.__pnPatrol = { cell: F.cell, periods: [], agent: { x: 0, z: 0 }, guards: [], walkMin: Infinity, lure: false, walking: false };
+  window.__pnPatrol = { cell: F.cell, grid: G, door, beacon, wayIn, lureCells: LURE_CELLS.map(c => ({ x: c.x, y: c.y })), route: [], periods: [], agent: { x: 0, z: 0 }, guards: [], walkMin: Infinity, lure: false, walking: false };
   F.onTick(now => {
     const dt = Math.min(0.1, (now - last) / 1000); last = now;
     const spd = sp();
@@ -308,15 +343,36 @@
     const off = F.onTick(now => { if(alive && !pulsing) m.material.opacity = RM ? 0.6 : 0.4 + 0.2 * Math.sin(now / 320); });   // a slow breath, twice in three seconds
     return { remove(){ alive = false; off(); F.root.remove(m); F.root.remove(post); } };
   }
-  // The agent waits for a way in that keeps clear of the guards, checking again every few frames as they walk away
-  async function clearPath(){
+  // The agent waits until every guard is well on the way to the beacon (over half way, or there), then plans a route that
+  // stays at least three squares from wherever they are or are still going (two on a tight floor). It checks again every
+  // few frames as they walk away. If nothing opens up in time it settles for the plain shortest walk clear of the beacon.
+  async function planRoute(){
     const t0 = performance.now();
+    const ready = () => guards.every(g => g.lure && (g.lure.over || g.lure.k >= 0.6 * (g.lure.cells.length - 1)));
     for(;;){
-      const av = avoidNow(), p = av.has(key(door.x, door.y)) ? null : bfs(door, wayIn, av);
-      if(p) return p;
-      if(performance.now() - t0 > 9000 / sp()) return bfs(door, wayIn, around([beacon], 1)) || [door];
+      const late = performance.now() - t0 > 9000 / sp();
+      if(ready() || late){
+        const cells = guardCells();
+        for(const rad of (late ? [3, 2, 1] : [3, 2])){
+          const near = nearMap(cells, rad + 1), hard = new Set(); near.forEach((d, k) => { if(d <= rad) hard.add(k); });
+          const p = plan(door, wayIn, hard, near, NEAR_ALL, rad); if(p){ window.__pnPatrol.routeRad = rad; return p; }
+        }
+        if(late){ window.__pnPatrol.routeRad = 0; return bfs(door, wayIn, around([beacon], 1)) || [door]; }   // 0: the last resort, for the tests to flag
+      }
       await new Promise(res => setTimeout(res, 80));
     }
+  }
+  // The planned route drawn on the floor: a faint line of light with a dot on every square, lit up from the door outwards
+  function routeLine(cells){
+    const pts = [D.clone().setY(0.5), ...cells.map(c => W(c.x, c.y).setY(0.5))], g = new TH.Group();
+    const line = new TH.Line(new TH.BufferGeometry().setFromPoints(pts), new TH.LineBasicMaterial({ color: 0x6ec8ff, transparent: true, opacity: 0 }));
+    g.add(line);
+    const dots = cells.map(c => { const p = W(c.x, c.y), m = new TH.Mesh(new TH.CircleGeometry(Math.max(0.7, F.cell * 0.17), 10), new TH.MeshBasicMaterial({ color: 0x8feaff, transparent: true, opacity: 0, depthWrite: false }));
+      m.rotation.x = -Math.PI / 2; m.position.set(p.x, 0.6, p.z); g.add(m); return m; });
+    F.root.add(g);
+    const show = RM ? (dots.forEach(m => { m.material.opacity = 0.6; }), line.material.opacity = 0.3, Promise.resolve())
+      : F.tween(Math.min(1000, 120 + 45 * cells.length), e => { const n = e * cells.length; dots.forEach((m, i) => { m.material.opacity = 0.6 * Math.max(0, Math.min(1, n - i)); }); line.material.opacity = 0.3 * e; }, t => t);
+    return { show, remove(){ F.root.remove(g); } };
   }
   // They meet at the door: the LCM, seen. The camera pushes in. Then the way in: our agent throws a beacon to the far
   // side of the floor, the guards leave their routes to look, and the agent walks in well away from them.
@@ -335,11 +391,15 @@
     const trail = await F.pulse(agent.at().setY(3), BW.clone().setY(3), 0x6ec8ff, 450);
     const ring = beaconRing(); tag("DISTRACTION ▸ BEACON", "gold");
     lure = true; rate = 0.6;
+    T.step("Watch the way in. The beacon pulls the guards away. Our agent sneaks round the rooms, well away from them.", { quiet: true });
     guards.forEach((g, i) => setLure(g, LURE[i] || out1, 500 + i * 280));
     const arrive = Promise.all(guards.map(g => g.lure.done));
     await wait(900); T.SND("radio"); tag("GUARDS DIVERTED ▸ DOOR CLEAR");
-    // the way in, only once the door and the path are clear of the guards
-    const path = await clearPath();
+    // the way in: planned once the guards are well on their way, drawn on the floor, then walked
+    const path = await planRoute();
+    window.__pnPatrol.route = path.map(c => ({ x: c.x, y: c.y }));
+    const line = routeLine(path); tag("ROUTE PLANNED ▸ ROUND THE ROOMS"); T.SND("scanline");
+    await line.show; await wait(600);
     tag("AGENT IN"); T.SND("whoosh");
     agentWalking = true; walkMin = Infinity;
     await agent.walk([agent.at(), D.clone(), ...path.map(c => W(c.x, c.y))], Math.min(3600, 400 + 240 * path.length));
@@ -347,7 +407,7 @@
     await arrive;
     T.SND("success"); tag("AGENT INSIDE");
     await wait(1000);
-    F.root.remove(trail); ring.remove(); lure = false;
+    F.root.remove(trail); ring.remove(); line.remove(); lure = false;
     r++; meeting = false;
     if(r < rounds.length){ agent.set(D.x + N[0] * 6, D.z + N[1] * 6); deal(); }
     else end(true);
