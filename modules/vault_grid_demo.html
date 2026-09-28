@@ -103,16 +103,25 @@
   }
 
   .cell{
-    background: rgba(6,16,20, 0.75);
+    position:relative;
+    background-color: rgba(6,16,20, 0.75);
     border: var(--cell-border) solid rgba(17, 75, 95, 0.2);
     box-sizing:border-box;
-    transition: background var(--transition-fast), box-shadow var(--transition-fast);
+    transition: background-color .9s ease, border-color .9s ease;
   }
-  .cell.on{
+  /* Round 17 (Bertie: smoother build): each room's squares fade and grow in, eased, one flowing wave from
+     the outside in, instead of stepping on one at a time. The colour sits on ::after so it can animate. */
+  .cell::after{
+    content:""; position:absolute; inset:0; pointer-events:none; opacity:0; transform:scale(.35);
     background:linear-gradient(180deg, var(--fill1), var(--fill2));
-    box-shadow:
-      0 0 8px rgba(var(--accent-rgb), 0.20),
-      0 0 0 0.5px rgba(255,255,255,.08) inset;
+    box-shadow: 0 0 8px rgba(var(--accent-rgb), 0.20), 0 0 0 0.5px rgba(255,255,255,.08) inset;
+  }
+  .cell.on::after{ animation: cellFill var(--fd, 520ms) cubic-bezier(.22,.9,.3,1) var(--d, 0ms) both; }
+  .cell.on.instant::after{ animation:none; opacity:1; transform:none; filter:none; }
+  @keyframes cellFill{
+    0%{ opacity:0; transform:scale(.35); filter:hue-rotate(55deg) brightness(1.9); }
+    55%{ opacity:1; transform:scale(1.06); filter:hue-rotate(28deg) brightness(1.35); }
+    100%{ opacity:1; transform:none; filter:none; }
   }
   .cell.flow{
     background:linear-gradient(180deg, var(--flow1), var(--flow2));
@@ -124,12 +133,16 @@
   svg.overlay{ position:absolute; inset:18px; pointer-events:none; z-index:4; }
   /* Round 6 */
   .stage{ padding:56px 190px !important; }
-  .cell.hall{ background:linear-gradient(135deg, rgba(40,110,120,.20), rgba(30,80,92,.14)); border-color:rgba(74,163,255,.10); }
+  .cell.hall{ background-color:rgba(36,98,110,.18); border-color:rgba(74,163,255,.10); }
   .plotBar{ position:absolute; left:10px; right:10px; top:18px; height:2px; z-index:6; pointer-events:none; background:#bfe6ff;
     box-shadow:0 0 10px 2px rgba(110,190,255,.85), 0 0 36px 8px rgba(74,163,255,.35); animation:plotSweep 2.6s ease-in-out infinite alternate; transition:opacity .4s ease; }
   .plotBar::after{ content:""; position:absolute; left:0; right:0; top:2px; height:60px; background:linear-gradient(rgba(110,190,255,.12), transparent); }
   @keyframes plotSweep{ from{ top:18px; } to{ top:calc(100% - 20px); } }
+  .plotBar{ opacity:0; }
+  .plotBar.on{ opacity:1; }
   .plotBar.off{ opacity:0; }
+  svg.labels .lblIn{ animation: lblIn .8s ease-out both; }
+  @keyframes lblIn{ from{ opacity:0; } to{ opacity:1; } }
   .gridTags{ position:fixed; inset:0; pointer-events:none; z-index:55; }
   .gridTag{ position:absolute; transform:translate(-50%,-50%); white-space:nowrap; font-family:var(--font-ui); font-weight:700; font-size:12px; letter-spacing:.08em;
     color:#dffff4; background:rgba(3,22,20,.82); border:1px solid rgba(60,255,200,.6); padding:2px 8px; line-height:1.3; }
@@ -249,6 +262,20 @@
 .droneHud .log .strong{ color:#ffc94d; }
 .droneHud .vign{ position:absolute; inset:0; box-shadow:inset 0 0 120px rgba(0,0,0,.75); }
 
+/* Round 17: the hack into the next floor happens here, straight after the build, in a big box */
+body .pnm-type.big-hack .box{ width:min(1180px, 94vw); padding:22px 26px; gap:14px; }
+body .pnm-type.big-hack .hd{ font-size:20px; }
+body .pnm-type.big-hack .stream{ height:min(38vh, 400px); overflow:hidden; display:flex; flex-direction:column; justify-content:flex-end;
+  font-family:"Courier Prime", monospace; font-size:16px; line-height:1.45; color:rgba(125,255,196,.42); border-bottom:1px solid rgba(47,191,138,.25); padding-bottom:8px; white-space:nowrap; }
+body .pnm-type.big-hack .stream div{ flex:0 0 auto; overflow:hidden; }
+body .pnm-type.big-hack .stream b{ color:#ffe68a; font-weight:400; }
+body .pnm-type.big-hack .code{ height:min(22vh, 220px); font-size:24px; line-height:1.35; }
+body .pnm-type.big-hack .meter{ height:20px; }
+body .pnm-type.big-hack .hint{ font-size:22px; }
+.moving{ position:fixed; inset:0; z-index:9460; display:flex; align-items:center; justify-content:center; background:rgba(1,8,12,.95); opacity:0; transition:opacity .3s ease; }
+.moving.on{ opacity:1; }
+.moving b{ font-family:"Chakra Petch", var(--font-ui); font-weight:700; font-size:clamp(28px, 3.4vw, 54px); letter-spacing:.12em; color:#7dffc4; text-shadow:0 0 30px rgba(47,191,138,.6); text-align:center; padding:0 20px; }
+
 /* ===== PRIMENET shared style (docs/STYLE.md). Keep this block last. ===== */
 html, body{ background: var(--bg-primary) !important; }
 body{ color: var(--text-primary); }
@@ -333,7 +360,6 @@ button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [clas
     <button id="rerunBtn">RERUN (new layout)</button>
     <button id="view3dBtn" style="background: linear-gradient(135deg, rgba(var(--accent-rgb),.15), rgba(var(--accent-rgb),.15)); border-color: rgba(var(--accent-rgb),.45); color: rgba(var(--accent-rgb),.85);">3D VIEW</button>
     <button id="exit3dBtn" style="display:none; background: linear-gradient(135deg, rgba(255,100,0,.15), rgba(255,163,74,.15)); border-color: rgba(255,100,0,.45); color: rgba(255,100,0,.85);">EXIT 3D</button>
-    <button id="nextFloorBtn" class="next-floor-btn pn-go">Next Floor Reconstruction</button>
     <span class="mini" id="seedInfo"></span>
   </div>
 
@@ -596,7 +622,7 @@ function drawLaser(rect, ms=920){
   overlay.appendChild(r);
 
   requestAnimationFrame(()=>{
-    r.style.transition=`stroke-dashoffset ${ms}ms linear, opacity ${ms}ms linear`;
+    r.style.transition=`stroke-dashoffset ${ms}ms cubic-bezier(.45,.05,.35,1), opacity ${ms}ms ease-out`;
     r.style.strokeDashoffset="0";
     r.setAttribute("opacity","0.90");
   });
@@ -616,34 +642,44 @@ function lockBorder(rect){
   r.setAttribute("opacity","0");
   overlay.appendChild(r);
   requestAnimationFrame(()=>{
-    r.style.transition="opacity 140ms ease";
+    r.style.transition=`opacity ${SKIPPING ? 0 : Math.round(600 / (window.PNTest ? PNTest.speed() : 1))}ms ease`;
     r.setAttribute("opacity","0.75");
   });
 }
 
+// How long one room takes to fill, in ms at normal speed (every room has N squares)
+const fillMs = n => Math.min(6000, 600 + n * 80);
+// The room's squares from the outside in, a ring at a time (the same path the old step-by-step fill took)
+function spiralOrder(rect){
+  const out = [];
+  let l=rect.x,r=rect.x+rect.w-1,t=rect.y,b=rect.y+rect.h-1;
+  while(l<=r && t<=b){
+    for(let x=l;x<=r;x++) out.push([x,t]);
+    for(let y=t+1;y<=b;y++) out.push([r,y]);
+    if(b>t) for(let x=r-1;x>=l;x--) out.push([x,b]);
+    if(r>l) for(let y=b-1;y>=t+1;y--) out.push([l,y]);
+    l++;r--;t++;b--;
+  }
+  return out;
+}
+// Round 17: one continuous eased wave per room. Each square fades and grows in (CSS), its start time
+// spread along the spiral with ease-in-out, so the fill speeds up through the middle and settles at the end.
 async function fillOutsideInPower(rect){
   SND("trickle", Math.min(2.2, 0.2 + rect.w * rect.h * 0.03));
-  // smoother feel: slightly slower settle, but shorter per-cell delay
-  const perCell = 10;
-  const settle = 80;
-  let l=rect.x,r=rect.x+rect.w-1,t=rect.y,b=rect.y+rect.h-1;
-
-  async function flowThenSet(x,y){
-    fillCount++;   // feedback round 6: no ticking while the rooms fill; one soft scanner hum covers the whole build
-    setCell(x,y,"flow");
-    await pause(settle);
-    setCell(x,y,"on");
-  }
-
-  while(l<=r && t<=b){
-    if(SKIPPING){ for(let y=rect.y;y<rect.y+rect.h;y++) for(let x=rect.x;x<rect.x+rect.w;x++) setCell(x,y,"on"); break; }   // skipped: fill the rest at once
-    for(let x=l;x<=r;x++){ await flowThenSet(x,t); await pause(perCell); }
-    for(let y=t+1;y<=b;y++){ await flowThenSet(r,y); await pause(perCell); }
-    if(b>t) for(let x=r-1;x>=l;x--){ await flowThenSet(x,b); await pause(perCell); }
-    if(r>l) for(let y=b-1;y>=t+1;y--){ await flowThenSet(l,y); await pause(perCell); }
-    l++;r--;t++;b--;
-    await pause(38);
-  }
+  const order = spiralOrder(rect), n = order.length, total = fillMs(currentN);
+  const sp = window.PNTest ? PNTest.speed() : 1;
+  const cellDur = Math.max(380, Math.min(900, total * 0.35)), spread = total - cellDur;
+  const ease = t => t < .5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+  order.forEach(([x, y], k) => {
+    const c = cellAt(x, y); if(!c) return;
+    c.style.setProperty("--d", Math.round(ease(n > 1 ? k / (n - 1) : 0) * spread / sp) + "ms");
+    c.style.setProperty("--fd", Math.round(cellDur / sp) + "ms");
+    if(SKIPPING) c.classList.add("instant");
+    c.classList.add("on");
+    fillCount++;
+  });
+  await pause(total);
+  if(SKIPPING) order.forEach(([x, y]) => { const c = cellAt(x, y); if(c) c.classList.add("instant"); });
 }
 
 /* Doors: on the visible wall (north, west or east after the tilt) with the most open space in front of it.
@@ -819,10 +855,12 @@ function addExternalLabel(rect){
   path.setAttribute("fill","none");
   path.setAttribute("stroke","rgba(74,163,255, 0.45)");
   path.setAttribute("stroke-width","0.5");
+  if(!SKIPPING) path.setAttribute("class","lblIn");
   labelSvg.appendChild(path);
 
   const g=document.createElementNS("http://www.w3.org/2000/svg","g");
   g.setAttribute("transform",`translate(${lxL}, ${lyL})`);
+  if(!SKIPPING) g.setAttribute("class","lblIn");
   labelSvg.appendChild(g);
 
   const t1=document.createElementNS("http://www.w3.org/2000/svg","text");
@@ -849,14 +887,17 @@ function addExternalLabel(rect){
   dot.setAttribute("cy",ayL);
   dot.setAttribute("r","1.8");
   dot.setAttribute("fill","rgba(74,163,255, 0.65)");
+  if(!SKIPPING) dot.setAttribute("class","lblIn");
   labelSvg.appendChild(dot);
 }
 
 /* One rect animation pipeline */
 async function animateRect(rect, startDelay){
   await pause(startDelay);
-  await drawLaser(rect, 900);
-  await fillOutsideInPower(rect);
+  // The fill starts while the laser is still closing its loop, so there's no stop between them
+  const laser = drawLaser(rect, 900);
+  await pause(540);
+  await Promise.all([laser, fillOutsideInPower(rect)]);
   lockBorder(rect);
   addExternalLabel(rect);
 }
@@ -892,7 +933,7 @@ async function run(seed, wanted){
   seedInfo.textContent = `seed: ${currentSeed}`;
 
   // reset visuals and label tracker
-  cells.forEach(c=>c.classList.remove("on","flow","hall"));
+  cells.forEach(c=>{ c.classList.remove("on","flow","hall","instant"); c.style.removeProperty("--d"); c.style.removeProperty("--fd"); });
   overlay.innerHTML="";
   labelSvg.innerHTML="";
   clearLabelTracker();
@@ -915,9 +956,11 @@ async function run(seed, wanted){
 
   // A blueprint laser bar sweeps the site while the rooms are drawn, over one soft scanner hum
   const bar = document.createElement("div"); bar.className = "plotBar"; vaultEl.appendChild(bar);
+  requestAnimationFrame(() => requestAnimationFrame(() => bar.classList.add("on")));   // fades in rather than popping
   SND("scan", Math.min(8, 2.4 + placements.length * 0.35));
-  // border sweep (faint to strong, slightly longer)
-  await drawLaser({x:0,y:0,w:GRID,h:GRID,label:""}, 1350);
+  // border sweep (faint to strong, eased); the first rooms start as it closes, so there's no gap
+  const border = drawLaser({x:0,y:0,w:GRID,h:GRID,label:""}, 1350);
+  await pause(950);
 
   // staggered overlap (not strictly sequential)
   // tighter stagger feels smoother; also vary a bit by index for organic cadence
@@ -930,7 +973,7 @@ async function run(seed, wanted){
     return animateRect(r, delay);
   });
 
-  await Promise.all(tasks);
+  await Promise.all([border, ...tasks]);
   bar.classList.add("off"); setTimeout(() => bar.remove(), 500);
   // Everything that isn't a room is corridor and open floor inside the same building
   cells.forEach(c => { if(!c.classList.contains("on")) c.classList.add("hall"); });
@@ -1175,70 +1218,107 @@ if(tilt65Btn) tilt65Btn.addEventListener("click", () => applyTiltAngle(65));
 if(tilt70Btn) tilt70Btn.addEventListener("click", () => applyTiltAngle(70));
 if(tilt75Btn) tilt75Btn.addEventListener("click", () => applyTiltAngle(75));
 
-// next floor button - go back to factor_vault with new random N
-const nextFloorBtn = document.getElementById("nextFloorBtn");
+// Round 17 (Bertie: "I don't like constantly clicking and then typing"): no Next floor button.
+// When the build finishes, a longer hack-in happens right here, then the game moves on by itself.
 function blueprintReady(){ return floorsBuilt() >= FLOORS_NEEDED; }
-function setNextButton(){
-  nextFloorBtn.textContent = blueprintReady() ? "Assemble the blueprint" : `Next floor (${Math.min(floorsBuilt() + 1, FLOORS_NEEDED)} of ${FLOORS_NEEDED})`;
+const nextPage = () => blueprintReady() ? "vault_blueprint_viewer.html" : "factor_vault.html";
+let phase = "build";   // build → typing → moving
+const realWait = ms => new Promise(r => setTimeout(r, ms / (window.PNTest ? PNTest.speed() : 1)));   // not cut short by SKIPPING
+
+// Make the type-through box bigger: a stream of code fills it, a line for every key
+function enlargeTyping(){
+  const ov = [...document.querySelectorAll(".pnm-type")].pop(); if(!ov) return () => {};
+  ov.classList.add("big-hack");
+  const stream = document.createElement("div"); stream.className = "stream"; stream.setAttribute("aria-hidden", "true");
+  ov.querySelector(".code").before(stream);
+  const line = () => { const d = document.createElement("div"); d.innerHTML = window.PNMode ? PNMode.codeLine() : ""; stream.appendChild(d); while(stream.children.length > 40) stream.firstChild.remove(); };
+  for(let i = 0; i < 5; i++) line();
+  // the typed text keeps its newest line in view
+  const code = ov.querySelector(".code");
+  const mo = new MutationObserver(() => { code.scrollTop = code.scrollHeight; }); mo.observe(code, { childList: true, characterData: true, subtree: true });
+  const onKey = e => { if(e.ctrlKey || e.metaKey || e.altKey || e.key === "Tab") return; line(); line(); };
+  window.addEventListener("keydown", onKey, true);
+  ov.addEventListener("pointerdown", () => { line(); line(); });
+  return () => { window.removeEventListener("keydown", onKey, true); mo.disconnect(); };
 }
-nextFloorBtn.addEventListener("click", async ()=>{
-  // Round 15: no twist between floors any more (twists happen once we're in the building)
-  // After three floors, the laser corridor (then the Blueprint); otherwise back to Factor Vault for a new number
-  // Feedback: straight to the Blueprint after the third floor (the laser corridor is out of the route for now)
-  const next = blueprintReady() ? "vault_blueprint_viewer.html" : "factor_vault.html";
+// Teacher SKIP during the typing: type it all at once
+function finishTyping(){
+  const ov = document.querySelector(".pnm-type"); if(!ov) return false;
+  const pc = ov.querySelector(".pc");
+  for(let i = 0; i < 400 && ov.isConnected && !/100%/.test(pc.textContent); i++) ov.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
+  return true;
+}
+async function typeToNext(){
+  const f = floorsBuilt(), last = f >= FLOORS_NEEDED, nextF = Math.min(f + 1, FLOORS_NEEDED);
+  if(window.PNMode){
+    phase = "typing";
+    const done = PNMode.typeThrough({ label: last ? "ASSEMBLING THE BLUEPRINT" : `DECRYPTING FLOOR ${nextF}`, keys: 40,
+      hint: last ? "Type anything to put the blueprint together" : `Type anything to break into floor ${nextF}` });
+    const stop = enlargeTyping();
+    await done; stop();
+  }
+  phase = "moving";
+  const card = document.createElement("div"); card.className = "moving"; card.setAttribute("role", "status");
+  card.innerHTML = `<b>${last ? "BLUEPRINT READY · ASSEMBLING" : `DECRYPTION COMPLETE · MOVING TO FLOOR ${nextF}`}</b>`;
+  document.body.appendChild(card);
+  requestAnimationFrame(() => card.classList.add("on"));
+  SND("success");
+  await realWait(1200);
   analysisWins.forEach(w => w.close());
+  const next = nextPage();
   (window.PNGlitch ? PNGlitch.go(next, { style: "sweep" }) : (location.href = next));
-});
+}
 
 // Check URL parameters for N value from factor_vault
 const urlParams = new URLSearchParams(window.location.search);
 const urlN = parseInt(urlParams.get('n'), 10);
 const initialN = (Number.isInteger(urlN) && urlN > 1) ? urlN : 18;
 
-// Teacher test tools (only while unlocked)
+// Teacher test tools (only while unlocked). SKIP skips the build, then finishes the typing.
 if(window.PNTest){
-  PNTest.add("Show the next button now", () => { nextFloorBtn.style.visibility = "visible"; });
-  PNTest.skip("Show the next button now", () => { nextFloorBtn.style.visibility = "visible"; });
-  PNTest.add("Go to the next step", () => { window.location.href = blueprintReady() ? "vault_blueprint_viewer.html" : "factor_vault.html"; });
+  const skipAhead = () => {
+    if(phase === "build"){ skipBuild(); return "Build skipped. Press SKIP again to finish the typing."; }
+    if(phase === "typing"){ finishTyping(); return "Typing done. Moving on."; }
+    return "Already moving on.";
+  };
+  PNTest.skip("Skip the build, then the typing", skipAhead);
+  PNTest.add("Skip ahead (build, then typing)", skipAhead);
+  PNTest.add("Go to the next step now", () => { window.location.href = nextPage(); });
 }
 
-// How long the build, tilt and drone take, in seconds at normal speed (matches the pauses in run(), the morph and the drone)
+// How long the build, tilt, drone and floor intel take, in seconds at normal speed (matches run(), the morph, the drone and floorAnalysis)
 let buildWatch = null;
 function buildSeconds(n){
   const wanted = generateFactorPairs(n), k = wanted.length, pairs = wanted.filter(p => p.w <= p.h).length;
-  const rings = Math.ceil(Math.min(...wanted.map(p => Math.min(p.w, p.h))) / 2);
-  const build = 1.41 + (k - 1) * 0.26 + 0.96 + n * 0.1 + rings * 0.04;   // border, stagger, laser, then one room's squares fill (all rooms have n squares)
-  const drone = (PN && PN.reducedMotion && PN.reducedMotion()) ? 0 : Math.max(9, pairs * 1.6);
-  return build + 0.7 + 1.3 + 1.9 + drone + 0.5;
+  const build = 0.95 + (k - 1) * 0.26 + 0.09 + 0.54 + fillMs(n) / 1000 + 0.1;   // border lead, stagger, laser lead, one room's fill
+  const reduced = PN && PN.reducedMotion && PN.reducedMotion();
+  const drone = reduced ? 0 : Math.max(9, pairs * 1.6);
+  const intel = reduced || !window.PNHolo ? 0 : 3 * 0.95;
+  return build + 0.7 + 1.3 + 1.9 + drone + intel + 1;
 }
 
-// Initialize with N from URL or default to 18.
-// Students: lasers build the floor plan, then it rises into 3D, then the next step appears.
+// Students: lasers build the floor plan, it rises into 3D, the drone looks round, then straight into the hack-in.
 if(PN) PN.log("grid", { n: initialN });
-setNextButton();
-nextFloorBtn.style.visibility = "hidden";
 document.querySelector(".title div:first-child").insertAdjacentHTML("afterend",
   `<div>FLOOR ${Math.max(1, Math.min(floorsBuilt(), FLOORS_NEEDED))} OF ${FLOORS_NEEDED}</div>`);
 (window.PNSound ? PNSound.whenUnlocked(() => powerUpPrompt("POWER UP THE GRID")) : Promise.resolve())
 .then(() => {
   window.scrollTo(0, 0); setTimeout(() => window.scrollTo(0, 0), 60);
-  // Round 14: one WATCH for the laser build, the tilt and the drone, timed from the real durations
-  buildWatch = window.PNMode ? PNMode.watch(`Decrypting floor ${Math.max(1, Math.min(floorsBuilt(), FLOORS_NEEDED))}`, { seconds: buildSeconds(initialN), onSkip: skipBuild }) : null;
+  // One WATCH for the laser build, the tilt, the drone and the floor intel, timed from the real durations
+  buildWatch = window.PNMode ? PNMode.watch(`Building floor ${Math.max(1, Math.min(floorsBuilt(), FLOORS_NEEDED))}`, { seconds: buildSeconds(initialN), onSkip: skipBuild }) : null;
   return initVault(initialN);
 }).then(async () => {
   await pause(700);
   if(window.lastPlacements && window.lastPlacements.length) await triggerIsometricMorph(window.lastPlacements);
   await pause(1900);
-  await droneFlythrough(window.lastPlacements || []);
-  if(buildWatch){ buildWatch.end(); buildWatch = null; }
-  if(window.PNMode) PNMode.turn(blueprintReady() ? "Press Assemble the blueprint" : "Press Next floor");
-  nextFloorBtn.style.visibility = "visible";
-  SND("success");
   if(window.PNHandler){
     const f = Math.max(1, Math.min(floorsBuilt(), FLOORS_NEEDED));
     PNHandler.once(`grid-${f}-${initialN}`, f >= FLOORS_NEEDED ? "Three floors mapped. Let's put {target}'s building together." : `Floor ${f} is solid. Every room is one factor pair of ${initialN}.`, { delay: 400 });
   }
-  nextFloorBtn.focus();
+  await droneFlythrough(window.lastPlacements || []);
+  await pause(1000);
+  if(buildWatch){ buildWatch.end(); buildWatch = null; }
+  await typeToNext();
 });
 
 // ====== DRONE FLYTHROUGH ======
@@ -1329,7 +1409,7 @@ async function droneFlythrough(placements){
   clearInterval(altTimer);
   window.gridHighlight = null; rerenderGrid();
   hud.remove();
-  floorAnalysis(placements);
+  await floorAnalysis(placements);
 }
 
 // After the drone: intel on the floor, the kind of thing an agent wants (feedback round 9: no maths here).
@@ -1392,10 +1472,10 @@ async function floorAnalysis(placements){
     analysisWins.push(win);
     win.el.style.transform = "translate(-50%,-50%) scale(1.45)";
     SND("holo");
-    await PNHolo.wait(600);
+    if(!SKIPPING) await PNHolo.wait(600);
     win.el.style.transition = "left .5s ease, top .5s ease, transform .5s ease";
     win.el.style.left = w.x + "%"; win.el.style.top = w.y + "%"; win.el.style.transform = "translate(-50%,-50%) scale(1)";
-    await PNHolo.wait(350);
+    if(!SKIPPING) await PNHolo.wait(350);
   }
   // A ticking CCTV clock
   const clock = document.querySelector(".cctvClock");

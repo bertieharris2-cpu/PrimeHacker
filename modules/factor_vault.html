@@ -37,60 +37,6 @@
       display:flex;
       font-size: 16px;
     }
-    .app{
-      width:100%;
-      max-width:1600px;
-      margin:0 auto;
-      padding:16px 20px;
-      display:flex;
-      flex-direction:column;
-      gap:20px;
-    }
-    header{
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      padding:12px 16px;
-      border: 1px solid var(--panel-border);
-      background: var(--panel-bg);
-      backdrop-filter: blur(8px);
-      box-shadow: 0 0 0 1px rgba(var(--accent-rgb),.15) inset, 0 20px 60px rgba(0,0,0,.5);
-      position: relative;
-      z-index: 10000;
-    }
-    .header-left{
-      display:flex;
-      gap:12px;
-      align-items:center;
-    }
-    .dot{
-      width:10px;height:10px;border-radius:50%;
-      background: var(--cyan-accent);
-      box-shadow:0 0 12px var(--blue-soft);
-    }
-    .title{
-      display:flex;
-      flex-direction:column;
-      gap:2px;
-    }
-    .title-main{
-      font-weight:700;
-      letter-spacing:.2em;
-      font-size:18px;
-      color: var(--blue-strong);
-      text-transform: uppercase;
-    }
-    .title-sub{
-      font-size:12px;
-      color: var(--text-muted);
-      letter-spacing:.15em;
-    }
-    .header-right{
-      display:flex;
-      gap:12px;
-      align-items:center;
-      pointer-events: auto;
-    }
     .audio-controls{
       display:flex;
       align-items:center;
@@ -144,270 +90,6 @@
       border: none;
       box-shadow: 0 0 4px rgba(var(--accent-rgb),.3);
     }
-    label.toggle{
-      display:flex;
-      align-items:center;
-      gap:8px;
-      padding:6px 12px;
-      border: 1px solid var(--panel-border);
-      background: rgba(var(--accent-rgb),.05);
-      cursor:pointer;
-      font-size:13px;
-    }
-    label.toggle input{
-      cursor:pointer;
-      margin:0;
-      width:auto;
-    }
-
-    main{
-      display:grid;
-      grid-template-columns: 1.2fr minmax(380px, 0.9fr) 1.2fr;
-      grid-template-rows: 1fr auto;
-      gap:20px;
-      flex:1;
-      min-height:0;
-    }
-    
-    .panel-vault{
-      background: transparent;
-      padding: 0 0 40px 0;
-      overflow: visible;
-      display: flex;
-      flex-direction: column;
-      position: relative;
-      flex: 1;
-      min-height: 0;
-    }
-    .panel-vault::before{
-      content: attr(data-label);
-      position: absolute;
-      left: 0;
-      top: 0;
-      font-size: 64px;
-      font-weight: 700;
-      color: rgba(var(--accent-rgb),.08);
-      letter-spacing: 0.1em;
-      pointer-events: none;
-      line-height: 1;
-      z-index: 0;
-    }
-    .panel-vault:nth-of-type(3)::before{
-      right: 0;
-      left: auto;
-    }
-    .panel-vault:nth-of-type(1){
-      grid-column:1;
-      grid-row:1;
-    }
-    .panel-vault:nth-of-type(3){
-      grid-column:3;
-      grid-row:1;
-    }
-
-    .panel-center{
-      border: 1px solid var(--panel-border);
-      background: var(--panel-bg);
-      backdrop-filter: blur(8px);
-      box-shadow: 0 0 0 1px rgba(var(--accent-rgb),.15) inset, 0 20px 60px rgba(0,0,0,.5);
-      padding:16px;
-      display:flex;
-      flex-direction:column;
-      gap:12px;
-      grid-column:2;
-      grid-row:1;
-      min-height:0;
-      max-width: 720px;
-      justify-self: center;
-      width: 100%;
-    }
-    .panel-center h2{
-      margin:0 0 6px 0;
-      font-size:14px;
-      letter-spacing:.08em;
-      color: var(--text-muted);
-      text-transform:uppercase;
-      padding-bottom:6px;
-      border-bottom: 1px solid var(--panel-border);
-    }
-    
-    .table-wrapper{
-      overflow:auto;
-      flex:1;
-      min-height:0;
-    }
-    table{
-      width:100%;
-      border-collapse:collapse;
-      font-size:18px;
-      font-family: var(--font-mono);
-    }
-    th, td{
-      border: 1px solid var(--panel-border);
-      padding:12px 14px;
-      text-align:center;
-      font-weight:normal;
-    }
-    th{
-      background: rgba(var(--accent-rgb),.05);
-      color: var(--text-muted);
-      font-size:14px;
-      letter-spacing:.08em;
-      font-weight:600;
-    }
-    td[contenteditable]{
-      cursor:text;
-      background:rgba(var(--accent-rgb),.08);
-      min-width:40px;
-    }
-    td[contenteditable]:focus, td[contenteditable]:focus-visible{
-      outline:none;   /* one clean highlight inside the cell, not a double box */
-      box-shadow: inset 0 0 0 2px rgba(var(--accent-rgb),.75);
-      background:rgba(var(--accent-rgb),.15);
-    }
-    td.found{
-      color: var(--cyan-accent);
-      text-shadow:0 0 10px var(--blue-soft);
-      background:rgba(var(--accent-rgb),.04);
-      cursor:default;
-      font-weight:500;
-      letter-spacing:.06em;
-    }
-    td.empty{
-      color: var(--text-primary);   /* typed digits are bright, not greyed out */
-    }
-
-    .status-line{
-      display:flex;
-      justify-content:space-between;
-      font-size:14px;
-      color: var(--text-muted);
-      padding:8px 0;
-      border-top: 1px solid var(--panel-border);
-    }
-    .status-line span{
-      display:flex;
-      gap:4px;
-    }
-
-    /* ===== Round 3 group 3 ===== */
-    .panel-center{ position:relative; }
-    /* Pairs-remaining scanner */
-    .strip{ display:flex; flex-direction:column; gap:6px; border:1px solid var(--panel-border); background:rgba(0,0,0,.25); padding:7px 9px; }
-    .pair-scanner{ display:flex; flex-wrap:wrap; gap:4px 10px; align-items:center; font-size:11px; letter-spacing:.08em; color:var(--text-muted); text-transform:uppercase; }
-    .pair-scanner .blips{ display:flex; gap:5px; }
-    .pair-scanner .blips i{ width:10px; height:10px; border-radius:50%; border:1px solid rgba(var(--accent-hack-rgb),.7); }
-    .pair-scanner .blips i.left{ background:rgba(var(--accent-hack-rgb),.2); animation:blipPulse 1.6s ease-in-out infinite; }
-    .pair-scanner .blips i.done{ background:var(--accent-hack); box-shadow:0 0 8px rgba(var(--accent-hack-rgb),.7); }
-    .pair-scanner .blips i.sq{ border-color:#ffc94d; }
-    .pair-scanner .blips i.sq.done{ background:#ffc94d; box-shadow:0 0 8px rgba(255,201,77,.7); }
-    .pair-scanner b{ color:var(--text-primary); }
-    .pair-scanner .sqflag{ color:#ffc94d; }
-    @keyframes blipPulse{ 50%{ box-shadow:0 0 0 3px rgba(var(--accent-hack-rgb),.18); } }
-    /* Reinforced floor: square numbers */
-    .reinforced-note{ border:1px solid rgba(255,201,77,.55); background:rgba(255,201,77,.07); color:#ffe3a1; padding:6px 9px; font-size:12px; line-height:1.4; }
-    .reinforced-note b{ color:#ffc94d; letter-spacing:.12em; }
-    body.reinforced .panel-vault .vault-grid{ box-shadow:0 0 0 1px rgba(255,201,77,.35), 0 0 30px rgba(255,201,77,.12); }
-    body.reinforced .panel-vault::before{ color:rgba(255,201,77,.12) !important; }
-    /* Security camera */
-    .seccam{ position:absolute; top:-30px; left:50%; width:0; height:0; z-index:5; pointer-events:none; }
-    .seccam .body{ position:absolute; left:-15px; top:-4px; width:30px; height:16px; background:#1b2e33; border:1px solid rgba(255,255,255,.25); }
-    .seccam .body::after{ content:""; position:absolute; right:3px; top:4px; width:6px; height:6px; border-radius:50%; background:#ff4f6d; box-shadow:0 0 8px #ff4f6d; animation:camRec 1s steps(2) infinite; }
-    @keyframes camRec{ 50%{ opacity:.2; } }
-    .seccam .cone{ position:absolute; left:-160px; top:10px; width:320px; height:430px; transform-origin:160px 0; clip-path:polygon(50% 0, 12% 100%, 88% 100%); background:linear-gradient(rgba(255,255,255,.10), rgba(255,255,255,.015)); transition:background .2s ease; }
-    .seccam.watching .cone{ background:linear-gradient(rgba(255,79,109,.28), rgba(255,79,109,.03)); }
-    .cam-status{ display:flex; align-items:center; gap:8px; font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--text-muted); }
-    .cam-status .state{ font-weight:700; color:var(--accent-hack); min-width:7.5em; }
-    .cam-status.watching .state{ color:#ff4f6d; }
-    .cam-status .alert{ display:flex; gap:3px; }
-    .cam-status .alert i{ width:16px; height:8px; border:1px solid rgba(255,79,109,.6); }
-    .cam-status .alert i.on{ background:#ff4f6d; box-shadow:0 0 8px rgba(255,79,109,.7); }
-    .panel-center.watched{ box-shadow:0 0 0 1px rgba(255,79,109,.45) inset, 0 20px 60px rgba(0,0,0,.5); }
-    .lockdown{ position:absolute; inset:0; z-index:8; background:rgba(40,4,10,.86); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; text-align:center; padding:16px; color:#ffd3da; }
-    .lockdown b{ font-size:22px; letter-spacing:.18em; color:#ff4f6d; }
-    .lockdown .count{ font-size:40px; font-weight:700; color:#fff; }
-    /* Round 14: N is the biggest thing on the page (Bertie: "the N= number needs to be waaaaay more obvious") */
-    .n-badge{ text-align:center; padding:2px 0 8px; border-bottom:1px solid var(--panel-border); position:relative; z-index:6; }
-    .n-badge .big{ font-family:"Chakra Petch", var(--font-ui); font-weight:700; font-size:clamp(56px, 7vw, 96px); line-height:1; letter-spacing:0; word-spacing:-.12em; white-space:nowrap;
-      color:#ffc94d; text-shadow:0 0 18px rgba(255,201,77,.55), 0 0 42px rgba(255,201,77,.25); }
-    .n-badge .sub{ margin-top:6px; font-family:"Chakra Petch", var(--font-ui); font-weight:700; font-size:13px; letter-spacing:.05em; color:#ffe3a1; white-space:nowrap; }
-    .n-badge.pulse .big{ animation:nPulse 1.1s ease-out 1; }
-    @keyframes nPulse{ 0%{ transform:scale(1); } 30%{ transform:scale(1.14); text-shadow:0 0 30px #ffc94d, 0 0 70px rgba(255,201,77,.6); } 100%{ transform:scale(1); } }
-    html.pn-reduce-motion .n-badge.pulse .big{ animation:none; }
-    @media (prefers-reduced-motion: reduce){ .n-badge.pulse .big{ animation:none; } }
-    .panel-center > h2{ display:none; }   /* the N badge and "? × ? = N" say it now */
-    .panel-center td{ padding-top:9px; padding-bottom:9px; }
-    th.n-head{ font-family:"Chakra Petch", var(--font-ui); font-size:22px; letter-spacing:.08em; color:var(--text-primary); }
-    th.n-head b{ color:#ffc94d; }
-    /* Practice mode end card */
-    .practice-end{ position:fixed; inset:0; z-index:9300; display:flex; align-items:center; justify-content:center; padding:16px; background:rgba(2,10,14,.8); }
-    .practice-end .card{ width:min(560px, 100%); background:rgba(6,16,20,.98); border:2px solid #2fbf8a; box-shadow:0 0 40px rgba(47,191,138,.25); padding:24px; display:flex; flex-direction:column; gap:16px; text-align:center; font-family:"Chakra Petch", var(--font-ui); }
-    .practice-end h3{ margin:0; font-size:30px; letter-spacing:.08em; color:#7dffc4; }
-    .practice-end .pairs{ font-family:var(--font-mono); font-size:22px; color:#ffc94d; line-height:1.5; }
-    .practice-end .row{ display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
-    .practice-end button, .practice-end a{ font:inherit; font-weight:700; font-size:16px; letter-spacing:.06em; padding:12px 18px; border:1px solid rgba(var(--accent-rgb),.6); background:rgba(0,0,0,.3); color:var(--text-primary); cursor:pointer; text-decoration:none; }
-    .practice-end input{ width:110px; font-family:var(--font-mono); font-size:20px; padding:10px; text-align:center; background:rgba(0,0,0,.3); border:1px solid rgba(var(--accent-rgb),.6); color:var(--text-primary); }
-    .practice-end .msg{ min-height:1.2em; color:#ffb3c0; font-size:14px; }
-    /* Drag to build */
-    .mode-switch{ display:flex; gap:6px; }
-    .mode-switch button{ flex:1; padding:6px 8px; font-size:12px; letter-spacing:.08em; text-transform:uppercase; background:rgba(0,0,0,.25); color:var(--text-muted); border:1px solid var(--panel-border); cursor:pointer; }
-    .mode-switch button[aria-pressed="true"]{ color:var(--text-primary); border-color:var(--accent); box-shadow:inset 0 0 0 1px rgba(var(--accent-rgb),.35); }
-    .drag-board{ position:fixed; left:50%; bottom:24px; transform:translateX(-50%); width:min(1200px, calc(100vw - 32px)); box-sizing:border-box; z-index:40; border:1px solid var(--accent); background:rgba(5,16,20,.97); box-shadow:0 20px 80px rgba(0,0,0,.7); padding:22px 24px 24px; display:flex; flex-direction:column; gap:12px; align-items:center; }
-    .drag-board .dhelp{ font-size:15px !important; }
-    body.dragging .pnh{ bottom:auto !important; top:96px; }
-    .drag-close{ position:absolute; right:14px; top:10px; background:transparent; border:1px solid var(--panel-border); color:var(--text-muted); padding:5px 10px; cursor:pointer; font:inherit; font-size:12px; }
-    .drag-toggle{ margin-top:6px; background:transparent !important; font-size:12px !important; }
-    .drag-board[hidden]{ display:none; }
-    /* Round 7: the drawing board lives in the left panel */
-    body.drawing #vaultLeft{ display:none; }
-    body.drawing .panel-vault:nth-of-type(1)::before{ display:none; }
-    .panel-vault > .drag-board{ position:relative; left:auto; bottom:auto; transform:none; width:100%; box-shadow:none; z-index:3; padding:14px; align-items:flex-start; background:rgba(5,16,20,.9); }
-    .drag-board .dhead{ display:flex; justify-content:space-between; gap:10px; width:100%; flex-wrap:wrap; align-items:center; }
-    .drag-board .dbtns{ display:flex; gap:6px; }
-    .drag-board .drag-close{ position:static; }
-    .drag-grid{ position:relative; }
-    .drag-grid i.placed{ background:hsla(calc(160 + var(--hue, 0)), 70%, 45%, .55); border-color:hsla(calc(160 + var(--hue, 0)), 80%, 65%, .9); }
-    .drag-grid .dtag{ position:absolute; pointer-events:none; font-family:var(--font-mono); font-size:11px; line-height:1; padding:2px 4px; background:rgba(3,14,16,.85); color:#eafff6; transform:translate(2px, 2px); }
-    .drag-board .drag-read{ font-size:16px; }
-    .drag-board .dhelp{ font-size:13px; color:var(--text-muted); }
-    .drag-grid{ display:grid; gap:2px; touch-action:none; user-select:none; cursor:crosshair; }
-    .drag-grid i{ background:rgba(var(--accent-rgb),.08); border:1px solid rgba(var(--accent-rgb),.25); }
-    .drag-grid i.sel{ background:rgba(var(--accent-hack-rgb),.45); border-color:var(--accent-hack); }
-    .drag-grid i.kept{ background:rgba(var(--accent-rgb),.3); border-color:var(--accent); }
-    .drag-grid.bad i.sel{ background:rgba(255,107,107,.45); border-color:#ff6b6b; }
-    .drag-read{ font-family:var(--font-mono); font-size:18px; min-height:1.4em; color:var(--text-primary); }
-    .drag-read .ok{ color:var(--accent-hack); } .drag-read .no{ color:#ff6b6b; }
-    .decode-btn{ margin-top:8px; border-style:dashed !important; color:#ffe14d !important; border-color:rgba(255,225,77,.55) !important; background:rgba(255,225,77,.06) !important; }
-    .submit-all-btn{
-      width: 100%;
-      padding: 10px 14px;
-      background: linear-gradient(135deg, rgba(var(--accent-rgb),.15), rgba(var(--accent-rgb),.08));
-      border: 1px solid rgba(var(--accent-rgb),.6);
-      color: var(--cyan-accent);
-      font-family: var(--font-mono);
-      font-size: 12px;
-      font-weight: 600;
-      letter-spacing: .08em;
-      text-transform: uppercase;
-      cursor: pointer;
-      border-radius: 0;
-      transition: all 120ms ease;
-      user-select: none;
-    }
-
-    .submit-all-btn:hover{
-      background: linear-gradient(135deg, rgba(var(--accent-rgb),.25), rgba(var(--accent-rgb),.15));
-      border-color: var(--cyan-accent);
-      box-shadow: 
-        0 0 12px rgba(var(--accent-rgb),.4),
-        inset 0 0 8px rgba(var(--accent-rgb),.1);
-      transform: translateY(-1px);
-    }
-
-    .submit-all-btn:active{
-      transform: translateY(0px);
-    }
-
     .vault-grid{
       position: relative;
       width: 100%;
@@ -452,8 +134,8 @@
     /* Blueprint-style labelling grid */
     .array-labelled{
       display:grid;
-      grid-template-columns: calc(var(--grid-unit) * 1.5) auto;
-      grid-template-rows: var(--grid-unit) auto;
+      grid-template-columns: 30px auto;   /* labels hug the array at any square size */
+      grid-template-rows: 24px auto;
       align-items:start;
       justify-items:start;
       gap: 0;
@@ -503,136 +185,6 @@
       margin: 0;
       outline: none;
     }
-
-    .hint-bar{
-      grid-column:1/-1;
-      grid-row:2;
-      border: 1px solid var(--panel-border);
-      background: var(--panel-bg);
-      backdrop-filter: blur(8px);
-      box-shadow: 0 0 0 1px rgba(var(--accent-rgb),.15) inset, 0 20px 60px rgba(0,0,0,.5);
-      padding:10px 16px;
-      font-size:14px;
-      color: var(--text-muted);
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-    }
-    .hint-bar .message{
-      flex:1;
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
-    }
-    .hint-bar .count{
-      margin-left:16px;
-      white-space:nowrap;
-    }
-    
-    /* Completion button */
-    .action-button{
-      display:none;
-      padding:10px 20px;
-      background: rgba(var(--accent-rgb),.2);
-      border: 1px solid var(--cyan-accent);
-      color: var(--cyan-accent);
-      font-family: var(--font-mono);
-      font-size: 13px;
-      letter-spacing: .1em;
-      text-transform: uppercase;
-      cursor: pointer;
-      border-radius: 0;
-      transition: all 220ms ease;
-    }
-    
-    .action-button:hover{
-      background: rgba(var(--accent-rgb),.35);
-      box-shadow: 0 0 12px rgba(var(--accent-rgb),.4);
-    }
-    
-    .action-button.show{
-      display:inline-block;
-    }
-    
-    .completion-prompt{
-      display:none;
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      background: rgba(6,16,20,.98);
-      border: 2px solid var(--cyan-accent);
-      backdrop-filter: blur(12px);
-      padding: 16px 20px;
-      border-radius: 0;
-      z-index: 10000;
-      box-shadow: 
-        0 0 0 1px rgba(var(--accent-rgb),.3) inset,
-        0 0 30px rgba(var(--accent-rgb),.5),
-        0 30px 80px rgba(0,0,0,.9);
-      pointer-events: auto;
-      min-width: 280px;
-    }
-    
-    .completion-prompt.show{
-      display:block;
-      animation: fadeInScale 300ms ease-out;
-    }
-    
-    .completion-prompt p{
-      margin: 0 0 12px 0;
-      font-size: 13px;
-      color: var(--text-muted);
-      letter-spacing: .08em;
-      pointer-events: none;
-    }
-    
-    .completion-prompt p strong{
-      color: var(--cyan-accent);
-    }
-    
-    .completion-prompt .button-group{
-      display: flex;
-      gap: 8px;
-      pointer-events: auto;
-    }
-    
-    .completion-prompt button{
-      flex: 1;
-      padding: 10px 14px;
-      background: linear-gradient(135deg, rgba(var(--accent-rgb),.15), rgba(var(--accent-rgb),.08));
-      border: 1px solid rgba(var(--accent-rgb),.6);
-      color: var(--cyan-accent);
-      font-family: var(--font-mono);
-      font-size: 12px;
-      font-weight: 600;
-      letter-spacing: .08em;
-      text-transform: uppercase;
-      cursor: pointer;
-      border-radius: 0;
-      transition: all 120ms ease;
-      pointer-events: auto;
-      z-index: 1001;
-      position: relative;
-      user-select: none;
-    }
-    
-    .completion-prompt button:active {
-      transform: scale(0.98);
-    }
-    
-    .completion-prompt button:hover{
-      background: linear-gradient(135deg, rgba(var(--accent-rgb),.25), rgba(var(--accent-rgb),.15));
-      border-color: var(--cyan-accent);
-      box-shadow: 
-        0 0 12px rgba(var(--accent-rgb),.4),
-        inset 0 0 8px rgba(var(--accent-rgb),.1);
-      transform: translateY(-2px);
-    }
-    
-    header{
-      position: relative;
-    }
-    
     @keyframes dashMove{
       0%{ stroke-dashoffset: 0; }
       100%{ stroke-dashoffset: -154; }
@@ -714,7 +266,6 @@
       pointer-events: none;
       z-index: 1;
     }
-
     /* Fullscreen state */
     body.isFullscreen{
       overflow: hidden;
@@ -840,6 +391,108 @@
       color: var(--cyan-accent);
       box-shadow: 0 0 8px rgba(var(--accent-rgb),.3);
     }
+    /* ===== Round 17 (Bertie, 1920×1080 play): no banner, three parts at once, nothing to scroll ===== */
+    html, body{ height:100%; }
+    body{ overflow:hidden; }
+    .app{ width:100%; height:100vh; margin:0; padding:12px 20px 16px; display:flex; flex-direction:column; gap:10px; position:relative; z-index:1; }
+
+    /* Sound and settings: a small corner, out of the way */
+    .corner-ctl{ position:fixed; top:10px; right:12px; z-index:9300; display:flex; gap:6px; align-items:center; opacity:.55; transition:opacity .2s ease; }
+    .corner-ctl:hover, .corner-ctl:focus-within{ opacity:1; }
+    .corner-ctl .audio-controls{ height:30px; }
+    .corner-ctl .volume-slider{ width:64px; }
+    .corner-ctl .settings-cog-btn{ padding:3px 8px; font-size:15px; height:30px; }
+    .settings-dropdown{ top:48px !important; right:12px !important; }
+
+    /* The number, the job, the floor */
+    .n-top{ flex:0 0 auto; display:flex; flex-direction:column; align-items:center; gap:2px; text-align:center; padding:0 150px; }
+    .n-badge{ position:relative; z-index:6; }
+    .n-badge .big{ font-family:"Chakra Petch", var(--font-ui); font-weight:700; font-size:clamp(40px, 4.5vw, 64px); line-height:1; letter-spacing:0; word-spacing:-.12em; white-space:nowrap;
+      color:#ffc94d; text-shadow:0 0 18px rgba(255,201,77,.55), 0 0 42px rgba(255,201,77,.25); }
+    .n-badge.pulse .big{ animation:nPulse 1.1s ease-out 1; }
+    @keyframes nPulse{ 0%{ transform:scale(1); } 30%{ transform:scale(1.14); text-shadow:0 0 30px #ffc94d, 0 0 70px rgba(255,201,77,.6); } 100%{ transform:scale(1); } }
+    html.pn-reduce-motion .n-badge.pulse .big{ animation:none; }
+    @media (prefers-reduced-motion: reduce){ .n-badge.pulse .big{ animation:none; } }
+    .task{ font-family:"Chakra Petch", var(--font-ui); font-weight:700; font-size:clamp(19px, 1.55vw, 27px); color:#eafcff; letter-spacing:.02em; white-space:nowrap; }
+    .task b{ color:#ffc94d; }
+    .subline{ display:flex; gap:16px; align-items:center; justify-content:center; flex-wrap:wrap; min-height:18px; }
+    .floor-tag{ font-family:"Chakra Petch", var(--font-ui); font-weight:700; font-size:12px; letter-spacing:.2em; color:var(--text-muted); }
+    .sq-note{ font-family:"Chakra Petch", var(--font-ui); font-size:14px; font-weight:600; color:#ffe3a1; }
+    .sq-note[hidden]{ display:none; }
+
+    /* Three parts, always: draw | pairs | arrays */
+    main{ flex:1 1 auto; min-height:0; display:grid; grid-template-columns:minmax(0, 1.12fr) minmax(300px, .78fr) minmax(0, 1.1fr); gap:18px; }
+    .panel{ min-height:0; min-width:0; display:flex; flex-direction:column; gap:8px; padding:12px 14px; overflow:hidden;
+      border:1px solid var(--panel-border); background:var(--panel-bg); backdrop-filter:blur(8px);
+      box-shadow:0 0 0 1px rgba(var(--accent-rgb),.15) inset, 0 20px 60px rgba(0,0,0,.5); position:relative; }
+    .phead{ flex:0 0 auto; display:flex; align-items:center; justify-content:space-between; gap:10px; font-family:"Chakra Petch", var(--font-ui); font-weight:700; font-size:13px; letter-spacing:.18em; color:var(--text-muted); text-transform:uppercase; }
+    .phead .say{ font-weight:600; font-size:15px; letter-spacing:.02em; text-transform:none; color:var(--text-primary); }
+    .phead .say b{ color:#ffc94d; }
+    .phead button{ font:inherit; font-size:11px; letter-spacing:.12em; padding:4px 9px; background:transparent; border:1px solid var(--panel-border); color:var(--text-muted); cursor:pointer; }
+    .phead button:hover{ color:var(--text-primary); border-color:var(--accent); }
+
+    /* LEFT: the drawing grid */
+    .draw-area{ flex:1 1 auto; min-height:0; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+    .drag-grid{ position:relative; display:grid; gap:2px; touch-action:none; user-select:none; cursor:crosshair; }
+    .drag-grid i{ background:rgba(var(--accent-rgb),.08); border:1px solid rgba(var(--accent-rgb),.25); }
+    .drag-grid i.sel{ background:rgba(var(--accent-hack-rgb),.45); border-color:var(--accent-hack); }
+    .drag-grid.bad i.sel{ background:rgba(255,107,107,.45); border-color:#ff6b6b; }
+    .drag-grid i.placed{ background:hsla(calc(160 + var(--hue, 0)), 70%, 45%, .55); border-color:hsla(calc(160 + var(--hue, 0)), 80%, 65%, .9); }
+    .drag-grid .dtag{ position:absolute; pointer-events:none; font-family:var(--font-mono); font-size:12px; line-height:1; padding:2px 4px; background:rgba(3,14,16,.85); color:#eafff6; transform:translate(2px, 2px); }
+    .dnote{ flex:0 0 auto; font-size:14px; color:var(--text-muted); min-height:0; text-align:center; }
+    .dnote:empty{ display:none; }
+
+    /* CENTRE: the pairs table, with the drawing readout and the feedback right under it */
+    .panel-center{ align-items:stretch; }
+    .table-wrapper{ flex:0 1 auto; min-height:0; overflow:hidden; }
+    table{ width:100%; border-collapse:collapse; table-layout:fixed; font-family:var(--font-mono); }
+    th, td{ border:1px solid var(--panel-border); text-align:center; font-weight:normal; height:var(--row-h, 52px); padding:0 10px; font-size:var(--row-fs, 24px); line-height:1; }
+    th.n-head{ font-family:"Chakra Petch", var(--font-ui); font-weight:700; letter-spacing:.08em; color:var(--text-primary); background:rgba(var(--accent-rgb),.05); font-size:calc(var(--row-fs, 24px) * .9); }
+    th.n-head b{ color:#ffc94d; }
+    td[contenteditable]{ cursor:text; background:rgba(var(--accent-rgb),.08); color:var(--text-primary); }
+    td[contenteditable]:focus{ outline:none; box-shadow:inset 0 0 0 2px rgba(var(--accent-rgb),.75); background:rgba(var(--accent-rgb),.16); }
+    td.found{ color:var(--accent-hack); text-shadow:0 0 10px rgba(var(--accent-hack-rgb),.45); background:rgba(var(--accent-hack-rgb),.06); font-weight:700; }
+    tr.fresh td{ animation:rowIn .7s ease-out 1; }
+    @keyframes rowIn{ 0%{ background:rgba(var(--accent-hack-rgb),.45); } 100%{ background:rgba(var(--accent-hack-rgb),.06); } }
+    .read-box{ flex:0 0 auto; height:clamp(58px, 7.5vh, 80px); display:flex; align-items:center; justify-content:center; border:1px dashed rgba(var(--accent-rgb),.3); background:rgba(0,0,0,.2); }
+    .drag-read{ font-family:"Chakra Petch", var(--font-ui); font-weight:700; font-size:clamp(30px, 2.9vw, 50px); line-height:1; white-space:nowrap; color:var(--text-primary); }
+    .drag-read .ok{ color:var(--accent-hack); } .drag-read .no{ color:#ff6b6b; }
+    .drag-read small{ font-size:.5em; font-weight:600; color:var(--text-muted); letter-spacing:.02em; }
+    .drag-read.idle{ font-size:16px; font-weight:600; color:var(--text-muted); letter-spacing:.04em; white-space:normal; text-align:center; }
+    .msg-line{ flex:0 0 auto; min-height:2.7em; font-family:"Chakra Petch", var(--font-ui); font-size:clamp(16px, 1.1vw, 20px); font-weight:600; line-height:1.35; text-align:center; color:var(--text-primary); }
+    .msg-line.bad{ color:#ff9aa8; } .msg-line.good{ color:#7dffc4; }
+    .msg-line.flash{ animation:msgIn .35s ease-out 1; }
+    @keyframes msgIn{ from{ opacity:.2; transform:translateY(4px); } to{ opacity:1; transform:none; } }
+    .progress-line{ flex:0 0 auto; text-align:center; font-family:"Chakra Petch", var(--font-ui); font-size:13px; letter-spacing:.14em; color:var(--text-muted); text-transform:uppercase; }
+    .progress-line b{ color:var(--text-primary); }
+    body.floor-done td.found{ color:#ffc94d; text-shadow:0 0 10px rgba(255,201,77,.5); }
+
+    /* RIGHT: the factor arrays */
+    .vault-grid{ flex:1 1 auto; min-height:0; }
+    .array-top{ align-self:end; padding-bottom:3px; font-size:clamp(13px, 1.05vw, 18px) !important; color:#eafcff !important; }
+    .array-left{ justify-self:end; padding-right:6px; font-size:clamp(13px, 1.05vw, 18px) !important; color:#eafcff !important; }
+    .arrays-empty{ position:absolute; left:14px; right:14px; top:50%; transform:translateY(-50%); text-align:center; font-size:16px; color:var(--text-muted); pointer-events:none; }
+    .arrays-empty[hidden]{ display:none; }
+    .array-tile.fresh .array-cell{ animation:cellGlow 1.2s ease-out 1; }
+    @keyframes cellGlow{ 0%{ background:rgba(var(--accent-hack-rgb),.85); } 100%{ background:rgba(var(--accent-hack-rgb),.26); } }
+
+    /* Practice mode end card */
+    .practice-end{ position:fixed; inset:0; z-index:9300; display:flex; align-items:center; justify-content:center; padding:16px; background:rgba(2,10,14,.8); }
+    .practice-end .card{ width:min(560px, 100%); background:rgba(6,16,20,.98); border:2px solid #2fbf8a; box-shadow:0 0 40px rgba(47,191,138,.25); padding:24px; display:flex; flex-direction:column; gap:16px; text-align:center; font-family:"Chakra Petch", var(--font-ui); }
+    .practice-end h3{ margin:0; font-size:30px; letter-spacing:.08em; color:#7dffc4; }
+    .practice-end .pairs{ font-family:var(--font-mono); font-size:22px; color:#ffc94d; line-height:1.5; }
+    .practice-end .row{ display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
+    .practice-end button, .practice-end a{ font:inherit; font-weight:700; font-size:16px; letter-spacing:.06em; padding:12px 18px; border:1px solid rgba(var(--accent-rgb),.6); background:rgba(0,0,0,.3); color:var(--text-primary); cursor:pointer; text-decoration:none; }
+    .practice-end input{ width:110px; font-family:var(--font-mono); font-size:20px; padding:10px; text-align:center; background:rgba(0,0,0,.3); border:1px solid rgba(var(--accent-rgb),.6); color:var(--text-primary); }
+    .practice-end .msg{ min-height:1.2em; color:#ffb3c0; font-size:14px; }
+
+    /* Small screens: stack and let the page scroll */
+    @media (max-width:900px){
+      body{ overflow:auto; } .app{ height:auto; min-height:100vh; }
+      .n-top{ padding:0 90px 0 0; }
+      main{ grid-template-columns:1fr; }
+      .panel{ min-height:320px; }
+    }
   
 /* ===== PRIMENET shared style (docs/STYLE.md). Keep this block last. ===== */
 html, body{ background: var(--bg-primary) !important; }
@@ -859,115 +512,64 @@ body{ font-size: var(--font-size); }
 </style>
 </head>
 <body>
+  <!-- Sound and settings, tucked in the corner. The game's sound switch is on the title screen; this adds a volume. -->
+  <div class="corner-ctl">
+    <div class="audio-controls">
+      <button id="soundToggle" class="sound-btn" title="Sound on or off">🔊</button>
+      <input id="volumeSlider" type="range" min="0" max="100" value="35" class="volume-slider" title="Volume" aria-label="Volume">
+    </div>
+    <!-- Flipped arrays (8×3 beside 3×8) always show: that's the maths point. -->
+    <input id="showFlipped" type="checkbox" checked hidden />
+    <button class="settings-cog-btn" id="settingsCogBtn" type="button" title="Settings" aria-label="Settings">⚙</button>
+    <div class="settings-dropdown" id="settingsDropdown">
+      <div class="settings-levels">
+        <label>Difficulty</label>
+        <div class="level-buttons">
+          <button class="btn segBtn level" id="btnL1" type="button">L1</button>
+          <button class="btn segBtn level" id="btnL2" type="button">L2</button>
+          <button class="btn segBtn level" id="btnL3" type="button">L3</button>
+        </div>
+      </div>
+      <button id="settingsBtnFullscreen" type="button" title="Fullscreen">FULLSCREEN</button>
+      <button id="settingsBtnNewGame" type="button" title="Reset blueprint progress">NEW GAME</button>
+    </div>
+  </div>
+
   <div class="app">
-    <header>
-      <div class="header-left">
-        <div class="dot"></div>
-        <div class="title">
-          <div class="title-main">PRIMENET // STRUCTURE NODE</div>
-          <div class="title-sub" id="modeSubtitle">Access Protocol</div>
-        </div>
-      </div>
-      <div class="header-right">
-        <span style="font-size:14px; color:var(--text-muted);">N = <span id="nDisplay">12</span></span>
-        <div class="audio-controls">
-          <button id="soundToggle" class="sound-btn" title="Toggle sound">🔊</button>
-          <input id="volumeSlider" type="range" min="0" max="100" value="35" class="volume-slider" title="Master volume">
-        </div>
-        <!-- Flipped arrays (8×3 beside 3×8) always show: that's the maths point. The tick box was removed in review. -->
-        <input id="showFlipped" type="checkbox" checked hidden />
-        <!-- Settings Dropdown -->
-        <div class="settings-dropdown" id="settingsDropdown">
-          <div class="settings-levels">
-            <label>Difficulty</label>
-            <div class="level-buttons">
-              <button class="btn segBtn level" id="btnL1" type="button">L1</button>
-              <button class="btn segBtn level" id="btnL2" type="button">L2</button>
-              <button class="btn segBtn level" id="btnL3" type="button">L3</button>
-            </div>
-          </div>
-          <button id="settingsBtnFullscreen" type="button" title="Fullscreen">FULLSCREEN</button>
-          <button id="settingsBtnNewGame" type="button" title="Reset blueprint progress">NEW GAME</button>
-        </div>
-        <!-- Settings Cog Button -->
-        <button class="settings-cog-btn" id="settingsCogBtn" type="button" title="Settings (⚙)">⚙</button>
-      </div>
-    </header>
+    <div class="n-top">
+      <div class="n-badge" id="nBadge" aria-live="polite"><div class="big">N = <span id="nBig">12</span></div></div>
+      <div class="task" id="taskLine">Find every pair that makes <b>12</b></div>
+      <div class="subline"><span class="floor-tag" id="nSub">FLOOR 1 OF 3</span><span class="sq-note" id="reinforcedNote" hidden></span></div>
+    </div>
 
     <main>
-      <!-- LEFT VAULT -->
-      <div class="panel-vault" data-label="12">
-        <div class="vault-grid" id="vaultLeft"></div>
-      </div>
+      <!-- LEFT: draw -->
+      <section class="panel panel-draw" aria-label="Drawing grid">
+        <div class="phead"><span class="say">Drag to draw a rectangle of <b id="dragN">12</b> squares</span><button type="button" id="dragClear" title="Clear the drawings">CLEAR</button></div>
+        <div class="draw-area"><div class="drag-grid" id="dragGrid"></div></div>
+        <div class="dnote" id="dragNote"></div>
+      </section>
 
-      <!-- CENTER TABLE -->
-      <div class="panel-center">
-        <div class="seccam" id="secCam" aria-hidden="true"><div class="cone"></div><div class="body"></div></div>
-        <div class="n-badge" id="nBadge" aria-live="polite"><div class="big">N = <span id="nBig">12</span></div><div class="sub" id="nSub">FLOOR 1 OF 3 · ENCRYPTED WITH 12</div></div>
-        <h2>Factor Pairs</h2>
-        <div class="strip">
-          <div class="cam-status" id="camStatus" title="Submitting while the camera watches the terminal raises the alert. Three alerts lock the terminal for a moment."><span>Cam</span><span class="state">Clear</span><span class="alert"><i></i><i></i><i></i></span></div>
-          <div class="pair-scanner" id="pairScanner"></div>
-        </div>
-        <div class="reinforced-note" id="reinforcedNote" hidden></div>
+      <!-- CENTRE: pairs -->
+      <section class="panel panel-center" aria-label="Factor pairs">
         <div class="table-wrapper">
           <table>
-            <thead>
-              <tr><th colspan="2" class="n-head">? × ? = <b id="nHead">12</b></th></tr>
-            </thead>
+            <thead><tr><th colspan="2" class="n-head">? × ? = <b id="nHead">12</b></th></tr></thead>
             <tbody id="pairsTable"></tbody>
           </table>
         </div>
-        <div class="status-line">
-          <span>Progress: <span id="progress">0/0</span></span>
-          <span id="msgSpan"></span>
-        </div>
-        <button id="submitAllBtn" class="submit-all-btn pn-go">Submit All Pairs</button>
-        <button id="dragToggle" class="submit-all-btn drag-toggle" type="button" hidden>Draw the arrays instead</button>
-        <button id="decodeBtn" class="submit-all-btn decode-btn" type="button" hidden title="Earned in the Frequency Scan: cracks one factor pair for you">Decoder</button>
-      </div>
+        <div class="read-box" aria-live="polite"><div class="drag-read idle" id="dragRead">Drag on the grid</div></div>
+        <div class="msg-line" id="hint" role="status" aria-live="polite"></div>
+        <div class="progress-line">Found <b id="progress">0 of 0</b></div>
+      </section>
 
-      <!-- RIGHT VAULT -->
-      <div class="panel-vault" data-label="12">
+      <!-- RIGHT: arrays -->
+      <section class="panel panel-vault" aria-label="Factor arrays">
+        <div class="phead"><span>Arrays</span></div>
         <div class="vault-grid" id="vaultRight"></div>
-      </div>
-
-      <!-- DRAG TO BUILD: drag out a rectangle of N squares instead of typing -->
-      <div class="drag-board" id="dragBoard" hidden>
-        <div class="dhead"><span class="dhelp">Draw a rectangle of exactly <b id="dragN">N</b> squares, then draw it turned round.</span>
-          <span class="dbtns"><button type="button" class="drag-close" id="dragClear">Clear drawings</button><button type="button" class="drag-close" id="dragClose">Back to typing</button></span></div>
-        <div class="drag-grid" id="dragGrid"></div>
-        <div class="drag-read" id="dragRead">&nbsp;</div>
-        <div class="dhelp" id="dragNote"></div>
-      </div>
-
-      <!-- HINT BAR -->
-      <div class="hint-bar">
-        <div class="message" id="hint">Ready for input.</div>
-        <div class="count">Arrays: <span id="arrayCount">0</span></div>
-      </div>
+        <div class="arrays-empty" id="arraysEmpty">Each pair you find shows here as a rectangle, both ways round.</div>
+      </section>
     </main>
-  </div>
-
-  <!-- COMPLETION PROMPT -->
-  <div class="completion-prompt" id="completionPrompt">
-    <!-- Normal completion prompt -->
-    <div id="normalCompletion">
-      <p><strong>All pairs verified!</strong></p>
-      <p>Proceed to Facility Reconstruction?</p>
-      <div class="button-group">
-        <button id="proceedBtn" class="pn-go">Reconstruct</button>
-      </div>
-    </div>
-    <!-- Blueprint complete prompt -->
-    <div id="blueprintCompletion" style="display: none;">
-      <p class="blueprint-complete-subtext">⚡ Facility Assembly Status ⚡</p>
-      <p class="blueprint-complete-text">Blueprint Complete</p>
-      <p class="blueprint-complete-subtext">All 3 floors successfully reconstructed</p>
-      <div class="button-group">
-        <button id="buildBlueprintBtn" class="pn-go">Build Blueprint</button>
-      </div>
-    </div>
   </div>
 
   <script src="../shared/primenet.js"></script>
@@ -1264,24 +866,17 @@ body{ font-size: var(--font-size); }
     let found = new Set();
     let gameStage = 0; // 0=ACCESS, 1=ANALYSIS, 2=SECTOR, 3=BLUEPRINT, 4=FACILITY, 5=DIMENSIONAL, 6=COMPLETE
 
-    const nDisplay = document.getElementById("nDisplay");
-    const modeSubtitle = document.getElementById("modeSubtitle");
     const pairsTable = document.getElementById("pairsTable");
-    const vaultLeft = document.getElementById("vaultLeft");
     const vaultRight = document.getElementById("vaultRight");
     const hint = document.getElementById("hint");
     const progress = document.getElementById("progress");
-    const arrayCount = document.getElementById("arrayCount");
     const showFlipped = document.getElementById("showFlipped");
-    const completionPrompt = document.getElementById("completionPrompt");
-    const proceedBtn = document.getElementById("proceedBtn");
     const soundToggle = document.getElementById("soundToggle");
     const volumeSlider = document.getElementById("volumeSlider");
     const btnL1 = document.getElementById("btnL1");
     const btnL2 = document.getElementById("btnL2");
     const btnL3 = document.getElementById("btnL3");
     const settingsBtnNewGame = document.getElementById("settingsBtnNewGame");
-
     // ===== MATH =====
     function factorPairsFor(n){
       const pairs = [];
@@ -1301,7 +896,6 @@ body{ font-size: var(--font-size); }
 
     // ===== MODE SYSTEM =====
     function setMode(modeName){
-      modeSubtitle.textContent = modeName;
       if(modeName === "Access Protocol") gameStage = 0;
       else if(modeName === "Vault Analysis Terminal") gameStage = 1;
       else if(modeName === "Sector Authorization") gameStage = 2;
@@ -1357,204 +951,148 @@ body{ font-size: var(--font-size); }
     }
 
     // ===== UI UPDATES =====
-    function setHint(msg){
+    // The feedback line sits right under the pairs table
+    function setHint(msg, tone = ""){
       hint.textContent = msg;
+      hint.className = "msg-line" + (tone ? " " + tone : "");
+      void hint.offsetWidth; hint.classList.add("flash");
     }
-
-    // Store unsaved input temporarily
-    const unsavedInput = {};
 
     // Found pairs fill the table from the top in the order they were found; empty rows follow.
     // Anything still being typed stays in the empty rows, in order.
+    let freshKey = null;
     function renderTable(){
       const pending = [];
-      pairsTable.querySelectorAll("tr").forEach(row => {
-        const cells = row.querySelectorAll("td");
-        if(cells.length === 2 && cells[0].contentEditable === "true"){
-          const a = cells[0].textContent.trim(), b = cells[1].textContent.trim();
-          if(a || b) pending.push({ a, b });
-        }
+      pairsTable.querySelectorAll("tr.open").forEach(row => {
+        const a = row.cells[0].textContent.trim(), b = row.cells[1].textContent.trim();
+        if(a || b) pending.push({ a, b });
       });
-
       pairsTable.innerHTML = "";
-      const foundPairs = [...found].map(k => k.split(",").map(Number));
-      const makeRow = () => { const tr = document.createElement("tr"); const td1 = document.createElement("td"); const td2 = document.createElement("td"); tr.append(td1, td2); pairsTable.appendChild(tr); return [td1, td2]; };
+      const makeRow = cls => { const tr = document.createElement("tr"); tr.className = cls; tr.append(document.createElement("td"), document.createElement("td")); pairsTable.appendChild(tr); return tr; };
 
-      foundPairs.forEach(([a, b]) => {
-        const [td1, td2] = makeRow();
-        td1.textContent = String(a); td2.textContent = String(b);
-        td1.className = "found"; td2.className = "found";
+      [...found].forEach(k => {
+        const [a, b] = k.split(",").map(Number);
+        const tr = makeRow(k === freshKey ? "done fresh" : "done");
+        tr.cells[0].textContent = String(a); tr.cells[1].textContent = String(b);
+        tr.cells[0].className = tr.cells[1].className = "found";
       });
 
-      for(let i = 0; i < allPairs.length - foundPairs.length; i++){
-        const [td1, td2] = makeRow();
-        td1.contentEditable = "true"; td2.contentEditable = "true";
-        td1.className = "empty"; td2.className = "empty";
-        if(pending[i]){ td1.textContent = pending[i].a; td2.textContent = pending[i].b; }
-
-        const handleKeyDown = (e) => {
-          if(e.key === "Enter"){ e.preventDefault(); attemptSubmit(); }   // Enter submits everything
-        };
-        [td1, td2].forEach(td => {
-          td.addEventListener("keydown", handleKeyDown);
-          td.addEventListener("blur", () => {
-            const v = td.textContent.trim();
-            if(v && (!Number.isInteger(Number(v)) || Number(v) <= 0)) td.textContent = "";
+      for(let i = 0; i < allPairs.length - found.size; i++){
+        const tr = makeRow("open");
+        [...tr.cells].forEach((td, j) => {
+          td.contentEditable = busyFloor ? "false" : "true";
+          td.className = "empty";
+          td.setAttribute("inputmode", "numeric");
+          td.setAttribute("aria-label", j ? "Second number" : "First number");
+          if(pending[i]) td.textContent = j ? pending[i].b : pending[i].a;
+          td.addEventListener("keydown", e => cellKey(e, tr, j));
+          td.addEventListener("input", () => {   // numbers only, at most 3 digits
+            const v = td.textContent.replace(/\D+/g, "").slice(0, 3);
+            if(v !== td.textContent){ td.textContent = v; caretToEnd(td); }
           });
+          // Tab or click away: check the row once both numbers are in (not while moving between its two cells)
+          td.addEventListener("blur", () => setTimeout(() => {
+            if(!tr.isConnected || tr.contains(document.activeElement)) return;
+            checkRow(tr, false);
+          }, 0));
         });
       }
 
-      progress.textContent = `${found.size}/${allPairs.length}`;
-      renderScanner();
+      progress.textContent = `${found.size} of ${allPairs.length}`;
+      requestAnimationFrame(fitTable);
     }
-
-    function validateAndSubmit(a, b, td1, td2){
-      // Validate
-      if(!Number.isInteger(a) || !Number.isInteger(b) || a <= 0 || b <= 0){
-        setHint("Enter two positive integers.");
-        td1.textContent = "";
-        td2.textContent = "";
+    function caretToEnd(el){ try{ const r = document.createRange(); r.selectNodeContents(el); r.collapse(false); const s = getSelection(); s.removeAllRanges(); s.addRange(r); }catch(e){} }
+    function cellKey(e, tr, j){
+      if(e.key === "Enter"){
+        e.preventDefault();
+        const me = tr.cells[j], other = tr.cells[1 - j];
+        if(me.textContent.trim() && !other.textContent.trim()){ other.focus(); return; }   // fill in the other number first
+        checkRow(tr, true);
         return;
       }
+      if(e.key.length === 1 && !/[0-9]/.test(e.key) && !e.ctrlKey && !e.metaKey && !e.altKey) e.preventDefault();
+    }
+    function focusFirstOpen(){ const td = pairsTable.querySelector("tr.open td"); if(td) td.focus(); }
 
-      if(a * b !== N){
-        setHint(`${a}×${b}=${a*b}, need ${N}.`);
-        td1.textContent = "";
-        td2.textContent = "";
-        return;
-      }
+    // Size the rows so every pair fits without scrolling (any N the game uses, 1366×768 and up)
+    function fitTable(){
+      const wrap = document.querySelector(".table-wrapper"), table = wrap.querySelector("table"), panel = wrap.parentElement;
+      const cs = getComputedStyle(panel), gap = parseFloat(cs.rowGap) || 0;
+      let used = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom) + gap * (panel.children.length - 1);
+      [...panel.children].forEach(ch => { if(ch !== wrap) used += ch.offsetHeight; });
+      const rows = allPairs.length + 1;   // + the "? × ? = N" row
+      const H = panel.clientHeight - used - 2;
+      const rh = Math.max(22, Math.min(76, Math.floor(H / rows) - 1));
+      table.style.setProperty("--row-h", rh + "px");
+      table.style.setProperty("--row-fs", Math.max(14, Math.min(30, Math.round(rh * 0.46))) + "px");
+    }
+    window.addEventListener("resize", () => requestAnimationFrame(fitTable));
 
-      const key = keyOf(a, b);
-      if(found.has(key)){
-        setHint("Already found that pair!");
-        td1.textContent = "";
-        td2.textContent = "";
-        return;
-      }
-
-      // Accept
-      found.add(key);
-      
-      // Trigger mode change on first pair
-      if(found.size === 1){
-        setMode("Sector Authorization");
-      }
-      
-      setHint(`✓ Found: ${a} × ${b}`);
-      renderTable();
-      renderVaults();
-
-      if(found.size === allPairs.length){
-        setMode("Blueprint Decryption");
-        setHint("🎉 All pairs found!");
-        // Show completion prompt after short delay to allow animations
-        setTimeout(() => {
-          completionPrompt.classList.add("show");
-        }, 200);
-      }
+    // A typed row is checked as soon as both numbers are in
+    function checkRow(tr, fromEnter){
+      if(busyFloor) return;
+      const aT = tr.cells[0].textContent.trim(), bT = tr.cells[1].textContent.trim();
+      if(!aT || !bT) return;
+      const a = Number(aT), b = Number(bT);
+      const clear = () => { tr.cells[0].textContent = ""; tr.cells[1].textContent = ""; if(fromEnter) tr.cells[0].focus(); };
+      if(!Number.isInteger(a) || !Number.isInteger(b) || a <= 0 || b <= 0){ wrong("Use whole numbers bigger than 0."); clear(); return; }
+      if(a * b !== N){ wrong(`${a} × ${b} = ${a * b}, not ${N}. Try again.`); clear(); return; }
+      if(found.has(keyOf(a, b))){ wrong(`You already have ${Math.min(a, b)} × ${Math.max(a, b)}. Find a different pair.`); clear(); return; }
+      const refocus = fromEnter || !document.activeElement || document.activeElement === document.body || pairsTable.contains(document.activeElement);
+      tr.cells[0].textContent = ""; tr.cells[1].textContent = "";
+      acceptPair(a, b);
+      if(refocus && !busyFloor) focusFirstOpen();
     }
 
     let floorMisses = 0;
-    function validateAll(){
-      const rows = pairsTable.querySelectorAll("tr");
-      let validCount = 0;
-      let totalEntered = 0;
-      const errors = [];
-
-      rows.forEach((row, idx) => {
-        const cells = row.querySelectorAll("td");
-        if(cells.length === 2){
-          const aText = cells[0].textContent.trim();
-          const bText = cells[1].textContent.trim();
-
-          // Skip empty rows
-          if(!aText && !bText) return;
-          
-          totalEntered++;
-          
-          const aVal = Number(aText);
-          const bVal = Number(bText);
-
-          // Validate inputs
-          if(!aText || !bText){
-            errors.push(`Row ${idx + 1}: Both fields required`);
-            audioManager.playIncorrectTone();
-            return;
-          }
-          
-          if(!Number.isInteger(aVal) || !Number.isInteger(bVal) || aVal <= 0 || bVal <= 0){
-            errors.push(`Row ${idx + 1}: Must be positive integers`);
-            audioManager.playIncorrectTone();
-            return;
-          }
-
-          if(aVal * bVal !== N){
-            errors.push(`Row ${idx + 1}: ${aVal}×${bVal}=${aVal*bVal}, need ${N}`);
-            audioManager.playIncorrectTone();
-            return;
-          }
-
-          const key = keyOf(aVal, bVal);
-          if(found.has(key)){
-            errors.push(`Row ${idx + 1}: Duplicate pair`);
-            audioManager.playIncorrectTone();
-            return;
-          }
-
-          // Valid pair! Clear the row it was typed in; it moves up into the found list.
-          cells[0].textContent = "";
-          cells[1].textContent = "";
-          found.add(key);
-          validCount++;
-          audioManager.playCorrectTone();
-        }
-      });
-
-      // Provide feedback
-      if(validCount === 0 && totalEntered > 0){
-        floorMisses++;
-        if(window.PNHandler && floorMisses === 2) PNHandler.once(`vault-tip-${N}`, `Try counting up from 1. If a number goes into ${N} exactly, its partner is ${N} ÷ that number.`);
-        const errorMsg = errors.length > 0 ? errors[0] : "No valid pairs found";
-        setHint(`✗ ${errorMsg}`);
-      } else if(validCount > 0){
-        if(found.size === 1){
-          setMode("Sector Authorization");
-        }
-        
-        const msg = `✓ Found ${validCount} pair${validCount !== 1 ? 's' : ''} (${errors.length} error${errors.length !== 1 ? 's' : ''})`;
-        setHint(msg);
-        
-        // Re-render to update UI
-        renderTable();
-        renderVaults();
-
-        // Check for completion
-        if(found.size === allPairs.length && PRACTICE){
-          setTimeout(() => { if(window.PNSound) PNSound.play("success"); }, 350);
-          setMode("Blueprint Decryption");
-          setHint(`All ${allPairs.length} pairs found for N=${N}.`);
-          submitAllBtn.disabled = true;
-          setTimeout(showPracticeEnd, 700);
-        } else if(found.size === allPairs.length){
-          const floorDone = Math.min(getCompletedLevels().length + 1, FLOORS_NEEDED);
-          saveCompletedLevel(); // Save progress
-          if(PN) PN.log("vault-complete", { n: N, level: currentDifficulty });
-          if(window.PNBadges && Number.isInteger(Math.sqrt(N))) PNBadges.award("square-hunter");
-          setTimeout(() => { if(window.PNSound) PNSound.play("success"); }, 350);
-          setMode("Blueprint Decryption");
-          setHint(`All pairs verified. Reconstructing floor plan for N=${N}…`);
-          submitAllBtn.disabled = true;
-          if(window.PNMode) PNMode.watch(`Floor ${floorDone} decrypted. Building it…`, { seconds: 1.8 + 0.52 });
-          setTimeout(() => (window.PNGlitch ? PNGlitch.go(`vault_grid_demo.html?n=${N}`, { style: "sweep" }) : (location.href = `vault_grid_demo.html?n=${N}`)), 1800);
-        }
-      } else if(totalEntered === 0){
-        setHint("Enter at least one pair.");
-      }
+    function wrong(msg){
+      setHint(msg, "bad");
+      audioManager.playIncorrectTone();
+      floorMisses++;
+      if(window.PNHandler && floorMisses === 3) PNHandler.once(`vault-tip-${N}`, `Try counting up from 1. If a number goes into ${N} exactly, its partner is ${N} ÷ that number.`);
     }
 
+    // A pair is found (typed, drawn or decoded): into the table, and its arrays appear on the right
+    function acceptPair(a, b){
+      const x = Math.min(a, b), y = Math.max(a, b), key = keyOf(x, y);
+      if(busyFloor || found.has(key)) return false;
+      found.add(key);
+      freshKey = key;
+      if(found.size === 1) setMode("Sector Authorization");
+      audioManager.playCorrectTone();
+      setHint(x === y ? `${x} × ${x} = ${N} ✓ A square: it looks the same both ways round.` : `${x} × ${y} = ${N} ✓ Turned round, ${y} × ${x} makes ${N} too.`, "good");
+      renderTable();
+      renderVaults(key);
+      if(found.size === allPairs.length) completeFloor();
+      return true;
+    }
+
+    // Every pair found: the floor completes by itself
+    let busyFloor = false;
+    function completeFloor(){
+      busyFloor = true;
+      document.body.classList.add("floor-done");
+      pairsTable.querySelectorAll("[contenteditable]").forEach(td => td.contentEditable = "false");
+      if(document.activeElement && document.activeElement.blur) document.activeElement.blur();
+      setMode("Blueprint Decryption");
+      setTimeout(() => { if(window.PNSound) PNSound.play("success"); }, 350);
+      if(PRACTICE){
+        setHint(`All ${allPairs.length} pairs found for ${N}. Nice work!`, "good");
+        setTimeout(showPracticeEnd, 900);
+        return;
+      }
+      const floorDone = Math.min(getCompletedLevels().length + 1, FLOORS_NEEDED);
+      saveCompletedLevel();
+      if(PN) PN.log("vault-complete", { n: N, level: currentDifficulty });
+      if(window.PNBadges && Number.isInteger(Math.sqrt(N))) PNBadges.award("square-hunter");
+      setHint(`Every pair found! Floor ${floorDone} is decrypted.`, "good");
+      if(window.PNMode) PNMode.watch(`Floor ${floorDone} decrypted. Building it…`, { seconds: 2.4 });
+      const go = `vault_grid_demo.html?n=${N}`;
+      setTimeout(() => (window.PNGlitch ? PNGlitch.go(go, { style: "sweep" }) : (location.href = go)), 2000 / (window.PNTest ? PNTest.speed() : 1));
+    }
     function makeArrayTile(a, b, label){
-      const cols = Math.min(b, 12);
-      const rows = Math.min(a, 12);
+      const cols = b;   // the whole array, every square (packVault shrinks the squares to fit)
+      const rows = a;
 
       const tile = document.createElement("div");
       tile.className = "array-tile";
@@ -1668,139 +1206,35 @@ body{ font-size: var(--font-size); }
       
       return null;
     }
-
-    function renderVaults(){
-      vaultLeft.innerHTML = "";
+    // RIGHT panel: every found pair as an array, both ways round (3 × 7 beside 7 × 3), newest last
+    function renderVaults(newKey){
       vaultRight.innerHTML = "";
-      
-      // Directly render vault content without prelude
-      renderVaultContent();
-    }
-    
-    function renderVaultContent(){
-      // Reset min-height for all vaults
-      vaultLeft.style.minHeight = "720px";
-      vaultRight.style.minHeight = "720px";
-      
-      // Single pass: count tiles AND collect rendering data
-      let tileCountLeft = 0;
-      let tileCountRight = 0;
-      const tilesToRender = [];
-      
-      allPairs.forEach(([a, b]) => {
-        const key = keyOf(a, b);
-        if(found.has(key)){
-          const isLeftVault = !document.body.classList.contains("drawing") && (tileCountLeft + tileCountRight) % 2 === 0;
-          if(isLeftVault) tileCountLeft++;
-          else tileCountRight++;
-          
-          tilesToRender.push({a, b, label: `${a}×${b}`, isLeft: isLeftVault});
-          
-          if(showFlipped.checked && a !== b){
-            const isLeftFlip = !document.body.classList.contains("drawing") && (tileCountLeft + tileCountRight) % 2 === 0;
-            if(isLeftFlip) tileCountLeft++;
-            else tileCountRight++;
-            
-            tilesToRender.push({a: b, b: a, label: `${b}×${a}`, isLeft: isLeftFlip, isFlipped: true});
-          }
-        }
+      const tiles = [];
+      [...found].forEach(k => {
+        const [a, b] = k.split(",").map(Number);
+        tiles.push({ a, b, k });
+        if(showFlipped.checked && a !== b) tiles.push({ a: b, b: a, k });
       });
-      
-      // Apply template scaling based on tile counts
-      applyVaultTemplate(vaultLeft, tileCountLeft);
-      applyVaultTemplate(vaultRight, tileCountRight);
-      ensureCanvasHeight(vaultLeft, tileCountLeft);
-      ensureCanvasHeight(vaultRight, tileCountRight);
-      
-      console.log(`Vault template applied: Left count=${tileCountLeft} (unit=${getGridUnit(vaultLeft)}), Right count=${tileCountRight} (unit=${getGridUnit(vaultRight)})`);
-      
-      // Create SVG overlays for scan lines
-      const svgLeft = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-      svgLeft.className = "scanlines";
-      svgLeft.id = "scanlines-left";
-      svgLeft.setAttribute("viewBox", "0 0 2000 2000");
-      svgLeft.setAttribute("width", "100%");
-      svgLeft.setAttribute("height", "100%");
-      svgLeft.style.pointerEvents = "none";
-      vaultLeft.appendChild(svgLeft);
-      
-      const svgRight = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-      svgRight.className = "scanlines";
-      svgRight.id = "scanlines-right";
-      svgRight.setAttribute("viewBox", "0 0 2000 2000");
-      svgRight.setAttribute("width", "100%");
-      svgRight.setAttribute("height", "100%");
-      svgRight.style.pointerEvents = "none";
-      vaultRight.appendChild(svgRight);
-      
-      // Track placed rectangles for collision detection
-      const placedLeft = [];
-      const placedRight = [];
-      
-      // Now render all collected tiles
-      tilesToRender.forEach(({a, b, label, isLeft, isFlipped}) => {
-        const vault = isLeft ? vaultLeft : vaultRight;
-        const placedRects = isLeft ? placedLeft : placedRight;
-        const fieldHeight = Math.max(vault.clientHeight, vault.scrollHeight);
-        const unit = getGridUnit(vault);
-        
-        const tile = makeArrayTile(a, b, label);
-        vault.appendChild(tile);
-        
-        const rect = tile.getBoundingClientRect();
-        const tileW = Math.ceil(rect.width);
-        const tileH = Math.ceil(rect.height);
-        
-        const pos = findNonOverlappingPosition(vault, tileW, tileH, placedRects, fieldHeight);
-        
-        if(pos){
-          let snappedX = snapToGrid(pos.x, unit);
-          let snappedY = snapToGrid(pos.y, unit);
-          
-          snappedX = Math.max(0, Math.min(snappedX, vault.clientWidth - tileW));
-          snappedY = Math.max(0, Math.min(snappedY, fieldHeight - tileH));
-          
-          const flipped = isFlipped ? " FLIPPED" : "";
-          console.log(`${isLeft ? 'LEFT' : 'RIGHT'} ${a}×${b}${flipped}: unit=${unit}, pos=(${pos.x.toFixed(0)},${pos.y.toFixed(0)}) → snap=(${snappedX},${snappedY})`);
-          
-          tile.style.left = snappedX + "px";
-          tile.style.top = snappedY + "px";
-          
-          placedRects.push({x: snappedX, y: snappedY, w: tileW, h: tileH});
-        } else {
-          let fallbackX = snapToGrid(Math.random() * 80, unit);
-          let fallbackY = snapToGrid(Math.random() * 80, unit);
-          
-          fallbackX = Math.max(0, Math.min(fallbackX, vault.clientWidth - tileW));
-          fallbackY = Math.max(0, Math.min(fallbackY, fieldHeight - tileH));
-          
-          const flipped = isFlipped ? " FLIPPED" : "";
-          console.log(`${isLeft ? 'LEFT' : 'RIGHT'} ${a}×${b}${flipped} FALLBACK: unit=${unit}, snap=(${fallbackX},${fallbackY})`);
-          
-          tile.style.left = fallbackX + "px";
-          tile.style.top = fallbackY + "px";
-        }
-        
-        audioManager.playTileSpawn();
+      tiles.forEach(t => {
+        const tile = makeArrayTile(t.a, t.b, `${t.a}×${t.b}`);
+        if(t.k === newKey) tile.classList.add("fresh");
+        vaultRight.appendChild(tile);
       });
-      
-      arrayCount.textContent = String(tilesToRender.length);
-      packVault(vaultLeft); packVault(vaultRight);
-
-      // Draw scan lines
-      redrawScanLines(vaultLeft, svgLeft);
-      redrawScanLines(vaultRight, svgRight);
+      document.getElementById("arraysEmpty").hidden = tiles.length > 0;
+      packVault(vaultRight);
+      if(newKey) audioManager.playTileSpawn();
     }
-
+    window.addEventListener("resize", () => packVault(vaultRight));
     // Feedback: arrays sat far apart and some crossed the panel edges. Pack them in tidy rows,
     // centred in the panel, shrinking the grid unit until everything fits inside.
     function packVault(vault){
       const tiles = [...vault.querySelectorAll(".array-tile")];
       if(!tiles.length) return;
       const pad = 14, gapPx = 18;
-      let unit = getGridUnit(vault);
-      for(let attempt = 0; attempt < 8; attempt++){
-        const W = vault.clientWidth - pad * 2, H = Math.min(vault.clientHeight, 720) - pad * 2;
+      let unit = 60;   // start big and shrink until every array fits the panel
+      vault.style.setProperty("--grid-unit", unit + "px");
+      for(let attempt = 0; attempt < 40; attempt++){
+        const W = vault.clientWidth - pad * 2, H = vault.clientHeight - pad * 2;
         const rows = []; let row = { items: [], w: 0, h: 0 };
         tiles.forEach(t => {
           const w = t.offsetWidth, h = t.offsetHeight;
@@ -1810,7 +1244,7 @@ body{ font-size: var(--font-size); }
         rows.push(row);
         const total = rows.reduce((a, r) => a + r.h, 0) + gapPx * (rows.length - 1);
         const widest = Math.max(...rows.map(r => r.w));
-        if((total > H || widest > W) && unit > 6){ unit = Math.max(6, Math.floor(unit * 0.85)); vault.style.setProperty("--grid-unit", unit + "px"); continue; }
+        if((total > H || widest > W) && unit > 3){ unit = Math.max(3, Math.floor(unit * 0.9)); vault.style.setProperty("--grid-unit", unit + "px"); continue; }
         let y = pad + Math.max(0, (H - total) / 2);
         rows.forEach(r => {
           let x = pad + Math.max(0, (W - r.w) / 2);
@@ -1881,50 +1315,48 @@ body{ font-size: var(--font-size); }
       } else {
         N = pickRandomFromDifficulty(currentDifficulty);
       }
-      
-      // Update all UI elements to reflect new N
-      document.title = `Factor Pair Array Vault — N=${N}`;
-      nDisplay.textContent = String(N);
+
+      document.title = `Factor Pair Array Vault · N = ${N}`;
       document.getElementById("nBig").textContent = String(N);
       document.getElementById("nHead").textContent = String(N);
-      
-      const vaultPanels = document.querySelectorAll(".panel-vault");
-      vaultPanels.forEach(panel => {
-        panel.setAttribute("data-label", String(N));
-      });
-      
+      document.getElementById("taskLine").innerHTML = `Find every pair that makes <b>${N}</b>`;
+      document.getElementById("dragN").textContent = String(N);
+
       allPairs = factorPairsFor(N);
       found = new Set();
+      freshKey = null;
+      busyFloor = false;
+      document.body.classList.remove("floor-done");
       pairsTable.innerHTML = "";   // don't carry typed input over to a new number
       gameStage = 0;
       setMode("Vault Analysis Terminal");
       const floor = Math.min(getCompletedLevels().length + 1, FLOORS_NEEDED);
-      requestAnimationFrame(fitBadge);
-      document.getElementById("nSub").textContent = PRACTICE ? `PRACTICE · FIND EVERY PAIR THAT MAKES ${N}` : `FLOOR ${floor} OF ${FLOORS_NEEDED} · ENCRYPTED WITH ${N}`;
-      setHint(PRACTICE ? `Practice: find all ${allPairs.length} factor pairs for N=${N}.` : `Floor ${floor} of ${FLOORS_NEEDED}: find all ${allPairs.length} factor pairs for N=${N}.`);
+      document.getElementById("nSub").textContent = PRACTICE ? "PRACTICE" : `FLOOR ${floor} OF ${FLOORS_NEEDED}`;
+      setHint(`Type a pair in the table, or draw a rectangle on the grid.`);
+      resetRead();
       if(PN && !PRACTICE) PN.log("vault", { floor, n: N, level: currentDifficulty });
       floorMisses = 0;
-      if(!init.holdIntro) floorIntro(floor);
+      floorIntro(floor);
       renderTable();
       renderVaults();
       setupFloorExtras();
-      // Hide completion prompt when starting new game
-      completionPrompt.classList.remove("show");
+      requestAnimationFrame(fitBadge);
+      requestAnimationFrame(() => { fitTable(); focusFirstOpen(); });
     }
 
-    // Keep "N = 100" and its line inside the panel: shrink only as far as needed
+    // Keep "N = 100" and the task line inside the page: shrink only as far as needed
     function fitBadge(){
-      const badge = document.getElementById("nBadge"), w = badge.clientWidth;
-      [[badge.querySelector(".big"), 44], [badge.querySelector(".sub"), 10]].forEach(([el, min]) => {
+      const top = document.querySelector(".n-top"), w = top.clientWidth - 300;
+      [[document.querySelector("#nBadge .big"), 34], [document.getElementById("taskLine"), 14]].forEach(([el, min]) => {
         el.style.fontSize = "";
         let fs = parseFloat(getComputedStyle(el).fontSize);
         while(el.scrollWidth > w && fs > min){ fs -= 1; el.style.fontSize = fs + "px"; }
       });
     }
     window.addEventListener("resize", fitBadge);
-    if(document.fonts && document.fonts.ready) document.fonts.ready.then(fitBadge);
+    if(document.fonts && document.fonts.ready) document.fonts.ready.then(() => { fitBadge(); fitTable(); });
 
-    // Round 14: the floor starts. N pulses once, YOUR TURN, then ORACLE's line.
+    // The floor starts: N pulses once, then ORACLE's line (the page itself says it's your turn)
     function floorIntro(floor){
       const badge = document.getElementById("nBadge");
       badge.classList.remove("pulse"); void badge.offsetWidth; badge.classList.add("pulse");
@@ -1935,7 +1367,6 @@ body{ font-size: var(--font-size); }
         "Last floor, {agent}. Then we'll have the whole building.",
       ][floor - 1] || "Find every pair.", { delay: 900 });
     }
-
     // Practice mode: a plain end card. Nothing is saved.
     function showPracticeEnd(){
       if(document.querySelector(".practice-end")) return;
@@ -1960,53 +1391,6 @@ body{ font-size: var(--font-size); }
       inp.addEventListener("keydown", e => { if(e.key === "Enter"){ e.preventDefault(); goNew(); } });
       ov.querySelector("#peAgain").focus();
     }
-
-    // ===== EVENT LISTENERS =====
-    showFlipped.addEventListener("change", renderVaults);
-    
-    // Redraw scan lines on window resize
-    window.addEventListener("resize", () => {
-      const svgLeft = document.getElementById("scanlines-left");
-      const svgRight = document.getElementById("scanlines-right");
-      if(svgLeft && svgRight){
-        redrawScanLines(vaultLeft, svgLeft);
-        redrawScanLines(vaultRight, svgRight);
-      }
-    });
-
-    // Completion button listeners
-    const normalCompletion = document.getElementById("normalCompletion");
-    const blueprintCompletion = document.getElementById("blueprintCompletion");
-    const buildBlueprintBtn = document.getElementById("buildBlueprintBtn");
-
-    proceedBtn.addEventListener("click", () => {
-      // Some levels complete - go to vault grid demo for current N
-      const gridUrl = `vault_grid_demo.html?n=${N}`;
-      (window.PNGlitch ? PNGlitch.go(gridUrl, { style: "sweep" }) : (location.href = gridUrl));
-    });
-
-    buildBlueprintBtn.addEventListener("click", () => {
-      // All 3 levels complete - go to blueprint viewer
-      (window.PNGlitch ? PNGlitch.go("vault_blueprint_viewer.html", { style: "sweep" }) : (location.href = "vault_blueprint_viewer.html"));
-    });
-
-    // Override the completion check to show the right prompt
-    function showCompletionPrompt(){
-      if(isBlueprintComplete()){
-        // Show blueprint complete version
-        normalCompletion.style.display = "none";
-        blueprintCompletion.style.display = "block";
-      } else {
-        // Show normal version
-        normalCompletion.style.display = "block";
-        blueprintCompletion.style.display = "none";
-      }
-      completionPrompt.classList.add("show");
-    }
-
-    // Submit all button listener
-    const submitAllBtn = document.getElementById("submitAllBtn");
-    submitAllBtn.addEventListener("click", () => attemptSubmit());
 
     // Audio control listeners
     soundToggle.addEventListener("click", () => {
@@ -2116,101 +1500,51 @@ body{ font-size: var(--font-size); }
     btnL2.addEventListener("click", () => { setDifficulty('L2'); init(); updateLevelButtons(); settingsDropdown.classList.remove('open'); });
     btnL3.addEventListener("click", () => { setDifficulty('L3'); init(); updateLevelButtons(); settingsDropdown.classList.remove('open'); });
 
-    // ===== Group 3: pairs scanner, reinforced floors, security camera, drag to build =====
+    // ===== Square numbers and the drawing grid =====
     const isSquare = n => Number.isInteger(Math.sqrt(n));
-    function renderScanner(){
-      const el = document.getElementById("pairScanner"); if(!el) return;
-      const left = allPairs.length - found.size;
-      const blips = allPairs.map(([a, b]) => `<i class="${found.has(keyOf(a, b)) ? "done" : "left"}${a === b ? " sq" : ""}"></i>`).join("");
-      el.innerHTML = `<span>Scan <b>${left}</b> left</span><span class="blips">${blips}</span>
-        <span class="${isSquare(N) ? "sqflag" : ""}">Square: <b>${isSquare(N) ? "yes" : "no"}</b></span>`;
-    }
     function setupFloorExtras(){
       const sq = isSquare(N);
-      document.body.classList.toggle("reinforced", sq);
       const note = document.getElementById("reinforcedNote");
       note.hidden = !sq;
-      if(sq){ note.innerHTML = `<b>REINFORCED FLOOR</b> · ${N} is square: one pair is a number times itself.`; note.title = `That pair only counts once, which gives ${N} an odd number of factors.`; }
-      if(sq && window.PNHandler) PNHandler.once(`reinforced-${N}`, `Careful, {agent}: ${N} is a reinforced floor. One of its pairs repeats the same number twice.`, { delay: 4200 });
-      renderScanner();
-      setupDrag();
-    }
-
-    // Security camera: sweeps back and forth. Submitting while it watches the terminal raises
-    // the alert. Three alerts and the terminal locks for a few seconds. Nothing is lost.
-    const cam = { angle: 0, alert: 0, locked: false, t0: performance.now(), el: document.getElementById("secCam"), status: document.getElementById("camStatus") };
-    const CAM_PERIOD = 7000;   // one full sweep there and back
-    const camWatching = () => !PRACTICE && Math.abs(cam.angle) < 13;
-    if(PRACTICE){ cam.el.style.display = "none"; cam.status.style.display = "none"; cam.el = null; }   // practice: no camera
-    (function camTick(now){
-      const phase = ((now - cam.t0) % CAM_PERIOD) / CAM_PERIOD;
-      cam.angle = Math.sin(phase * Math.PI * 2) * 55;
-      if(cam.el){
-        cam.el.querySelector(".cone").style.transform = `rotate(${cam.angle}deg)`;
-        const w = camWatching();
-        cam.el.classList.toggle("watching", w);
-        cam.status.classList.toggle("watching", w);
-        cam.status.querySelector(".state").textContent = w ? "Watching" : "Clear";
-        document.querySelector(".panel-center").classList.toggle("watched", w);
-      }
-      requestAnimationFrame(camTick);
-    })(performance.now());
-    function paintAlert(){ cam.status.querySelectorAll(".alert i").forEach((i, k) => i.classList.toggle("on", k < cam.alert)); }
-    function attemptSubmit(){
-      if(cam.locked) return;
-      if(camWatching()){
-        cam.alert++; paintAlert();
-        if(window.PNSound) PNSound.play("alarm");
-        if(cam.alert === 1 && window.PNHandler) PNHandler.once("cam-first", "The camera saw that. Wait for the sweep to pass before you submit.");
-        if(cam.alert >= 3){ lockdown(); return; }
-      }
-      validateAll();
-    }
-    function lockdown(){
-      cam.locked = true;
-      const box = document.createElement("div"); box.className = "lockdown";
-      box.innerHTML = `<b>MOVEMENT DETECTED</b><div>Lie low. Terminal locked while security checks the feed.</div><div class="count">5</div>`;
-      document.querySelector(".panel-center").appendChild(box);
-      if(window.PNHandler) PNHandler.say("Freeze, {agent}. Let the guards lose interest. Your pairs are safe.");
-      let n = 5;
-      const t = setInterval(() => {
-        n--; box.querySelector(".count").textContent = String(n);
-        if(n <= 0){ clearInterval(t); box.remove(); cam.locked = false; cam.alert = 0; paintAlert(); }
-      }, 1000 / (window.PNTest ? PNTest.speed() : 1));
-    }
-
-    // Draw to build (feedback round 7): the drawing grid takes over the left panel and every array the
-    // student draws stays on it, both ways round. The right panel shows the finished arrays.
-    const DRAG_MAX = 100;   // feedback: L2 numbers (up to 64) couldn't be drawn; the grid now fits any N
-    let buildMode = "type";
-    const drawState = { placed: [], hue: 0 };
-    function setupDrag(){
-      const sw = document.getElementById("dragToggle"), board = document.getElementById("dragBoard");
-      const allowed = N <= DRAG_MAX;
-      sw.hidden = !allowed;
-      if(!allowed && buildMode === "drag") setBuildMode("type");
-      document.getElementById("dragN").textContent = N;
+      note.textContent = sq ? `${N} is a square number, so one pair uses the same number twice.` : "";
+      if(sq && window.PNHandler && !PRACTICE) PNHandler.once(`reinforced-${N}`, `Careful, {agent}: ${N} is a square number. One of its pairs repeats the same number twice.`, { delay: 4200 });
       drawState.placed = []; drawState.hue = 0;
-      if(window.resetFlip) window.resetFlip();
-      if(buildMode === "drag") sizeDrawGrid();
-      board.hidden = !(allowed && buildMode === "drag");
+      requestAnimationFrame(sizeDrawGrid);
     }
-    // Square cells sized to fill the left panel: wide enough for 1 × N, deep enough for most pairs turned round
+
+    // LEFT panel: always there. Drag out a rectangle; one of exactly N squares adds its pair to the table.
+    const drawState = { placed: [], hue: 0 };
     function sizeDrawGrid(){
-      const grid = document.getElementById("dragGrid"), panel = document.querySelector(".panel-vault");
-      const W = panel.clientWidth - 8, H = Math.max(260, window.innerHeight - 400);   // from the window, not the panel (the board grows the panel)
-      // Wide enough for 1 × N when it fits at a readable cell size (12px+); otherwise as wide as the panel allows
-      const cols = Math.max(12, Math.min(N + 1, Math.floor(W / 14)));
-      const size = Math.max(10, Math.min(30, Math.floor(W / cols) - 2));
-      const rows = Math.max(8, Math.min(N + 1, Math.floor(H / (size + 2))));
+      const grid = document.getElementById("dragGrid"), area = document.querySelector(".draw-area"), note = document.getElementById("dragNote");
+      const dims = () => {
+        const W = area.clientWidth - 4, H = area.clientHeight - 4;
+        // Wide enough for 1 × N when it fits at a readable cell size (10px+); otherwise as wide as the panel allows
+        const cols = Math.max(4, Math.min(N, Math.floor(W / 12)));
+        let size = Math.max(9, Math.min(46, Math.floor(W / cols) - 2));
+        let rows = Math.max(4, Math.min(N, Math.floor(H / (size + 2))));
+        // Few rows fit at this size (a small N in a short panel): shrink the squares so a tall shape fits too
+        if(rows < Math.min(N, 12)){ size = Math.max(9, Math.floor(H / Math.min(N, 12)) - 2); rows = Math.max(4, Math.min(N, Math.floor(H / (size + 2)))); }
+        return { W, H, cols, size, rows };
+      };
+      const setNote = d => {
+        const tooLong = allPairs.filter(([a, b]) => !(a <= d.rows && b <= d.cols) && !(a <= d.cols && b <= d.rows)).map(([a, b]) => `${a} × ${b}`);
+        note.textContent = tooLong.length ? `Too long to draw here: ${tooLong.join(", ")}. Type ${tooLong.length === 1 ? "it" : "them"} in the table.` : "";
+      };
+      grid.innerHTML = "";   // measure the empty area
+      let d = dims();
+      if(d.W < 40 || d.H < 40) return;
+      // The note under the grid takes space, so set it, then measure again
+      for(let k = 0; k < 2; k++){ setNote(d); d = dims(); }
+      setNote(d);
+      const { cols, size, rows } = d;
       grid.style.gridTemplateColumns = `repeat(${cols}, ${size}px)`;
       grid.style.gridAutoRows = `${size}px`;
       grid.dataset.rows = rows; grid.dataset.cols = cols; grid.dataset.size = size;
-      grid.innerHTML = "";
-      for(let r = 0; r < rows; r++) for(let c = 0; c < cols; c++){ const i = document.createElement("i"); i.dataset.r = r; i.dataset.c = c; grid.appendChild(i); }
-      const tooLong = allPairs.filter(([a, b]) => b > cols && b > rows).map(([a, b]) => `${a} × ${b}`);
-      document.getElementById("dragNote").textContent = tooLong.length ? `Too long to draw here: ${tooLong.join(", ")}. Type ${tooLong.length === 1 ? "it" : "them"} in the table.` : "";
-      // Redraw arrays already drawn on this floor
+      const frag = document.createDocumentFragment();
+      for(let r = 0; r < rows; r++) for(let c = 0; c < cols; c++){ const i = document.createElement("i"); i.dataset.r = r; i.dataset.c = c; frag.appendChild(i); }
+      grid.appendChild(frag);
+      // Keep what's been drawn on this floor (if it still fits)
+      drawState.placed = drawState.placed.filter(pl => pl.r0 + pl.h <= rows && pl.c0 + pl.w <= cols);
       drawState.placed.forEach(pl => stampArray(pl));
     }
     function stampArray(pl){
@@ -2221,113 +1555,69 @@ body{ font-size: var(--font-size); }
       tag.textContent = `${pl.h}×${pl.w}`; tag.style.left = (pl.c0 * (size + 2)) + "px"; tag.style.top = (pl.r0 * (size + 2)) + "px";
       grid.appendChild(tag);
     }
-    function setBuildMode(m){
-      buildMode = m;
-      const board = document.getElementById("dragBoard"), panel = document.querySelector(".panel-vault");
-      document.body.classList.toggle("drawing", m === "drag");
-      if(m === "drag"){ panel.appendChild(board); board.hidden = false; sizeDrawGrid(); }
-      else board.hidden = true;
-      document.getElementById("dragToggle").textContent = m === "drag" ? "Back to typing" : "Draw the arrays instead";
-      renderVaults();
+    let drawResize = null;
+    window.addEventListener("resize", () => { clearTimeout(drawResize); drawResize = setTimeout(sizeDrawGrid, 120); });
+    document.getElementById("dragClear").addEventListener("click", () => {
+      drawState.placed = []; sizeDrawGrid();
+      setHint("Grid cleared. The pairs you found stay found.");
       if(window.PNSound) PNSound.play("click");
-    }
-    document.getElementById("dragToggle").addEventListener("click", () => setBuildMode(buildMode === "drag" ? "type" : "drag"));
-    document.getElementById("dragClose").addEventListener("click", () => setBuildMode("type"));
-    document.getElementById("dragClear").addEventListener("click", () => { drawState.placed = []; if(window.resetFlip) window.resetFlip(); sizeDrawGrid(); document.getElementById("dragRead").innerHTML = "Board cleared. Pairs you've found stay found."; });
-    window.addEventListener("resize", () => { if(buildMode === "drag") sizeDrawGrid(); });
+    });
+
+    // The live readout: big, right under the pairs table
+    const dragRead = document.getElementById("dragRead");
+    let readTimer = null;
+    function resetRead(){ clearTimeout(readTimer); dragRead.className = "drag-read idle"; dragRead.textContent = "Drag on the grid"; }
+    function showRead(html, holdMs){ clearTimeout(readTimer); dragRead.className = "drag-read"; dragRead.innerHTML = html; if(holdMs) readTimer = setTimeout(resetRead, holdMs); }
+
     (function dragInput(){
-      const grid = document.getElementById("dragGrid"), read = document.getElementById("dragRead");
-      let anchor = null, cur = null, flip = null;   // flip: the first way round, waiting to be drawn turned round
-      const clearKept = () => grid.querySelectorAll("i.kept").forEach(i => i.classList.remove("kept"));
-      window.resetFlip = () => { flip = null; clearKept(); };
-      const fits = (h, w) => h <= +grid.dataset.rows && w <= +grid.dataset.cols;
+      const grid = document.getElementById("dragGrid");
+      let anchor = null, cur = null;
       const cellFrom = e => { const t = document.elementFromPoint(e.clientX, e.clientY); return t && t.parentElement === grid && t.tagName === "I" ? { r: +t.dataset.r, c: +t.dataset.c } : null; };
       function rect(){ return { r0: Math.min(anchor.r, cur.r), c0: Math.min(anchor.c, cur.c), h: Math.abs(anchor.r - cur.r) + 1, w: Math.abs(anchor.c - cur.c) + 1 }; }
       function paint(){
         if(!anchor || !cur) return;
-        const q = rect();
+        const q = rect(), n = q.h * q.w, ok = n === N;
         grid.querySelectorAll("i").forEach(i => { const r = +i.dataset.r, c = +i.dataset.c; i.classList.toggle("sel", r >= q.r0 && r < q.r0 + q.h && c >= q.c0 && c < q.c0 + q.w); });
-        const ok = q.h * q.w === N;
-        grid.classList.toggle("bad", !ok && q.h * q.w > N);
-        read.innerHTML = `${q.h} × ${q.w} = <span class="${ok ? "ok" : q.h * q.w > N ? "no" : ""}">${q.h * q.w}</span>${ok ? " ✓" : `  (need ${N})`}`;
+        grid.classList.toggle("bad", n > N);
+        showRead(`${q.h} × ${q.w} = <span class="${ok ? "ok" : n > N ? "no" : ""}">${n}</span>${ok ? " ✓" : ` <small>need ${N}</small>`}`);
         return { ...q, ok };
       }
-      const overlaps = q => [...grid.querySelectorAll("i.placed, i.kept")].some(i => { const r = +i.dataset.r, c = +i.dataset.c; return r >= q.r0 && r < q.r0 + q.h && c >= q.c0 && c < q.c0 + q.w; });
-      function place(q){ const pl = { ...q, hue: drawState.hue }; drawState.placed.push(pl); stampArray(pl); }
-      function addPair(a, b){
-        const row = [...pairsTable.querySelectorAll("tr")].find(r => r.cells[0].contentEditable === "true" && !r.cells[0].textContent.trim() && !r.cells[1].textContent.trim());
-        if(!row) return;
-        row.cells[0].textContent = a; row.cells[1].textContent = b;
-        validateAll();   // drawing is slow, careful work: the camera doesn't count drawn arrays
-        drawState.hue = (drawState.hue + 47) % 360;
-      }
-      grid.addEventListener("pointerdown", e => { const c = cellFrom(e); if(!c) return; e.preventDefault(); grid.setPointerCapture(e.pointerId); anchor = cur = c; paint(); if(window.PNSound) PNSound.play("tag"); });
+      const overlaps = q => [...grid.querySelectorAll("i.placed")].some(i => { const r = +i.dataset.r, c = +i.dataset.c; return r >= q.r0 && r < q.r0 + q.h && c >= q.c0 && c < q.c0 + q.w; });
+      grid.addEventListener("pointerdown", e => {
+        if(busyFloor) return;
+        const c = cellFrom(e); if(!c) return;
+        e.preventDefault(); try{ grid.setPointerCapture(e.pointerId); }catch(err){}
+        anchor = cur = c; paint(); if(window.PNSound) PNSound.play("tag");
+      });
       grid.addEventListener("pointermove", e => { if(!anchor) return; const c = cellFrom(e); if(c && (c.r !== cur.r || c.c !== cur.c)){ cur = c; paint(); if(window.PNSound) PNSound.play("plot"); } });
-      grid.addEventListener("pointerup", () => {
+      const finish = () => {
         if(!anchor) return;
         const res = paint(); anchor = cur = null;
-        const clearSel = () => setTimeout(() => { grid.querySelectorAll("i.sel").forEach(i => i.classList.remove("sel")); grid.classList.remove("bad"); }, 500);
-        clearSel();
+        setTimeout(() => { grid.querySelectorAll("i.sel").forEach(i => i.classList.remove("sel")); grid.classList.remove("bad"); }, 450);
         if(!res) return;
-        if(!res.ok){ if(window.PNSound) PNSound.play("wrong"); setHint(`${res.h} × ${res.w} = ${res.h * res.w}. You need exactly ${N} squares.`); return; }
-        if(overlaps(res)){ if(window.PNSound) PNSound.play("untag"); setHint("That overlaps an array you've already drawn. Draw it in empty space."); return; }
         const a = Math.min(res.h, res.w), b = Math.max(res.h, res.w);
-        // Draw each array both ways round (3 × 7 and 7 × 3) before it counts
-        if(flip){
-          if(res.h === flip.w && res.w === flip.h){
-            clearKept(); place(flip); place(res); flip = null;
-            read.innerHTML = `${res.h} × ${res.w} = <span class="ok">${N}</span> ✓ The same ${N} squares, turned round.`;
-            if(window.PNSound) PNSound.play("correct", 3);
-            addPair(a, b); return;
-          }
-          if(res.h === flip.h && res.w === flip.w){ setHint(`That's the same way round. Turn it: ${flip.w} rows and ${flip.h} columns.`); if(window.PNSound) PNSound.play("untag"); return; }
-          setHint(`First turn ${flip.h} × ${flip.w} round: draw ${flip.w} × ${flip.h}.`); if(window.PNSound) PNSound.play("untag"); return;
-        }
-        if(found.has(keyOf(a, b))){ setHint(`${a} × ${b} is already found. Try another shape.`); if(window.PNSound) PNSound.play("untag"); return; }
-        if(a === b){ place(res); read.innerHTML = `${a} × ${a} = <span class="ok">${N}</span> ✓ A square: turned round, it's the same shape.`; addPair(a, b); return; }
-        if(!fits(res.w, res.h)){ place(res); read.innerHTML = `${res.h} × ${res.w} = <span class="ok">${N}</span> ✓ Turned round it's ${res.w} × ${res.h}: too tall for this grid, so that counts too.`; addPair(a, b); return; }
-        // Keep the first shape on the grid and ask for it turned round
-        flip = res;
-        grid.querySelectorAll("i.sel").forEach(i => i.classList.add("kept"));
-        read.innerHTML = `${res.h} × ${res.w} = <span class="ok">${N}</span> ✓ Now draw it turned round: <b>${res.w} × ${res.h}</b>.`;
-        setHint(`Same squares, other way round: ${res.w} row${res.w === 1 ? "" : "s"} and ${res.h} column${res.h === 1 ? "" : "s"}.`);
-        if(window.PNSound) PNSound.play("tag");
-      });
+        if(!res.ok){ readTimer = setTimeout(resetRead, 1800); wrong(`${res.h} × ${res.w} = ${res.h * res.w} squares. You need exactly ${N}.`); return; }
+        readTimer = setTimeout(resetRead, 2200);
+        if(overlaps(res)){ setHint("That crosses a rectangle you already drew. Draw it in an empty space.", "bad"); if(window.PNSound) PNSound.play("untag"); return; }
+        if(found.has(keyOf(a, b))){ setHint(`You already have ${a} × ${b}. Try a different shape.`, "bad"); if(window.PNSound) PNSound.play("untag"); return; }
+        const pl = { ...res, hue: drawState.hue }; drawState.placed.push(pl); stampArray(pl);
+        drawState.hue = (drawState.hue + 47) % 360;
+        acceptPair(a, b);
+      };
+      grid.addEventListener("pointerup", finish);
+      grid.addEventListener("pointercancel", finish);
     })();
-
-    // Decoder charges, earned by a strong signal in the Frequency Scan. Each one cracks a pair.
-    const decodeBtn = document.getElementById("decodeBtn");
-    function syncDecoder(){
-      const a = PN && PN.getAgent(), left = a && a.decoders ? a.decoders : 0;
-      decodeBtn.hidden = PRACTICE || left <= 0;
-      decodeBtn.textContent = `Decoder: crack one pair (${left} left)`;
-    }
-    decodeBtn.addEventListener("click", () => {
-      const a = PN && PN.getAgent(); if(PRACTICE || !a || !a.decoders) return;
-      const todo = allPairs.filter(([x, y]) => !found.has(keyOf(x, y)));
-      if(!todo.length) return;
-      const [x, y] = todo[Math.floor(Math.random() * todo.length)];
-      PN.updateAgent({ decoders: a.decoders - 1 });
-      const rows = [...pairsTable.querySelectorAll("tr")].filter(r => r.cells[0].contentEditable === "true" && !r.cells[0].textContent.trim() && !r.cells[1].textContent.trim());
-      const row = rows[0]; if(!row) return;
-      row.cells[0].textContent = x; row.cells[1].textContent = y;
-      if(window.PNSound) PNSound.play("laser");
-      if(window.PNHandler) PNHandler.say(`Decoder cracked it: ${x} × ${y} = ${N}.`);
-      validateAll(); syncDecoder();
-    });
-    syncDecoder();
 
     // Teacher test tools (only while unlocked)
     if(window.PNTest){
-      const fillPairs = count => {
-        const rows = [...pairsTable.querySelectorAll("tr")].filter(r => r.cells[0].contentEditable === "true");
+      const decode = count => {
         const todo = allPairs.filter(([a, b]) => !found.has(keyOf(a, b))).slice(0, count);
-        todo.forEach(([a, b], i) => { rows[i].cells[0].textContent = a; rows[i].cells[1].textContent = b; });
-        validateAll();
+        todo.forEach(([a, b]) => acceptPair(a, b));
+        return todo.length ? `Decoded ${todo.length} pair${todo.length === 1 ? "" : "s"}.` : "Nothing left to decode.";
       };
-      PNTest.add("Fill one pair", () => fillPairs(1));
-      PNTest.add("Fill all pairs (finish this floor)", () => fillPairs(99));
-      PNTest.skip("Fill every factor pair", () => { fillPairs(99); return "All pairs in. Press Submit when the camera is clear."; });
+      PNTest.add("Decode all pairs", () => decode(99));
+      PNTest.add("Decode one pair", () => decode(1));
+      PNTest.skip("Decode all pairs", () => decode(99));
       PNTest.add("Skip to Blueprint (3 floors at this level)", () => {
         const pool = VALID_N[currentDifficulty].slice().sort(() => Math.random() - .5).slice(0, 3);
         localStorage.setItem("blueprintProgress", JSON.stringify(pool));
@@ -2336,37 +1626,21 @@ body{ font-size: var(--font-size); }
       });
     }
 
-    // Start the game
-    // Round 14: floors 2 and 3 open with a short hack-in (any key types) before YOUR TURN
-    const startFloor = Math.min(getCompletedLevels().length + 1, FLOORS_NEEDED);
-    init.holdIntro = !PRACTICE && startFloor >= 2 && !!window.PNMode;
-    // Check URL parameters for N value from vault_grid_demo
+    // Start the game. (The "connecting to floor" hack-in now happens on the grid page, straight after the build.)
     const urlParams = new URLSearchParams(window.location.search);
     const urlN = parseInt(urlParams.get('n'), 10);
-    
+
     // If specific N provided via URL, use it and detect its difficulty level
     if(Number.isInteger(urlN) && urlN > 1){
-      // Detect which difficulty contains this N
       if(VALID_N.L1.includes(urlN)) currentDifficulty = 'L1';
       else if(VALID_N.L2.includes(urlN)) currentDifficulty = 'L2';
       else if(VALID_N.L3.includes(urlN)) currentDifficulty = 'L3';
-      else currentDifficulty = 'L1'; // Default if N not in any level
-      
+      else currentDifficulty = 'L1';
       updateLevelButtons();
       init(urlN);
-      console.log(`Loading Factor Vault with N=${urlN}, Difficulty: ${currentDifficulty}`);
     } else {
-      // No URL param, start with L1 and pick random N
       updateLevelButtons();
       init();
-      console.log(`Loading Factor Vault with random N from Difficulty: ${currentDifficulty}`);
-    }
-    if(init.holdIntro){
-      PNMode.typeThrough({ label: `CONNECTING TO FLOOR ${startFloor}`, keys: 12 }).then(() => {
-        init.holdIntro = false;
-        floorIntro(startFloor);
-        const cell = pairsTable.querySelector('td[contenteditable="true"]'); if(cell) cell.focus();
-      });
     }
   </script>
 </body>
