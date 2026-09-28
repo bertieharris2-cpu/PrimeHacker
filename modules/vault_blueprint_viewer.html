@@ -268,6 +268,33 @@ body{ padding:12px 16px !important; overflow-y:auto; }
   .bp-stage{ height:62vh; }
 }
 
+/* Round 15: labels, the CCTV frame and GO GO GO over the 3D building (chapters 3 and 5) */
+.bp-label{ position:absolute; left:50%; top:46px; transform:translateX(-50%) scale(.9); z-index:6; pointer-events:none; opacity:0; transition:opacity .25s, transform .25s;
+  font-family:var(--font-ui); font-weight:700; font-size:22px; letter-spacing:.18em; padding:8px 18px; white-space:nowrap;
+  color:#eafcff; background:rgba(4,14,17,.9); border:2px solid #6ec8ff; box-shadow:0 0 24px rgba(110,200,255,.35); }
+.bp-label.on{ opacity:1; transform:translateX(-50%) scale(1); }
+.bp-label.red{ color:#ffd6de; border-color:#ff4f6d; box-shadow:0 0 26px rgba(255,79,109,.45); }
+.bp-label.blue{ color:#dfe9ff; border-color:#3a7bff; box-shadow:0 0 26px rgba(58,123,255,.5); }
+.bp-label.gold{ color:#fff1c4; border-color:#ffc94d; box-shadow:0 0 26px rgba(255,201,77,.4); }
+.bp-label.green{ color:#d9ffec; border-color:#2fbf8a; box-shadow:0 0 26px rgba(47,191,138,.45); }
+.bp-cctv{ position:absolute; inset:14px; z-index:5; pointer-events:none; font-family:var(--font-mono); font-size:15px; letter-spacing:.12em; color:#eafcff;
+  background:repeating-linear-gradient(0deg, rgba(200,255,240,.05) 0 1px, transparent 1px 4px); animation:cctvSnap .18s steps(2) 1; }
+.bp-cctv i{ position:absolute; width:46px; height:46px; border:3px solid rgba(235,255,248,.85); }
+.bp-cctv i:nth-child(1){ left:0; top:0; border-right:0; border-bottom:0; } .bp-cctv i:nth-child(2){ right:0; top:0; border-left:0; border-bottom:0; }
+.bp-cctv i:nth-child(3){ left:0; bottom:0; border-right:0; border-top:0; } .bp-cctv i:nth-child(4){ right:0; bottom:0; border-left:0; border-top:0; }
+.bp-cctv .rec{ position:absolute; left:58px; top:10px; color:#ff4f6d; font-weight:700; }
+.bp-cctv .rec b{ animation:holoBlinkBp 1s steps(2) infinite; }
+.bp-cctv .cam{ position:absolute; right:58px; top:10px; }
+.bp-cctv .ts{ position:absolute; left:58px; bottom:12px; }
+@keyframes holoBlinkBp{ 50%{ opacity:.15; } }
+@keyframes cctvSnap{ 0%{ transform:scale(1.06); opacity:.4; } }
+.bp-go{ position:absolute; inset:0; z-index:6; display:flex; align-items:center; justify-content:center; pointer-events:none;
+  font-family:var(--font-ui); font-weight:700; font-size:clamp(48px,8vw,110px); letter-spacing:.16em; color:#7dffc4; text-shadow:0 0 34px rgba(47,191,138,.8);
+  animation:bpGo .5s ease-in-out 4 alternate; }
+@keyframes bpGo{ from{ transform:scale(.92); opacity:.6; } to{ transform:scale(1.04); opacity:1; } }
+@media (prefers-reduced-motion: reduce){ .bp-go, .bp-cctv, .bp-cctv .rec b{ animation:none; } }
+html.pn-reduce-motion .bp-go, html.pn-reduce-motion .bp-cctv, html.pn-reduce-motion .bp-cctv .rec b{ animation:none; }
+
 .pn-powerup{ position:fixed; inset:0; z-index:9999; display:flex; align-items:center; justify-content:center; background:rgba(4,14,17,.72); font-family:var(--font-ui); }
 .pn-powerup div{ border:1px solid rgba(var(--accent-rgb),.6); background:rgba(9,32,38,.92); padding:22px 30px; text-align:center; letter-spacing:.16em; font-weight:700; color:var(--accent); animation:pnPulse 1.4s ease-in-out infinite; }
 .pn-powerup small{ display:block; margin-top:8px; letter-spacing:.06em; font-weight:400; color:var(--text-muted); }
@@ -398,7 +425,9 @@ function powerUpPrompt(title){
 
       // Initialize shared Three.js scene with all floors
       // Wait for sound to be allowed, then build: a pop per box, and a chord when the bank is complete
-      (window.PNSound ? PNSound.whenUnlocked(() => powerUpPrompt("ASSEMBLE THE BLUEPRINT")) : Promise.resolve()).then(() => {
+      (window.PNSound ? PNSound.whenUnlocked(() => powerUpPrompt("ASSEMBLE THE BLUEPRINT")) : Promise.resolve()).then(async () => {
+        // Round 15: chapter 3, the building
+        if(window.PNMode){ PNMode.chapter("building"); await PNMode.chapterCard(3, "The building"); }
         const t = document.querySelector("h1"); if(t && PN) t.textContent = `${PN.mission().target}: assembling`;
         // Feedback: the plotter didn't match the arrays and slowed things down; straight into the 3D build
         // SPACE on the power-up prompt scrolls the page after this runs; bring the building back into view
@@ -414,9 +443,13 @@ function powerUpPrompt(title){
         PNTest.add("Show the floor quiz", () => { floorQuiz(floors, () => {}); });
       }
       const goHack = async () => {
-        if(window.PNTwistSlot) await PNTwistSlot.run("getin");   // round 11: getting in (guard patrols)
         localStorage.removeItem('blueprintProgress');   // the next mission starts with no floors
         (window.PNGlitch ? PNGlitch.go('prime_hack.html') : (location.href = 'prime_hack.html'));
+      };
+      // Round 15: after the protocol, chapter 5 (the heist) plays on the building, then the Prime Hack
+      const afterProtocol = async () => {
+        try{ if(window.bpHeist) await window.bpHeist(); }catch(e){ console.error(e); }
+        goHack();
       };
       // One quick question about the building before the hack: a right answer earns an intel bonus
       // Feedback: ORACLE's question comes up by itself once the route is planned; answering it opens the
@@ -426,13 +459,13 @@ function powerUpPrompt(title){
         if(DEMO_MODE || (a && a.quizDone)){ btn.disabled = false; if(ct) ct.textContent = 'Route planned. Ready to start the hack?'; if(window.PNMode) PNMode.turn('Press the green button to start the hack'); return; }
         btn.hidden = true;
         if(ct) ct.textContent = "Answer ORACLE's question to start the hack protocol.";
-        setTimeout(() => floorQuiz(floors, () => armProtocol(floors, goHack)), 1200 / (window.PNTest ? PNTest.speed() : 1));
+        setTimeout(() => floorQuiz(floors, () => armProtocol(floors, afterProtocol)), 1200 / (window.PNTest ? PNTest.speed() : 1));
       };
       document.getElementById('proceedToHackBtn').addEventListener('click', () => {
         const a = PN && PN.getAgent();
         document.getElementById('proceedToHackBtn').disabled = true;
-        if(DEMO_MODE || (a && a.quizDone)) return armProtocol(floors, goHack);
-        floorQuiz(floors, () => armProtocol(floors, goHack));
+        if(DEMO_MODE || (a && a.quizDone)) return armProtocol(floors, afterProtocol);
+        floorQuiz(floors, () => armProtocol(floors, afterProtocol));
       });
     }
 
@@ -456,14 +489,23 @@ function powerUpPrompt(title){
     const wait = ms => new Promise(r => setTimeout(r, ms / speedUp()));
     const reduced = () => !!(PN && PN.reducedMotion && PN.reducedMotion());
     function say(text){ const el = document.getElementById('assemblyStatus'); if(el) el.textContent = text; }
-    // Round 14: one WATCH bar for the whole cinematic, from the start of the assembly to the route being drawn.
-    // The assembly fills it to 45%; planAt(k) maps the lights-to-route part (0..1) onto the rest.
+    // Round 15: two WATCH bars on this page's cinematics: the assembly (chapter 3, fills to 100% at STRUCTURE ASSEMBLED)
+    // and the plan (chapter 4, lights to route); planAt(k) is the plan's progress (0..1).
     let bpWatch = null;
-    function watchStart(){ if(!bpWatch && window.PNMode) bpWatch = PNMode.watch('ORACLE is building the bank'); }
+    function watchStart(label = 'ORACLE is building the bank'){ if(!bpWatch && window.PNMode) bpWatch = PNMode.watch(label); }
     function watchAt(k){ if(bpWatch) bpWatch.progress(k); }
     function watchLabel(t){ if(bpWatch && bpWatch.label) bpWatch.label(t); }
     function watchEnd(){ if(bpWatch){ bpWatch.progress(1); bpWatch.end(); bpWatch = null; } if(window.PNMode) PNMode.done(); }
-    function planAt(k){ watchAt(0.45 + 0.55 * Math.min(1, k)); }
+    function planAt(k){ watchAt(Math.min(1, k)); }
+    // A short WATCH of its own (the corruption, the heist moves). end() also hides the bar, so a twist
+    // never opens with the bar still saying WATCH.
+    function shortWatch(label, seconds = 0){
+      const h = window.PNMode ? PNMode.watch(label, { seconds }) : null;
+      return { progress(k){ if(h) h.progress(k); }, label(t){ if(h && h.label) h.label(t); }, end(){ if(h){ h.end(); PNMode.done(); } } };
+    }
+    // Test hook: what the page showed, in order (labels, twists, ticks)
+    window.bpEvents = [];
+    const bpEvent = e => { window.bpEvents.push(e); };
 
     function initializeSharedScene(floors, container){
       const width = container.clientWidth;
@@ -549,6 +591,7 @@ function powerUpPrompt(title){
 
       // ---- render loop ----
       let spinning = false, rotationY = 0, scanTime = 0, t0 = performance.now();
+      const follow = { on: false, target: null, dir: new THREE.Vector3(0, 0.4, 1).normalize(), dist: 300, want: 300 };
       function animate(now){
         if(spinning){ rotationY += 0.0012; mainGroup.rotation.y = rotationY; }
         scanTime += 0.008;
@@ -557,6 +600,12 @@ function powerUpPrompt(title){
           grid.material.opacity = (Math.max(0, 1 - Math.abs(grid.position.y - scanY) / 12) * 0.8 + 0.05) * grid.userData.fade;
         });
         if(beacon.visible) beacon.material.opacity = beacon.scale.x = beacon.scale.y = beacon.scale.z = 0.8 + 0.4 * Math.abs(Math.sin((now - t0) / 350));
+        // Round 15: in the heist the camera follows the crew (never with reduced motion)
+        if(follow.on && follow.target){
+          camLook.lerp(follow.target, 0.07);
+          follow.dist += (follow.want - follow.dist) * 0.05;
+          camera.position.copy(camLook).addScaledVector(follow.dir, follow.dist);
+        }
         camera.lookAt(camLook);
         renderer.render(scene, camera);
         requestAnimationFrame(animate);
@@ -567,7 +616,7 @@ function powerUpPrompt(title){
       function onResize(){
         const w = container.clientWidth, h = container.clientHeight;
         renderer.setSize(w, h); camera.aspect = w / h; camera.updateProjectionMatrix();
-        if(fitOn) fitCamera(true);
+        if(fitOn && !follow.on) fitCamera(true);
       }
       // Round 13 (Bertie: the building was getting cut off at the sides): once assembled, keep the camera at the
       // distance where the whole building fits the stage, whatever its shape, and re-fit on every resize
@@ -636,49 +685,97 @@ function powerUpPrompt(title){
 
       // ---------- After assembly: lights, weak point, hidden vault, explore ----------
       const card = (cls, html) => { const d = document.createElement('div'); d.className = cls; d.innerHTML = html; document.getElementById('intel').appendChild(d); requestAnimationFrame(() => d.classList.add('on')); return d; };
-      // Round 14: both blueprint twists wait until the WATCH is over (the route is drawn), so they never cut into it.
-      // Their effects still play, each as a short WATCH of its own.
-      async function blueprintTwists(){
-        if(!window.PNTwistSlot) return;
-        // Round 12: the corrupted-blueprint twist (the floor plan is repaired)
-        const ta = await PNTwistSlot.run("assembled");
-        if(ta && ta.effect === "repaired"){
-          const w = window.PNMode ? PNMode.watch('Floor plan repaired') : null;
-          say('Floor plan repaired');
-          for(const [i, f] of order.entries()){ ring(f.yOffset + 0.5, 0x3dffa8); SND("chirp"); if(w) w.progress((i + 1) / (order.length + 1)); await wait(380); }
-          SND("scanline");
-          if(window.PNHandler) PNHandler.say("Floor plan's back. The building's whole again.");
-          await wait(700);
-          if(w){ w.end(); PNMode.done(); }
-        }
-        // Round 11: the ceiling relays (cubes) twist
-        const tw = await PNTwistSlot.run("lights");
-        // Round 12: the relays twist ends with the whole building going dark
-        if(tw && tw.effect === "dark"){
-          const wd = window.PNMode ? PNMode.watch('Cameras going dark') : null;
-          say('Cameras going dark…');
-          SND("rise");
-          // Round 12: the floors black out one at a time, with a flicker, as the power drops through the building
-          for(const [i, f] of order.slice().reverse().entries()){
-            const ws = f.boxes.map(b => b.userData.win);
-            for(let k = 0; k < 3; k++){ ws.forEach(w => w.draw(k % 2 ? w.a * w.b : Math.round(w.a * w.b * 0.3))); await wait(90); }
-            await tween(420, e => ws.forEach(w => w.draw(Math.round((1 - e) * w.a * w.b))));
-            // the whole floor goes black: edges and room glass dim right down
-            f.lines.forEach(m => { m.transparent = true; m.opacity = 0.18; m.needsUpdate = true; });
-            f.boxes.forEach(b => { b.material.emissiveIntensity = 0.02; b.material.opacity = 0.06; b.material.needsUpdate = true; });
-            if(f.plate && f.plate.material){ f.plate.material.opacity = 0.15; f.plate.material.needsUpdate = true; }
-            SND("clamp"); ring(f.yOffset + 0.5, 0x333333);
-            if(wd) wd.progress((i + 1) / (order.length + 1));
-            await wait(380);
-          }
-          card('i-dark', `<b>CAMERAS DARK</b>Every ceiling relay powered: the lights and cameras on the target floor are off.`);
-          if(window.PNHandler) PNHandler.say("Lights out. Their cameras are blind. Now we use that route.");
-          await wait(900);
-          if(wd){ wd.end(); PNMode.done(); }
-        }
+      // ---------- Round 15: labels over the building ----------
+      const stageEl = container.closest('.bp-stage') || container;
+      const labelEl = document.createElement('div'); labelEl.className = 'bp-label'; labelEl.id = 'bpLabel'; labelEl.setAttribute('role', 'status'); stageEl.appendChild(labelEl);
+      function showLabel(text, cls = ''){
+        labelEl.className = 'bp-label ' + cls; labelEl.textContent = text; void labelEl.offsetWidth; labelEl.classList.add('on');
+        bpEvent('label:' + text);
+      }
+      function hideLabel(){ labelEl.classList.remove('on'); }
+      // A calm floor-by-floor ring, used when the floor plan is repaired
+      async function greenRings(w){
+        for(const [i, f] of order.entries()){ ring(f.yOffset + 0.5, 0x3dffa8); SND("chirp"); if(w) w.progress((i + 1) / (order.length + 1)); await wait(380); }
       }
 
+      // ---------- Chapter 3: the corrupted floor (only when the corrupted blueprint is in this mission) ----------
+      // Floor 2 comes through too big, jitters and won't slot in. Then the twist; on return it shrinks back and docks.
+      async function corruptBeat(){
+        if(!window.PNTwistSlot || !PNTwistSlot.has("assembled")) return;
+        const f = floorGroups[1];   // floor 2
+        const cy = f.yOffset + boxHeight / 2, BIG = 1.35;
+        const saved = f.lines.map(m => m.color.getHex()), plateHex = f.plate.material.color.getHex();
+        let jitter = false;
+        const setBig = k => { const s = 1 + (BIG - 1) * k; f.group.scale.set(s, s, s); f.group.position.y = -(s - 1) * cy; };
+        const intro = async () => {
+          const w = shortWatch("Something's wrong with floor 2", 3.2);
+          spinning = false;
+          SND("static", 0.8); setTimeout(() => SND("radio"), 250 / speedUp()); setTimeout(() => SND("glitch"), 700 / speedUp());
+          say('Interference on floor 2…');
+          if(window.PNHandler) PNHandler.say("Interference. Floor 2 came through wrong. It won't fit.");
+          f.lines.forEach(m => m.color.set(0xff4f6d)); f.plate.material.color.set(0xff4f6d);
+          if(reduced()) setBig(1);
+          else {
+            await tween(700, e => setBig(e), easeOutBack);
+            jitter = true;
+            (function jit(){ if(!jitter) return; f.group.position.x = (Math.random() - 0.5) * 7; f.group.position.z = (Math.random() - 0.5) * 2; setTimeout(() => requestAnimationFrame(jit), 70); })();
+          }
+          ring(f.yOffset + 0.5, 0xff4f6d); SND("denied");
+          showLabel('FLOOR 2 · CORRUPTED', 'red');
+          await wait(2400);
+          w.end();
+        };
+        const r = await PNTwistSlot.run("assembled", { intro });
+        bpEvent('twist:assembled');
+        // Back from the twist: the floor shrinks back and docks
+        const w = shortWatch('Floor plan repaired', 2.6);
+        jitter = false; hideLabel();
+        say('Floor plan repaired');
+        const px = f.group.position.x, pz = f.group.position.z;
+        await tween(reduced() ? 1 : 800, e => { setBig(1 - e); f.group.position.x = px * (1 - e); f.group.position.z = pz * (1 - e); });
+        f.group.position.set(0, 0, 0); f.group.scale.set(1, 1, 1);
+        f.lines.forEach((m, i) => m.color.setHex(saved[i])); f.plate.material.color.setHex(plateHex);
+        SND("dock");
+        await greenRings(w);
+        SND("scanline");
+        if(window.PNHandler) PNHandler.say(r && r.ok === false ? "Close enough. The floor's back in place." : "Floor plan's back. The building's whole again.");
+        showLabel('FLOOR PLAN REPAIRED', 'green');
+        await wait(900);
+        hideLabel(); w.end();
+        spinning = true;
+      }
+
+      // ---------- The blackout: the floors go dark one at a time (after the fuse box in the heist) ----------
+      async function blackout(){
+        const wd = shortWatch('Cameras going dark');
+        say('Cameras going dark…');
+        SND("rise");
+        for(const [i, f] of order.slice().reverse().entries()){
+          const ws = f.boxes.map(b => b.userData.win);
+          for(let k = 0; k < 3; k++){ ws.forEach(w => w.draw(k % 2 ? w.a * w.b : Math.round(w.a * w.b * 0.3))); await wait(90); }
+          await tween(420, e => ws.forEach(w => w.draw(Math.round((1 - e) * w.a * w.b))));
+          // the whole floor goes black: edges and room glass dim right down
+          f.lines.forEach(m => { m.transparent = true; m.opacity = 0.18; m.needsUpdate = true; });
+          f.boxes.forEach(b => { b.material.emissiveIntensity = 0.02; b.material.opacity = 0.06; b.material.needsUpdate = true; });
+          if(f.plate && f.plate.material){ f.plate.material.opacity = 0.15; f.plate.material.needsUpdate = true; }
+          SND("clamp"); ring(f.yOffset + 0.5, 0x333333);
+          wd.progress((i + 1) / (order.length + 1));
+          await wait(380);
+        }
+        bpEvent('blackout');
+        weakPulse = false;
+        card('i-dark', `<b>CAMERAS DARK</b>Every ceiling relay powered: the lights and cameras are off.`);
+        showLabel('CAMERAS DARK', 'green');
+        if(window.PNHandler) PNHandler.say("Lights out. Their cameras are blind. Keep moving.");
+        await wait(1100);
+        hideLabel(); wd.end();
+      }
+
+      let weakPulse = true, hiddenVault = null;
       async function afterAssembly(){
+        // Round 15: chapter 4, the plan (no twists in this chapter)
+        if(window.PNMode){ PNMode.chapter("plan"); await PNMode.chapterCard(4, "The plan"); }
+        watchStart('Lights on');
         // Lit windows: every room has a × b windows, so every room on a floor has exactly N lights
         say('Powering up…'); watchLabel('Lights on');
         for(const [fi, f] of order.entries()){
@@ -701,7 +798,7 @@ function powerUpPrompt(title){
         card('i-weak', `<b>WEAK POINT: ${wName.toUpperCase()}</b>N=${weak.n} has only ${fewest} factor pair${fewest === 1 ? '' : 's'}: the fewest rooms, so the fewest guards.`);
         if(PN) PN.updateAgent({ weakFloor: wName, weakN: weak.n });
         if(window.PNHandler) PNHandler.say(`${wName} only has ${fewest} factor pairs, so the fewest rooms to guard. That's our way in.`);
-        let pulse = true; (function pulseWeak(t){ if(!pulse) return; const k = 0.5 + 0.5 * Math.abs(Math.sin(t / 300)); weak.lines.forEach(m => m.opacity = k); requestAnimationFrame(pulseWeak); })(0);
+        weakPulse = true; (function pulseWeak(t){ if(!weakPulse) return; const k = 0.5 + 0.5 * Math.abs(Math.sin(t / 300)); weak.lines.forEach(m => m.opacity = k); requestAnimationFrame(pulseWeak); })(0);
         weak.lines.forEach(m => m.transparent = true);
         await wait(1400);
 
@@ -713,7 +810,7 @@ function powerUpPrompt(title){
           const g = new THREE.BoxGeometry(size, 10, size);
           const vault = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ color: 0xffc94d, emissive: 0xffc94d, emissiveIntensity: 0.5, transparent: true, opacity: 0.35 }));
           vault.add(new THREE.LineSegments(new THREE.EdgesGeometry(g), new THREE.LineBasicMaterial({ color: 0xffe9a3 })));
-          vault.position.y = -30; mainGroup.add(vault);
+          vault.position.y = -30; mainGroup.add(vault); hiddenVault = vault;
           SND("rise");
           await tween(900, e => { vault.position.y = -30 + e * 20; });
           ring(-5, 0xffc94d); SND("dock");
@@ -727,9 +824,8 @@ function powerUpPrompt(title){
         watchLabel('Planning the way in');
         await recon(weak);
         enableExplore();
-        // Round 14: the WATCH ends with the route drawn; only then can the blueprint twists play
+        // The WATCH ends with the route drawn. Round 15: no twists in the plan; they happen in the heist.
         watchEnd();
-        await blueprintTwists();
         document.getElementById('floorInfo').textContent = 'Drag to turn the building. Click a floor to pull it out.';
         say(`${PN ? PN.mission().target.toUpperCase() : 'TARGET'} // READY`);
         if(window.bpReady) window.bpReady();
@@ -745,7 +841,7 @@ function powerUpPrompt(title){
         g.fillText(text, cv.width / 2, 38);
         const tex = new THREE.CanvasTexture(cv); tex.anisotropy = 4;
         const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, depthTest: false, transparent: true, opacity: 0 }));
-        sp.scale.set(w / 8, 36 / 8, 1); sp.renderOrder = 20;
+        sp.scale.set(w / 8, 36 / 8, 1); sp.renderOrder = 20; sp.userData.text = text;
         return sp;
       }
       function guardDot(){
@@ -778,6 +874,7 @@ function powerUpPrompt(title){
         frame.position.set(fx, top / 2, fz); frame.userData.op = 0.35; g.add(frame);
         g.visible = false; return g;
       }
+      let heistData = null;
       async function recon(weak){
         spinning = false;
         // Face the building the way it was built, so the route reads clearly
@@ -905,10 +1002,13 @@ function powerUpPrompt(title){
         if(PN) PN.updateAgent({ route: { floor: wName, guards, viaRoof, session: PN.getAgent() && PN.getAgent().sessionId } });
         await wait(700);
         agent.position.copy(pts[0]); halo.position.copy(pts[0]); tag.position.copy(pts[0]).add(V(0, 8, 0));
+        // Round 15: the route drawn here becomes the heist path in chapter 5
+        heistData = { pts, agent, halo, tag, keyRoom, weak, wallAt, onX, sx, sz, S, yW, perFloor, door: V(wallAt.x, yW, wallAt.z) };
         spinning = true;
       }
 
       // Explore: drag to rotate, hover a room for its name, click a floor to pull it out
+      let heistOn = false, exploreReset = () => {};
       function enableExplore(){
         const el = renderer.domElement, tip = document.getElementById('roomTip'), info = document.getElementById('floorInfo');
         const ray = new THREE.Raycaster(), mouse = new THREE.Vector2();
@@ -922,8 +1022,12 @@ function powerUpPrompt(title){
           const h = ray.intersectObjects(boxes, false)[0];
           return h ? h.object : null;
         };
-        el.addEventListener('pointerdown', e => { drag = { x: e.clientX, rot: mainGroup.rotation.y }; moved = 0; spinning = false; el.setPointerCapture(e.pointerId); el.style.cursor = 'grabbing'; });
+        // Round 15: in the heist the building stays still; put back any floor that's pulled out
+        exploreReset = () => { clearTimeout(resume); drag = null; tip.style.display = 'none'; el.style.cursor = 'default';
+          if(picked){ picked.group.position.set(0, 0, 0); labelFor(picked.n)?.classList.remove('picked'); picked = null; info.textContent = ''; } };
+        el.addEventListener('pointerdown', e => { if(heistOn) return; drag = { x: e.clientX, rot: mainGroup.rotation.y }; moved = 0; spinning = false; el.setPointerCapture(e.pointerId); el.style.cursor = 'grabbing'; });
         el.addEventListener('pointermove', e => {
+          if(heistOn) return;
           if(drag){ moved = Math.max(moved, Math.abs(e.clientX - drag.x)); rotationY = drag.rot + (e.clientX - drag.x) * 0.01; mainGroup.rotation.y = rotationY; tip.style.display = 'none'; return; }
           const o = hit(e);
           if(o){ const w = o.userData.win; tip.style.display = 'block'; tip.style.left = (e.clientX + 14) + 'px'; tip.style.top = (e.clientY + 10) + 'px'; tip.textContent = `${roomName(w.a, w.b)} · ${w.a} × ${w.b} · ${w.a * w.b} lights`; el.style.cursor = 'pointer'; }
@@ -931,6 +1035,7 @@ function powerUpPrompt(title){
         });
         el.addEventListener('pointerleave', () => { tip.style.display = 'none'; });
         el.addEventListener('pointerup', e => {
+          if(heistOn || !drag) return;
           el.style.cursor = 'grab';
           const wasDrag = moved > 4; drag = null;
           clearTimeout(resume); resume = setTimeout(() => { if(!picked) spinning = true; }, 3000);
@@ -950,6 +1055,301 @@ function powerUpPrompt(title){
         });
       }
 
+
+      // ---------- Chapter 5: the heist ----------
+      // The route from the plan becomes the heist path. The crew walks it in stages; at each waypoint that has a
+      // twist this mission, a short intro plays (WATCH), then the twist, then a green tick and on they go.
+      // Waypoints, in order: the fire door (entry), the fuse box (power), the key room / Plan B (planb),
+      // the strongroom (strongroom), then the vault.
+      const V3 = (x, y, z) => new THREE.Vector3(x, y, z);
+      // The crew's trail stays lit behind them
+      const TRAIL_MAX = 8000, trailArr = new Float32Array(TRAIL_MAX * 3);
+      const trailGeo = new THREE.BufferGeometry(); trailGeo.setAttribute('position', new THREE.BufferAttribute(trailArr, 3)); trailGeo.setDrawRange(0, 0);
+      const trail = new THREE.Line(trailGeo, new THREE.LineBasicMaterial({ color: 0x9ff0ff, transparent: true, opacity: 0.95, depthTest: false }));
+      trail.frustumCulled = false; trail.renderOrder = 19; trail.name = 'crewTrail';
+      let trailN = 0;
+      function addTrail(p){
+        if(trailN >= TRAIL_MAX) return;
+        if(trailN){ const i = (trailN - 1) * 3; if(Math.hypot(trailArr[i] - p.x, trailArr[i + 1] - p.y, trailArr[i + 2] - p.z) < 0.6) return; }
+        trailArr.set([p.x, p.y, p.z], trailN * 3); trailN++;
+        trailGeo.attributes.position.needsUpdate = true; trailGeo.setDrawRange(0, trailN);
+      }
+      function placeCrew(p){ const D = heistData; D.agent.position.copy(p); D.halo.position.copy(p); D.tag.position.copy(p).add(V3(0, 8, 0)); addTrail(p); }
+      // A polyline walk: straight legs, constant speed
+      function polyAt(points, lens, total, u){
+        let d = u * total;
+        for(let i = 0; i < lens.length; i++){ if(d <= lens[i] || i === lens.length - 1) return points[i].clone().lerp(points[i + 1], lens[i] ? Math.min(1, d / lens[i]) : 1); d -= lens[i]; }
+        return points[points.length - 1].clone();
+      }
+      async function walk(points, perUnit = 22, onK = null){
+        if(points.length < 2) return;
+        const lens = points.slice(1).map((q, i) => q.distanceTo(points[i])), total = lens.reduce((a, b) => a + b, 0);
+        if(total < 0.01) return;
+        const ms = Math.max(600, Math.min(4200, total * perUnit));
+        await tween(ms, e => { placeCrew(polyAt(points, lens, total, Math.min(1, e))); if(onK) onK(e); }, p => p);
+        placeCrew(points[points.length - 1]);
+      }
+      // A moving WATCH: the bar stays up between moves (no flicker); the intros hide it before a twist opens
+      let moveW = null;
+      function moveWatch(label){ if(moveW) moveW.end(); moveW = window.PNMode ? PNMode.watch(label) : null; }
+      function moveEnd(){ if(moveW){ moveW.end(); moveW = null; } }
+      async function move(label, line, points, quick){
+        moveWatch(label); say('HEIST // ' + label); if(line && window.PNHandler) PNHandler.say(line);
+        await walk(points, quick ? 14 : 22, k => { if(moveW) moveW.progress(k); });
+      }
+      // A twist waits for every WATCH to end, so the move's WATCH ends before PNTwistSlot.run; the intro runs its own
+      // WATCH and hides the bar at the end
+      function introWatch(label, seconds){ moveEnd(); return shortWatch(label, seconds); }
+      // A green tick on the building where a waypoint is cleared
+      function tickAt(pos, name){
+        const cv = document.createElement('canvas'); cv.width = cv.height = 96; const g = cv.getContext('2d');
+        g.fillStyle = 'rgba(4,20,14,.92)'; g.strokeStyle = '#2fbf8a'; g.lineWidth = 7; g.beginPath(); g.arc(48, 48, 40, 0, Math.PI * 2); g.fill(); g.stroke();
+        g.strokeStyle = '#7dffc4'; g.lineWidth = 10; g.lineCap = 'round'; g.lineJoin = 'round'; g.beginPath(); g.moveTo(28, 50); g.lineTo(43, 64); g.lineTo(70, 34); g.stroke();
+        const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(cv), depthTest: false, transparent: true }));
+        sp.scale.set(8, 8, 1); sp.position.copy(pos).add(V3(0, 13, 0)); sp.renderOrder = 22; sp.name = 'tick-' + name; mainGroup.add(sp);
+        const rg = new THREE.Mesh(new THREE.RingGeometry(3.4, 4.2, 40), new THREE.MeshBasicMaterial({ color: 0x2fbf8a, transparent: true, opacity: 0.9, side: THREE.DoubleSide, depthTest: false }));
+        rg.rotation.x = -Math.PI / 2; rg.position.copy(pos).add(V3(0, 0.3, 0)); rg.renderOrder = 20; mainGroup.add(rg);
+        tween(420, e => sp.scale.setScalar(8 * (0.4 + 0.6 * e)), easeOutBack);
+        SND("verified"); bpEvent('tick:' + name);
+      }
+      // Static over the stage for a moment (comms crackle)
+      function stageStatic(ms = 900){
+        const cv = document.createElement('canvas'); cv.width = 320; cv.height = 180;
+        cv.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;z-index:4;pointer-events:none;image-rendering:pixelated;mix-blend-mode:screen;opacity:.7';
+        stageEl.appendChild(cv); const g = cv.getContext('2d'); let on = true;
+        (function noise(){ if(!on) return; const im = g.createImageData(320, 180); for(let i = 0; i < im.data.length; i += 4){ const v = Math.random() * 255; im.data[i] = v * .6; im.data[i + 1] = v; im.data[i + 2] = v * .9; im.data[i + 3] = Math.random() < .5 ? 110 : 0; } g.putImageData(im, 0, 0); requestAnimationFrame(noise); })();
+        return wait(ms).then(() => { on = false; cv.remove(); });
+      }
+      function arrowRoute(points, color, name){
+        const path = new THREE.CurvePath();
+        for(let i = 1; i < points.length; i++) if(points[i].distanceTo(points[i - 1]) > 0.01) path.add(new THREE.LineCurve3(points[i - 1].clone(), points[i].clone()));
+        const dense = path.getSpacedPoints(160), geo = new THREE.BufferGeometry().setFromPoints(dense);
+        const line = new THREE.Line(geo, new THREE.LineBasicMaterial({ color, depthTest: false, transparent: true }));
+        line.renderOrder = 18; line.name = name; line.frustumCulled = false; geo.setDrawRange(0, 0); mainGroup.add(line);
+        const lens = path.getCurveLengths(), total = path.getLength(), cones = [];
+        path.curves.forEach((cv, i) => {
+          const d = cv.v2.clone().sub(cv.v1); if(d.length() < 3) return;
+          const cone = new THREE.Mesh(new THREE.ConeGeometry(2.4, 5.5, 12), new THREE.MeshBasicMaterial({ color, depthTest: false, transparent: true }));
+          cone.quaternion.setFromUnitVectors(V3(0, 1, 0), d.clone().normalize());
+          cone.position.copy(cv.v1).add(d.multiplyScalar(0.6)); cone.renderOrder = 19; cone.visible = false; cone.userData.at = (lens[i] - cv.getLength() * 0.4) / total;
+          mainGroup.add(cone); cones.push(cone);
+        });
+        return tween(1400, e => { geo.setDrawRange(0, Math.floor(e * dense.length)); cones.forEach(c => { if(e >= c.userData.at) c.visible = true; }); }, p => p)
+          .then(() => { geo.setDrawRange(0, dense.length); cones.forEach(c => c.visible = true); return line; });
+      }
+
+      const hasTw = p => !!(window.PNTwistSlot && PNTwistSlot.has(p));
+      async function heist(){
+        const D = heistData; if(!D) return;
+        heistOn = true; exploreReset(); spinning = false;
+        floorGroups.forEach(f => f.group.position.set(0, 0, 0));
+        document.getElementById('floorInfo').textContent = '';
+        const lg = document.getElementById('bpLegend'); if(lg) lg.classList.remove('on');
+        // Fewer labels on the building in the heist: the crew, the key and the guards stay
+        mainGroup.traverse(o => { if(o.isSprite && ['FIRE STAIRS', 'CEO', 'LIFT'].includes(o.userData.text)) o.visible = false; });
+        if(window.PNMode){ PNMode.chapter("heist"); await PNMode.chapterCard(5, "The heist"); }
+        // Face the building the way the route was planned
+        const r0 = ((mainGroup.rotation.y % (Math.PI * 2)) + Math.PI * 3) % (Math.PI * 2) - Math.PI;
+        await tween(reduced() ? 1 : 700, e => { mainGroup.rotation.y = rotationY = r0 * (1 - e); });
+        mainGroup.rotation.y = rotationY = 0;
+        mainGroup.add(trail); trailN = 0; placeCrew(D.pts[0]);
+        say(`${PN ? PN.mission().target.toUpperCase() : 'TARGET'} // HEIST IN PROGRESS`);
+
+        // GO GO GO
+        const w0 = shortWatch('GO GO GO', 2);
+        const go = document.createElement('div'); go.className = 'bp-go'; go.textContent = 'GO GO GO'; stageEl.appendChild(go);
+        SND("powerup"); bpEvent('go');
+        if(window.PNHandler) PNHandler.say("Go, go, go. Stick to the route.");
+        let base = 0;
+        if(!reduced()){
+          follow.dir.copy(camera.position).sub(camLook).normalize();
+          follow.dist = camera.position.distanceTo(camLook); base = follow.dist * 0.8; follow.want = base;
+          follow.target = D.agent.position; follow.on = true;
+        }
+        await wait(2000); go.remove(); w0.end();
+        const push = k => { if(base) follow.want = base * k; };
+
+        // The pieces of the path
+        const doorIdx = Math.max(0, D.pts.findIndex(p => p.distanceTo(D.door) < 0.01));
+        const toDoor = D.pts.slice(0, doorIdx + 1), inside = D.pts.slice(doorIdx);
+        const keyPt = inside[inside.length - 1].clone();
+        const nIn = D.onX ? V3(-D.sx, 0, 0) : V3(0, 0, -D.sz), along = D.onX ? V3(0, 0, 1) : V3(1, 0, 0);
+        const alongPos = D.onX ? D.door.z : D.door.x, alongExt = D.onX ? maxExtentZ : maxExtentX;
+        const off = Math.min(16, alongExt * 0.45) * (alongPos > 0 ? -1 : 1);
+        const fusePt = D.door.clone().addScaledVector(along, off).addScaledVector(nIn, 6);
+        const lift = y => V3(D.S.x, y, D.S.z);
+        const f2 = floorGroups[1], y2 = f2.yOffset + 1.2;
+        let here = D.pts[0].clone();
+
+        // 1. The way in: the fire door (guard patrols)
+        await move('Moving to the door', 'Moving to the door.', toDoor, !hasTw('entry'));
+        here = D.door.clone();
+        if(hasTw('entry')){
+          let guards = [], cctv = null, pacing = true;
+          const intro = async () => {
+            const w = introWatch('Guards on the door', 4);
+            push(0.8);
+            guards = [0, 1].map(k => { const gd = guardDot(); gd.scale.set(5.5, 5.5, 1); gd.name = 'guard'; mainGroup.add(gd); return gd; });
+            const gp = (k, t) => D.door.clone().addScaledVector(nIn, 7 + k * 5).addScaledVector(along, Math.sin(t / 700 + k * Math.PI) * 9);
+            guards.forEach((gd, k) => gd.position.copy(gp(k, 0)));
+            fadeIn(guards); SND("alarm");
+            (function pace(t){ if(!pacing) return; if(!reduced()) guards.forEach((gd, k) => gd.position.copy(gp(k, t))); requestAnimationFrame(pace); })(0);
+            await wait(600);
+            cctv = document.createElement('div'); cctv.className = 'bp-cctv';
+            cctv.innerHTML = `<i></i><i></i><i></i><i></i><span class="rec"><b>●</b> REC</span><span class="cam">CAM 04 · FIRE DOOR</span><span class="ts">${new Date().toLocaleTimeString('en-GB')}</span>`;
+            stageEl.appendChild(cctv); SND("tag");
+            showLabel('GUARDS ON THE DOOR', 'red');
+            if(window.PNHandler) PNHandler.say("Guards on the door. Two of them. Watch their timings.");
+            await wait(3000);
+            w.end();
+          };
+          moveEnd(); await PNTwistSlot.run('entry', { intro });
+          bpEvent('twist:entry');
+          pacing = false; guards.forEach(gd => mainGroup.remove(gd)); if(cctv) cctv.remove(); hideLabel(); push(1);
+          tickAt(D.door, 'entry');
+          await wait(500);
+        }
+
+        // 2. The fuse box on the weak floor's wall (ceiling relays, then the blackout)
+        if(hasTw('power')){
+          await move('Moving to the fuse box', "Door's clear. Heading for the fuse box.", [here, fusePt]);
+          here = fusePt.clone();
+          const intro = async () => {
+            const w = introWatch('Fuse box', 4);
+            const box = new THREE.Group(); box.name = 'fuseBox';
+            box.position.copy(D.door).addScaledVector(along, off).addScaledVector(nIn, 1.2); box.position.y = D.yW + 6;
+            box.rotation.y = Math.atan2(nIn.x, nIn.z);
+            const bodyG = new THREE.BoxGeometry(5, 6.5, 1.8);
+            const body = new THREE.Mesh(bodyG, new THREE.MeshBasicMaterial({ color: 0x24404a, transparent: true, opacity: 0.95 }));
+            body.add(new THREE.LineSegments(new THREE.EdgesGeometry(bodyG), new THREE.LineBasicMaterial({ color: 0xffc94d })));
+            box.add(body);
+            const hinge = new THREE.Group(); hinge.position.set(-2.5, 0, 1); box.add(hinge);
+            const panelG = new THREE.BoxGeometry(5, 6.5, 0.3);
+            const panel = new THREE.Mesh(panelG, new THREE.MeshBasicMaterial({ color: 0x3b6470 }));
+            panel.add(new THREE.LineSegments(new THREE.EdgesGeometry(panelG), new THREE.LineBasicMaterial({ color: 0xffe14d })));
+            panel.position.set(2.5, 0, 0.15); hinge.add(panel);
+            // Fuses inside, seen when the panel swings open
+            for(let k = 0; k < 3; k++){ const fu = new THREE.Mesh(new THREE.BoxGeometry(0.9, 3.2, 0.4), new THREE.MeshBasicMaterial({ color: 0xff4f6d })); fu.position.set(-1.4 + k * 1.4, 0, 0.8); box.add(fu); }
+            mainGroup.add(box);
+            SND("zoom"); push(0.6);
+            showLabel('FUSE BOX', 'gold');
+            if(window.PNHandler) PNHandler.say("Fuse box. Get that panel open.");
+            await wait(1100);
+            SND("clamp");
+            await tween(reduced() ? 1 : 520, e => { hinge.rotation.y = -1.9 * e; }, easeOutBack);
+            // Sparks
+            SND("static", 0.5); SND("glitch");
+            const sparks = [];
+            for(let i = 0; i < 18; i++){
+              const s = new THREE.Mesh(new THREE.SphereGeometry(0.35, 6, 6), new THREE.MeshBasicMaterial({ color: i % 3 ? 0xffe14d : 0xffffff, transparent: true, depthTest: false }));
+              s.position.copy(box.position).addScaledVector(nIn, 1.8); s.renderOrder = 23;
+              s.userData.v = nIn.clone().multiplyScalar(4 + Math.random() * 6).add(along.clone().multiplyScalar((Math.random() - 0.5) * 12)).add(V3(0, Math.random() * 8, 0));
+              mainGroup.add(s); sparks.push(s);
+            }
+            const p0 = sparks.map(s => s.position.clone());
+            await tween(900, e => sparks.forEach((s, i) => { s.position.copy(p0[i]).addScaledVector(s.userData.v, e * 1.2); s.position.y -= 9 * e * e; s.material.opacity = 1 - e; }), p => p);
+            sparks.forEach(s => mainGroup.remove(s));
+            await wait(1400);
+            w.end();
+          };
+          moveEnd(); const r = await PNTwistSlot.run('power', { intro });
+          bpEvent('twist:power');
+          hideLabel(); push(1);
+          if(r && r.effect === 'dark') await blackout();
+          tickAt(fusePt, 'power');
+          await wait(500);
+        }
+
+        // 3. The key room. With Plan B, the key card is in a deposit box in the basement.
+        const keyLine = hasTw('power') ? 'Lights out. Heading for the key room.' : "Door's clear. Heading for the key room.";
+        const toKey = [here, ...(inside.length > 1 ? inside.slice(1) : [D.door])];
+        await move('Moving to the key room', keyLine, toKey, !hasTw('planb'));
+        here = keyPt.clone();
+        if(hasTw('planb')){
+          const BY = -16.8, depPt = V3(maxExtentX * 0.55, BY, maxExtentZ * 0.5);
+          const pathB = [keyPt, lift(D.yW), lift(BY), depPt];
+          const intro = async () => {
+            const w = introWatch('Change of plan', 5);
+            SND("static", 0.9); SND("radio");
+            showLabel('COMMS · INCOMING', 'blue');
+            await stageStatic(900);
+            if(window.PNHandler) PNHandler.say("Change of plan. The key card is in a deposit box in the basement.");
+            // The basement: a plate under floor 1
+            const pg = new THREE.BoxGeometry(maxExtentX * 1.8, 0.6, maxExtentZ * 1.8);
+            const plate = new THREE.Mesh(pg, new THREE.MeshBasicMaterial({ color: 0x3a7bff, transparent: true, opacity: 0, depthWrite: false }));
+            plate.userData.op = 0.18; plate.name = 'basementPlate';
+            const pe = new THREE.LineSegments(new THREE.EdgesGeometry(pg), new THREE.LineBasicMaterial({ color: 0x8fb4ff, transparent: true, opacity: 0 })); pe.userData.op = 0.9; plate.add(pe);
+            plate.position.set(5, BY - 1.2, 4); mainGroup.add(plate);
+            SND("rise"); await fadeIn([plate], 700);
+            const dep = new THREE.Group(); dep.name = 'depositBoxes';
+            for(let i = 0; i < 3; i++) for(let j = 0; j < 2; j++){
+              const bg = new THREE.BoxGeometry(2.4, 2.4, 2.4), bm = new THREE.Mesh(bg, new THREE.MeshBasicMaterial({ color: 0xffc94d, transparent: true, opacity: 0.5 }));
+              bm.add(new THREE.LineSegments(new THREE.EdgesGeometry(bg), new THREE.LineBasicMaterial({ color: 0xffe9a3 }))); bm.position.set((i - 1) * 3, 1.4 + j * 3, -3); dep.add(bm);
+            }
+            dep.position.copy(depPt); mainGroup.add(dep);
+            // The new route: a blue arrow down to the basement
+            SND("lockon");
+            showLabel('PLAN B · EMERGENCY PROTOCOL', 'blue');
+            await arrowRoute(pathB, 0x3a7bff, 'planbRoute');
+            bpEvent('planb-route');
+            await walk(pathB, 18);
+            await wait(500);
+            w.end();
+          };
+          moveEnd(); await PNTwistSlot.run('planb', { intro });
+          bpEvent('twist:planb');
+          hideLabel();
+          tickAt(depPt, 'planb');
+          await wait(400);
+          await move('Back up to the route', 'Got the key card. Back up to the route.', pathB.slice().reverse(), true);
+        }
+
+        // 4. The strongroom on the vault floor (floor 2)
+        const cand = f2.rooms.map((r, i) => ({ r, i })).filter(o => o.r !== D.keyRoom);
+        const pickS = (cand.find(o => o.r.a === o.r.b) || cand.sort((a, b) => a.r.b / a.r.a - b.r.b / b.r.a)[0]) || { r: f2.rooms[0], i: 0 };
+        const sRoom = pickS.r, sMesh = f2.boxes[pickS.i], sPt = V3(sRoom.x, y2, sRoom.z);
+        const toStrong = D.weak === f2 ? [here, sPt] : [here, lift(D.yW), lift(y2), sPt];
+        const hasS = hasTw('strongroom');
+        await move('Moving to the strongroom', 'Heading for the strongroom.', toStrong, !hasS);
+        here = sPt.clone();
+        if(hasS){
+          let glow = true;
+          const lineM = sMesh.children.find(c => c.isLineSegments)?.material;
+          const intro = async () => {
+            const w = introWatch('Strongroom ahead', 4);
+            sMesh.material.color.set(0xff4f6d); sMesh.material.emissive.set(0xff4f6d); sMesh.material.opacity = 0.5; sMesh.material.needsUpdate = true;
+            if(lineM){ lineM.color.set(0xff4f6d); lineM.transparent = true; lineM.opacity = 1; }
+            (function pulse(t){ if(!glow) return; sMesh.material.emissiveIntensity = reduced() ? 0.6 : 0.35 + 0.45 * (0.5 + 0.5 * Math.sin(t / 380)); requestAnimationFrame(pulse); })(0);
+            ring(y2 + 0.3, 0xff4f6d); SND("ping"); push(0.8);
+            showLabel('PRESSURE PLATES', 'red');
+            if(window.PNHandler) PNHandler.say("Strongroom. The floor is pressure plated. Careful.");
+            bpEvent('strong-glow');
+            await wait(3200);
+            w.end();
+          };
+          moveEnd(); await PNTwistSlot.run('strongroom', { intro });
+          bpEvent('twist:strongroom');
+          glow = false; hideLabel(); push(1);
+          sMesh.material.color.set(0x2fbf8a); sMesh.material.emissive.set(0x2fbf8a); sMesh.material.emissiveIntensity = 0.3; sMesh.material.opacity = 0.2;
+          if(lineM) lineM.color.set(0x2fbf8a);
+          tickAt(sPt, 'strongroom');
+          await wait(500);
+        }
+
+        // 5. The vault: the hidden vault in the basement, or the vault chamber on floor 2
+        const vPt = hiddenVault ? V3(0, hiddenVault.position.y, 0) : sPt;
+        if(hiddenVault) await move('Moving to the vault', hasS ? 'Through the strongroom. Down to the vault.' : 'Down to the vault.', [here, lift(y2), lift(vPt.y), vPt]);
+        moveEnd();
+        const wv = shortWatch('At the vault', 2.4);
+        ring(vPt.y + 0.3, 0xffc94d); SND("verified"); push(0.9);
+        showLabel('THE VAULT', 'gold'); bpEvent('vault');
+        if(window.PNHandler) PNHandler.say("We're at the vault. Get the locks open.");
+        await wait(2400);
+        wv.end();
+      }
+      window.bpHeist = heist;
+      window.bpObj = name => !!mainGroup.getObjectByName(name);   // test hook: is this object in the scene?
+
       // Final positions straight away when motion is reduced
       if(reduced()){
         floorGroups.forEach(f => { f.boxes.forEach(b => { b.scale.set(1, 1, 1); b.userData.win.draw(b.userData.win.a * b.userData.win.b); }); labelFor(f.n)?.classList.remove('waiting'); });
@@ -957,8 +1357,7 @@ function powerUpPrompt(title){
         camera.position.copy(CAM_FINAL.pos); camLook.copy(CAM_FINAL.look); spinning = true;
         { const fc = document.getElementById('floorsContainer'); if(fc && window.innerWidth > 900){ fc.classList.add('wide'); onResize(); } fitOn = true; fitCamera(true); }
         say('Blueprint assembled.');
-        watchStart(); watchAt(0.45);
-        return afterAssembly();
+        return corruptBeat().then(afterAssembly);
       }
 
       return (async () => {
@@ -968,7 +1367,7 @@ function powerUpPrompt(title){
         say('Decrypting floor plans…');
         watchStart();
         for(const [k, f] of order.entries()){
-          watchAt(0.02 + 0.05 * k);
+          watchAt(0.04 + 0.11 * k);
           labelFor(f.n)?.classList.remove('waiting');
           f.group.position.set(-420, BASE + k * GAP, 0);
           SND("laser");
@@ -991,7 +1390,7 @@ function powerUpPrompt(title){
           f.group.position.set(0, 0, 0);
           SND("dock"); ring(f.yOffset + 0.5, f.square ? 0xffc94d : 0x00ffcc);
           label?.classList.remove('docking');
-          watchAt(0.17 + 0.05 * (k + 1));
+          watchAt(0.37 + 0.11 * (k + 1));
           await wait(320);
         }
 
@@ -1007,15 +1406,18 @@ function powerUpPrompt(title){
         ]);
         beacon.visible = true; beacon.material.transparent = true;
         spinning = true;
-        watchAt(0.35);
+        watchAt(0.8);
         await exterior();
         { const fc = document.getElementById('floorsContainer'); if(fc && window.innerWidth > 900){ fc.classList.add('wide'); onResize(); }
           fitOn = true; fitCamera(false); }
         say(`${PN ? PN.mission().target.toUpperCase() : 'TARGET'} // STRUCTURE ASSEMBLED`);
         SND("success");
-        watchAt(0.42);
-        // Round 14: the blueprint twists no longer cut in here; they wait until the route is drawn (blueprintTwists)
+        { const h1 = document.querySelector("h1"); if(h1 && PN) h1.textContent = `${PN.mission().target}: blueprint complete`; }
+        watchAt(1);
         await wait(1600);
+        // Round 15: the assembly WATCH ends here; the corrupted floor (if it's in this mission), then chapter 4
+        watchEnd();
+        await corruptBeat();
         await afterAssembly();
       })();
     }

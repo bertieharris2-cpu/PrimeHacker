@@ -196,7 +196,7 @@
     const h = {
       progress(k){ if(ended) return; fill.style.transition = "width .3s linear"; fill.style.width = Math.round(Math.max(0, Math.min(1, k)) * 100) + "%"; },
       label(t){ if(!ended) bar.querySelector(".lab").innerHTML = t; },
-      end(){ if(ended) return; ended = true; clearTimeout(timer); watchCount = Math.max(0, watchCount - 1); if(watchCount === 0){ stopRain(); bar._skip = null; bar.classList.remove("canskip"); fill.style.width = "100%"; } settleIdle(); },
+      end(){ if(ended) return; ended = true; clearTimeout(timer); watchCount = Math.max(0, watchCount - 1); if(watchCount === 0){ stopRain(); bar._skip = null; bar.classList.remove("canskip"); fill.style.width = "100%"; if(state === "watch") state = "idle"; } settleIdle(); },
     };
     return h;
   }
