@@ -10,87 +10,110 @@
 <link rel="stylesheet" href="../shared/primenet.css">
 <style>
   /* Round 12 prototype: the ceiling relays on the student's own floor in 3D. Each cube sends electricity
-     through the ceiling to a room; with every relay powered, the floor (and the blueprint) goes dark. */
-  .stage3d{ position:relative; height:460px; padding:0; overflow:hidden; background:radial-gradient(ellipse at 50% 40%, rgba(20,60,70,.35), rgba(2,8,10,.9)); }
+     through the ceiling to a room; with every relay powered, the floor (and the blueprint) goes dark.
+     Round 14 (Bertie): the floor is large on the left and the relay is built on the right, by dragging.
+     ?mode=A (default) stacks square layers on a pallet; ?mode=B sorts cube crates off a conveyor belt. */
+  main.tw{ width:min(1500px,100%); }
+  .layout{ display:grid; grid-template-columns:minmax(0,1.3fr) minmax(400px,1fr); gap:16px; align-items:start; }
+  .left, .side{ display:flex; flex-direction:column; gap:10px; min-width:0; }
+  .stage3d{ position:relative; height:clamp(440px, calc(100vh - 300px), 640px); padding:0; overflow:hidden; background:radial-gradient(ellipse at 50% 40%, rgba(20,60,70,.35), rgba(2,8,10,.9)); }
   .stage3d .hud{ position:absolute; left:12px; top:10px; font-family:var(--font-ui); font-size:12px; letter-spacing:.18em; color:#ffe14d; pointer-events:none; text-shadow:0 0 8px rgba(0,0,0,.8); }
   .stage3d .hud b{ font-size:18px; }
+  .stage3d .cam{ position:absolute; right:12px; top:10px; font-family:var(--font-ui); font-size:11px; letter-spacing:.2em; color:rgba(160,240,255,.7); pointer-events:none; }
+  .stage3d .cam i{ font-style:normal; color:#ff6b8a; }
+  /* A line of light sweeps down the viewer when a relay powers (once, slowly: nothing flashes) */
+  .stage3d .scan{ position:absolute; left:0; right:0; top:0; height:3px; background:linear-gradient(90deg, transparent, #bff7ff 30%, #bff7ff 70%, transparent); box-shadow:0 0 16px #8feaff; opacity:0; pointer-events:none; }
+  .stage3d .scan.go{ animation:scanDown .8s linear 1; }
+  @keyframes scanDown{ 0%{ top:0; opacity:.9; } 100%{ top:100%; opacity:0; } }
   .stage3d .blackout{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-family:var(--font-ui); font-weight:700; letter-spacing:.3em; font-size:clamp(22px,4vw,40px); color:#ff4f6d; text-shadow:0 0 24px rgba(255,60,90,.8); opacity:0; pointer-events:none; transition:opacity .6s; }
   .stage3d .blackout.on{ opacity:1; }
-  .layout{ display:grid; grid-template-columns:minmax(0,1fr) 300px; gap:16px; align-items:start; }
-  .board{ padding:16px; }
-  .spot .tw-grid{ grid-template-columns:repeat(6, minmax(0,1fr)); }
-  .log{ padding:12px; display:flex; flex-direction:column; gap:6px; font-size:14px; color:var(--text-muted); }
-  .log h2{ margin:0 0 4px; font-family:var(--font-ui); font-size:13px; letter-spacing:.18em; color:var(--accent); }
-  .log b{ color:#fff3cf; }
+  .log{ display:flex; flex-wrap:wrap; gap:6px; font-size:14px; color:var(--text-muted); min-height:1.6em; align-items:center; }
+  .log .lab{ margin-right:4px; }
+  .log span.r{ border:1px solid rgba(255,201,77,.35); padding:3px 9px; background:rgba(255,201,77,.06); } .log b{ color:#fff3cf; }
   .table{ font-size:14px; color:var(--text-muted); border-top:1px solid var(--line); padding-top:8px; }
-  .table[hidden], .build[hidden], .spot[hidden], .draw[hidden], .rootq[hidden]{ display:none; }
+  [hidden]{ display:none !important; }
   .steps{ display:flex; gap:6px; font-family:var(--font-ui); font-size:12px; letter-spacing:.16em; }
   .steps span{ border:1px solid var(--line); padding:3px 8px; color:var(--text-faint); }
   .steps span.on{ color:var(--warning); border-color:var(--warning); }
   .steps span.done{ color:var(--ok); border-color:rgba(61,220,151,.5); }
-  .build{ padding:16px; display:grid; grid-template-columns:200px minmax(0,1fr); gap:16px; align-items:center; }
-  .ctrls{ display:flex; flex-direction:column; gap:12px; }
-  .ctrl{ display:flex; align-items:center; gap:10px; font-size:17px; }
-  .ctrl span.l{ width:150px; color:var(--text-muted); }
-  .ctrl button{ width:40px; height:40px; font-size:22px; padding:0; }
-  .ctrl b{ font-family:var(--font-mono); font-size:24px; min-width:34px; text-align:center; }
-  .count{ font-family:var(--font-mono); font-size:20px; } .count b{ color:var(--warning); }
-  .need{ font-family:var(--font-ui); font-size:19px; } .need b{ color:var(--accent); font-size:28px; }
-  .draw{ padding:16px; display:grid; grid-template-columns:auto minmax(0,1fr); gap:16px; align-items:start; }
-  .dg{ display:grid; gap:2px; touch-action:none; user-select:none; cursor:crosshair; grid-template-columns:repeat(8, 26px); }
-  .dg i{ width:26px; height:26px; background:rgba(var(--accent-rgb),.08); border:1px solid rgba(var(--accent-rgb),.25); }
-  .dg i.sel{ background:rgba(255,201,77,.45); border-color:#ffc94d; }
-  .dg.bad i.sel{ background:rgba(255,107,107,.4); border-color:#ff6b6b; }
-  .dside{ display:flex; flex-direction:column; gap:10px; }
-  .dside .row{ display:flex; gap:8px; flex-wrap:wrap; }
-  #stackArt svg, #boxArt svg{ max-width:190px !important; }
-  .rootq{ padding:16px; display:flex; flex-direction:column; gap:10px; }
-  .rootq .answer{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; font-size:17px; }
-  .rootq input{ width:80px; font-size:20px; text-align:center; padding:6px; }
-  .strip .cells{ display:grid; grid-template-columns:repeat(12, 1fr); gap:1px; touch-action:none; user-select:none; cursor:crosshair; max-width:440px; }
-  .strip .cells i{ height:22px; background:rgba(var(--accent-rgb),.08); border:1px solid rgba(var(--accent-rgb),.25); }
-  .strip .cells i.on{ background:rgba(255,201,77,.5); border-color:#ffc94d; }
-  .strip .sr{ font-family:var(--font-mono); font-size:14px; color:var(--text-muted); }
   .lab{ font-family:var(--font-ui); font-size:12px; letter-spacing:.16em; color:var(--text-faint); }
-  @media (max-width:880px){ .layout, .build, .draw{ grid-template-columns:1fr; } }
+  .need{ font-family:var(--font-ui); font-size:19px; } .need b{ color:var(--accent); font-size:28px; }
+  .count{ font-family:var(--font-mono); font-size:22px; min-height:1.5em; } .count b{ color:var(--warning); } .count sup{ font-size:.6em; color:var(--warning); }
+  .row{ display:flex; gap:8px; flex-wrap:wrap; }
+  .answer{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; font-size:17px; }
+  .answer input{ width:80px; font-size:20px; text-align:center; padding:6px; }
+  /* Mode A: the pallet. An isometric grid to draw a square layer on, and the stack that grows on it. */
+  .pallet{ padding:14px; display:flex; flex-direction:column; gap:10px; }
+  .pal{ display:block; width:100%; height:auto; touch-action:none; user-select:none; }
+  .pal .cell{ fill:rgba(var(--accent-rgb),.07); stroke:rgba(var(--accent-rgb),.38); stroke-width:1; cursor:crosshair; }
+  .pal .cell.sel{ fill:rgba(255,201,77,.45); stroke:#ffc94d; }
+  .pal.bad .cell.sel{ fill:rgba(255,107,107,.4); stroke:#ff6b6b; }
+  .pal.taken .cell{ cursor:default; }
+  .slab polygon{ stroke:#ffe7a8; stroke-width:1; } .slab line{ stroke:#ffe7a8; stroke-width:.7; opacity:.8; }
+  .pal .slab{ pointer-events:none; } .pal .slab.top{ pointer-events:auto; cursor:grab; } .pal.l3 .slab.top{ pointer-events:none; }
+  .pal.locked .slab polygon{ stroke:#ffffff; filter:drop-shadow(0 0 6px rgba(255,225,120,.9)); }
+  .pal .plab{ font:700 12px var(--font-ui); letter-spacing:.18em; fill:rgba(235,255,248,.45); }
+  .trayRow{ display:flex; gap:14px; align-items:center; flex-wrap:wrap; min-height:54px; }
+  .tray{ cursor:grab; touch-action:none; user-select:none; display:inline-block; padding:4px 6px; border:1px dashed rgba(255,201,77,.45); }
+  .tray svg{ display:block; }
+  #trayWrap{ display:flex; flex-direction:column; gap:4px; }
+  .ghost{ position:fixed; z-index:9000; pointer-events:none; transform:translate(-50%,-60%); filter:drop-shadow(0 0 10px rgba(255,201,77,.7)); opacity:.9; }
+  .ghost.over{ opacity:1; }
+  /* Mode B: the conveyor belt into the transformer bay */
+  .belt{ padding:14px; display:flex; flex-direction:column; gap:12px; }
+  .belt svg{ display:block; width:100%; height:auto; }
+  .belt .band{ fill:#0b1d22; stroke:#2c4c55; }
+  .belt .dash{ stroke:#2fbf8a; stroke-width:3; stroke-dasharray:16 14; opacity:.55; }
+  .belt .bay{ fill:rgba(255,179,71,.14); stroke:#ffb347; stroke-dasharray:5 4; }
+  .belt .gate{ stroke:#ffe14d; stroke-width:2; opacity:.7; }
+  .belt .blab{ font:700 11px var(--font-ui); letter-spacing:.18em; fill:rgba(235,255,248,.6); }
+  .crate .f{ fill:#173840; stroke:#8feaff; stroke-width:1.5; } .crate .t{ fill:#2a5a66; stroke:#8feaff; } .crate .s{ fill:#0f2a31; stroke:#8feaff; }
+  .crate text{ font:700 26px var(--font-mono); fill:#fff; text-anchor:middle; dominant-baseline:central; }
+  .crate.front .f{ stroke:#ffc94d; stroke-width:3; }
+  .crate.held .f{ fill:#2a3a2a; }
+  .decide{ display:flex; flex-direction:column; gap:10px; }
+  .decide .big{ font-family:var(--font-ui); font-size:20px; min-height:1.4em; } .decide .big b{ font-size:30px; color:var(--accent); }
+  .decide .row .pn-btn{ flex:1; font-size:15px; padding:14px 10px; }
+  .chips{ display:flex; gap:8px; flex-wrap:wrap; }
+  .chips button{ font-family:var(--font-mono); font-size:26px; padding:8px 18px; } .chips sup{ font-size:.6em; }
+  .chips button.bad{ border-color:var(--danger); color:var(--danger); }
+  .board{ padding:16px; }
+  .spot .tw-grid{ grid-template-columns:repeat(4, minmax(0,1fr)); }
+  @media (max-width:980px){ .layout{ grid-template-columns:1fr; } .stage3d{ height:420px; } }
+  /* Two columns: the controls are on the right, so ORACLE's panel docks bottom left, over the floor view, never over a button */
+  @media (min-width:981px){ body .pnh{ right:auto; left:18px; } }
+  @media (prefers-reduced-motion: reduce){ .stage3d .scan.go{ animation:none; } }
 </style>
 </head>
 <body>
 <main class="tw">
   <div class="tw-bar"><span class="steps"><span id="st1" class="on">1 · CUBE RELAYS</span><span id="st2">2 · RELAY BOARD</span></span><span>Relays powered: <b id="count">0</b> of <b id="total">0</b></span></div>
-  <section class="pn-panel stage3d" id="stage"><div class="hud">CEILING OF <span id="floorName">THE TARGET FLOOR</span> · TRANSFORMER LOAD <b id="hudN">0</b> / <b id="hudT">0</b> ROOMS</div><div class="blackout" id="blackout">BLACKOUT</div></section>
   <div class="layout">
-    <div>
-      <section class="pn-panel build" id="build" hidden>
-        <div id="boxArt"></div>
-        <div class="ctrls">
-          <div class="need">Relay needs <b class="needN"></b> blocks</div>
-          <div class="ctrl"><span class="l">Blocks along each side</span><button class="pn-btn" type="button" data-c="side" data-d="-1" aria-label="Fewer blocks along each side">−</button><b id="sideV">1</b><button class="pn-btn" type="button" data-c="side" data-d="1" aria-label="More blocks along each side">+</button></div>
-          <div class="ctrl"><span class="l">Layers</span><button class="pn-btn" type="button" data-c="lay" data-d="-1" aria-label="Fewer layers">−</button><b id="layV">1</b><button class="pn-btn" type="button" data-c="lay" data-d="1" aria-label="More layers">+</button></div>
-          <div class="count" id="countLine"></div>
-          <button class="pn-btn primary" type="button" id="lockBtn">Power the relay</button>
-        </div>
+    <div class="left">
+      <section class="pn-panel stage3d" id="stage"><div class="hud">CEILING OF <span id="floorName">THE TARGET FLOOR</span> · TRANSFORMER LOAD <b id="hudN">0</b> / <b id="hudT">0</b> ROOMS</div><div class="cam"><i>●</i> CAM 1 · CEILING</div><div class="scan" id="scan"></div><div class="blackout" id="blackout">BLACKOUT</div></section>
+      <div class="log" id="log"><span class="lab">RELAY LOG</span></div>
+      <div class="table" id="table" hidden></div>
+    </div>
+    <div class="side">
+      <div class="tw-msg" id="msg" aria-live="polite"></div>
+      <section class="pn-panel pallet" id="pallet" hidden>
+        <div class="need" id="needLine"></div>
+        <div class="answer" id="rootRow" hidden><label for="rootIn">Blocks along each side</label><input class="pn-input" id="rootIn" inputmode="numeric" maxlength="2"><button class="pn-btn small primary" type="button" id="rootBtn">Check</button><button class="pn-btn small" type="button" id="noCube">It can't be a cube</button></div>
+        <svg class="pal" id="pal" aria-label="The pallet"></svg>
+        <div class="trayRow"><div id="trayWrap" hidden><span class="lab">SPARE LAYER · DRAG IT ONTO THE STACK</span><div class="tray" id="tray"></div></div><div class="count" id="countLine"></div></div>
+        <div class="row" id="buildRow"><button class="pn-btn small" type="button" id="addBtn" disabled>Add a layer</button><button class="pn-btn small" type="button" id="unstackBtn" disabled>Take one off</button><button class="pn-btn small" type="button" id="clearBtn" disabled>Clear the pallet</button><button class="pn-btn small primary" type="button" id="lockBtn">Power the relay</button></div>
       </section>
-      <section class="pn-panel draw" id="draw" hidden>
-        <div><span class="lab">LAYER GRID</span><div class="dg" id="dg"></div></div>
-        <div class="dside">
-          <div class="need">Relay needs <b class="needN"></b> blocks</div>
-          <div id="stackArt"></div>
-          <div class="count" id="stackLine">No layer yet.</div>
-          <div class="row"><button class="pn-btn small" type="button" id="stackBtn" disabled>Stack a layer</button><button class="pn-btn small" type="button" id="unstackBtn" disabled>Take one off</button><button class="pn-btn small primary" type="button" id="drawLock" disabled>Power the relay</button></div>
+      <section class="pn-panel belt" id="beltPanel" hidden>
+        <svg id="beltSvg" viewBox="0 0 560 262" aria-label="The conveyor belt"></svg>
+        <div class="decide">
+          <div class="big" id="crateLine">Waiting for the first crate.</div>
+          <div class="row"><button class="pn-btn primary" type="button" id="loadBtn" disabled>Load it: a cube number</button><button class="pn-btn" type="button" id="rejBtn" disabled>Reject: not a cube</button></div>
+          <div id="rootQ" hidden><div class="lab" id="rootQLab"></div><div class="chips" id="chips"></div><div class="answer" id="rootRowB" hidden><label for="rootInB">Blocks along each side</label><input class="pn-input" id="rootInB" inputmode="numeric" maxlength="2"><button class="pn-btn small primary" type="button" id="rootBtnB">Check</button></div></div>
         </div>
-      </section>
-      <section class="pn-panel rootq" id="rootq" hidden>
-        <div class="need">Relay has <b class="needN"></b> blocks</div>
-        <span class="lab">CUBE ROOT</span>
-        <div class="strip"><div class="cells" id="cells"></div><span class="sr" id="stripRead">side ?</span></div>
-        <div class="answer"><label for="rootIn">Blocks along each side:</label><input class="pn-input" id="rootIn" inputmode="numeric" maxlength="2"><button class="pn-btn small primary" type="button" id="rootBtn">Check</button><button class="pn-btn small" type="button" id="noCube">It can't be a cube</button></div>
       </section>
       <section class="pn-panel board spot" id="spot" hidden><div class="tw-grid" id="grid"></div></section>
     </div>
-    <aside class="pn-panel log"><h2>RELAY LOG</h2><div id="log"></div><div class="table" id="table" hidden></div></aside>
   </div>
-  <div class="tw-msg" id="msg" aria-live="polite"></div>
 </main>
 
 <script src="../shared/vendor/three.min.js"></script>
@@ -105,24 +128,38 @@
   "use strict";
   const T = window.PNTwist, $ = id => document.getElementById(id);
   const L = T.peekLevel();
+  const MODE = new URLSearchParams(location.search).get("mode") === "B" ? "B" : "A";
+  const sp = () => (window.PNTest ? PNTest.speed() : 1);
+  const wait = ms => new Promise(r => setTimeout(r, ms / sp()));
+  const REDUCE = matchMedia("(prefers-reduced-motion: reduce)").matches || document.documentElement.classList.contains("pn-reduce-motion");
+  // Runs when the brief first folds away. (The brief zooms open by itself a moment after load, so "is it open now?" is no guide.)
+  const afterBrief = fn => window.addEventListener("pn-brief", function f(e){ if(e.detail.open) return; window.removeEventListener("pn-brief", f); fn(); });
   const GOALS = {
-    L1: "Build each relay as a <b>cube</b>: the same number of blocks along each side, and that many layers.",
-    L2: "Draw a <b>square layer</b>, then stack layers until it's a <b>cube</b> with the right number of blocks.",
-    L3: "Give each relay's <b>cube root</b>: how many blocks along each side. Or say it can't be a cube.",
+    A: { L1: "Build each relay as a <b>cube</b>: drag a <b>square layer</b> on the pallet, then stack layers until the count matches.",
+         L2: "Build each relay as a <b>cube</b>: drag a <b>square layer</b> on the pallet, then stack layers until the count matches.",
+         L3: "Give each relay's <b>cube root</b>: how many blocks along each side. Or say it can't be a cube." },
+    B: { L1: "Only <b>cube-number</b> crates go into the transformer. Load the cubes, reject the rest, and say which cube each one is.",
+         L2: "Only <b>cube-number</b> crates go into the transformer. Load the cubes, reject the rest, and say which cube each one is.",
+         L3: "Only <b>cube-number</b> crates go into the transformer. Load the cubes, reject the rest, and give each one's <b>cube root</b>." },
   };
   const GOAL2 = "Tap every <b>cube number</b> on the relay board. Each one powers another room.";
-  T.init({ id: "cubes3d", stage: "BLUEPRINT", title: "CEILING RELAYS", goal: GOALS[L],
+  T.init({ id: "cubes3d", stage: "BLUEPRINT", title: "CEILING RELAYS", goal: GOALS[MODE][L],
     example: "<b>27 = 3³</b>, a cube number: 3 blocks along each side and 3 layers, 3 × 3 × 3 = 27. The small ³ means three of that number multiplied together.",
     story: `This is the target floor of ${T.target()}. Every room's lights and cameras run back to one transformer. Wire each room in with a cube-number relay, then overload it: the whole floor blacks out.` });
+  $("st1").textContent = MODE === "B" ? "1 · LOAD THE CRATES" : "1 · STACK THE RELAYS";
 
   // ----- The 3D floor: the student's own weak floor -----
   const F = PNFloor3D.create($("stage"), {});
   const TH = F.THREE;
   const a0 = window.Primenet && Primenet.getAgent();
   $("floorName").textContent = (a0 && a0.weakFloor ? a0.weakFloor : "FLOOR N=" + F.n).toUpperCase();
-  F.camera.position.set(-10, 125, 135); F.look.set(-12, 0, 6);
+  // Camera: HOME frames the floor and the transformer; the page opens on a fly-in from FAR once the brief folds away
+  const HOME = { pos: new TH.Vector3(-4, 150, 166), look: new TH.Vector3(-14, 0, 4) };
+  const FAR = { pos: new TH.Vector3(-90, 300, 360), look: new TH.Vector3(-14, 0, 4) };
+  F.camera.position.copy(REDUCE ? HOME.pos : FAR.pos); F.look.copy(HOME.look);
   F.lightsOn(1000);
-  F.setSpin(0.0008);
+  F.setSpin(0.0005);
+  afterBrief(() => { if(!REDUCE){ T.SND("whoosh"); F.flyTo(HOME, 1800); } });
   // Round 12 feedback: wiring. One transformer outside the wall; a cable from it to each room's lights runs
   // along the ceiling in straight lines. Each cube number wires a room in; with every room on it, it overloads.
   const CY = F.H + 1.6, TX = -F.PLATE / 2 - 10;
@@ -137,20 +174,10 @@
     return { pts, line, plug, room: r, wired: 0 };
   });
   $("hudT").textContent = cables.length;
-  // Cameras: red lights on the floor corners
+  // Cameras: red lights on the floor corners (a slow blink, well under 1 Hz)
   const cams = [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([sx, sz]) => { const m = new TH.Mesh(new TH.SphereGeometry(1.8, 10, 10), new TH.MeshBasicMaterial({ color: 0xff3355 })); m.position.set(sx * (F.PLATE / 2 - 3), F.H - 2, sz * (F.PLATE / 2 - 3)); F.root.add(m); return m; });
-  F.onTick(now => cams.forEach((c, i) => { if(!c.userData.off) c.material.color.setHex(Math.sin(now / 220 + i) > 0 ? 0xff3355 : 0x661122); }));
+  F.onTick(now => cams.forEach((c, i) => { if(!c.userData.off) c.material.color.setHex(Math.sin(now / 320 + i) > 0 ? 0xff3355 : 0x661122); }));
 
-  function boxSVG(a, h, px = 64){
-    const u = Math.min(0.5 * px / a, 0.9 * px / (a + h)), c30 = 0.866, cx = px / 2, cy = px / 2;
-    const P = (x, y, z) => [(cx + (x - z) * c30 * u).toFixed(1), (cy + (x + z - a) * 0.5 * u - (y - h / 2) * u).toFixed(1)];
-    const poly = (pts, f) => `<polygon points="${pts.map(p => P(...p).join(",")).join(" ")}" fill="${f}" stroke="#ffe7a8" stroke-width="1"/>`;
-    const line = (a1, b1) => { const [x1, y1] = P(...a1), [x2, y2] = P(...b1); return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#ffe7a8" stroke-width=".6" opacity=".75"/>`; };
-    let g = poly([[0,h,0],[a,h,0],[a,h,a],[0,h,a]], "rgba(255,201,77,.55)") + poly([[a,0,0],[a,h,0],[a,h,a],[a,0,a]], "rgba(255,201,77,.3)") + poly([[0,0,a],[a,0,a],[a,h,a],[0,h,a]], "rgba(255,201,77,.18)");
-    for(let k = 1; k < a; k++){ g += line([k,h,0],[k,h,a]) + line([0,h,k],[a,h,k]) + line([a,0,k],[a,h,k]) + line([k,0,a],[k,h,a]); }
-    for(let k = 1; k < h; k++){ g += line([a,k,0],[a,k,a]) + line([0,k,a],[a,k,a]); }
-    return `<svg viewBox="0 0 ${px} ${px}" aria-hidden="true" style="width:100%;max-width:190px">${g}</svg>`;
-  }
   const cubeRoot = n => Math.round(Math.cbrt(n));
   const STEP1 = { L1: () => [8, 27, 64], L2: () => T.shuffle([27, 64, 125]), L3: () => T.shuffle([...T.shuffle([216, 343, 512, 729, 1000]).slice(0, 3), T.pick([100, 200, 300, 400, 500])]) };
   const s1 = STEP1[L]();
@@ -160,127 +187,356 @@
   const RELAYS = [...s1.filter(T.isCube), ...s2];
   $("total").textContent = RELAYS.length;
 
-  let found = 0, over = false;
+  let found = 0, over = false, camBusy = false;
   const alarm = T.alarm(3, () => end(false));
   function say(t, cls){ const m = $("msg"); m.textContent = t; m.className = "tw-msg" + (cls ? " " + cls : ""); }
   const between = n => { let a = 1; while((a + 1) ** 3 <= n) a++; return `${a} × ${a} × ${a} = ${a ** 3} and ${a + 1} × ${a + 1} × ${a + 1} = ${(a + 1) ** 3}`; };
-  // Each cube wires a room: a spark runs from the transformer along its cable, the cable goes live, the room's lights flare
+  const world = v => F.root.localToWorld(v.clone());
+  function scanline(){ const s = $("scan"); s.classList.remove("go"); void s.offsetWidth; s.classList.add("go"); T.SND("scanline"); }
+  // Each cube wires a room: the camera pushes in, a spark runs from the transformer along the cable, the cable
+  // goes live, the room's lights flare and a scanline sweeps the viewer. Then the camera eases back home.
   async function light(n){
     const c = cables[found % cables.length], room = c.room;
     found++; $("count").textContent = found;
     const r = cubeRoot(n);
-    if(!$("log").querySelector(`[data-n="${n}"]`)) $("log").insertAdjacentHTML("beforeend", `<div data-n="${n}"><b>${n} = ${r}³</b> = ${r} × ${r} × ${r} · ${room.name.toLowerCase()}</div>`);
+    if(!$("log").querySelector(`[data-n="${n}"]`)) $("log").insertAdjacentHTML("beforeend", `<span class="r" data-n="${n}"><b>${n} = ${r}³</b> · ${room.name.toLowerCase()}</span>`);
     T.SND("correct", found);
+    const cine = !REDUCE && !camBusy && !over;
+    if(cine){
+      camBusy = true; T.SND("zoom");
+      const mid = world(new TH.Vector3((TX + room.x) / 2, 6, room.z / 2));
+      F.flyTo({ pos: mid.clone().add(new TH.Vector3(14, 72, 96)), look: mid }, 900);
+    }
     for(let k = 1; k < c.pts.length; k++){ if(c.pts[k].distanceTo(c.pts[k - 1]) > 0.1) await F.pulse(c.pts[k - 1], c.pts[k], 0xffe14d, 160); }
     c.wired++;
     c.line.material = new TH.LineBasicMaterial({ color: c.wired > 1 ? 0xffffff : 0xffe14d });
     c.plug.material.color.setHex(0xffe14d);
     room.lights.draw(room.a * room.b, "rgba(255,240,120,1)");
     $("hudN").textContent = cables.filter(q => q.wired).length;
-    T.SND("clamp");
-    if(found === RELAYS.length) blackout();
+    scanline(); T.SND("chirp");
+    const last = found === RELAYS.length;
+    if(cine){ await wait(500); if(!last) await F.flyTo(HOME, 1000); camBusy = false; }
+    if(last) blackout();
   }
-  // Overload: the transformer flashes and sparks, the lights flicker, then room by room the floor goes black
+  // Overload: the camera swings round to the transformer, which swells white-hot and throws sparks; then room by
+  // room the floor goes black. A slow swell and a one-by-one shutdown: nothing flashes.
   async function blackout(){
     T.hideBrief();   // the blackout is the payoff, so nothing sits over it
-    await new Promise(r => setTimeout(r, 400));
+    await wait(400);
     T.say("Everything's on the one transformer. Overload it.");
     T.SND("alarm");
-    for(let k = 0; k < 6; k++){ tr.material.emissive.setHex(k % 2 ? 0xffffff : 0x663300); F.rooms.forEach(r => r.lights.draw(k % 2 ? 0 : r.a * r.b)); T.SND("beep"); await new Promise(r => setTimeout(r, 110)); }
+    if(!REDUCE) F.flyTo({ pos: new TH.Vector3(-80, 84, 140), look: new TH.Vector3(-24, 8, 0) }, 1500);
+    tr.material.emissive.setHex(0xffffff);
+    await F.tween(1400, e => { tr.material.emissiveIntensity = 0.4 + e * 1.8; F.rooms.forEach(r => r.lights.draw(r.a * r.b, `rgba(255,${Math.round(240 - 90 * e)},${Math.round(120 - 110 * e)},1)`)); });
+    T.SND("static");
     const sparks = Array.from({ length: 14 }, () => { const m = new TH.Mesh(new TH.SphereGeometry(0.7, 6, 6), new TH.MeshBasicMaterial({ color: 0xfff3a0 })); m.position.set(TX, 16, 0); F.root.add(m); return { m, v: new TH.Vector3((Math.random() - .5) * 30, 10 + Math.random() * 20, (Math.random() - .5) * 30) }; });
     F.tween(900, e => sparks.forEach(q => { q.m.position.set(TX + q.v.x * e, 16 + q.v.y * e - 30 * e * e, q.v.z * e); })).then(() => sparks.forEach(q => F.root.remove(q.m)));
-    T.SND("rise"); T.SND("clamp");
-    for(const c of cables){ c.room.lights.draw(0); c.line.material = new TH.LineBasicMaterial({ color: 0x222222 }); c.plug.material.color.setHex(0x222222); await new Promise(r => setTimeout(r, 140)); }
+    await wait(300);
+    T.SND("powerdown");
+    for(const c of cables){ c.room.lights.draw(0); c.line.material = new TH.LineBasicMaterial({ color: 0x222222 }); c.plug.material.color.setHex(0x222222); T.SND("tick"); await wait(150); }
     cams.forEach(c => { c.userData.off = true; c.material.color.setHex(0x222222); });
     tr.material.emissive.setHex(0x000000); tr.material.color.setHex(0x333333);
     await F.dark(700);
     $("blackout").classList.add("on");
+    $("stage").querySelector(".cam").innerHTML = "<i>●</i> CAM 1 · NO SIGNAL";
+    await wait(1000);
+    end(true);
   }
-  let i1 = 0;
-  const setNeed = () => document.querySelectorAll(".needN").forEach(b => b.textContent = s1[i1]);
   // Instructions live in the hologram brief. A new kind of step zooms it open; the same job again
   // (the next relay, a new number) just updates it and pings the BRIEF tab.
   const seen = new Set();
   function brief(kind, html){ T.step(html, { quiet: seen.has(kind) }); seen.add(kind); }
-  function ask(){
-    const n = s1[i1];
-    if(L === "L1") brief("build", `Relay needs <b>${n}</b> blocks. Build it as a <b>cube</b>. Then press <b>Power the relay</b>.`);
-    else if(L === "L2") brief("draw", `Relay needs <b>${n}</b> blocks. Drag on the grid to draw one <b>square layer</b>.`);
-    else brief("root", `Relay has <b>${n}</b> blocks. How many blocks along each side? Drag the strip or type it. Not a cube? Press <b>It can't be a cube</b>.`);
-  }
+  let i1 = 0;
+  const want = () => s1[i1];
+  let M = null;   // the mode: { ask, reset, skip }
   function nextRelay(){
     i1++;
-    if(i1 === s1.length) return setTimeout(() => { if(!over) step2(); }, 1000);
-    setNeed(); if(L === "L1") resetBuild(); else if(L === "L2") resetDraw(); else resetRoot();
-    ask();
+    if(i1 === s1.length) return setTimeout(() => { if(!over) step2(); }, 1000 / sp());
+    M.reset(); M.ask();
   }
-  // L1 build
-  let side = 1, lay = 1;
-  function paintBuild(){ $("sideV").textContent = side; $("layV").textContent = lay; $("boxArt").innerHTML = boxSVG(side, lay, 200); $("countLine").innerHTML = `${side} × ${side} × ${lay} = <b>${side * side * lay}</b> blocks${side === lay ? ` = ${side}³` : ""}`; }
-  function resetBuild(){ side = 1; lay = 1; paintBuild(); }
-  document.querySelectorAll(".ctrl button").forEach(b => b.addEventListener("click", () => { if(over) return; const d = +b.dataset.d; if(b.dataset.c === "side") side = Math.max(1, Math.min(5, side + d)); else lay = Math.max(1, Math.min(5, lay + d)); T.SND("plot"); paintBuild(); }));
-  $("lockBtn").addEventListener("click", () => {
-    if(over) return;
-    const n = side * side * lay, want = s1[i1];
-    if(n === want && side === lay){ light(want); say(`${side}³ = ${side} × ${side} × ${side} = ${want}. A cube: that room is wired in.`, "ok"); return nextRelay(); }
-    if(n === want){ say(`${n} blocks, but ${side} along each side and ${lay} layers isn't a cube. Make them match.`, "warn"); T.SND("untag"); return; }
-    say(`${side} × ${side} × ${lay} = ${n}. The relay needs ${want}.`, "bad"); alarm.hit();
-  });
-  // L2 draw a layer and stack it
-  const dg = $("dg"); let base = 0, layers = 0, anchor = null, cur = null;
-  dg.innerHTML = Array.from({ length: 64 }, (_, i) => `<i data-r="${Math.floor(i / 8)}" data-c="${i % 8}"></i>`).join("");
-  function paintStack(){
-    $("stackArt").innerHTML = base && layers ? boxSVG(base, layers, 200) : "";
-    $("stackLine").innerHTML = base ? `${layers} layer${layers === 1 ? "" : "s"} of ${base} × ${base}: ${Array(layers).fill(base * base).join(" + ")} = <b>${base * base * layers}</b>` : "No layer yet.";
-    $("stackBtn").disabled = !base || layers >= 8; $("unstackBtn").disabled = layers <= 1; $("drawLock").disabled = !base;
+  // ===== Mode A: stack the relay. Drag a square layer on the pallet grid, then drag the spare layer onto the
+  // stack until the count matches. When it does, the cube locks and the spark runs to the room. =====
+  function modeA(){
+    $("pallet").hidden = false;
+    const L3 = L === "L3";
+    if(L3){ $("rootRow").hidden = false; $("buildRow").hidden = true; $("pal").classList.add("l3"); }
+    const G = L3 ? 10 : 6, MAXL = L3 ? 10 : 6, W = 560, Hh = 420, C30 = 0.866;
+    const u = Math.min((W - 30) / (G * 2 * C30), (Hh - 28) / (G + MAXL)), cx = W / 2, cy = MAXL * u + 10;
+    const P = (x, y, z) => [cx + (x - z) * C30 * u, cy + (x + z) * 0.5 * u - y * u];
+    const pts = arr => arr.map(p => P(...p).map(v => v.toFixed(1)).join(",")).join(" ");
+    const svg = $("pal"); svg.setAttribute("viewBox", `0 0 ${W} ${Hh}`);
+    let cellsHTML = "";
+    for(let z = 0; z < G; z++) for(let x = 0; x < G; x++) cellsHTML += `<polygon class="cell" data-r="${z}" data-c="${x}" points="${pts([[x, 0, z], [x + 1, 0, z], [x + 1, 0, z + 1], [x, 0, z + 1]])}"/>`;
+    svg.innerHTML = `<g id="cells">${cellsHTML}</g><g id="stack"></g><text class="plab" x="${W / 2}" y="${Hh - 6}" text-anchor="middle">PALLET · ${G} × ${G}</text>`;
+    // One square layer of a × a blocks: corner (ox, oz), bottom at height y0. Top, right and left faces, block lines on each.
+    function slabSVG(P2, a, ox, oz, y0, cls){
+      const y1 = y0 + 1;
+      const pl = (arr, f) => `<polygon points="${arr.map(p => P2(...p).map(v => v.toFixed(1)).join(",")).join(" ")}" fill="${f}"/>`;
+      const ln = (p, q) => { const [x1, ya] = P2(...p), [x2, yb] = P2(...q); return `<line x1="${x1.toFixed(1)}" y1="${ya.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${yb.toFixed(1)}"/>`; };
+      let g = pl([[ox, y1, oz], [ox + a, y1, oz], [ox + a, y1, oz + a], [ox, y1, oz + a]], "rgba(255,201,77,.62)")
+        + pl([[ox + a, y0, oz], [ox + a, y1, oz], [ox + a, y1, oz + a], [ox + a, y0, oz + a]], "rgba(255,201,77,.36)")
+        + pl([[ox, y0, oz + a], [ox + a, y0, oz + a], [ox + a, y1, oz + a], [ox, y1, oz + a]], "rgba(255,201,77,.22)");
+      for(let k = 1; k < a; k++) g += ln([ox + k, y1, oz], [ox + k, y1, oz + a]) + ln([ox, y1, oz + k], [ox + a, y1, oz + k]) + ln([ox + a, y0, oz + k], [ox + a, y1, oz + k]) + ln([ox + k, y0, oz + a], [ox + k, y1, oz + a]);
+      return `<g class="slab ${cls || ""}">${g}</g>`;
+    }
+    let base = 0, layers = 0, ox = 0, oz = 0, locked = false;
+    function traySVG(scale = 1){
+      const tu = 15 * scale, w = base * 2 * C30 * tu + 10, h = base * tu + tu + 10;
+      const P3 = (x, y, z) => [w / 2 + (x - z) * C30 * tu, tu + 5 + (x + z) * 0.5 * tu - y * tu];
+      return `<svg viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" aria-hidden="true">${slabSVG(P3, base, 0, 0, 0)}</svg>`;
+    }
+    function paint(drop){
+      const st = $("stack"); let g = "";
+      for(let k = 0; k < layers; k++) g += slabSVG(P, base, ox, oz, k, k === layers - 1 ? "top" : "");
+      st.innerHTML = g;
+      if(drop && layers && !REDUCE){ const top = st.lastElementChild; top.style.transition = "none"; top.style.transform = `translateY(${-u * 1.6}px)`; requestAnimationFrame(() => { top.style.transition = `transform ${240 / sp()}ms ease-out`; top.style.transform = "translateY(0)"; }); }
+      svg.classList.toggle("taken", !!base && !L3);
+      const n = base * base * layers, cube = base === layers;
+      $("countLine").innerHTML = !base ? (L3 ? "No cube yet." : "No layer yet.") : `${base} × ${base} × ${layers} = <b>${n}</b>${cube ? ` = ${base}<sup>3</sup>` : ` <small>(${layers} layer${layers === 1 ? "" : "s"} of ${base * base})</small>`}`;
+      $("unstackBtn").disabled = layers < 1 || locked; $("clearBtn").disabled = !base || locked; $("addBtn").disabled = !base || layers >= MAXL || locked;
+      $("trayWrap").hidden = !base || L3 || locked; if(base && !L3) $("tray").innerHTML = traySVG();
+    }
+    // Too many blocks: the square they chose can't make this relay, so they clear the pallet and choose again
+    function checkOver(){
+      const n = base * base * layers, w = want();
+      if(n <= w) return false;
+      say(`${base} × ${base} × ${layers} = ${n}. That's past ${w}. A ${base} × ${base} layer can't make ${w}: clear the pallet and draw a different square.`, "warn"); T.SND("untag");
+      return true;
+    }
+    // ----- Drawing a square layer: drag across the grid -----
+    let anchor = null, cur = null;
+    // The grid cell under the pointer, worked out from the isometric maths (so a hologram or ORACLE box over the pallet can't break a drag)
+    const cellAt = e => {
+      const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY; const q = pt.matrixTransform(svg.getScreenCTM().inverse());
+      const d = (q.x - cx) / (C30 * u), s = (q.y - cy) / (0.5 * u), x = Math.floor((s + d) / 2), z = Math.floor((s - d) / 2);
+      return x >= 0 && x < G && z >= 0 && z < G ? { r: z, c: x } : null;
+    };
+    function paintSel(){
+      const r0 = Math.min(anchor.r, cur.r), r1 = Math.max(anchor.r, cur.r), c0 = Math.min(anchor.c, cur.c), c1 = Math.max(anchor.c, cur.c), h = r1 - r0 + 1, w = c1 - c0 + 1;
+      svg.querySelectorAll(".cell").forEach(i => { const r = +i.dataset.r, c = +i.dataset.c; i.classList.toggle("sel", r >= r0 && r <= r1 && c >= c0 && c <= c1); });
+      svg.classList.toggle("bad", h !== w);
+      $("countLine").innerHTML = `${h} × ${w}${h === w ? ` = <b>${h * h}</b> blocks: a square layer` : ": not square yet"}`;
+      return { r0, c0, h, w };
+    }
+    const clearSel = () => { svg.querySelectorAll(".cell.sel").forEach(i => i.classList.remove("sel")); svg.classList.remove("bad"); };
+    svg.addEventListener("pointerdown", e => {
+      if(over || locked) return;
+      const top = e.target.closest(".slab.top");
+      if(top && !L3){ e.preventDefault(); svg.setPointerCapture(e.pointerId); startGhost(e, "off"); return; }
+      if(base && !L3){ if(cellAt(e)){ say("Clear the pallet first to draw a new square.", "warn"); T.SND("untag"); } return; }   // a stack is on the pallet: clear it to draw again
+      const c = cellAt(e); if(!c) return;
+      e.preventDefault(); svg.setPointerCapture(e.pointerId); anchor = cur = c; paintSel(); T.SND("tag");
+    });
+    svg.addEventListener("pointermove", e => {
+      if(ghost){ moveGhost(e); return; }
+      if(!anchor) return; const c = cellAt(e); if(c && (c.r !== cur.r || c.c !== cur.c)){ cur = c; paintSel(); T.SND("plot"); }
+    });
+    svg.addEventListener("pointerup", e => {
+      if(ghost){ dropGhost(e); return; }
+      if(!anchor) return;
+      const { r0, c0, h, w } = paintSel(); anchor = cur = null; clearSel();
+      if(h !== w){ say(`${h} × ${w} isn't square. A cube's layers are squares: the same along each side.`, "warn"); T.SND("untag"); paint(); return; }
+      if(L3){ setRoot(h); return; }
+      base = h; layers = 1; ox = c0; oz = r0; paint(true); T.SND("chirp");
+      if(checkOver()) return;
+      say(`One layer of ${h} × ${h} = ${h * h} blocks.`);
+      brief("stack", `Now <b>stack</b> layers: drag the spare layer onto the stack until it has <b>${want()}</b> blocks.`);
+    });
+    svg.addEventListener("pointercancel", () => { anchor = cur = null; clearSel(); killGhost(); paint(); });
+    // ----- Dragging layers: a ghost slab follows the pointer. From the tray onto the pallet adds a layer;
+    // the top layer dragged off the pallet takes one away. -----
+    let ghost = null, ghostKind = null;
+    const overPallet = e => { const r = svg.getBoundingClientRect(); return e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom; };
+    function startGhost(e, kind){
+      ghostKind = kind; ghost = document.createElement("div"); ghost.className = "ghost"; ghost.innerHTML = traySVG(1.6); document.body.appendChild(ghost);
+      if(kind === "off"){ const t = svg.querySelector(".slab.top"); if(t) t.style.opacity = .3; }
+      moveGhost(e); T.SND("tag");
+    }
+    function moveGhost(e){ ghost.style.left = e.clientX + "px"; ghost.style.top = e.clientY + "px"; ghost.classList.toggle("over", overPallet(e)); }
+    function dropGhost(e){ const kind = ghostKind, on = overPallet(e); killGhost(); if(kind === "add"){ if(on) addLayer(); else T.SND("untag"); } else if(!on) removeLayer(); else paint(); }
+    function killGhost(){ if(ghost) ghost.remove(); ghost = null; ghostKind = null; }
+    const tray = $("tray");
+    tray.addEventListener("pointerdown", e => { if(over || locked || !base) return; e.preventDefault(); tray.setPointerCapture(e.pointerId); startGhost(e, "add"); });
+    tray.addEventListener("pointermove", e => { if(ghost) moveGhost(e); });
+    tray.addEventListener("pointerup", e => { if(ghost) dropGhost(e); });
+    tray.addEventListener("pointercancel", () => { killGhost(); paint(); });
+    function addLayer(){
+      if(over || locked || !base) return;
+      if(layers >= MAXL){ say(`The pallet holds ${MAXL} layers. ${base} × ${base} × ${MAXL} = ${base * base * MAXL}, so a ${base} × ${base} layer can't make ${want()}: clear the pallet and draw a different square.`, "warn"); T.SND("untag"); return; }
+      layers++; paint(true); T.SND("pop", layers);
+      const n = base * base * layers;
+      if(n === want() && base === layers) return lock();
+      if(!checkOver()) say(`${layers} layers of ${base * base} = ${n} blocks.`);
+    }
+    function removeLayer(){ if(over || locked || !base) return; if(layers <= 1) return clearPallet(); layers--; paint(); T.SND("untag"); say(`${layers} layer${layers === 1 ? "" : "s"} of ${base * base} = ${base * base * layers} blocks.`); }
+    function clearPallet(){ base = 0; layers = 0; killGhost(); paint(); T.SND("untag"); say(""); }
+    $("addBtn").addEventListener("click", addLayer);
+    $("unstackBtn").addEventListener("click", removeLayer);
+    $("clearBtn").addEventListener("click", clearPallet);
+    // The cube is right: it locks, then the spark runs the cable to the room
+    async function lock(){
+      locked = true; svg.classList.add("locked"); paint(); T.SND("lockon");
+      const w = want();
+      $("countLine").innerHTML = `${base} × ${base} × ${base} = <b>${w}</b> = ${base}<sup>3</sup> · LOCKED`;
+      await wait(700);
+      light(w); say(`${base}³ = ${base} × ${base} × ${base} = ${w}. A cube: that room is wired in.`, "ok");
+      await wait(1100);
+      nextRelay();
+    }
+    $("lockBtn").addEventListener("click", () => {
+      if(over || locked) return;
+      if(!base){ say("No layer yet. Drag a square on the pallet first.", "warn"); T.showBrief(); return; }
+      const n = base * base * layers, w = want();
+      if(n === w && base === layers) return lock();
+      if(n === w){ say(`${n} blocks, but ${base} along each side and ${layers} layers isn't a cube. Make them match.`, "warn"); T.SND("untag"); return; }
+      say(`${base} × ${base} × ${layers} = ${n}. The relay needs ${w}.`, "bad"); alarm.hit();
+    });
+    // ----- L3: the cube root. A square dragged on the pallet (or a typed side) previews the whole cube. -----
+    function setRoot(v){
+      if(!(v >= 1 && v <= G)) return;
+      $("rootIn").value = v; base = v; layers = v; ox = oz = Math.floor((G - v) / 2); paint(); T.SND("plot");
+    }
+    $("rootIn").addEventListener("input", () => { const v = parseInt($("rootIn").value, 10); if(v >= 1 && v <= G) setRoot(v); });
+    $("rootIn").addEventListener("keydown", e => { if(e.key === "Enter") $("rootBtn").click(); });
+    $("rootBtn").addEventListener("click", () => {
+      if(over || locked) return;
+      const n = want(), v = parseInt($("rootIn").value, 10);
+      if(!Number.isInteger(v)){ say("No side length yet.", "warn"); T.showBrief(); return; }   // stuck: the brief comes back to explain
+      if(v ** 3 === n){ setRoot(v); return lock(); }
+      say(T.isCube(n) ? `${v} × ${v} × ${v} = ${v ** 3}, not ${n}.` : `${v} × ${v} × ${v} = ${v ** 3}. In fact ${n} isn't a cube: ${between(n)}.`, "bad"); alarm.hit();
+    });
+    $("noCube").addEventListener("click", () => {
+      if(over || locked) return;
+      const n = want();
+      if(T.isCube(n)){ const r = cubeRoot(n); say(`It can: ${r} × ${r} × ${r} = ${n}.`, "bad"); alarm.hit(); return; }
+      T.SND("correct", i1); say(`Right: ${between(n)}, so ${n} is a dummy relay.`, "ok"); $("log").insertAdjacentHTML("beforeend", `<span class="r">${n}: dummy, not a cube</span>`);
+      nextRelay();
+    });
+    function ask(){
+      const n = want();
+      $("needLine").innerHTML = `Relay ${L3 ? "has" : "needs"} <b>${n}</b> blocks`;
+      if(L3) brief("root", `Relay has <b>${n}</b> blocks. How many blocks along each side? Drag a square on the pallet, or type it. Not a cube? Press <b>It can't be a cube</b>.`);
+      else brief("draw", `Relay needs <b>${n}</b> blocks. Drag on the pallet to draw one <b>square layer</b>.`);
+    }
+    function reset(){ locked = false; svg.classList.remove("locked"); base = 0; layers = 0; anchor = cur = null; clearSel(); killGhost(); $("rootIn").value = ""; paint(); }
+    function skip(){
+      if(locked) return;
+      const n = want(); if(n === undefined) return;
+      if(!T.isCube(n)) return $("noCube").click();
+      const r = cubeRoot(n);
+      if(L3){ setRoot(r); $("rootBtn").click(); return; }
+      base = r; layers = r; ox = oz = Math.floor((G - r) / 2); paint(); lock();
+    }
+    paint();
+    return { ask, reset, skip };
   }
-  function resetDraw(){ base = 0; layers = 0; dg.querySelectorAll("i").forEach(i => i.classList.remove("sel")); dg.classList.remove("bad"); paintStack(); }
-  const cellFrom = e => { const t = document.elementFromPoint(e.clientX, e.clientY); return t && t.parentElement === dg ? { r: +t.dataset.r, c: +t.dataset.c } : null; };
-  function paintSel(){ const r0 = Math.min(anchor.r, cur.r), r1 = Math.max(anchor.r, cur.r), c0 = Math.min(anchor.c, cur.c), c1 = Math.max(anchor.c, cur.c); dg.querySelectorAll("i").forEach(i => { const r = +i.dataset.r, c = +i.dataset.c; i.classList.toggle("sel", r >= r0 && r <= r1 && c >= c0 && c <= c1); }); const h = r1 - r0 + 1, w = c1 - c0 + 1; dg.classList.toggle("bad", h !== w); return { h, w }; }
-  dg.addEventListener("pointerdown", e => { if(over) return; const c = cellFrom(e); if(!c) return; e.preventDefault(); dg.setPointerCapture(e.pointerId); anchor = cur = c; paintSel(); T.SND("tag"); });
-  dg.addEventListener("pointermove", e => { if(!anchor) return; const c = cellFrom(e); if(c && (c.r !== cur.r || c.c !== cur.c)){ cur = c; paintSel(); T.SND("plot"); } });
-  dg.addEventListener("pointerup", () => { if(!anchor) return; const { h, w } = paintSel(); anchor = cur = null; if(h !== w){ base = 0; layers = 0; paintStack(); say(`${h} × ${w} isn't square. A cube's layers are squares.`, "warn"); T.SND("untag"); ask(); return; } base = h; layers = 1; paintStack(); T.SND("clamp"); say(`One layer of ${h} × ${h} = ${h * h} blocks.`);
-    brief("stack", `Now <b>stack</b> layers until the cube has <b>${s1[i1]}</b> blocks. Then press <b>Power the relay</b>.`); });
-  $("stackBtn").addEventListener("click", () => { if(over || !base) return; layers++; paintStack(); T.SND("pop", layers); });
-  $("unstackBtn").addEventListener("click", () => { if(over || layers <= 1) return; layers--; paintStack(); T.SND("untag"); });
-  $("drawLock").addEventListener("click", () => {
-    if(over || !base) return;
-    const n = base * base * layers, want = s1[i1];
-    if(n === want && base === layers){ light(want); say(`${base} layers of ${base} × ${base} = ${base}³ = ${want}. That room is wired in.`, "ok"); return nextRelay(); }
-    if(n === want){ say(`${n} blocks, but ${layers} layers of ${base} × ${base} isn't a cube.`, "warn"); T.SND("untag"); return; }
-    say(`${base} × ${base} × ${layers} = ${n}. The relay needs ${want}.`, "bad"); alarm.hit();
-  });
-  // L3 cube root
-  (function strip(){
-    const cells = $("cells"); cells.innerHTML = Array.from({ length: 12 }, (_, i) => `<i data-i="${i}"></i>`).join("");
-    let dragging = false;
-    const set = len => { cells.querySelectorAll("i").forEach(i => i.classList.toggle("on", +i.dataset.i < len)); $("rootIn").value = len; $("stripRead").textContent = `side ${len}: ${len} × ${len} × ${len} = ${len ** 3} blocks`; };
-    const at = e => { const t = document.elementFromPoint(e.clientX, e.clientY); return t && t.parentElement === cells ? +t.dataset.i + 1 : null; };
-    cells.addEventListener("pointerdown", e => { const v = at(e); if(!v) return; e.preventDefault(); dragging = true; cells.setPointerCapture(e.pointerId); set(v); T.SND("plot"); });
-    cells.addEventListener("pointermove", e => { if(!dragging) return; const v = at(e); if(v) set(v); });
-    cells.addEventListener("pointerup", () => { dragging = false; });
-  })();
-  function resetRoot(){ $("rootIn").value = ""; $("cells").querySelectorAll("i").forEach(i => i.classList.remove("on")); $("stripRead").textContent = "side ?"; }
-  $("rootBtn").addEventListener("click", () => {
-    if(over) return;
-    const n = s1[i1], v = parseInt($("rootIn").value, 10);
-    if(!Number.isInteger(v)){ say("No side length yet.", "warn"); T.showBrief(); return; }   // stuck: the brief comes back to explain
-    if(v ** 3 === n){ light(n); say(`${v}³ = ${v} × ${v} × ${v} = ${n}. That room is wired in.`, "ok"); return nextRelay(); }
-    say(T.isCube(n) ? `${v} × ${v} × ${v} = ${v ** 3}, not ${n}.` : `${v} × ${v} × ${v} = ${v ** 3}. In fact ${n} isn't a cube: ${between(n)}.`, "bad"); alarm.hit();
-  });
-  $("rootIn").addEventListener("keydown", e => { if(e.key === "Enter") $("rootBtn").click(); });
-  $("noCube").addEventListener("click", () => {
-    if(over) return;
-    const n = s1[i1];
-    if(T.isCube(n)){ const r = cubeRoot(n); say(`It can: ${r} × ${r} × ${r} = ${n}.`, "bad"); alarm.hit(); return; }
-    T.SND("correct", i1); say(`Right: ${between(n)}, so ${n} is a dummy relay.`, "ok"); $("log").insertAdjacentHTML("beforeend", `<div>${n}: dummy, not a cube</div>`);
-    nextRelay();
-  });
+  // ===== Mode B: load the crates. Crates slide along a belt into the transformer bay. Only cube-number crates
+  // may be loaded; the rest are rejected. A loaded crate has to be named (which cube it is) before it goes in.
+  // The belt holds at the gate until the child decides: gentle pressure, no penalty for thinking. =====
+  function modeB(){
+    $("beltPanel").hidden = false;
+    const L3 = L === "L3";
+    const W = 560, GX = 132, GAP = 156, BY = 188, S = 72, D = 22;
+    const DECOYS = { L1: [6, 9, 12, 16, 18, 20, 30, 36], L2: [26, 36, 49, 63, 100, 121, 124, 126], L3: [215, 217, 342, 344, 400, 513, 728, 730, 900, 999] }[L];
+    const extra = T.shuffle(DECOYS.filter(n => !s1.includes(n))).slice(0, 6 - s1.length);
+    const svg = $("beltSvg");
+    svg.innerHTML = `<rect class="bay" x="6" y="${BY - 116}" width="${GX - 30}" height="${142}"/>
+      <text class="blab" x="8" y="${BY - 124}">TRANSFORMER BAY</text>
+      <rect class="band" x="0" y="${BY}" width="${W}" height="26"/><line class="dash" id="dash" x1="0" y1="${BY + 13}" x2="${W}" y2="${BY + 13}"/>
+      <line class="gate" x1="${GX - 8}" y1="${BY - 100}" x2="${GX - 8}" y2="${BY + 26}"/>
+      <text class="blab" x="${W - 8}" y="${BY + 48}" text-anchor="end">CRATES IN: <tspan id="bLeft"></tspan></text>
+      <text class="blab" x="8" y="${BY + 48}" id="bHold"></text><g id="crates"></g>`;
+    const crateSVG = n => `<polygon class="t" points="0,0 ${D},${-D} ${S + D},${-D} ${S},0"/><polygon class="s" points="${S},0 ${S + D},${-D} ${S + D},${S - D} ${S},${S}"/><rect class="f" width="${S}" height="${S}"/><text x="${S / 2}" y="${S / 2 + 1}">${n}</text>`;
+    const crates = T.shuffle([...s1, ...extra]).map((n, i) => {
+      const g = document.createElementNS("http://www.w3.org/2000/svg", "g"); g.setAttribute("class", "crate"); g.innerHTML = crateSVG(n);
+      const c = { n, g, x: W + 40 + i * GAP, state: "queue" }; $("crates").appendChild(g); return c;
+    });
+    const front = () => crates[0];
+    let pending = null, right = 0, heldAt = 0, nudged = false, lastNow = performance.now(), dash = 0, alive = true;
+    const place = c => c.g.setAttribute("transform", `translate(${c.x.toFixed(1)}, ${BY - S})`);
+    crates.forEach(place);
+    // The readouts are only rewritten when they change (the loop runs every frame)
+    const shown = {}, put = (id, prop, v) => { if(shown[id] === v) return; shown[id] = v; $(id)[prop] = v; };
+    // The belt: crates queue up behind the front one, which stops at the gate. Nothing moves while the brief is up.
+    function loop(now){
+      if(!alive || over) return;
+      const dt = Math.min(0.05, (now - lastNow) / 1000); lastNow = now;
+      let moved = false;
+      if(!T.briefOpen() && !pending){
+        crates.forEach((c, i) => { if(c.state !== "queue") return; const tgt = GX + i * GAP; if(c.x > tgt){ c.x = Math.max(tgt, c.x - 30 * sp() * dt); place(c); moved = true; } });
+      }
+      const f = front();
+      const held = f && f.state === "queue" && f.x <= GX + 0.5;
+      if(f){ f.g.classList.add("front"); f.g.classList.toggle("held", held); }
+      if(held){ if(!heldAt) heldAt = now; if(!nudged && now - heldAt > 9000 / sp()){ nudged = true; T.say("Belt's held. Take your time: is that a cube number?"); } }
+      else heldAt = 0;
+      put("bHold", "textContent", held ? "BELT HELD · DECIDE" : moved ? "BELT RUNNING" : "");
+      if(moved){ dash -= 30 * sp() * dt; $("dash").setAttribute("stroke-dashoffset", dash.toFixed(1)); }
+      put("loadBtn", "disabled", !f || !!pending); put("rejBtn", "disabled", !f || !!pending);
+      put("crateLine", "innerHTML", f ? (pending ? `Crate <b>${f.n}</b>: which cube?` : `Crate <b>${f.n}</b>. Is ${f.n} a cube number?`) : "Belt clear.");
+      put("bLeft", "textContent", String(crates.length));
+      requestAnimationFrame(loop);
+    }
+    requestAnimationFrame(loop);
+    function decide(load){
+      const c = front(); if(!c || pending || over) return;
+      const cube = T.isCube(c.n), r = cubeRoot(c.n);
+      if(load && cube){ pending = c; c.state = "asked"; T.SND("tag"); askRoot(c); return; }
+      if(!load && !cube){ T.SND("correct", right++); say(`Right: ${c.n} isn't a cube. It sits between ${between(c.n)}.`, "ok"); $("log").insertAdjacentHTML("beforeend", `<span class="r">${c.n}: rejected, not a cube</span>`); return eject(c); }
+      if(load && !cube){ alarm.hit(); say(`${c.n} isn't a cube: it sits between ${between(c.n)}.${T.isSquare(c.n) ? ` It's a square (${Math.sqrt(c.n)} × ${Math.sqrt(c.n)}), not a cube.` : ""}`, "bad"); return eject(c); }
+      alarm.hit(); say(`${c.n} is a cube: ${r} × ${r} × ${r} = ${c.n}. Load it.`, "bad");   // a rejected cube stays on the belt
+    }
+    $("loadBtn").addEventListener("click", () => decide(true));
+    $("rejBtn").addEventListener("click", () => decide(false));
+    // Naming the cube: L1 and L2 tap 3³ from a set of chips; L3 types the side length
+    function askRoot(c){
+      $("rootQ").hidden = false;
+      if(L3){ $("rootRowB").hidden = false; $("chips").innerHTML = ""; $("rootQLab").textContent = `${c.n} IS A CUBE. HOW MANY BLOCKS ALONG EACH SIDE?`; $("rootInB").value = ""; $("rootInB").focus(); }
+      else {
+        const r = cubeRoot(c.n), others = T.shuffle(T.range(1, L === "L1" ? 5 : 6).filter(k => k !== r)).slice(0, 3);
+        $("rootQLab").textContent = `${c.n} IS A CUBE. WHICH CUBE? TAP IT.`;
+        $("chips").innerHTML = T.shuffle([r, ...others]).map(k => `<button class="pn-btn" type="button" data-v="${k}">${k}<sup>3</sup></button>`).join("");
+      }
+      brief("root", L3 ? `<b>${c.n}</b> is a cube. How many blocks along each side? Type it and press <b>Check</b>.` : `<b>${c.n}</b> is a cube. Which cube is it? Tap it.`);
+    }
+    function answerRoot(v, btn){
+      const c = pending; if(!c || over) return;
+      if(v ** 3 === c.n){
+        pending = null; $("rootQ").hidden = true; $("chips").innerHTML = "";
+        say(`${c.n} = ${v}³ = ${v} × ${v} × ${v}. Loaded.`, "ok"); return load(c);
+      }
+      alarm.hit(); say(`${v} × ${v} × ${v} = ${v ** 3}, not ${c.n}.`, "bad");
+      if(btn){ btn.classList.add("bad"); btn.disabled = true; }
+    }
+    $("chips").addEventListener("click", e => { const b = e.target.closest("button"); if(b && !b.disabled) answerRoot(+b.dataset.v, b); });
+    $("rootBtnB").addEventListener("click", () => { const v = parseInt($("rootInB").value, 10); if(!Number.isInteger(v)){ say("No side length yet.", "warn"); T.showBrief(); return; } answerRoot(v); });
+    $("rootInB").addEventListener("keydown", e => { if(e.key === "Enter") $("rootBtnB").click(); });
+    // A loaded crate slides into the bay and the spark runs; a rejected one drops off the belt
+    function retire(c){ crates.splice(crates.indexOf(c), 1); c.state = "gone"; c.g.classList.remove("front", "held"); nudged = false; heldAt = 0; if(!crates.length) setTimeout(() => { if(!over) step2(); }, 1400 / sp()); }
+    async function load(c){
+      retire(c); T.SND("whoosh");
+      const x0 = c.x; await F.tween(700, e => { c.x = x0 - (x0 + S + D + 10) * e; place(c); });
+      c.g.remove(); light(c.n);
+    }
+    async function eject(c){
+      retire(c); T.SND("whooshDown");
+      const x0 = c.x; await F.tween(600, e => { c.g.setAttribute("transform", `translate(${x0.toFixed(1)}, ${(BY - S + 150 * e * e).toFixed(1)}) rotate(${(12 * e).toFixed(1)} ${S / 2} ${S / 2})`); c.g.style.opacity = 1 - e; });
+      c.g.remove();
+    }
+    function ask(){ brief("belt", `Crates are coming down the belt. For each one: press <b>Load</b> if its number is a <b>cube number</b>, or <b>Reject</b> if it isn't.`); }
+    function skip(){
+      if(pending) return answerRoot(cubeRoot(pending.n));
+      const c = front(); if(!c) return;
+      if(T.isCube(c.n)){ decide(true); answerRoot(cubeRoot(c.n)); } else decide(false);
+    }
+    return { ask, reset(){}, skip };
+  }
+
   // Stage 2: the relay board
   const tile = n => $("grid").querySelector(`[data-n="${n}"]`);
   let s2found = 0;
   function step2(){
-    ["build", "draw", "rootq"].forEach(id => $(id).hidden = true); $("spot").hidden = false;
+    ["pallet", "beltPanel"].forEach(id => $(id).hidden = true); $("spot").hidden = false;
     $("st1").className = "done"; $("st2").className = "on";
     T.setGoal(GOAL2);
     const pool = new Set();
@@ -290,38 +546,33 @@
     $("grid").innerHTML = T.shuffle([...s2, ...decoys]).map(n => `<button type="button" class="tw-tile" data-n="${n}">${n}</button>`).join("");
     $("grid").addEventListener("click", e => { const b = e.target.closest(".tw-tile"); if(b) tap(+b.dataset.n); });
     T.say("Those rooms are wired. The rest of the relays are on this board: find every cube number.");
-    say("");
+    T.SND("powerup");   // the last relay's feedback line stays until the first tap on the board
   }
   function tap(n){
-    if(over) return;
+    if(over || found === RELAYS.length) return;   // the blackout is running: the board is done
     const b = tile(n); if(b.disabled) return;
     if(T.isCube(n)){
       const r = cubeRoot(n); b.classList.add("gold"); b.innerHTML = `${n}<small>${r}³</small>`; b.disabled = true;
       light(n); s2found++; say(`${n} = ${r}³ = ${r} × ${r} × ${r}. Another room wired in.`, "ok");
-      if(s2found === s2.length) setTimeout(() => end(true), 3400 / (window.PNTest ? PNTest.speed() : 1));
-      return;
+      return;   // the last one triggers the blackout, which ends the twist
     }
     b.classList.add("bad"); b.disabled = true;
     say(`${n} isn't a cube: ${between(n)}.${T.isSquare(n) ? ` It's a square (${Math.sqrt(n)} × ${Math.sqrt(n)}), not a cube.` : ""}`, "bad");
     if(alarm.hit() === 2){ $("table").hidden = false; $("table").innerHTML = "CUBE TABLE: " + T.range(1, 10).map(k => `${k}³ = ${k ** 3}`).join(" · "); T.say("I've sent you the cube table."); }
   }
   function end(ok){
+    if(over) return;
     over = true;
     if(!ok) s2.forEach(n => { const b = tile(n); if(b && !b.disabled) b.classList.add("missed"); });
     T.finish({ ok, title: ok ? "BLACKOUT" : "RELAY ALARM", effect: ok ? "dark" : "", auto: ok ? 2500 : 0,
       lines: [`Relays powered: <b>${found}</b> of ${RELAYS.length}`, `Cube numbers: <b>${[...new Set(RELAYS)].sort((a, b) => a - b).map(n => `${n} = ${cubeRoot(n)}³`).join(", ")}</b>`, "A cube number is a number times itself, times itself again: 4³ = 4 × 4 × 4 = 64."] });
     T.say(ok ? "Whole floor's dark. Their cameras can't see a thing." : "Too many wrong relays. The lights stay on.");
   }
-  $("build").hidden = L !== "L1"; $("draw").hidden = L !== "L2"; $("rootq").hidden = L !== "L3";
-  setNeed(); paintBuild(); paintStack(); ask();
+  M = MODE === "B" ? modeB() : modeA();
+  M.ask();
   if(window.PNTest) PNTest.skip("Solve this step", () => {
     if(!$("spot").hidden){ s2.forEach(n => { if(!tile(n).disabled) tap(n); }); return; }
-    const n = s1[i1]; if(n === undefined) return;
-    if(!T.isCube(n)) return $("noCube").click();
-    const r = cubeRoot(n);
-    if(L === "L1"){ side = r; lay = r; $("lockBtn").click(); }
-    else if(L === "L2"){ base = r; layers = r; paintStack(); $("drawLock").click(); }
-    else { $("rootIn").value = r; $("rootBtn").click(); }
+    M.skip();
   });
 })();
 </script>

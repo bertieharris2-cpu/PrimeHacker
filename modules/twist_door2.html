@@ -11,37 +11,66 @@
 <style>
   /* Round 12 prototype: the key room door with a keypad. Break each bolt's number into primes with a factor
      tree, then key the primes in. Scaffolding fades: the first tree has prime buttons, the next doesn't.
-     Round 13: what to do (and why primes matter) sits in the hologram brief (H), not on the page. */
-  .scene{ display:grid; grid-template-columns:minmax(0,1fr) 300px; gap:16px; align-items:stretch; }
-  .doorview{ position:relative; min-height:300px; padding:0; overflow:hidden; background:linear-gradient(180deg, #06161b, #020a0c); display:flex; align-items:flex-end; justify-content:center; }
-  .doorview .floorline{ position:absolute; left:0; right:0; bottom:46px; height:1px; background:rgba(var(--accent-rgb),.4); }
-  .bigdoor{ position:relative; width:230px; height:250px; margin-bottom:46px; border:3px solid #3a5a62; border-bottom:0; background:#01080a; overflow:hidden; box-shadow:0 0 40px rgba(0,0,0,.6) inset; }
-  .bigdoor .leaf{ position:absolute; top:0; bottom:0; width:50%; background:repeating-linear-gradient(0deg, #16323a 0 14px, #10282f 14px 28px); transition:transform 1.8s cubic-bezier(.6,0,.3,1); }
-  .bigdoor .leaf.l{ left:0; border-right:2px solid #2c4c55; } .bigdoor .leaf.r{ right:0; }
-  .bigdoor.open .leaf.l{ transform:translateX(-100%); } .bigdoor.open .leaf.r{ transform:translateX(100%); }
-  .bigdoor .inside{ position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; background:radial-gradient(circle at 50% 60%, rgba(255,201,77,.35), transparent 60%); font-family:var(--font-ui); letter-spacing:.2em; color:#ffe14d; }
-  .bigdoor .inside .keyicon{ font-size:48px; filter:drop-shadow(0 0 12px #ffc94d); }
-  .bolt{ position:absolute; left:50%; width:60px; height:12px; margin-left:-30px; background:#ff4f6d; box-shadow:0 0 10px #ff4f6d; border-radius:2px; transition:all .6s; z-index:3; }
-  .bolt.b0{ top:80px; } .bolt.b1{ top:160px; }
-  .bolt.off{ background:#2fbf8a; box-shadow:0 0 10px #2fbf8a; width:14px; margin-left:-7px; }
-  .doorview .sign{ position:absolute; top:12px; left:14px; font-family:var(--font-ui); font-size:12px; letter-spacing:.2em; color:var(--text-faint); }
+     Round 13: what to do (and why primes matter) sits in the hologram brief (H), not on the page.
+     Round 14 (Bertie): a first-person walk-up to the door, longer trees (3 to 5 splits, a third bolt at L3),
+     live feedback under the keypad screen, and a second option. ?mode=A (default) is the factor tree;
+     ?mode=B shows the number as an array of lights that you cut into equal strips. */
+  main.tw{ width:min(1500px, 100%); }   /* wider than the usual 1100px: the door picture earns it (twist.js keeps the header clear of the BRIEF tab) */
+  .fpv.end ~ .twb-chip{ display:none; }   /* nothing sits over the door opening */
+  .scene{ display:grid; grid-template-columns:minmax(0,1fr) 310px; gap:16px; align-items:stretch; }
+  .doorview{ position:relative; height:clamp(200px, 20vw, 280px); padding:0; overflow:hidden; background:#010608; }   /* short enough for a four-level tree and its feedback to fit under it */
+  .doorview svg, .fpv svg{ display:block; width:100%; height:100%; }
+  .doorview .sign{ position:absolute; top:12px; left:14px; z-index:2; font-family:var(--font-ui); font-size:12px; letter-spacing:.2em; color:var(--text-faint); }
+  /* The vault picture (SVG) */
+  .vault .bolt{ fill:#ff4f6d; filter:drop-shadow(0 0 6px #ff4f6d); } .vault .bolt.off{ fill:#2fbf8a; filter:drop-shadow(0 0 6px #2fbf8a); }
+  .vault .beam{ stroke:#ff3355; stroke-width:1.5; filter:drop-shadow(0 0 4px #ff3355); }
+  .vault .sweep{ stroke:#ff3355; stroke-width:2.5; filter:drop-shadow(0 0 7px #ff3355); }
+  .vault .strip{ stroke:rgba(140,235,255,.5); stroke-width:1.2; }
+  .vault text{ font-family:var(--font-ui); font-weight:700; letter-spacing:.2em; fill:#ffe68a; text-anchor:middle; }
+  .vault text.sign{ fill:#8feaff; letter-spacing:.3em; }
+  /* First person: the same picture fills the screen for the walk-up, then docks into the panel. It comes back for the door.
+     Over the brief during the walk-up (the brief zooms in afterwards); under the result card at the end. */
+  .fpv{ position:fixed; left:0; top:0; width:100vw; height:100vh; z-index:8650; background:#010608; overflow:hidden; --dock:.55s; }
+  .fpv.end{ z-index:60; }
+  .fpv.move{ transition:left var(--dock) cubic-bezier(.4,0,.2,1), top var(--dock) cubic-bezier(.4,0,.2,1), width var(--dock) cubic-bezier(.4,0,.2,1), height var(--dock) cubic-bezier(.4,0,.2,1); }
+  .fpv .hud{ position:absolute; inset:0; pointer-events:none; transition:opacity .3s; }
+  .fpv.hid .hud{ opacity:0; }
+  .fpv .hud i{ position:absolute; width:34px; height:34px; border:2px solid rgba(160,240,255,.65); }
+  .fpv .hud .tl{ left:22px; top:22px; border-right:0; border-bottom:0; } .fpv .hud .tr{ right:22px; top:22px; border-left:0; border-bottom:0; }
+  .fpv .hud .bl{ left:22px; bottom:22px; border-right:0; border-top:0; } .fpv .hud .br{ right:22px; bottom:22px; border-left:0; border-top:0; }
+  .fpv .hud .lab{ position:absolute; left:66px; top:30px; font-family:var(--font-mono); font-size:15px; letter-spacing:.14em; color:#dff8ff; text-shadow:0 0 8px #000; }
+  .fpv .hud .lab b{ color:#ff4f6d; font-weight:400; }
+  .fpv .hud .skip{ position:absolute; right:66px; bottom:32px; font-family:var(--font-ui); font-size:13px; letter-spacing:.2em; color:rgba(223,248,255,.75); }
+  .fpv.end .hud .skip{ display:none; }
+  .fpv .hud .scan{ position:absolute; inset:0; background:repeating-linear-gradient(0deg, rgba(160,240,255,.045) 0 1px, transparent 1px 3px); }
+  /* The console arrives as the camera docks: the keypad grows out from the wall, the work panel rises */
+  .scene .keypad, .work, .tw-msg{ transition:transform .6s cubic-bezier(.2,.9,.3,1), opacity .5s; }
+  body.pre .scene .keypad{ transform:translate(-70%, -10%) scale(.2); opacity:0; }
+  body.pre .work, body.pre .tw-msg{ transform:translateY(24px); opacity:0; }
+  /* Keypad */
   .keypad{ padding:14px; display:flex; flex-direction:column; gap:10px; }
-  .kp-screen{ font-family:var(--font-mono); font-size:22px; min-height:44px; padding:8px 10px; background:#021d12; color:#7dffc4; border:1px solid rgba(47,191,138,.6); letter-spacing:.06em; box-shadow:inset 0 0 18px rgba(47,191,138,.15); overflow-wrap:anywhere; }
+  .keypad.on{ border-color:rgba(47,191,138,.75); box-shadow:0 0 26px rgba(47,191,138,.2), 0 0 0 1px rgba(255,255,255,.04) inset; }
+  .kp-lab{ font-family:var(--font-ui); font-size:12px; letter-spacing:.16em; color:var(--text-faint); }
+  .keypad.on .kp-lab{ color:#7dffc4; text-shadow:0 0 10px rgba(47,191,138,.6); }
+  .kp-screen{ font-family:var(--font-mono); font-size:21px; min-height:46px; padding:8px 10px; background:#021d12; color:#7dffc4; border:1px solid rgba(47,191,138,.6); letter-spacing:.06em; box-shadow:inset 0 0 18px rgba(47,191,138,.15); overflow-wrap:anywhere; }
   .kp-screen.bad{ color:#ff8aa0; border-color:#ff6b8a; background:#1d0208; }
+  .kp-live{ min-height:1.5em; font-family:var(--font-mono); font-size:16px; letter-spacing:.03em; color:var(--text-muted); }
+  .kp-live.ok{ color:#7dffc4; } .kp-live.warn{ color:#ffe68a; }
   .kp-keys{ display:grid; grid-template-columns:repeat(4, 1fr); gap:6px; }
-  .kp-keys button{ font:inherit; font-family:var(--font-mono); font-size:19px; font-weight:700; padding:10px 0; background:#0b1d22; color:#dff8ff; border:1px solid #2c4c55; cursor:pointer; }
+  .kp-keys button{ font:inherit; font-family:var(--font-mono); font-size:20px; font-weight:700; padding:8px 0; background:#0b1d22; color:#dff8ff; border:1px solid #2c4c55; cursor:pointer; transition:background .12s, border-color .12s; }
   .kp-keys button:hover:not(:disabled){ border-color:var(--warning); }
+  .kp-keys button.hit{ background:#1a3a44; border-color:#8feaff; }
   .kp-keys button:disabled{ opacity:.35; cursor:default; }
   .kp-keys .enter{ background:#113a2a; border-color:#2fbf8a; }
-  .kp-lab{ font-family:var(--font-ui); font-size:12px; letter-spacing:.16em; color:var(--text-faint); }
+  /* Work panel: the factor tree (A) or the lights (B) */
   .work{ display:grid; grid-template-columns:minmax(0,1fr); gap:10px; }
   .treehead{ display:flex; justify-content:space-between; align-items:baseline; padding:0 4px; font-family:var(--font-ui); font-size:12px; letter-spacing:.18em; color:var(--text-faint); }
   .treehead b{ font-size:26px; color:var(--accent); letter-spacing:.06em; }
   .treebox{ padding:16px 12px; background:#020a0c; border:1px solid rgba(var(--accent-rgb),.5); overflow-x:auto; min-height:200px; }
-  .node{ display:flex; flex-direction:column; align-items:center; gap:8px; }
-  .kids{ display:flex; gap:24px; position:relative; padding-top:10px; }
+  .node{ display:flex; flex-direction:column; align-items:center; gap:6px; }
+  .kids{ display:flex; gap:24px; position:relative; padding-top:8px; }
   .kids::before{ content:""; position:absolute; top:0; left:25%; right:25%; border-top:1px solid rgba(var(--accent-rgb),.5); }
-  .val{ font-family:var(--font-mono); font-size:21px; font-weight:700; min-width:60px; text-align:center; padding:7px 11px; background:rgba(8,26,31,.95); border:1px dashed rgba(var(--accent-rgb),.6); color:var(--text-primary); }
+  .val{ font-family:var(--font-mono); font-size:21px; font-weight:700; min-width:60px; text-align:center; padding:5px 11px; background:rgba(8,26,31,.95); border:1px dashed rgba(var(--accent-rgb),.6); color:var(--text-primary); }
   .val.prime{ border-style:solid; border-color:#ffc94d; color:#fff3cf; background:rgba(255,201,77,.18); box-shadow:0 0 12px rgba(255,201,77,.3); }
   .val.split{ border-style:solid; opacity:.8; }
   .chips{ display:flex; gap:4px; flex-wrap:wrap; justify-content:center; max-width:230px; }
@@ -49,27 +78,44 @@
   .chip.no{ border-color:#ff6b6b; color:#ff6b6b; }
   .splitf{ display:flex; gap:6px; align-items:center; font-size:18px; }
   .splitf input{ width:56px; font-size:18px; text-align:center; padding:5px; }
+  /* Option B: an array of lights. A cut separates it into equal strips; the spare strips fade and one carries on. */
+  .arrbox{ padding:16px 14px; background:#020a0c; border:1px solid rgba(var(--accent-rgb),.5); min-height:220px; display:flex; flex-direction:column; align-items:center; gap:14px; }
+  .arr-eq{ font-family:var(--font-mono); font-size:24px; color:var(--text-primary); letter-spacing:.04em; text-align:center; }
+  .arr-eq b{ color:#ffe68a; } .arr-eq .cur{ color:#8feaff; border-bottom:2px solid #8feaff; }
+  .arr-stage{ display:flex; gap:22px; justify-content:center; align-items:center; }
+  .arr-stage.rows{ flex-direction:column; gap:14px; }
+  .arr-grid{ display:grid; grid-template-columns:repeat(var(--c), var(--d)); gap:var(--gap); padding:6px; border:1px solid transparent; transition:opacity .5s, border-color .3s; }
+  .arr-grid i{ display:block; width:var(--d); height:var(--d); border-radius:50%; background:#8feaff; box-shadow:0 0 6px rgba(140,235,255,.6); }
+  .arr-grid.ghost{ opacity:.16; }
+  .arr-grid.prime i{ background:#ffe14d; box-shadow:0 0 8px rgba(255,201,77,.7); }
+  .arr-grid.bad{ border-color:#ff4f6d; }
+  .arr-cap{ font-family:var(--font-ui); font-size:14px; letter-spacing:.14em; color:var(--text-muted); text-align:center; min-height:1.4em; }
+  .arr-chips{ display:flex; gap:6px; flex-wrap:wrap; justify-content:center; }
+  .arr-chips .chip{ font-size:17px; padding:8px 12px; }
   @media (max-width:880px){ .scene{ grid-template-columns:1fr; } }
+  @media (prefers-reduced-motion: reduce){ .fpv.move, .scene .keypad, .work, .tw-msg{ transition:none; } }
 </style>
 </head>
-<body>
+<body class="pre">
 <main class="tw">
-  <div class="tw-bar"><span>Bolt <b id="k">1</b> of 2</span></div>
+  <div class="tw-bar"><span>Bolt <b id="k">1</b> of <span id="kn">2</span></span><span id="modeLab"></span></div>
   <div class="scene">
-    <section class="pn-panel doorview"><span class="sign">KEY ROOM · <span id="floor">WEAK FLOOR</span></span><div class="floorline"></div>
-      <div class="bigdoor" id="door"><div class="inside"><span class="keyicon">🔑</span>KEY ROOM</div><div class="leaf l"></div><div class="leaf r"></div><div class="bolt b0" id="bolt0"></div><div class="bolt b1" id="bolt1"></div></div>
-    </section>
-    <section class="pn-panel keypad"><span class="kp-lab">KEYPAD · PRIME CODE</span>
+    <section class="pn-panel doorview" id="doorview"><span class="sign">KEY ROOM · <span id="floor">WEAK FLOOR</span></span></section>
+    <section class="pn-panel keypad" id="kp"><span class="kp-lab" id="kpLab">KEYPAD · LOCKED</span>
       <div class="kp-screen" id="screen">LOCKED</div>
+      <div class="kp-live" id="live" aria-live="polite"></div>
       <div class="kp-keys" id="keys"></div>
     </section>
   </div>
+  <div class="tw-msg" id="msg" aria-live="polite"></div>   <!-- feedback sits above the working out, so a wrong cut's reason is never below the fold -->
   <div class="work">
-    <div class="treehead"><span>FACTOR TREE FOR BOLT <span id="bn">1</span></span><b id="nLab"></b></div>
+    <div class="treehead"><span><span id="workKind">FACTOR TREE</span> FOR BOLT <span id="bn">1</span></span><b id="nLab"></b></div>
     <section class="treebox" id="tree" aria-live="polite"></section>
+    <section class="arrbox" id="arr" aria-live="polite" hidden></section>
   </div>
-  <div class="tw-msg" id="msg" aria-live="polite"></div>
 </main>
+<div class="fpv" id="fpv" hidden><div class="hud"><i class="tl"></i><i class="tr"></i><i class="bl"></i><i class="br"></i>
+  <span class="lab"><b>●</b> CREW CAM · <span id="fpvFloor">WEAK FLOOR</span></span><span class="skip">TAP OR ANY KEY TO SKIP</span><div class="scan"></div></div></div>
 
 <script src="../shared/sound.js"></script>
 <script src="../shared/primenet.js"></script>
@@ -80,106 +126,278 @@
 (() => {
   "use strict";
   const T = window.PNTwist, $ = id => document.getElementById(id);
-  const L = T.peekLevel();
-  const GOAL = L === "L3" ? "Break each bolt's number into <b>primes</b> with a factor tree. Then key them in with <b>powers</b>, like 2^3 × 5." : "Break each bolt's number into <b>primes</b> with a factor tree. Then key the primes into the keypad.";
+  const L = T.peekLevel(), qs = new URLSearchParams(location.search);
+  const MODE = qs.get("mode") === "B" ? "B" : "A";   // A: factor tree (default). B: arrays of lights cut into strips
+  const sp = () => (window.PNTest ? PNTest.speed() : 1);
+  const wait = ms => new Promise(r => setTimeout(r, ms / sp()));
+  const still = () => matchMedia("(prefers-reduced-motion: reduce)").matches || document.documentElement.classList.contains("pn-reduce-motion");
+  const BOLTS = L === "L3" ? 3 : 2;
+  $("kn").textContent = BOLTS;
+  $("modeLab").textContent = MODE === "A" ? "Option A · factor tree" : "Option B · arrays of lights";
   // The real-life reason rides in the brief for the first bolt only
-  const WHY = "<b>Why primes?</b> Bank cards and websites lock their messages with a huge number made by multiplying two primes. Multiplying is easy. Splitting the number back into its primes is so hard that computers can't do it for the big ones. This door uses small ones, so you can.";
-  T.init({ id: "door2", stage: "PRIME HACK", title: "KEY ROOM DOOR",
-    goal: `${GOAL}<br><br>${WHY}`,
-    example: L === "L3" ? "12 splits into 2 × 6, and 6 splits into 2 × 3. So 12 = 2 × 2 × 3 = 2^2 × 3. Key in 2^2 × 3, then ENTER." : "12 splits into 2 × 6, and 6 splits into 2 × 3. So 12 = 2 × 2 × 3. Key in 2 × 2 × 3, then ENTER.",
-    story: "Crew's at the key room door. Two bolts, each locked with a number. Break the numbers into primes and key them in." });
+  const WHY = `<b>Why primes?</b> Bank cards and websites lock their messages with a huge number made by multiplying two primes. It has over 600 digits. Multiplying is easy. ${MODE === "B" ? "Finding a cut that works" : "Splitting the number back into its primes"} is so hard that no computer can do it. This door uses small numbers, so you can.`;
+  const POW = L === "L3" ? " Powers like 2^3 × 5 are fine too." : "";
+  const GOAL = MODE === "B" ? `Cut each bolt's lights into equal strips until no strip can be cut. Each cut finds a <b>prime</b>. Then key the primes into the keypad.${POW}`
+    : `Break each bolt's number into <b>primes</b> with a factor tree. Then key the primes into the keypad.${POW}`;
+  const EXAMPLE = MODE === "B" ? "12 lights cut into 2 strips of 6. A strip of 6 cuts into 2 strips of 3. A strip of 3 cannot be cut equally. So 12 = 2 × 2 × 3. Key in 2 × 2 × 3, then ENTER."
+    : L === "L3" ? "12 splits into 2 × 6, and 6 splits into 2 × 3. So 12 = 2 × 2 × 3 = 2^2 × 3. Key in 2 × 2 × 3 or 2^2 × 3, then ENTER."
+    : "12 splits into 2 × 6, and 6 splits into 2 × 3. So 12 = 2 × 2 × 3. Key in 2 × 2 × 3, then ENTER.";
   const a0 = window.Primenet && Primenet.getAgent();
-  if(a0 && a0.weakFloor) $("floor").textContent = a0.weakFloor.toUpperCase();
-  const POOL = { L1: [[12, 18, 20, 28, 30], [42, 45, 50, 60, 36]], L2: [[36, 48, 60, 72, 84], [90, 100, 126, 108, 120]], L3: [[120, 144, 168, 180], [210, 240, 252, 360]] }[L];
-  const locks = [T.pick(POOL[0]), T.pick(POOL[1])];
-  // Scaffolding by level: bolt 1 at L1 has prime buttons; after that, split by typing a pair (buttons appear after a wrong try)
+  if(a0 && a0.weakFloor){ $("floor").textContent = a0.weakFloor.toUpperCase(); $("fpvFloor").textContent = a0.weakFloor.toUpperCase(); }
+  // Round 14: longer trees. L1 numbers have four prime factors (three splits), L2 four or five, L3 has a third
+  // bolt and repeated primes (keyed in as powers or the long way, both accepted).
+  const POOL = { L1: [24, 36, 40, 54, 56, 60], L2: [60, 72, 84, 90, 100, 108, 120, 126, 140, 150, 168, 180], L3: [72, 96, 108, 120, 144, 180, 200, 216, 240] }[L];
+  const locks = T.shuffle(POOL).slice(0, BOLTS);
+  // Scaffolding by level (tree): bolt 1 at L1 has prime buttons; after that, split by typing a pair (buttons appear after a wrong try)
   const chipsFor = k => (L === "L1" && k === 0) ? "always" : "afterWrong";
   const CHIPS = L === "L3" ? [2, 3, 5, 7, 11, 13] : [2, 3, 5, 7];
-  let k = 0, over = false, splits = 0, slips = 0, typed = "";
-  const alarm = T.alarm(3, () => end(false));
+  let k = 0, over = false, busy = false, splits = 0, slips = 0, typed = "", keypadOn = false;
+  const alarm = T.alarm(BOLTS + 1, () => end());   // three strikes; four at L3, where there are three long trees
   const primeFactors = n => { const out = []; let m = n; for(let d = 2; d * d <= m; d++) while(m % d === 0){ out.push(d); m /= d; } if(m > 1) out.push(m); return out; };
+  // The code for a number: its primes smallest first; at L3 shown with powers (2^3 × 3^2 × 5)
+  const powers = n => { const pf = primeFactors(n); return [...new Set(pf)].map(p => { const c = pf.filter(x => x === p).length; return c > 1 ? `${p}^${c}` : `${p}`; }).join(" × "); };
+  const codeFor = n => L === "L3" ? powers(n) : primeFactors(n).join(" × ");
+  // What a typed code means: "2^2 × 3" and "2 × 2 × 3" both become [2, 2, 3], so order and powers never matter
+  const expand = str => str.split("×").map(t => t.trim()).filter(Boolean).flatMap(t => { const [b, e] = t.split("^").map(Number); return Array(Number.isInteger(e) && e > 0 ? e : 1).fill(b); });
   function say(t, cls){ const m = $("msg"); m.textContent = t; m.className = "tw-msg" + (cls ? " " + cls : ""); }
   // Instructions live in the hologram brief. A new kind of step zooms it open; the same job again (bolt 2) just
-  // updates it and pings the BRIEF tab. The first is quiet too: the brief zooms in by itself just after load.
+  // updates it and pings the BRIEF tab. The first is quiet too: the brief zooms in by itself after the walk-up.
   const seen = new Set();
   function brief(kind, html){ T.step(html, { quiet: !seen.size || seen.has(kind) }); seen.add(kind); }
+  // Buttons the student taps must not keep keyboard focus: a later ENTER or space would press them again
+  const noFocus = el => el.addEventListener("mousedown", e => { if(e.target.closest("button")) e.preventDefault(); });
+
+  // ----- The corridor to the door, in one-point perspective (SVG). Walls at X = ±1, floor at Y = 0.72, the door wall at Z = 3.2 -----
+  // A wide picture (1160 × 400): the panel shows all of it; full screen crops the sides, so the door fills the height either way
+  const VW = 1160, VH = 400, CX = 580, CY = 186, FOC = 420, ZB = 3.2, NEAR = 0.42, FLOOR = 0.7, CAM_FAR = 0.05, CAM_NEAR = 1.8;
+  const BOLT_Y = BOLTS === 3 ? [-0.3, 0.08, 0.46] : [-0.22, 0.28];
+  const view = { cam: CAM_NEAR, open: 0, kp: 0, sweep: null, flare: 0, bolts: Array.from({ length: BOLTS }, () => ({ on: true, slide: 0 })) };
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("viewBox", `0 0 ${VW} ${VH}`); svg.setAttribute("preserveAspectRatio", "xMidYMax slice"); svg.setAttribute("class", "vault"); svg.setAttribute("aria-label", "The key room door");
+  const P = (X, Y, Z) => [CX + X / (Z - view.cam) * FOC, CY + Y / (Z - view.cam) * FOC];
+  const f1 = v => (+v).toFixed(1);
+  const poly = (pts, attrs = "") => `<polygon points="${pts.map(p => f1(p[0]) + "," + f1(p[1])).join(" ")}" ${attrs}/>`;
+  const line = (a, b, attrs = "") => `<line x1="${f1(a[0])}" y1="${f1(a[1])}" x2="${f1(b[0])}" y2="${f1(b[1])}" ${attrs}/>`;
+  const rect = (x, y, w, h, attrs = "") => `<rect x="${f1(x)}" y="${f1(y)}" width="${f1(Math.max(0, w))}" height="${f1(Math.max(0, h))}" ${attrs}/>`;
+  function draw(){
+    const zn = view.cam + NEAR, s = FOC / (ZB - view.cam);   // nearest depth drawn, and the scale of the door wall
+    let g = rect(0, 0, VW, VH, 'fill="#010608"');
+    g += `<defs><radialGradient id="ig" cx="50%" cy="62%" r="62%"><stop offset="0" stop-color="#ffd76a" stop-opacity=".95"/><stop offset="1" stop-color="#3a2a00" stop-opacity="0"/></radialGradient>
+      <linearGradient id="sg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff3355" stop-opacity="0"/><stop offset="1" stop-color="#ff3355" stop-opacity=".28"/></linearGradient></defs>`;
+    g += poly([P(-1, FLOOR, zn), P(1, FLOOR, zn), P(1, FLOOR, ZB), P(-1, FLOOR, ZB)], 'fill="#072026"');
+    g += poly([P(-1, -FLOOR, zn), P(1, -FLOOR, zn), P(1, -FLOOR, ZB), P(-1, -FLOOR, ZB)], 'fill="#04141a"');
+    for(let z = 0.5; z < ZB; z += 0.5) if(z > zn) g += line(P(-1, FLOOR, z), P(1, FLOOR, z), 'stroke="#1a4550"');
+    for(const x of [-0.5, 0, 0.5]) g += line(P(x, FLOOR, zn), P(x, FLOOR, ZB), 'stroke="#123840"');
+    for(const sx of [-1, 1]){
+      g += poly([P(sx, -FLOOR, zn), P(sx, -FLOOR, ZB), P(sx, FLOOR, ZB), P(sx, FLOOR, zn)], 'fill="#0b232b"');
+      for(let z = 0.4; z < ZB; z += 0.4) if(z > zn) g += line(P(sx, -FLOOR, z), P(sx, FLOOR, z), 'stroke="#1e4651"');
+      g += line(P(sx, 0.1, zn), P(sx, 0.1, ZB), 'stroke="#1e4651"');
+      g += line(P(sx * 0.985, -0.66, zn), P(sx * 0.985, -0.66, ZB), 'class="strip"');
+    }
+    // Ceiling lights down the middle, and yellow hazard stripes on the floor before the door
+    for(let z = 0.7; z < ZB - 0.2; z += 0.6) if(z > zn) g += poly([P(-0.12, -0.715, z), P(0.12, -0.715, z), P(0.12, -0.715, z + 0.22), P(-0.12, -0.715, z + 0.22)], 'fill="#8feaff" opacity=".35"');
+    if(ZB - 0.25 > zn) for(let i = 0; i < 6; i++){ const x0 = -0.6 + i * 0.2; g += poly([P(x0, FLOOR, ZB - 0.25), P(x0 + 0.1, FLOOR, ZB - 0.25), P(x0 + 0.1, FLOOR, ZB - 0.02), P(x0, FLOOR, ZB - 0.02)], 'fill="#ffc94d" opacity=".35"'); }
+    // The door wall, the frame, and the two leaves over the lit room behind them
+    g += poly([P(-1, -FLOOR, ZB), P(1, -FLOOR, ZB), P(1, FLOOR, ZB), P(-1, FLOOR, ZB)], 'fill="#08191f" stroke="#2c4c55"');
+    const [dx0, dy0] = P(-0.42, -0.46, ZB), [dx1, dy1] = P(0.42, FLOOR, ZB), dw = dx1 - dx0, dh = dy1 - dy0, half = dw / 2;
+    g += `<defs><clipPath id="dclip">${rect(dx0, dy0, dw, dh)}</clipPath></defs>`;
+    g += rect(dx0 - 0.03 * s, dy0 - 0.03 * s, dw + 0.06 * s, dh + 0.03 * s, 'fill="#0f2830" stroke="#4a6f78" stroke-width="2"');
+    g += `<text class="sign" x="${f1(CX)}" y="${f1(dy0 - 0.07 * s)}" font-size="${f1(Math.max(7, 0.05 * s))}">KEY ROOM</text>`;
+    g += `<g clip-path="url(#dclip)">`;
+    g += rect(dx0, dy0, dw, dh, 'fill="#01080a"') + rect(dx0, dy0, dw, dh, `fill="url(#ig)" opacity="${(0.25 + 0.75 * view.open).toFixed(2)}"`);
+    const kx = CX, ky = CY + 0.02 * s, kr = 0.07 * s, sw = f1(Math.max(2, 0.02 * s));
+    g += `<g stroke="#ffe14d" stroke-width="${sw}" fill="none" style="filter:drop-shadow(0 0 ${f1(0.03 * s)}px #ffc94d)"><circle cx="${f1(kx)}" cy="${f1(ky - kr * 1.4)}" r="${f1(kr)}"/>${line([kx, ky - kr * 0.4], [kx, ky + kr * 2.2])}${line([kx, ky + kr * 1.4], [kx + kr * 0.8, ky + kr * 1.4])}${line([kx, ky + kr * 2.1], [kx + kr * 0.6, ky + kr * 2.1])}</g>`;
+    g += `<text x="${f1(CX)}" y="${f1(dy1 - 0.07 * s)}" font-size="${f1(Math.max(9, 0.07 * s))}">THE KEY</text>`;
+    const off = view.open * half;
+    for(const [x0, dir] of [[dx0 - off, -1], [dx0 + half + off, 1]]){
+      g += rect(x0, dy0, half, dh, 'fill="#14303a"');
+      for(let i = 0; i < 6; i++) g += rect(x0, dy0 + dh * (i + 0.5) / 6, half, dh / 12, 'fill="#0f262d"');
+      const sx = x0 + (dir < 0 ? half - 1 : 1); g += line([sx, dy0], [sx, dy1], 'stroke="#2c4c55" stroke-width="2"');
+    }
+    g += `</g>`;
+    // Bolts across the seam. A released bolt turns green and slides into the left leaf.
+    view.bolts.forEach((b, i) => { const bw = 0.26 * s, bh = 0.05 * s, y = CY + BOLT_Y[i] * s, x = CX - bw / 2 - b.slide * 0.3 * s - off;
+      g += rect(x, y - bh / 2, bw, bh, `class="bolt${b.on ? "" : " off"}" rx="${f1(bh / 4)}"`); });
+    // The keypad on the wall to the right of the door; it lights when we reach it
+    const [px0, py0] = P(0.56, -0.24, ZB), [px1, py1] = P(0.84, 0.2, ZB);
+    g += rect(px0, py0, px1 - px0, py1 - py0, `fill="#0b1d22" stroke="${view.kp ? "#2fbf8a" : "#2c4c55"}" stroke-width="1.5"`);
+    const [sx0, sy0] = P(0.585, -0.215, ZB), [sx1, sy1] = P(0.815, -0.13, ZB);
+    g += rect(sx0, sy0, sx1 - sx0, sy1 - sy0, `fill="${view.kp ? "#0b4a30" : "#021d12"}" stroke="rgba(47,191,138,.6)"`);
+    for(let r = 0; r < 4; r++) for(let c = 0; c < 3; c++){ const [cx, cy] = P(0.625 + c * 0.075, -0.08 + r * 0.068, ZB); g += `<circle cx="${f1(cx)}" cy="${f1(cy)}" r="${f1(Math.max(1.2, 0.017 * s))}" fill="${view.kp ? "#9fffd4" : "#1d3b44"}"/>`; }
+    if(view.kp) g += rect(px0 - 3, py0 - 3, px1 - px0 + 6, py1 - py0 + 6, 'fill="none" stroke="rgba(47,191,138,.55)" stroke-width="4"');
+    // Laser beams across the corridor (a slow breath, not a flash), and the sweep: a line of light running down the door wall
+    [[1.5, 0.35], [2.3, -0.05]].forEach(([z, y], i) => { if(z <= zn) return; const [a, b] = P(-1, y, z), [c, d] = P(1, y, z);
+      g += `<line class="beam" x1="${f1(a)}" y1="${f1(b)}" x2="${f1(c)}" y2="${f1(d)}"><animate attributeName="opacity" values=".85;.35;.85" dur="${1.6 + i * 0.5}s" repeatCount="indefinite"/></line>`; });
+    if(view.sweep !== null){ const [wx0] = P(-1, 0, ZB), [wx1, wy] = P(1, view.sweep, ZB); g += rect(wx0, wy - 0.14 * s, wx1 - wx0, 0.14 * s, 'fill="url(#sg)"') + line([wx0, wy], [wx1, wy], 'class="sweep"'); }
+    if(view.flare > 0) g += rect(0, 0, VW, VH, `fill="#fff1c2" opacity="${view.flare.toFixed(2)}"`);
+    svg.innerHTML = g;
+  }
+  function tween(ms, fn){ return new Promise(res => { if(still()){ fn(1); return res(); } const t0 = performance.now(), d = ms / sp(); (function f(now){ const t = Math.min(1, (now - t0) / d); fn(t); if(t < 1) requestAnimationFrame(f); else res(); })(t0); }); }
+  const ease = t => t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+
+  // ----- First-person walk-up: the corridor fills the screen, the camera pushes in to the door, then docks into the panel -----
+  const fpv = $("fpv");
+  let introOn = false, introEnd = null, introDoneAt = 0;
+  const place = (el, r) => { el.style.left = r.left + "px"; el.style.top = r.top + "px"; el.style.width = r.width + "px"; el.style.height = r.height + "px"; };
+  const screenRect = () => ({ left: 0, top: 0, width: innerWidth, height: innerHeight });
+  function intro(){
+    return new Promise(resolve => {
+      introOn = true; fpv.hidden = false; fpv.classList.remove("move", "hid", "end"); place(fpv, screenRect()); fpv.insertBefore(svg, fpv.firstChild);
+      view.cam = CAM_FAR; view.kp = 0; view.sweep = null; draw();
+      const T0 = performance.now(), DUR = 2400 / sp(), fired = {};
+      const cue = (name, at, fn) => { if(!fired[name] && performance.now() - T0 >= at / sp()){ fired[name] = 1; fn(); } };
+      let raf = 0, done = false;
+      const finish = () => {
+        if(done) return; done = true; introOn = false; introDoneAt = performance.now(); cancelAnimationFrame(raf);
+        ["pointerdown", "keydown"].forEach(ev => document.removeEventListener(ev, finish, true));
+        view.cam = CAM_NEAR; view.sweep = null; view.kp = 1; draw();
+        resolve();
+      };
+      introEnd = finish;
+      T.SND("zoom");
+      (function frame(now){
+        if(done) return;
+        const t = Math.min(1, (now - T0) / DUR);
+        view.cam = CAM_FAR + (CAM_NEAR - CAM_FAR) * ease(t);
+        cue("scan", 450, () => T.SND("scanline", 0.9));
+        const st = (now - T0) * sp() / 900 - 0.5;   // the sweep runs down the door wall from 0.45 s to 1.35 s
+        view.sweep = st >= 0 && st <= 1 ? -FLOOR + st * 2 * FLOOR : null;
+        cue("whoosh", 1250, () => T.SND("whoosh"));
+        cue("kp", 1900, () => { view.kp = 1; T.SND("chirp"); });
+        draw();
+        if(t < 1) raf = requestAnimationFrame(frame); else finish();
+      })(T0);
+      ["pointerdown", "keydown"].forEach(ev => document.addEventListener(ev, finish, true));   // tap or any key skips
+    });
+  }
+  async function dock(){
+    const r = $("doorview").getBoundingClientRect();
+    if(!still()){ fpv.style.setProperty("--dock", (550 / sp()) + "ms"); fpv.classList.add("move", "hid"); void fpv.offsetWidth; place(fpv, r); T.SND("whooshDown"); await wait(560); }
+    $("doorview").appendChild(svg); fpv.hidden = true; fpv.classList.remove("move", "hid");
+    document.body.classList.remove("pre");
+    [0, 1, 2].forEach(i => setTimeout(() => T.SND("blip", i), i * 120 / sp()));
+  }
 
   // ----- Keypad -----
   const KEYS = ["7", "8", "9", "×", "4", "5", "6", "^", "1", "2", "3", "⌫", "0", "C", "ENTER"];
-  $("keys").innerHTML = KEYS.map(k2 => `<button type="button" data-k="${k2}" class="${k2 === "ENTER" ? "enter" : ""}" style="${k2 === "ENTER" ? "grid-column:span 2" : ""}">${k2}</button>`).join("");
-  const screen = $("screen");
-  let keypadOn = false;
-  function setKeypad(on){ keypadOn = on; $("keys").querySelectorAll("button").forEach(b => b.disabled = !on || (b.dataset.k === "^" && L !== "L3")); screen.classList.remove("bad"); screen.textContent = on ? "_" : "LOCKED"; typed = ""; }
+  $("keys").innerHTML = KEYS.map(x => `<button type="button" data-k="${x}" class="${x === "ENTER" ? "enter" : ""}"${x === "ENTER" ? ' style="grid-column:span 2"' : ""} aria-label="${x === "⌫" ? "Backspace" : x === "×" ? "Times" : x === "C" ? "Clear" : x}">${x}</button>`).join("");
+  noFocus($("keys"));
+  const screen = $("screen"), live = $("live");
+  function setKeypad(on){
+    keypadOn = on; typed = "";
+    $("keys").querySelectorAll("button").forEach(b => b.disabled = !on || (b.dataset.k === "^" && L !== "L3"));
+    $("kp").classList.toggle("on", on); $("kpLab").textContent = on ? "KEYPAD UNLOCKED · KEY IN THE PRIMES" : "KEYPAD · LOCKED";
+    screen.classList.remove("bad"); screen.textContent = on ? "_" : "LOCKED"; live.textContent = ""; live.className = "kp-live";
+  }
   setKeypad(false);
-  function press(k2){
-    if(!keypadOn || over) return;
-    T.SND("key");
+  // Live feedback under the screen: what the code makes so far, so a problem shows before ENTER
+  function showLive(){
+    const N = locks[k], vals = expand(typed);
+    live.className = "kp-live";
+    if(!vals.length){ live.textContent = ""; return; }
+    const made = vals.reduce((a, b) => a * b, 1), np = vals.find(v => !T.isPrime(v));
+    if(np !== undefined){ live.textContent = `${np} is not prime`; live.classList.add("warn"); }
+    else if(made === N){ live.textContent = `= ${N} ✓ press ENTER`; live.classList.add("ok"); }
+    else if(N % made === 0) live.textContent = `= ${made} so far`;
+    else { live.textContent = `= ${made}, not ${N}`; live.classList.add("warn"); }
+  }
+  // Is the working out finished? Then the keypad must be live, whatever else happened.
+  const complete = () => MODE === "B" ? !!(piece && T.isPrime(piece.r * piece.c)) : !!($("tree").children.length && !$("tree").querySelector(".val:not(.prime):not(.split)"));
+  function press(x){
+    if(over || busy) return;
+    if(!keypadOn){ if(complete()) setKeypad(true); else return; }
+    const b = $("keys").querySelector(`[data-k="${x}"]`); if(b){ b.classList.add("hit"); setTimeout(() => b.classList.remove("hit"), 140); }
     screen.classList.remove("bad");
-    if(k2 === "C"){ typed = ""; }
-    else if(k2 === "⌫"){ typed = typed.replace(/\s*[×^]\s*$|.$/, ""); }
-    else if(k2 === "ENTER"){ return check(); }
-    else if(k2 === "×"){ if(typed && !/[×^]\s*$/.test(typed)) typed += " × "; }
-    else if(k2 === "^"){ if(typed && /\d$/.test(typed)) typed += "^"; }
-    else typed += k2;
-    screen.textContent = typed || "_";
+    if(x === "ENTER"){ T.SND("beep"); return check(); }
+    T.SND("typing");
+    if(x === "C") typed = "";
+    else if(x === "⌫") typed = typed.replace(/\s*[×^]\s*$|.$/, "");
+    else if(x === "×"){ if(typed && !/[×^]\s*$/.test(typed)) typed += " × "; }
+    else if(x === "^"){ if(typed && /\d$/.test(typed)) typed += "^"; }
+    else if(/^\d$/.test(x)) typed += x;
+    else return;
+    screen.textContent = typed || "_"; showLive();
   }
-  $("keys").addEventListener("click", e => { const b = e.target.closest("button"); if(b) press(b.dataset.k); });
+  $("keys").addEventListener("click", e => { const b = e.target.closest("button"); if(b && !b.disabled) press(b.dataset.k); });
+  // The keyboard works the keypad too: digits, x or * or space for ×, ^, Backspace, Enter. Never from inside a text box.
   document.addEventListener("keydown", e => {
-    if(!keypadOn) return;
-    const codeKey = /^[0-9]$/.test(e.key) || e.key === "*" || e.key === " " || e.key.toLowerCase() === "x" || e.key === "^";
-    if(T.briefOpen()){ if(codeKey){ T.hideBrief(); } else return; }   // typing a code folds the brief away; ENTER still means GOT IT
-    if(/^[0-9]$/.test(e.key)) press(e.key);
-    else if(e.key === "*" || e.key === " " || e.key.toLowerCase() === "x"){ e.preventDefault(); press("×"); }
-    else if(e.key === "^") press("^");
-    else if(e.key === "Backspace") press("⌫");
-    else if(e.key === "Enter"){ e.preventDefault(); press("ENTER"); }
+    if(e.ctrlKey || e.metaKey || e.altKey || over || busy) return;
+    if(e.target && e.target.closest && e.target.closest("input, textarea, select")) return;
+    const key = e.key, code = /^[0-9]$/.test(key) || key === "*" || key === " " || key === "x" || key === "X" || key === "^";
+    if(!code && key !== "Backspace" && key !== "Enter") return;
+    if(!keypadOn && !(code && complete())) return;
+    if(T.briefOpen()){ if(code) T.hideBrief(); else return; }   // typing a code folds the brief away; ENTER on the brief still means GOT IT
+    e.preventDefault();
+    if(/^[0-9]$/.test(key)) press(key);
+    else if(key === "^") press("^");
+    else if(key === "Backspace") press("⌫");
+    else if(key === "Enter") press("ENTER");
+    else press("×");
   });
-  // The code for a number: its primes smallest first (L3 with powers: 2^3 × 3^2 × 5)
-  function codeFor(n){
-    const pf = primeFactors(n);
-    if(L !== "L3") return pf.join(" × ");
-    return [...new Set(pf)].map(p => { const c = pf.filter(x => x === p).length; return c > 1 ? `${p}^${c}` : `${p}`; }).join(" × ");
-  }
-  // Bertie couldn't open the door: order shouldn't matter (the primes are the same), so compare the primes, not the text
-  const expand = str => str.split("×").map(t => t.trim()).filter(Boolean).flatMap(t => { const [b, e] = t.split("^").map(Number); return Array(Number.isInteger(e) && e > 0 ? e : 1).fill(b); });
   function check(){
-    const want = codeFor(locks[k]), got = typed.replace(/\s+/g, " ").trim();
-    const mine = expand(got).sort((a, b) => a - b), theirs = primeFactors(locks[k]);
-    const powersOk = L !== "L3" || new Set(theirs).size === theirs.length || got.includes("^");
-    if(mine.length && mine.join() === theirs.join() && powersOk){
-      typed = want;
-      screen.textContent = `${locks[k]} = ${want} ✓`; T.SND("verified");
-      $("bolt" + k).classList.add("off"); T.SND("clamp");
-      setKeypad(false); screen.textContent = `BOLT ${k + 1} RELEASED`;
-      k++;
-      if(k === locks.length) return openDoor();
-      setTimeout(() => { if(!over) show(); }, 1200 / (window.PNTest ? PNTest.speed() : 1));
+    const N = locks[k];
+    if(!typed.trim()){
+      screen.classList.add("bad"); screen.textContent = "NOTHING TYPED"; say("Type the primes first, with × between them. Then press ENTER.", "warn"); T.SND("untag");
+      setTimeout(() => { if(!over && keypadOn){ screen.classList.remove("bad"); screen.textContent = "_"; } }, 1100 / sp());
       return;
     }
+    // Order never matters, and neither does the power form: the primes are compared, not the text
+    const mine = expand(typed).sort((a, b) => a - b), theirs = primeFactors(N);
+    if(mine.length && mine.join() === theirs.join()) return released(N);
     slips++;
-    screen.classList.add("bad");
-    const pf = primeFactors(locks[k]);
-    const made = mine.reduce((a, b) => a * b, 1);
-    const hint = !mine.length ? "Key in the primes with × between them." : mine.some(v => !T.isPrime(v)) ? `Only primes go in the code. ${mine.find(v => !T.isPrime(v))} isn't prime.` : made !== locks[k] ? `Your code makes ${made}, not ${locks[k]}. Check every prime in your tree is there.` : "Use powers for repeated primes, like 2^2.";
-    screen.textContent = "DENIED"; say(hint, "bad"); T.SND("denied"); alarm.hit();
-    setTimeout(() => { if(!over){ screen.classList.remove("bad"); screen.textContent = typed || "_"; } }, 900);
+    const made = mine.reduce((a, b) => a * b, 1), np = mine.find(v => !T.isPrime(v));
+    const hint = np !== undefined ? `Only primes go in the code. ${np} is not prime.` : `Your code makes ${made}, not ${N}. Check every prime from your ${MODE === "B" ? "cuts" : "tree"} is there, with × between them.`;
+    screen.classList.add("bad"); screen.textContent = "DENIED"; say(hint, "bad"); T.SND("denied"); alarm.hit();
+    if(np === undefined){ live.textContent = `= ${made}, not ${N}`; live.className = "kp-live warn"; }
+    setTimeout(() => { if(!over && keypadOn){ screen.classList.remove("bad"); screen.textContent = typed || "_"; } }, 900 / sp());
   }
-  function end(ok){
-    if(ok) return openDoor();
+  // The code is right: lock on, the bolt slides, then the next bolt (or the door)
+  async function released(N){
+    busy = true; keypadOn = false;
+    const want = codeFor(N);
+    screen.classList.remove("bad"); screen.textContent = `${N} = ${want} ✓`; live.textContent = "CODE ACCEPTED"; live.className = "kp-live ok";
+    $("keys").querySelectorAll("button").forEach(b => b.disabled = true);
+    T.SND("lockon"); say(`${N} = ${want}. Bolt ${k + 1} released.`, "ok");
+    await wait(650); if(over) return;
+    const b = view.bolts[k]; b.on = false; T.SND("chirp");
+    await tween(500, t => { b.slide = ease(t); draw(); });
+    screen.textContent = `BOLT ${k + 1} RELEASED`;
+    k++;
+    if(k === locks.length) return openDoor();
+    await wait(900); if(over) return;
+    busy = false; show();
+  }
+  function end(){
     over = true; setKeypad(false);
-    T.finish({ ok: false, title: "TRACE COMPLETE", lines: [`Bolts released: <b>${k}</b> of ${locks.length}`, `${locks[Math.min(k, locks.length - 1)]} = ${primeFactors(locks[Math.min(k, locks.length - 1)]).join(" × ")}`, "Split with small primes first: 2, 3, 5, 7."] });
+    const n = locks[Math.min(k, locks.length - 1)];
+    T.finish({ ok: false, title: "TRACE COMPLETE", lines: [`Bolts released: <b>${k}</b> of ${locks.length}`, `${n} = ${primeFactors(n).join(" × ")}`, "Split with small primes first: 2, 3, 5, 7."] });
     T.say("Too many wrong codes. They've traced the keypad.");
   }
+  // The payoff, back in first person: the picture grows to fill the screen, the leaves slide apart and we walk through
   async function openDoor(){
-    over = true; T.hideBrief();   // the door opening is the payoff, so nothing sits over it
-    say("Both bolts released. The key room door is open.", "ok");
-    $("door").classList.add("open"); T.SND("dock");
+    over = true; T.hideBrief();
+    say("Every bolt is released. The key room door is opening.", "ok");
     T.say("Door's open. There's the key.");
-    setTimeout(() => T.finish({ ok: true, title: "KEY ROOM OPEN",
-      lines: locks.map(n => `${n} = ${primeFactors(n).join(" × ")}${L === "L3" ? ` = ${codeFor(n)}` : ""}`).concat([`Splits: <b>${splits}</b> · Wrong tries: <b>${slips}</b>`, "Every whole number above 1 breaks into primes in exactly one way. That's what makes the code unique."]) }), 2200 / (window.PNTest ? PNTest.speed() : 1));
+    const r = $("doorview").getBoundingClientRect();
+    fpv.classList.remove("move"); fpv.classList.add("hid", "end"); place(fpv, r); fpv.hidden = false; fpv.insertBefore(svg, fpv.firstChild);
+    if(!still()){ void fpv.offsetWidth; fpv.style.setProperty("--dock", (550 / sp()) + "ms"); fpv.classList.add("move"); place(fpv, screenRect()); T.SND("whoosh"); await wait(560); }
+    else place(fpv, screenRect());
+    fpv.classList.remove("hid");
+    T.SND("whoosh");
+    await tween(1400, t => { view.open = ease(t); draw(); });
+    T.SND("zoom");
+    await tween(1300, t => { view.cam = CAM_NEAR + (ZB - 0.3 - CAM_NEAR) * t * t; view.flare = Math.max(0, (t - 0.55) / 0.45) * 0.9; draw(); });
+    T.finish({ ok: true, title: "KEY ROOM OPEN",
+      lines: locks.map(n => `${n} = ${primeFactors(n).join(" × ")}${L === "L3" ? ` = ${powers(n)}` : ""}`).concat([`${MODE === "B" ? "Cuts" : "Splits"}: <b>${splits}</b> · Wrong tries: <b>${slips}</b>`, "Every whole number above 1 breaks into primes in exactly one way. That's what makes the code unique."]) });
+  }
+  function unlocked(){
+    brief("keypad", MODE === "B" ? `Key the primes from your cuts into the keypad, with × between them. Then press <b>ENTER</b>.${POW}`
+      : `Key the primes of <b>${locks[k]}</b> into the keypad, with × between them. Then press <b>ENTER</b>.${POW}`);
+    setKeypad(true); T.SND("ready");
+    $("kp").scrollIntoView({ block: "nearest", behavior: "smooth" });
   }
 
-  // ----- Factor tree (from the current key room door, with fading scaffolding) -----
+  // ----- Option A: the factor tree (with fading scaffolding) -----
   function makeNode(n, mode){
     const wrap = document.createElement("div"); wrap.className = "node"; wrap.dataset.n = n;
     const b = document.createElement("div"); b.className = "val"; b.textContent = n; wrap.appendChild(b);
@@ -192,6 +410,7 @@
     if(wrap.querySelector(".chips")) return;
     const chips = document.createElement("div"); chips.className = "chips";
     chips.innerHTML = CHIPS.map(p => `<button type="button" class="chip" data-p="${p}">÷${p}</button>`).join("");
+    noFocus(chips);
     chips.querySelectorAll("[data-p]").forEach(c => c.addEventListener("click", () => {
       if(over) return;
       const p = +c.dataset.p;
@@ -226,28 +445,85 @@
     T.SND("tag");
     const primes = [a, c].filter(T.isPrime);
     say(`${n} = ${a} × ${c}.${primes.length ? ` ${primes.join(" and ")} ${primes.length === 1 ? "is" : "are"} prime.` : ""}`, "ok");
-    if(!$("tree").querySelector(".val:not(.prime):not(.split)")){
-      say("Every branch ends in a prime. Keypad unlocked.", "ok");
-      brief("keypad", L === "L3" ? `Key in the primes of <b>${locks[k]}</b>, smallest first. Use <b>powers</b> for repeats, like 2^3 × 5. Then press <b>ENTER</b>.`
-        : `Key the primes of <b>${locks[k]}</b> into the keypad, with × between them. Then press <b>ENTER</b>.`);
-      setKeypad(true); T.SND("ready");
-      $("keys").scrollIntoView({ block: "nearest", behavior: "smooth" });
-    }
+    if(complete()){ say(`Every branch ends in a prime: ${locks[k]} = ${primeFactors(locks[k]).join(" × ")}. Keypad unlocked.`, "ok"); unlocked(); }
   }
+
+  // ----- Option B: the number as an array of lights. A prime cuts it into equal strips; keep one strip and cut again. -----
+  let piece = null, cuts = [], arrBusy = false;   // piece = { r, c } rows and columns (r <= c); cuts = the primes found so far
+  const shape = n => { let r = 1; for(let d = 2; d * d <= n; d++) if(n % d === 0) r = d; return { r, c: n / r }; };
+  const eqHTML = () => { const m = piece.r * piece.c, done = T.isPrime(m); return `${locks[k]} = ${cuts.map(p => `<b>${p}</b>`).concat(done ? `<b>${m}</b>` : `<span class="cur">${m}</span>`).join(" × ")}`; };
+  function renderArr(cutting){   // cutting = { p, dir } while a cut is on screen
+    const m = piece.r * piece.c, prime = T.isPrime(m);
+    const d = Math.max(8, Math.min(22, Math.floor(Math.min(640 / piece.c, 250 / piece.r)) - 4)), gap = d >= 14 ? 4 : 3;
+    const grid = (r, c, cls = "") => `<div class="arr-grid ${cls}" style="--c:${c};--d:${d}px;--gap:${gap}px">${"<i></i>".repeat(r * c)}</div>`;
+    let stage, cap;
+    if(cutting){ const { p, dir } = cutting, gr = dir === "rows" ? piece.r / p : piece.r, gc = dir === "rows" ? piece.c : piece.c / p;
+      stage = `<div class="arr-stage ${dir}">${Array.from({ length: p }, () => grid(gr, gc)).join("")}</div>`; cap = `${m} = ${p} strips of ${m / p}`; }
+    else { stage = `<div class="arr-stage">${grid(piece.r, piece.c, prime ? "prime" : "")}</div>`;
+      cap = prime ? `A strip of ${m} cannot be cut into equal strips. ${m} is prime.` : piece.r > 1 ? `${m} lights · ${piece.r} rows of ${piece.c}` : `A strip of ${m} lights`; }
+    $("arr").innerHTML = `<div class="arr-eq">${eqHTML()}</div>${stage}<div class="arr-cap" id="arrCap">${cap}</div>${prime || cutting ? "" : `<div class="arr-chips">${CHIPS.map(p => `<button type="button" class="chip" data-p="${p}" aria-label="Cut into ${p} strips">÷${p}</button>`).join("")}</div>`}`;
+    const chips = $("arr").querySelector(".arr-chips");
+    if(chips){ noFocus(chips); chips.querySelectorAll("[data-p]").forEach(c => c.addEventListener("click", () => cut(+c.dataset.p))); }
+  }
+  async function cut(p){
+    if(over || arrBusy) return;
+    const m = piece.r * piece.c;
+    if(m % p !== 0){
+      slips++; const g = $("arr").querySelector(".arr-grid"); if(g){ g.classList.add("bad"); setTimeout(() => g.classList.remove("bad"), 700); }
+      say(`${m} lights will not cut into ${p} equal strips. ${p} × ${Math.floor(m / p)} = ${p * Math.floor(m / p)}, so ${m % p} would be left over.`, "bad"); alarm.hit(); return;
+    }
+    arrBusy = true; splits++;
+    const dir = piece.r % p === 0 ? "rows" : "cols";
+    renderArr({ p, dir }); T.SND("tag");
+    say(`${m} cuts into ${p} equal strips of ${m / p}. ${p} is prime.`, "ok");
+    await wait(600); if(over) return;
+    $("arr").querySelectorAll(".arr-grid").forEach((g, i) => { if(i) g.classList.add("ghost"); });
+    $("arrCap").textContent = `The strips are all the same, so keep one: ${m / p}.`; T.SND("blip", 1);
+    await wait(800); if(over) return;
+    cuts.push(p);
+    const nr = dir === "rows" ? piece.r / p : piece.r, nc = dir === "rows" ? piece.c : piece.c / p;
+    piece = { r: Math.min(nr, nc), c: Math.max(nr, nc) };
+    arrBusy = false; renderArr();
+    if(complete()){ T.SND("chirp"); say(`A strip of ${piece.c} cannot be cut equally, so ${piece.c} is prime. ${locks[k]} = ${cuts.concat(piece.c).join(" × ")}. Keypad unlocked.`, "ok"); unlocked(); }
+  }
+
   function show(){
     const n = locks[k], mode = chipsFor(k);
     $("k").textContent = k + 1; $("bn").textContent = k + 1; $("nLab").textContent = `N = ${n}`;
-    const tree = $("tree"); tree.innerHTML = ""; tree.appendChild(makeNode(n, mode));
+    setKeypad(false);
     say(k ? `Bolt ${k} released. Bolt ${k + 1} is locked with ${n}.` : "", "ok");
     if(k === 1) T.setGoal(GOAL, { quiet: true });   // bolt 2: the goal without the "why primes" story
+    if(MODE === "B"){
+      piece = shape(n); cuts = []; arrBusy = false; renderArr();
+      brief("cut", `Cut the <b>${n}</b> lights into equal strips: press a prime that goes into ${n}. Keep one strip and cut it again, until a strip cannot be cut.`);
+      return;
+    }
+    const tree = $("tree"); tree.innerHTML = ""; tree.appendChild(makeNode(n, mode));
     if(mode === "always") brief("buttons", `Press a prime button under <b>${n}</b> that divides into it. Keep going until every branch ends in a prime.`);
     else brief("pair", `Split <b>${n}</b> into a factor pair. Keep going until every branch ends in a prime. A wrong try unlocks prime buttons.`);
   }
+
+  // ----- Start: the frame and the brief build under the walk-up; the brief zooms in once the camera has docked -----
+  if(MODE === "B"){ $("tree").hidden = true; $("arr").hidden = false; $("workKind").textContent = "LIGHTS"; }
+  T.init({ id: "door2", stage: "PRIME HACK", title: "KEY ROOM DOOR", goal: `${GOAL}<br><br>${WHY}`, example: EXAMPLE,
+    story: `Crew's at the key room door. ${BOLTS === 3 ? "Three" : "Two"} bolts, each locked with a number. Break the numbers into primes and key them in.` });
   show();
+  (async () => {
+    if(still()){ $("doorview").appendChild(svg); view.kp = 1; draw(); document.body.classList.remove("pre"); return; }
+    await intro();
+    T.hideBrief();
+    await dock();
+    if(!over) T.showBrief();
+  })();
+
   if(window.PNTest) PNTest.skip("Open this bolt", () => {
-    let guard = 0;
-    while(guard++ < 20){ const v = [...$("tree").querySelectorAll(".val:not(.prime):not(.split)")][0]; if(!v) break; const wrap = v.parentElement, n = +wrap.dataset.n, d = T.smallestFactor(n); split(wrap, n, d, n / d); }
-    typed = codeFor(locks[k]); screen.textContent = typed; check();
+    if(introOn){ introEnd(); return "Intro skipped."; }
+    if(performance.now() - introDoneAt < 900 / sp()) return "Intro skipped.";
+    if(over || busy) return "Wait a moment.";
+    if(MODE === "A"){ let guard = 0; while(guard++ < 30){ const v = $("tree").querySelector(".val:not(.prime):not(.split)"); if(!v) break; const wrap = v.parentElement, n = +wrap.dataset.n, d = T.smallestFactor(n); split(wrap, n, d, n / d); } }
+    else { let guard = 0; while(guard++ < 30 && !T.isPrime(piece.r * piece.c)){ const m = piece.r * piece.c, p = T.smallestFactor(m), dir = piece.r % p === 0 ? "rows" : "cols"; cuts.push(p); splits++; const nr = dir === "rows" ? piece.r / p : piece.r, nc = dir === "rows" ? piece.c : piece.c / p; piece = { r: Math.min(nr, nc), c: Math.max(nr, nc) }; } arrBusy = false; renderArr(); }
+    if(!keypadOn) setKeypad(true);
+    typed = codeFor(locks[k]); screen.textContent = typed; showLive(); check();
   });
 })();
 </script>

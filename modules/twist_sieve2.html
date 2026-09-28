@@ -11,14 +11,25 @@
 <style>
   /* Round 12 prototype: the sieve as a corridor of motion sensors. The student chooses each prime; its multiples'
      sensors are switched off. When only primes are left, a path lights up.
-     Round 13: the "what's a sieve?" explainer and each step sit in the hologram brief (H), not on the page. */
+     Round 13: the "what's a sieve?" explainer and each step sit in the hologram brief (H), not on the page.
+     Night round (Bertie: "pretty easy", wants narrative and a payoff animation). Two options on ?mode=:
+       A "Under pressure": at L2/L3 the brief stops naming the smallest number, a non-prime pick is a strike
+         with the reason in the feed, and a guard's torch sweeps the corridor; each prime chosen pushes it back.
+       B "Corridor run" (default: no timer, so it stays calm for every student): the gentle sieve, but at L2/L3
+         someone sieved before us and the student must say which prime.
+     Both end with the corridor run: the sieved corridor in one-point perspective, our agent running down it with the
+     camera following, dark sensors passing by, the prime sensors still lit and sweeping their lasers. */
+  main.tw{ width:min(1400px, 100%); }   /* wider than the usual 1100px: the corridor run is the whole show */
+  [hidden]{ display:none !important; }
   /* The sieved 1 to 12 strip, shown in the brief's example */
   .mini{ display:grid; grid-template-columns:repeat(12, minmax(0,1fr)); gap:4px; margin-top:8px; max-width:440px; }
   .mini span{ font-family:var(--font-mono); text-align:center; padding:4px 0; border:1px solid rgba(140,235,255,.45); color:#dff8ff; }
   .mini span.x{ opacity:.3; text-decoration:line-through; } .mini span.p{ border-color:#ffc94d; color:#fff3cf; background:rgba(255,201,77,.16); }
-  .corr{ padding:14px; background:linear-gradient(180deg, #05141a, #020a0c); }
-  .sensors{ display:grid; grid-template-columns:repeat(10, minmax(0,1fr)); gap:6px; }
-  .sn{ position:relative; font:inherit; font-family:var(--font-mono); font-size:16px; font-weight:700; aspect-ratio:1.5; background:linear-gradient(180deg, #0d2229, #081419); border:1px solid #2c4c55; color:#dff8ff; cursor:pointer; padding:0; }
+  .corr{ padding:14px; background:linear-gradient(180deg, #05141a, #020a0c); display:flex; flex-direction:column; gap:10px; }
+  .sensors{ display:grid; grid-template-columns:repeat(10, minmax(0,1fr)); gap:6px; width:min(1040px, 100%); margin:0 auto; }
+  .sn{ position:relative; font:inherit; font-family:var(--font-mono); font-size:18px; font-weight:700; aspect-ratio:1.8; background:linear-gradient(180deg, #0d2229, #081419); border:1px solid #2c4c55; color:#dff8ff; cursor:pointer; padding:0; }
+  .sensors.short .sn{ aspect-ratio:1.4; }   /* L1: five rows, so the tiles can be squarer */
+  .sensors.tall .sn{ aspect-ratio:2.4; }    /* L3: twelve rows have to fit on one screen */
   .sn::after{ content:""; position:absolute; top:5px; right:6px; width:7px; height:7px; border-radius:50%; background:#ff3355; box-shadow:0 0 8px #ff3355; animation:eye 1.4s ease-in-out infinite; }
   @keyframes eye{ 50%{ opacity:.35; } }
   .sn.off{ background:#060d10; border-color:#152227; color:rgba(223,248,255,.25); cursor:default; }
@@ -29,22 +40,80 @@
   .sn.bad{ background:rgba(255,79,109,.35); }
   .sn.path{ animation:path .5s ease-out forwards; }
   @keyframes path{ to{ background:#ffe14d; color:#1a1405; box-shadow:0 0 18px #ffc94d; } }
-  .sweepbar{ height:4px; margin-top:8px; background:linear-gradient(90deg, transparent, #ff3355, transparent); opacity:0; }
+  .sweepbar{ height:4px; background:linear-gradient(90deg, transparent, #ff3355, transparent); opacity:0; }
   .ctrl{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+  .ctrl .lab{ font-family:var(--font-ui); font-size:12px; font-weight:700; letter-spacing:.18em; color:var(--text-muted); }
+  .ctrl .chips{ display:flex; gap:8px; }
+  .ctrl .chips .pn-btn{ font-family:var(--font-mono); font-size:22px; padding:8px 20px; }
+  .ctrl .chips .pn-btn.bad{ border-color:#ff4f6d; background:rgba(255,79,109,.28); }
   .status{ font-size:15px; color:var(--text-muted); }
   .status b{ color:var(--warning); }
+  /* Mode A at L2/L3: the guard's torch crosses the corridor towards us. Slow, steady, no blinking. */
+  .guard{ display:none; align-items:center; gap:12px; width:min(1040px, 100%); margin:0 auto; font-family:var(--font-ui); font-size:12px; font-weight:700; letter-spacing:.18em; color:var(--text-muted); }
+  .guard.on{ display:flex; }
+  .guard .track{ position:relative; flex:1; height:16px; background:rgba(0,0,0,.4); border:1px solid var(--line); overflow:hidden; }
+  .guard .swept{ position:absolute; left:0; top:0; bottom:0; width:0; background:linear-gradient(90deg, transparent, rgba(255,201,77,.22)); }
+  .guard .torch{ position:absolute; top:-10px; left:0; width:70px; height:36px; margin-left:-35px; background:radial-gradient(closest-side, rgba(255,232,150,.95), rgba(255,201,77,.4) 50%, transparent); }
+  .guard .us{ color:#8feaff; }
+  .guard.near, .guard.near .us{ color:var(--warning); }
+  /* The corridor run */
+  .run{ padding:0; overflow:hidden; background:#010608; align-self:center; width:min(100%, calc(min(68vh, 660px) * 1.923)); }   /* as wide as the view allows, no taller than the screen */
+  .run svg{ display:block; width:100%; height:auto; overflow:hidden; }
+  .run .floorp{ fill:#04161b; } .run .ceil{ fill:#020b0e; } .run .wall{ fill:#06151a; }
+  .run .edge{ stroke:#174250; stroke-width:1.2; }
+  .run .stripe{ stroke:#12303a; stroke-width:1; }
+  .run .light{ fill:rgba(140,235,255,.22); }
+  .run .back{ fill:#061418; stroke:#2c4c55; }
+  .run .exit{ fill:#dffcf0; filter:drop-shadow(0 0 14px #7dffc4); }   /* the light beyond the door (its opacity is an attribute: CSS would override it) */
+  .run .door{ fill:#03090c; stroke:#2c4c55; stroke-width:2; }
+  .run .doorlamp{ fill:#ff3355; }
+  .run #far.lock .door{ stroke:#2fbf8a; fill:#052018; filter:drop-shadow(0 0 8px #2fbf8a); }
+  .run #far.lock .doorlamp{ fill:#7dffc4; filter:drop-shadow(0 0 6px #7dffc4); }
+  .run .plate{ fill:#0a1b21; stroke:#22434c; stroke-width:1; }
+  .run .sp.off .plate{ fill:#04090b; stroke:#101c20; }
+  .run .sp.lit .plate{ fill:#2a2410; stroke:#ffc94d; stroke-width:1.5; }
+  .run .num{ font-family:"Courier Prime", monospace; font-weight:700; text-anchor:middle; dominant-baseline:central; fill:rgba(160,200,210,.32); pointer-events:none; }
+  .run .sp.lit .num{ fill:#ffe68a; }
+  .run .lamp{ fill:#2a3538; }
+  .run .sp.lit .lamp{ fill:#ff3355; filter:drop-shadow(0 0 5px #ff3355); }
+  .run .sp.lit.pass .lamp{ fill:#fff0f3; }
+  .run .laser{ stroke:#ff3355; stroke-width:2; stroke-linecap:round; filter:drop-shadow(0 0 4px #ff3355); }
+  .run .agent .shadow{ fill:rgba(0,0,0,.55); }
+  .run .agent .body{ fill:#0b1a22; stroke:#3c7f95; stroke-width:.012; }
+  .run .agent .limb{ stroke:#12303c; stroke-width:.034; stroke-linecap:round; }
+  .run .agent .glow{ fill:#8feaff; filter:drop-shadow(0 0 5px #8feaff); }
+  .run .hud{ font:600 15px "Chakra Petch", sans-serif; letter-spacing:.16em; fill:#8feaff; }
+  .run .hud.r{ text-anchor:end; } .run .hud.big{ text-anchor:middle; fill:#7dffc4; }
+  .run .band{ fill:#8feaff; filter:drop-shadow(0 0 10px #8feaff); }
   @media (max-width:700px){ .sensors{ grid-template-columns:repeat(5, minmax(0,1fr)); } .mini{ grid-template-columns:repeat(6, minmax(0,1fr)); } }
+  @media (prefers-reduced-motion: reduce){ .sn::after{ animation:none; } .sn.path{ animation:none; background:#ffe14d; color:#1a1405; } }
 </style>
 </head>
 <body>
 <main class="tw">
   <div class="tw-bar"><span class="status" id="status"></span></div>
+  <div class="tw-msg" id="msg" aria-live="polite"></div>
+  <div class="ctrl" id="guess" hidden><span class="lab">WHICH PRIME?</span><span class="chips"></span></div>
   <section class="pn-panel corr" id="corr">
+    <div class="guard" id="guard"><span>GUARD SWEEP</span><div class="track"><div class="swept"></div><div class="torch"></div></div><span class="us">▸ US</span></div>
     <div class="sensors" id="grid"></div>
     <div class="sweepbar" id="sweepbar"></div>
   </section>
   <div class="ctrl" id="ctrl"><button class="pn-btn" type="button" id="doneBtn">Only primes are left on</button></div>
-  <div class="tw-msg" id="msg" aria-live="polite"></div>
+  <section class="pn-panel run" id="run" hidden>
+    <svg viewBox="0 0 1000 520" id="rsvg" aria-label="Corridor run">
+      <defs>
+        <radialGradient id="vig" cx="50%" cy="50%" r="72%"><stop offset="55%" stop-color="#000" stop-opacity="0"/><stop offset="100%" stop-color="#000" stop-opacity=".75"/></radialGradient>
+        <pattern id="hscan" width="4" height="4" patternUnits="userSpaceOnUse"><rect width="4" height="1" fill="rgba(160,240,255,.05)"/></pattern>
+      </defs>
+      <rect width="1000" height="520" fill="#010608"/>
+      <g id="bg"></g><g id="far"></g><g id="floor"></g><g id="sens"></g><g id="lasers"></g><g id="agent" class="agent"></g>
+      <rect width="1000" height="520" fill="url(#vig)"/><rect width="1000" height="520" fill="url(#hscan)"/>
+      <rect class="band" id="band" x="0" y="-8" width="1000" height="6" opacity="0"/>
+      <text class="hud" x="20" y="34">CORRIDOR RUN</text><text class="hud big" id="hudB" x="500" y="34"></text><text class="hud r" id="hudR" x="980" y="34"></text>
+      <text class="hud r" id="hudSkip" x="980" y="500" opacity="0">TAP OR ANY KEY TO SKIP</text>
+    </svg>
+  </section>
 </main>
 
 <script src="../shared/sound.js"></script>
@@ -55,108 +124,311 @@
 <script>
 (() => {
   "use strict";
-  const T = window.PNTwist, $ = id => document.getElementById(id);
-  // The brief carries the "what's a sieve?" explainer under each step, with the sieved 1 to 12 as the example
+  const T = window.PNTwist, $ = id => document.getElementById(id), NS = "http://www.w3.org/2000/svg";
+  // Bertie's options. A "Under pressure": at L2/L3 less help and a guard sweep on a real-time clock. B "Corridor run"
+  // (the default, with no timer): the gentle sieve, and at L2/L3 someone sieved before us (one prime at L2, two at L3).
+  // Both end with the corridor run.
+  const MODE = new URLSearchParams(location.search).get("mode") === "A" ? "A" : "B";
+  const L0 = T.peekLevel(), PRESSURE = MODE === "A" && L0 !== "L1", PRE = MODE === "B" ? { L1: 0, L2: 1, L3: 2 }[L0] : 0;
+  // The brief carries the "what's a sieve?" explainer under each step, with the sieved 1 to 12 as the example.
+  // Under pressure it no longer says which number to pick.
   const L = T.init({ id: "sieve2", stage: "FREQUENCY SCAN", title: "MOTION-SENSOR SIEVE",
-    goal: "A <b>sieve</b> keeps some things and lets the rest fall through. This one keeps the <b>primes</b>.<br>Every number that isn't prime is a <b>multiple</b> of a smaller prime. So choose the smallest prime and switch off its multiples. The next number still on is prime too: nothing smaller divides it. Keep going.",
+    goal: PRESSURE
+      ? "A <b>sieve</b> keeps some things and lets the rest fall through. This one keeps the <b>primes</b>.<br>Choose a prime and switch off its multiples. Keep going until only primes are left. A guard's torch is sweeping this way: every prime you sieve pushes it back."
+      : "A <b>sieve</b> keeps some things and lets the rest fall through. This one keeps the <b>primes</b>.<br>Every number that isn't prime is a <b>multiple</b> of a smaller prime. So choose the smallest prime and switch off its multiples. The next number still on is prime too: nothing smaller divides it. Keep going.",
     example: "2 is prime, so 4, 6, 8, 10… switch off. The next number still on is 3: prime.<div class=\"mini\" aria-hidden=\"true\">" +
       [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(n => `<span class="${T.isPrime(n) ? "p" : "x"}">${n}</span>`).join("") + "</div>",
-    story: `${T.targets()} corridor has a motion sensor for every number. Only the prime ones are blind. Switch off the rest and we walk through.` });
+    story: `${T.targets()} corridor has a motion sensor for every number. Only the prime ones are blind. Switch off the rest and we run through.`
+      + (PRESSURE ? " A guard is sweeping the corridor. Be quick, and be right." : PRE ? " Someone got here before us: some sensors are already off." : "") });
   const MAX = { L1: 50, L2: 100, L3: 120 }[L];
   // Who switches off the multiples: the sensors (auto) or the student (tap)
   const autoFor = p => L === "L1" || (L === "L2" && p <= 3) || (L === "L3" && p === 2);
   const nums = T.range(1, MAX);
   const off = new Set(), primes = [];
-  let phase = "one", current = 0, over = false, wrongs = 0, handTold = false;
+  let phase = PRE ? "inverse" : "one", current = 0, over = false, wrongs = 0, caught = 0, handTold = false, finished = false;
   const alarm = T.alarm(3, () => end(false));
+  document.querySelector(".tw-bar").appendChild($("ctrl"));   // the done button sits in the top bar, so it's never below the fold
+  const sp = () => (window.PNTest ? PNTest.speed() : 1), wait = ms => new Promise(r => setTimeout(r, ms / sp()));
+  const reduced = window.Primenet && Primenet.reducedMotion ? Primenet.reducedMotion() : matchMedia("(prefers-reduced-motion: reduce)").matches;   // the learner's motion setting, or the system one
   const grid = $("grid"), tile = n => grid.querySelector(`[data-n="${n}"]`);
+  grid.classList.toggle("short", MAX <= 50); grid.classList.toggle("tall", MAX > 100);
   grid.innerHTML = nums.map(n => `<button type="button" class="sn" data-n="${n}">${n}</button>`).join("");
   function say(t, cls){ const m = $("msg"); m.textContent = t; m.className = "tw-msg" + (cls ? " " + cls : ""); }
   function status(){ const on = nums.filter(n => !off.has(n)).length; $("status").innerHTML = `Sensors on: <b>${on}</b> · Primes chosen: <b>${primes.length}</b>${current ? ` · Switching off multiples of <b>${current}</b>` : ""}`; }
   const smallestOn = () => nums.find(n => n > 1 && !off.has(n) && !primes.includes(n));
+  const leftOf = p => nums.filter(m => m > p && m % p === 0 && !off.has(m));
+  const factorOf = n => { if(n < 2) return n; let d = 2; while(n % d) d++; return d; };   // safe for 1 (nothing divides it: the loop would never end)
   const kill = n => { off.add(n); const b = tile(n); b.classList.add("off"); b.disabled = true; };
+  function strike(n){ wrongs++; alarm.hit(); const b = tile(n); if(b){ b.classList.add("bad"); setTimeout(() => b.classList.remove("bad"), 700); } }
   // The brief's steps. Choosing is the same job every time, so its text never changes and it only zooms in once.
-  const CHOOSE = "Choose the next prime. It's the <b>smallest number still on</b>.";
+  const CHOOSE = PRESSURE ? "Choose the <b>next prime</b>. A sensor that isn't prime is a strike." : "Choose the next prime. It's the <b>smallest number still on</b>.";
   const handStep = n => `<b>${n}</b> is prime. Now <b>you</b> switch off its multiples. Tap every sensor still on that ${n} goes into.`;
+  const ONE = "First, switch off <b>1</b>. It isn't prime: it has only one factor.";
+  const WHY = "<b>ORACLE:</b> every number that isn't prime is a multiple of a smaller prime. So when you sieve the primes in order, every other sensor goes off by itself. Only primes are left. That's why the sieve works.";
+
+  // ----- Mode B at L2/L3: someone sieved before us with one or two primes. Their multiples are already off.
+  // The student says which prime (or primes) by tapping a chip, or the prime's own sensor.
+  const pre = PRE ? T.shuffle(L === "L3" ? [2, 3, 5, 7] : [2, 3, 5]).slice(0, PRE).sort((a, b) => a - b) : [], found = [];
+  pre.forEach(p => nums.filter(m => m > p && m % p === 0).forEach(kill));
+  if(PRE){
+    $("guess").hidden = false;
+    $("guess").querySelector(".chips").innerHTML = [2, 3, 5, 7].map(q => `<button class="pn-btn" type="button" data-q="${q}">${q}</button>`).join("");
+    $("guess").addEventListener("click", e => { const b = e.target.closest("[data-q]"); if(b && !b.disabled) guess(+b.dataset.q); });
+  }
+  function guess(q){
+    if(over || phase !== "inverse" || found.includes(q)) return;
+    if(q === 1){ say("Not yet. 1 isn't prime, so nobody sieves with it. First say which prime was used.", "warn"); T.SND("untag"); return; }   // the natural first tap after L1: a nudge, not a strike
+    const btn = $("guess").querySelector(`[data-q="${q}"]`);
+    if(pre.includes(q)){
+      found.push(q); primes.push(q); tile(q).classList.add("prime"); tile(q).disabled = true;
+      if(btn){ btn.disabled = true; btn.classList.add("primary"); }
+      T.SND("chirp");
+      say(`Yes: ${q}. ${nums.filter(m => m > q && m % q === 0).slice(0, 3).join(", ")}… are off, and ${q} itself is still on.`, "ok"); status();
+      if(found.length < pre.length){ T.step("One found. <b>Another prime</b> was used too. Which one?"); return; }
+      phase = "one"; $("guess").hidden = true; T.step(ONE.replace("First, s", "Now s")); return;
+    }
+    wrongs++; alarm.hit();
+    const el = btn || tile(q); if(el){ el.classList.add("bad"); setTimeout(() => el.classList.remove("bad"), 700); }
+    if(!T.isPrime(q)){ say(`${q} isn't prime: ${factorOf(q)} × ${q / factorOf(q)}. They sieved with a prime.`, "bad"); return; }
+    const ev = nums.find(m => m > q && m % q === 0 && !off.has(m));   // a multiple of q still on: proof q wasn't used
+    say(ev ? `Not ${q}: ${q} × ${ev / q} = ${ev} is still on.` : `Not ${q}.`, "bad");
+  }
+
   // Quiet: the brief zooms in by itself a moment after load, with this on top and the explainer underneath
-  T.step("First, switch off <b>1</b>. It isn't prime: it has only one factor.", { quiet: true });
-  // Folding the brief away the first time is walking into the corridor
-  const enter = e => { if(e.detail.open || over) return; window.removeEventListener("pn-brief", enter); T.SND("scan", 1); };
+  T.step(PRE === 2 ? "Some sensors are already off. Someone sieved with <b>two primes</b>. Which two? Tap them one at a time."
+    : PRE ? "Some sensors are already off. Someone sieved with <b>one prime</b>. Which prime? Look at the dark numbers, then tap that prime."
+    : ONE, { quiet: true });
+  // Folding the brief away the first time is walking into the corridor (and the guard starts his sweep)
+  const enter = e => { if(e.detail.open || over) return; window.removeEventListener("pn-brief", enter); T.SND("scan", 1); guard.on = PRESSURE; };
   window.addEventListener("pn-brief", enter);
   grid.addEventListener("click", e => { const b = e.target.closest(".sn"); if(b && !b.disabled) tap(+b.dataset.n); });
-  async function tap(n){
+  function tap(n){
     if(over) return;
+    if(phase === "inverse") return guess(n);
     if(phase === "one"){
       if(n === 1){ kill(1); T.SND("untag"); phase = "choose"; say("1 is off.", "ok"); T.step(CHOOSE); status(); return; }
       say("Start with 1: it isn't prime, so switch it off first.", "warn"); return;
     }
     if(phase === "choose"){
       const want = smallestOn();
-      if(n === want){
-        primes.push(n); current = n; tile(n).classList.add("prime", "sieving"); tile(n).disabled = true; T.SND("correct", primes.length);
-        const left = nums.filter(m => m > n && m % n === 0 && !off.has(m));
-        if(!left.length){ tile(n).classList.remove("sieving"); current = 0; say(`${n} is prime, and none of its multiples are still on.`, "ok");
-          T.step("No multiples left to switch off. Choose the next prime, or press <b>Only primes are left on</b> if you're done."); status(); return; }
-        if(autoFor(n)){ say(`${n} is prime. The sensors switch off its multiples: ${left.slice(0, 4).join(", ")}…`, "ok"); await autoSweep(n, left); }
-        else { phase = "multiples"; say(`${n} is prime. ${left.length} of its multiples are still on.`, "ok");
-          T.step(handStep(n), { quiet: handTold }); handTold = true; status(); }   // new job the first time; after that, just a new number
-        return;
-      }
-      if(T.isPrime(n)){ say(`${n} is prime, but ${want} is smaller and still on. Choose the smallest first: it's the one nothing smaller divides.`, "warn"); return; }
-      wrongs++; alarm.hit(); tile(n).classList.add("bad"); setTimeout(() => tile(n).classList.remove("bad"), 700);
-      let d = 2; while(n % d) d++;
-      say(`${n} isn't prime: ${d} × ${n / d}. It should be switched off by the time you reach it. The smallest number still on is ${want}.`, "bad");
+      if(n === want) return choose(n);
+      if(T.isPrime(n)){ say(PRESSURE ? `${n} is prime, but a smaller prime is still waiting. Sieve the smallest first.` : `${n} is prime, but ${want} is smaller and still on. Choose the smallest first: it's the one nothing smaller divides.`, "warn"); return; }
+      const d = factorOf(n); strike(n);
+      say(PRESSURE ? `${n} is ${d} × ${n / d}: not prime. Sieve ${d} and ${n} switches off by itself.` : `${n} isn't prime: ${d} × ${n / d}. It should be switched off by the time you reach it. The smallest number still on is ${want}.`, "bad");
       return;
     }
     if(phase === "multiples"){
       if(n % current === 0 && n !== current){
-        kill(n); T.SND("plot");
-        const left = nums.filter(m => m > current && m % current === 0 && !off.has(m));
+        kill(n); T.SND("plot"); guardPush(0.03);
+        const left = leftOf(current);
         say(left.length ? `${n} = ${current} × ${n / current}. ${left.length} left.` : `All multiples of ${current} are off.`, "ok");
-        if(!left.length){ tile(current).classList.remove("sieving"); current = 0; phase = "choose"; T.step(CHOOSE, { quiet: true }); }
+        if(!left.length) stepDone();
         status(); return;
       }
-      wrongs++; alarm.hit(); tile(n).classList.add("bad"); setTimeout(() => tile(n).classList.remove("bad"), 700);
+      strike(n);
       say(`${n} isn't a multiple of ${current}: ${current} × ${Math.floor(n / current)} = ${current * Math.floor(n / current)}, remainder ${n % current}.`, "bad");
     }
   }
+  // The student chose prime p. Its multiples go off: by the sensors, by hand, or all at once (SKIP)
+  async function choose(p, instant){
+    primes.push(p); current = p; tile(p).classList.add("prime", "sieving"); tile(p).disabled = true; T.SND("correct", primes.length); guardPush(0.3);
+    const left = leftOf(p);
+    if(!left.length){ tile(p).classList.remove("sieving"); current = 0; say(`${p} is prime, and none of its multiples are still on.`, "ok");
+      T.step("No multiples left to switch off. Choose the next prime, or press <b>Only primes are left on</b> if you're done."); status(); return; }
+    if(instant){ left.forEach(kill); say(`All multiples of ${p} are off.`, "ok"); stepDone(); status(); return; }
+    if(autoFor(p)){ say(`${p} is prime. The sensors switch off its multiples: ${left.slice(0, 4).join(", ")}…`, "ok"); await autoSweep(p, left); return; }
+    phase = "multiples"; say(`${p} is prime. ${left.length} of its multiples are still on.`, "ok");
+    T.step(handStep(p), { quiet: handTold }); handTold = true; status();   // new job the first time; after that, just a new number
+  }
+  function stepDone(){ tile(current).classList.remove("sieving"); current = 0; phase = "choose"; T.step(CHOOSE, { quiet: true }); }
   async function autoSweep(p, list){
     const bar = $("sweepbar"); bar.style.transition = "none"; bar.style.opacity = "1";
-    for(const m of list){ kill(m); T.SND("plot"); await new Promise(r => setTimeout(r, 45 / (window.PNTest ? PNTest.speed() : 1))); }
+    for(const m of list){ kill(m); T.SND("plot"); await wait(45); }
     bar.style.transition = "opacity .6s"; bar.style.opacity = "0";
-    tile(p).classList.remove("sieving"); current = 0; phase = "choose"; status();
-    say(`All multiples of ${p} are off.`, "ok"); T.step(CHOOSE, { quiet: true });
+    say(`All multiples of ${p} are off.`, "ok"); stepDone(); status();
   }
   $("doneBtn").addEventListener("click", () => {
     if(over || phase === "one") return;
+    if(phase === "inverse"){ say("First, say which prime was used.", "warn"); return; }
     if(phase === "multiples"){ say(`Finish switching off the multiples of ${current} first.`, "warn"); return; }
     const bad = nums.filter(n => n > 1 && !off.has(n) && !T.isPrime(n));
-    if(bad.length){ wrongs++; alarm.hit(); let d = 2; while(bad[0] % d) d++; say(`Not yet: ${bad[0]} is still on, and ${bad[0]} = ${d} × ${bad[0] / d}. Keep sieving.`, "bad"); return; }
+    if(bad.length){ wrongs++; alarm.hit(); const d = factorOf(bad[0]); say(`Not yet: ${bad[0]} is still on, and ${bad[0]} = ${d} × ${bad[0] / d}. Keep sieving.`, "bad"); return; }
     win();
   });
-  // Every sensor left is prime: a path lights up through them, one after another
+
+  // ----- Mode A at L2/L3: a guard's torch sweeps down the corridor towards us. Each prime chosen pushes it back,
+  // each multiple switched off by hand nudges it. If it reaches us: an alarm strike, and it starts again.
+  // It holds while the brief is open. Real seconds, not animation speed: it's a timer, not a wait.
+  const guard = { p: 0, on: false, dur: L === "L3" ? 55 : 45, el: $("guard") };
+  guard.el.classList.toggle("on", PRESSURE);
+  function guardPush(k){ if(PRESSURE) guard.p = Math.max(0, guard.p - k); paintGuard(); }
+  function paintGuard(){ if(!PRESSURE) return; const pct = (guard.p * 100).toFixed(2) + "%"; guard.el.querySelector(".torch").style.left = pct; guard.el.querySelector(".swept").style.width = pct; guard.el.classList.toggle("near", guard.p > 0.75); }
+  function guardTick(dt){
+    if(!guard.on || over || T.briefOpen()) return;
+    guard.p += dt / guard.dur;
+    if(guard.p >= 1){ guard.p = 0; caught++; alarm.hit(); T.SND("siren"); say("The guard's torch swept over us. Keep sieving.", "bad"); }
+    paintGuard();
+  }
+
+  // ----- The corridor run: the sieved corridor in one-point perspective, our agent running down it.
+  // Walls at X = ±1, floor at Y = 0.75, ceiling at Y = -0.75. A point d ahead of the camera lands on screen at
+  // (CX + X·FOC/d, CY + Y·FOC/d). Sensor pairs sit every STEP along the walls: odd numbers left, even numbers right,
+  // so after 2 the whole right wall is dark but for 2 itself. The agent runs AD ahead of the camera and leans away
+  // from any lit sensor. The exit door is at ZEND; the camera stops at ZSTOP and pushes in when the door locks on.
+  const VW = 1000, VH = 520, CX = VW / 2, STEP = 0.9, Z0 = 2.2, HL = 0.27, Y0 = -0.3, Y1 = 0.3, AD = 1.7;
+  const PAIRS = Math.ceil(MAX / 2), ZEND = Z0 + PAIRS * STEP + 1.2, ZSTOP = ZEND - 2.6, VMAX = { L1: 3.4, L2: 4.2, L3: 4.8 }[L];
+  let cam = null, R = null;   // the camera, and the SVG parts
+  const svg = $("rsvg"), mk = (tag, cls, parent) => { const e = document.createElementNS(NS, tag); if(cls) e.setAttribute("class", cls); parent.appendChild(e); return e; };
+  const set = (e, a) => { for(const k in a) e.setAttribute(k, typeof a[k] === "number" ? a[k].toFixed(1) : a[k]); };
+  const pts = a => a.map(p => p[0].toFixed(1) + "," + p[1].toFixed(1)).join(" ");
+  function buildRun(lit){
+    const g = { bg: $("bg"), far: $("far"), fl: $("floor"), sens: $("sens"), las: $("lasers") };
+    R = { floor: mk("polygon", "floorp", g.bg), ceil: mk("polygon", "ceil", g.bg), wl: mk("polygon", "wall", g.bg), wr: mk("polygon", "wall", g.bg), edges: [0, 1, 2, 3].map(() => mk("line", "edge", g.bg)),
+      back: mk("polygon", "back", g.far), exit: mk("polygon", "exit", g.far), dl: mk("polygon", "door", g.far), dr: mk("polygon", "door", g.far), dlamp: mk("circle", "doorlamp", g.far), stripes: T.range(1, 36).map(() => mk("line", "stripe", g.fl)), lights: T.range(1, 36).map(() => mk("polygon", "light", g.fl)), sensors: [] };
+    for(const n of nums){
+      const i = Math.floor((n - 1) / 2), s = n % 2 ? -1 : 1, on = lit.has(n), gg = mk("g", "sp " + (on ? "lit" : "off"), g.sens);
+      const sn = { n, i, s, z: Z0 + i * STEP, on, g: gg, plate: mk("polygon", "plate", gg), lamp: mk("circle", "lamp", gg), num: mk("text", "num", gg), laser: on ? mk("line", "laser", g.las) : null, shown: true };
+      sn.num.textContent = n; R.sensors.push(sn);
+    }
+    R.exit.setAttribute("opacity", "0");
+    // The agent, drawn in world units with the feet at (0, 0); the group is scaled by FOC/AD each frame
+    $("agent").innerHTML = `<ellipse class="shadow" cx="0" cy="0" rx=".14" ry=".03"/><line class="limb" id="agLL"/><line class="limb" id="agRL"/><rect class="body" x="-.085" y="-.31" width=".17" height=".16" rx=".03"/>
+      <line class="limb" id="agLA"/><line class="limb" id="agRA"/><circle class="body" cx="0" cy="-.365" r=".05"/><circle class="glow" cx="0" cy="-.25" r=".016"/>`;
+    cam = { z: 0, t: 0, go: false, done: false, foc: 520, cy: VH / 2, ax: 0, stride: 0, passed: 0, lit, zoom: null, open: 0, opening: null };
+    $("hudR").textContent = `PASSED 0 / ${MAX}`;
+    runFrame(0, 0);
+  }
+  function runTick(t, dt){
+    if(!cam) return;
+    if(cam.go && !cam.done && !T.briefOpen()){   // the run waits while the brief is up
+      cam.t += dt;
+      const r = Math.min(1, cam.t / 1.2), ease = r * r * (3 - 2 * r), slow = Math.max(0.15, Math.min(1, (ZSTOP - cam.z) / 2.5));
+      const v = VMAX * ease * slow * sp();
+      cam.z = Math.min(ZSTOP, cam.z + v * dt); cam.stride += v * dt * 5.5;   // the legs follow the ground covered
+      while(cam.passed < PAIRS && cam.z + AD >= Z0 + cam.passed * STEP) pass(cam.passed++);
+      if(cam.z >= ZSTOP - 0.001) arrive(false);
+    }
+    if(cam.zoom){ const k = Math.min(1, (t - cam.zoom.t0) / cam.zoom.dur), e = 1 - Math.pow(1 - k, 3); cam.foc = cam.zoom.from + (cam.zoom.to - cam.zoom.from) * e; if(k >= 1) cam.zoom = null; }
+    if(cam.opening){ const k = Math.min(1, (t - cam.opening.t0) / cam.opening.dur); cam.open = k * k * (3 - 2 * k); if(k >= 1) cam.opening = null; }   // the door halves slide into the walls
+    cam.cy = VH / 2 + (reduced || !cam.go || cam.done ? 0 : 3 * Math.sin(cam.stride * 2));   // a small run bob
+    runFrame(t, dt);
+  }
+  function pass(i){   // the agent passes sensor pair i: a tick for a dark pair, a blip when a prime is lit
+    const a = 2 * i + 1, b = 2 * i + 2, hot = [a, b].filter(n => n <= MAX && cam.lit.has(n));
+    if(hot.length){ T.SND("blip", i % 4); hot.forEach(n => { const s = R.sensors[n - 1]; s.g.classList.add("pass"); setTimeout(() => s.g.classList.remove("pass"), 350); }); }
+    else T.SND("tick");
+    $("hudR").textContent = `PASSED ${Math.min(MAX, b)} / ${MAX}`;
+  }
+  function runFrame(t, dt){
+    const FOC = cam.foc, CY = cam.cy, P = (X, Y, d) => [CX + X * FOC / d, CY + Y * FOC / d];
+    const dz = z => z - cam.z, NEAR = 0.2, dE = dz(ZEND), FAR = Math.min(60, dE);
+    R.floor.setAttribute("points", pts([P(-1, .75, NEAR), P(1, .75, NEAR), P(1, .75, FAR), P(-1, .75, FAR)]));
+    R.ceil.setAttribute("points", pts([P(-1, -.75, NEAR), P(1, -.75, NEAR), P(1, -.75, FAR), P(-1, -.75, FAR)]));
+    R.wl.setAttribute("points", pts([P(-1, -.75, NEAR), P(-1, -.75, FAR), P(-1, .75, FAR), P(-1, .75, NEAR)]));
+    R.wr.setAttribute("points", pts([P(1, -.75, NEAR), P(1, -.75, FAR), P(1, .75, FAR), P(1, .75, NEAR)]));
+    [[-1, -.75], [1, -.75], [1, .75], [-1, .75]].forEach(([X, Y], k) => { const [x1, y1] = P(X, Y, NEAR), [x2, y2] = P(X, Y, FAR); set(R.edges[k], { x1, y1, x2, y2 }); });
+    R.back.setAttribute("points", pts([P(-1, -.75, dE), P(1, -.75, dE), P(1, .75, dE), P(-1, .75, dE)]));
+    // The exit: two door halves that slide apart once locked on, and the light beyond them
+    const DW = 0.42, o = cam.open;
+    R.exit.setAttribute("points", pts([P(-DW, -.5, dE), P(DW, -.5, dE), P(DW, .75, dE), P(-DW, .75, dE)])); R.exit.setAttribute("opacity", (o * 0.9).toFixed(2));
+    R.dl.setAttribute("points", pts([P(-DW, -.5, dE), P(-DW * o, -.5, dE), P(-DW * o, .75, dE), P(-DW, .75, dE)]));
+    R.dr.setAttribute("points", pts([P(DW * o, -.5, dE), P(DW, -.5, dE), P(DW, .75, dE), P(DW * o, .75, dE)]));
+    const [dlx, dly] = P(0, -0.58, dE); set(R.dlamp, { cx: dlx, cy: dly, r: Math.min(9, 0.035 * FOC / dE) });
+    // Floor stripes and ceiling lights every STEP, so the corridor is seen to move
+    const m0 = Math.ceil((cam.z + NEAR) / STEP);
+    R.stripes.forEach((ln, j) => {
+      const d = dz((m0 + j) * STEP), lt = R.lights[j];
+      if(d > FAR || d < NEAR){ ln.setAttribute("opacity", 0); lt.setAttribute("opacity", 0); return; }
+      const o = Math.min(1, (FAR - d) / 6).toFixed(2), [x1, y1] = P(-1, .75, d), [x2, y2] = P(1, .75, d);
+      set(ln, { x1, y1, x2, y2, opacity: o }); lt.setAttribute("points", pts([P(-.12, -.75, d - .08), P(.12, -.75, d - .08), P(.12, -.75, d + .08), P(-.12, -.75, d + .08)])); lt.setAttribute("opacity", o);
+    });
+    // The sensors on the walls: plate, lamp, number, and a sweeping laser on each lit prime
+    for(const s of R.sensors){
+      const d = dz(s.z);
+      if(d - HL < 0.12 || d > 16){ if(s.shown){ s.g.setAttribute("display", "none"); if(s.laser) s.laser.setAttribute("display", "none"); s.shown = false; } continue; }
+      if(!s.shown){ s.g.removeAttribute("display"); if(s.laser) s.laser.removeAttribute("display"); s.shown = true; }
+      const op = Math.min(1, (16 - d) / 3).toFixed(2); s.g.setAttribute("opacity", op);
+      s.plate.setAttribute("points", pts([P(s.s, Y0, d - HL), P(s.s, Y0, d + HL), P(s.s, Y1, d + HL), P(s.s, Y1, d - HL)]));
+      const [lx, ly] = P(s.s, -0.22, d + 0.16); set(s.lamp, { cx: lx, cy: ly, r: Math.min(10, 0.03 * FOC / d) });
+      const [cx, cy] = P(s.s, 0.06, d), h = (Y1 - Y0) * FOC / d, w = FOC * (1 / (d - HL) - 1 / (d + HL)), fs = Math.min(72, h * 0.46, w * 0.8 / (0.6 * String(s.n).length));   // capped: the nearest plates are sliding past
+      set(s.num, { x: cx, y: cy, "font-size": fs });
+      if(s.laser){ const Ys = reduced ? 0.14 : -0.26 + 0.5 * (0.5 + 0.5 * Math.sin(t * 3.7 + s.n)); const [a1, b1] = P(s.s, Ys, d - HL - 0.06), [a2, b2] = P(s.s, Ys, d + HL + 0.06); set(s.laser, { x1: a1, y1: b1, x2: a2, y2: b2, opacity: op }); }
+    }
+    // The agent: leans away from a lit sensor at the pair it's passing, legs and arms swing with the stride
+    const j = Math.max(0, Math.min(PAIRS - 1, Math.round((cam.z + AD - Z0) / STEP))), litL = cam.lit.has(2 * j + 1), litR = cam.lit.has(2 * j + 2);
+    cam.ax += ((litL && !litR ? 0.3 : litR && !litL ? -0.3 : 0) - cam.ax) * Math.min(1, dt * 5);
+    const [fx, fy] = P(cam.ax, .75, AD), sw = reduced ? 0 : Math.sin(cam.stride);
+    $("agent").setAttribute("transform", `translate(${fx.toFixed(1)} ${fy.toFixed(1)}) scale(${(FOC / AD).toFixed(1)})`);
+    const limb = (id, x1, y1, x2, y2) => { const e = $(id); e.setAttribute("x1", x1.toFixed(3)); e.setAttribute("y1", y1.toFixed(3)); e.setAttribute("x2", x2.toFixed(3)); e.setAttribute("y2", y2.toFixed(3)); };
+    limb("agLL", -0.045, -0.16, -0.045 + 0.1 * sw, -0.03 * Math.max(0, sw));
+    limb("agRL", 0.045, -0.16, 0.045 - 0.1 * sw, -0.03 * Math.max(0, -sw));
+    limb("agLA", -0.09, -0.29, -0.115, -0.2 + 0.06 * sw);
+    limb("agRA", 0.09, -0.29, 0.115, -0.2 - 0.06 * sw);
+  }
+  function showRun(){ if($("run").hidden){ $("corr").hidden = true; $("guess").hidden = true; $("ctrl").hidden = true; $("run").hidden = false; $("run").scrollIntoView({ block: "nearest" }); } }
+  function scanBand(){   // the establishing shot: a line of light reads the corridor top to bottom
+    const b = $("band"), t0 = performance.now(), dur = 700 / sp(); T.SND("scanline", 0.7 / sp());
+    (function f(now){ const k = Math.min(1, (now - t0) / dur); b.setAttribute("y", (-8 + 528 * k).toFixed(1)); b.setAttribute("opacity", k < 1 ? ".85" : "0"); if(k < 1) requestAnimationFrame(f); })(t0);
+  }
+  // Every sensor left is prime: a path lights through them on the grid, then the corridor itself, and the run
   async function win(){
-    over = true; T.hideBrief();   // the path is the payoff, so nothing sits over it
-    const ps = nums.filter(n => n > 1 && !off.has(n));
-    const last = primes[primes.length - 1] || 2;
+    over = true; phase = "run"; guard.on = false; T.hideBrief();   // the run is the payoff, so nothing sits over it
+    const ps = nums.filter(n => n > 1 && !off.has(n)), last = Math.max(2, ...primes.filter(p => p * p <= MAX));
     let q = last + 1; while(!T.isPrime(q)) q++;
     say(`Only primes left. Why stop after ${last}? The next prime is ${q}, and ${q} × ${q} = ${q * q}, bigger than ${MAX}: any smaller multiple of ${q} has a smaller factor, so it's already off.`, "ok");
-    for(const n of ps){ tile(n).classList.add("path"); T.SND("tag"); await new Promise(r => setTimeout(r, 60 / (window.PNTest ? PNTest.speed() : 1))); }
-    T.SND("success");
-    setTimeout(() => T.finish({ ok: true, title: "CORRIDOR CLEAR",
-      lines: [`<b>${ps.length}</b> primes between 1 and ${MAX}: ${ps.slice(0, 12).join(", ")}${ps.length > 12 ? "…" : ""}`, `You sieved with ${primes.filter(p => p * p <= MAX).join(", ")}`, `Wrong sensors: <b>${wrongs}</b>`, "Every number that isn't prime is a multiple of a smaller prime: that's why the sieve works."] }), 900);
+    buildRun(new Set(ps));
+    for(const n of ps){ tile(n).classList.add("path"); T.SND("tag"); await wait(50); }
+    await wait(600);
+    if(cam.done) return;   // SKIP went straight to the exit
+    showRun(); T.SND("powerup");
+    await wait(500); scanBand(); await wait(1000);
+    if(cam.done) return;
+    T.SND("whoosh"); cam.go = true; cutOn(true);
+  }
+  // The run can be cut short: a tap on the corridor or any key jumps to the exit (nothing long without a way past)
+  const cut = e => { if(!cam || !cam.go || cam.done || e.ctrlKey || e.metaKey || e.altKey) return; arrive(true); };
+  function cutOn(on){ const f = on ? "addEventListener" : "removeEventListener"; $("run")[f]("pointerdown", cut); document[f]("keydown", cut); $("hudSkip").setAttribute("opacity", on ? ".75" : "0"); }
+  function arrive(instant){   // the exit door locks on; the camera pushes in; then ORACLE explains
+    if(cam.done) return;
+    cam.done = true; cam.z = ZSTOP; cam.go = true; showRun(); cutOn(false);
+    $("far").classList.add("lock"); $("hudB").textContent = "EXIT · LOCKED ON"; $("hudR").textContent = `PASSED ${MAX} / ${MAX}`; T.SND("lockon");
+    if(instant){ cam.open = 1; return explain(); }
+    setTimeout(() => { if(!reduced){ cam.zoom = { t0: performance.now() / 1000, from: cam.foc, to: 760, dur: 1.3 / sp() }; T.SND("zoom"); } }, 700 / sp());
+    setTimeout(() => { cam.opening = { t0: performance.now() / 1000, dur: 1.1 / sp() }; T.SND("whoosh"); }, 1300 / sp());
+    setTimeout(explain, 3300 / sp());   // the open door has a moment to itself before ORACLE speaks
+  }
+  function explain(){   // why the sieve works, in the brief. The result follows when it's folded away (or after a while)
+    if(phase === "why") return;
+    phase = "why"; T.say("Corridor's clear. Every sensor still on is a prime, and the primes are blind.");
+    T.step(WHY);
+    window.addEventListener("pn-brief", function f(e){ if(e.detail.open) return; window.removeEventListener("pn-brief", f); finishNow(); });
+    setTimeout(finishNow, 9000 / sp());
+  }
+  function finishNow(){
+    if(finished) return; finished = true;
+    const ps = nums.filter(n => n > 1 && !off.has(n));
+    T.finish({ ok: true, title: "CORRIDOR CLEAR",
+      lines: [`<b>${ps.length}</b> primes between 1 and ${MAX}: ${ps.slice(0, 12).join(", ")}${ps.length > 12 ? "…" : ""}`, `You sieved with ${primes.filter(p => p * p <= MAX).sort((a, b) => a - b).join(", ")}`,
+        `Wrong sensors: <b>${wrongs}</b>` + (PRESSURE ? ` · Guard sweeps: <b>${caught}</b>` : ""), "Every number that isn't prime is a multiple of a smaller prime: that's why the sieve works."] });
   }
   function end(ok){
     if(ok) return win();
-    over = true;
-    T.finish({ ok: false, title: "SENSOR ALARM", lines: [`Primes chosen: ${primes.join(", ") || "none"}`, "Choose the smallest number still on each time; it's always prime."] });
+    over = true; finished = true;
+    T.finish({ ok: false, title: "SENSOR ALARM", lines: [`Primes chosen: ${primes.join(", ") || "none"}`,
+      PRESSURE ? "Only choose primes: a number with a smaller factor is switched off by that factor's sieve." : "Choose the smallest number still on each time; it's always prime."] });
   }
+  // One loop drives the guard and the run. It stops with the result: nothing needs drawing under the card.
+  let lastT = performance.now();
+  (function loop(now){ const dt = Math.min(0.1, (now - lastT) / 1000); lastT = now; guardTick(dt); runTick(now / 1000, dt); if(!finished) requestAnimationFrame(loop); })(lastT);
   status();
-  if(window.PNTest) PNTest.skip("Finish the sieve", () => {
-    if(!off.has(1)) kill(1);
-    nums.filter(n => n > 1 && !T.isPrime(n)).forEach(n => { if(!off.has(n)) kill(n); });
-    nums.filter(n => T.isPrime(n) && n * n <= MAX).forEach(p => { if(!primes.includes(p)){ primes.push(p); tile(p).classList.add("prime"); } });
-    phase = "choose"; current = 0; win();
+  if(window.PNTest) PNTest.skip("Solve this step", () => {
+    if(finished || document.querySelector(".tw-result")) return "Already finished.";
+    if(phase === "inverse"){ pre.filter(p => !found.includes(p)).forEach(p => guess(p)); return "Named the primes that were used."; }
+    if(phase === "one"){ tap(1); return "1 is off."; }
+    if(phase === "multiples"){ leftOf(current).forEach(kill); say(`All multiples of ${current} are off.`, "ok"); stepDone(); status(); return "Multiples off."; }
+    if(phase === "choose"){ if(nums.some(n => n > 1 && !off.has(n) && !T.isPrime(n))){ const p = smallestOn(); choose(p, true); return `Sieved with ${p}.`; } win(); return "Only primes left: the run starts."; }
+    if(phase === "run"){ arrive(true); return "Run skipped to the exit."; }
+    if(phase === "why"){ finishNow(); return "Finished."; }
   });
 })();
 </script>

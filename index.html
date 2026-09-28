@@ -86,23 +86,56 @@
   .idcard.frame-holo{ border:2px solid transparent; background:linear-gradient(#081a1e,#081a1e) padding-box, linear-gradient(120deg,#ff4fd8,#6ec8ff,#2fbf8a,#ffc94d,#ff4fd8) border-box; background-size:100% 100%, 300% 300%; animation:holo 4s linear infinite; }
   @keyframes holo{ to{ background-position:0 0, 300% 0; } }
 
-  /* Safehouse shop */
-  .shop{ width:min(900px,100%); background:var(--bg-panel-solid); border:1px solid rgba(255,201,77,.55); padding:22px; display:flex; flex-direction:column; gap:16px; margin-top:4vh; }
-  .shop header{ display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; }
-  .shop h2{ margin:0; font-family:var(--font-ui); font-size:20px; letter-spacing:.12em; text-transform:uppercase; color:#ffc94d; }
-  .shop .wallet{ font-family:var(--font-mono); font-size:20px; color:#ffc94d; }
-  .shop .who{ font-size:14px; color:var(--text-faint); margin:-8px 0 0; }
-  .shop .cat{ display:flex; flex-direction:column; gap:8px; }
-  .shop .cat > span{ font-family:var(--font-ui); font-size:12px; letter-spacing:.16em; text-transform:uppercase; color:var(--text-faint); }
-  .shop .items{ display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:8px; }
-  .shop .item{ border:1px solid var(--line); background:rgba(0,0,0,.25); padding:10px; display:flex; flex-direction:column; gap:6px; }
-  .shop .item.eq{ border-color:var(--accent); box-shadow:inset 0 0 0 1px rgba(var(--accent-rgb),.35); }
-  .shop .sw{ height:34px; border:1px solid rgba(255,255,255,.15); }
-  .shop .nm{ font-weight:700; font-size:15px; }
-  .shop .pr{ font-family:var(--font-mono); font-size:14px; color:#ffc94d; }
-  .shop .item button{ font:inherit; font-size:13px; padding:6px; cursor:pointer; background:transparent; color:var(--text-primary); border:1px solid var(--line-strong); }
-  .shop .item button:disabled{ opacity:.45; cursor:not-allowed; }
-  .shop .msg2{ min-height:1.4em; font-size:14px; color:var(--text-muted); }
+  /* Safehouse shop: a stock room, not a form. Item cards with a swatch or icon, a one-line description, the price,
+     and an EQUIPPED tag. Amber is the safehouse colour (money), mint marks what's equipped. */
+  .shop{ width:min(1120px,100%); background:linear-gradient(180deg, #0b1f25, #081a1e 30%, #071418); border:1px solid rgba(255,201,77,.55); box-shadow:0 0 40px rgba(255,201,77,.08), 0 24px 80px rgba(0,0,0,.6); padding:0 0 18px; display:flex; flex-direction:column; gap:14px; margin-top:3vh; outline:none; position:relative; }
+  .shop::before{ content:""; position:absolute; inset:0; pointer-events:none; background:repeating-linear-gradient(0deg, rgba(255,255,255,.02) 0 1px, transparent 1px 3px); }
+  .shop header{ position:sticky; top:0; z-index:2; display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; padding:16px 22px 12px; background:rgba(8,26,30,.97); border-bottom:1px solid rgba(255,201,77,.3); }
+  .shop .sh-eb{ display:block; font-family:var(--font-ui); font-size:11px; letter-spacing:.24em; color:rgba(255,201,77,.7); }
+  .shop .sh-eb i{ font-style:normal; color:#7dffc4; }
+  .shop h2{ margin:2px 0 0; font-family:var(--font-ui); font-size:22px; letter-spacing:.12em; text-transform:uppercase; color:#ffc94d; }
+  .shop .sh-wal{ display:flex; flex-direction:column; align-items:flex-end; gap:0; border:1px solid rgba(255,201,77,.45); padding:6px 14px; background:rgba(0,0,0,.35); }
+  .shop .sh-wal small{ font-family:var(--font-ui); font-size:10px; letter-spacing:.24em; color:rgba(255,201,77,.7); }
+  .shop .wallet{ font-family:var(--font-mono); font-size:26px; line-height:1.1; color:#ffe68a; font-variant-numeric:tabular-nums; text-shadow:0 0 14px rgba(255,201,77,.35); }
+  .shop .wallet.down{ color:#ffb3b3; }
+  .shop .who{ font-size:14px; color:var(--text-muted); margin:0; padding:0 22px; }
+  .shop .cats{ display:flex; flex-direction:column; gap:18px; padding:0 22px; }
+  .shop .cat{ display:flex; flex-direction:column; gap:10px; }
+  .shop .cat-h{ display:flex; flex-wrap:wrap; align-items:baseline; gap:4px 14px; border-left:3px solid rgba(255,201,77,.6); padding-left:10px; }
+  .shop .cat-t{ font-family:var(--font-ui); font-weight:700; font-size:13px; letter-spacing:.18em; text-transform:uppercase; color:#ffc94d; }
+  .shop .cat-b{ font-size:14px; color:var(--text-muted); }
+  .shop .items{ display:grid; grid-template-columns:repeat(auto-fill,minmax(168px,1fr)); gap:10px; }   /* six across at full width */
+  .shop .item{ position:relative; border:1px solid var(--line); background:rgba(0,0,0,.28); padding:10px 10px 10px; display:flex; flex-direction:column; gap:6px; transition:border-color var(--transition-fast), box-shadow var(--transition-fast); }
+  .shop .item.eq{ border-color:#7dffc4; box-shadow:inset 0 0 0 1px rgba(125,255,196,.4), 0 0 18px rgba(125,255,196,.12); background:rgba(125,255,196,.05); }
+  .shop .item.owned:not(.eq){ border-color:rgba(255,201,77,.45); }
+  .shop .item.locked .sw, .shop .item.locked .ico{ opacity:.55; }
+  .shop .tag{ position:absolute; top:8px; right:8px; font-family:var(--font-ui); font-weight:700; font-size:10px; letter-spacing:.18em; padding:3px 7px; background:#7dffc4; color:#04231a; }
+  .shop .tag.own{ background:rgba(6,20,24,.92); color:#ffe68a; border:1px solid rgba(255,201,77,.6); }
+  .shop .sw{ height:40px; border:1px solid rgba(255,255,255,.15); }
+  .shop .ico{ height:40px; display:flex; align-items:center; justify-content:center; font-size:26px; line-height:1; color:var(--c,#dff8ff); border:1px solid rgba(255,255,255,.15); background:rgba(0,0,0,.3); text-shadow:0 0 12px var(--c,rgba(140,235,255,.6)); }
+  .shop .ico.call{ font-family:var(--font-ui); font-weight:800; font-size:17px; letter-spacing:.14em; gap:8px; }
+  .shop .ico.call i{ font-style:normal; font-size:20px; }
+  .shop .nm{ font-weight:700; font-size:16px; color:var(--text-primary); }
+  .shop .ds{ font-size:13px; line-height:1.4; color:var(--text-muted); min-height:2.8em; }
+  .shop .pr{ font-family:var(--font-mono); font-size:15px; color:#ffe68a; }
+  .shop .item.owned .pr, .shop .item.eq .pr{ color:var(--text-faint); }
+  .shop .item button{ font:inherit; font-family:var(--font-ui); font-weight:700; letter-spacing:.08em; font-size:13px; padding:8px; cursor:pointer; background:rgba(255,201,77,.1); color:#ffe68a; border:1px solid rgba(255,201,77,.6); transition:background var(--transition-fast); }
+  .shop .item button:hover:not(:disabled):not([aria-disabled="true"]){ background:rgba(255,201,77,.22); }
+  .shop .item.owned button{ background:rgba(125,255,196,.08); color:#c9fff0; border-color:rgba(125,255,196,.6); }
+  .shop .item button:disabled{ opacity:.55; cursor:default; background:transparent; color:#7dffc4; border-color:rgba(125,255,196,.5); }
+  .shop .item button[aria-disabled="true"]{ opacity:.5; cursor:not-allowed; background:transparent; }
+  .shop .need{ font-size:12.5px; color:#ffb3b3; min-height:1.3em; }
+  .shop .msg2{ min-height:1.5em; font-family:var(--font-mono); font-size:16px; color:#9fe9ff; }
+  .shop .msg2:not(:empty)::before{ content:"› "; color:#ffc94d; }
+  .shop .msg2.ok{ color:#7dffc4; } .shop .msg2.bad{ color:#ffb3b3; }
+  /* The footer stays in view while the stock room scrolls, so the reason for a refused buy is always seen next to Done */
+  .shop footer{ position:sticky; bottom:0; z-index:2; display:flex; justify-content:space-between; align-items:center; gap:14px; padding:10px 22px 12px; margin:4px 0 -18px; background:rgba(8,26,30,.97); border-top:1px solid rgba(255,201,77,.3); }
+  .shop footer .sh-l{ display:flex; flex-direction:column; gap:2px; min-width:0; }
+  .shop footer .sh-hint{ font-size:13px; color:var(--text-faint); }
+  .shop footer kbd{ font-family:var(--font-ui); font-size:11px; border:1px solid var(--line-strong); padding:1px 6px; }
+  .idcard .row2 b.cs{ color:var(--c,#7dffc4); font-weight:700; text-shadow:0 0 10px var(--c,#7dffc4); }
+  .idcard div.row2:last-of-type{ padding-right:84px; }   /* keeps the callsign clear of the VERIFIED stamp */
+  .idcard .cs i{ font-style:normal; }
 
   /* Learner settings */
   .settings{ width:min(520px,100%); background:var(--bg-panel-solid); border:1px solid rgba(var(--accent-rgb),.5); padding:22px; display:flex; flex-direction:column; gap:18px; margin-top:8vh; }
@@ -251,7 +284,7 @@
         <div class="top"><span>PRIMENET · AGENT ID</span><b id="idNum">AG-0000-X</b></div>
         <div class="nm empty" id="idName">NO CODENAME</div>
         <div class="row2"><span>Rank <b id="idRank">Rookie</b></span><span>Vaults <b id="idVaults">0</b></span></div>
-        <div class="row2"><span>Clearance <b id="idClear">·</b></span></div>
+        <div class="row2"><span>Clearance <b id="idClear">·</b></span><span id="idCall" hidden>Callsign <b class="cs" id="idCallName"></b></span></div>
         <span class="stamp">VERIFIED</span>
       </div>
       <label class="pn-label" for="codename">Agent codename</label>
@@ -281,7 +314,7 @@
       <div class="hb">
         <div class="kv"><span>Wallet</span><b class="wal" id="idWallet">£0</b></div>
         <div class="row">
-          <button class="pn-btn small" type="button" id="shopBtn" title="Spend your wallet on terminal colours, vault doors and ID frames">Shop</button>
+          <button class="pn-btn small" type="button" id="shopBtn" title="Spend your wallet on gadgets, callsigns, hologram tints, terminal colours, vault doors and ID frames">Shop</button>
           <button class="pn-btn small" type="button" id="settingsBtn" title="Text size, font, motion and sound for this agent">Settings</button>
         </div>
         <a class="side" href="modules/roleplay_terminal.html">Roleplay terminal: free play, nothing saved →</a>
@@ -293,13 +326,18 @@
 </div>
 
 <!-- Teacher controls: open index.html#teacher, hold Shift and click "v1", or press Ctrl + Shift + Y, then enter the PIN -->
-<div class="overlay" id="shopOverlay" hidden role="dialog" aria-modal="true" aria-labelledby="shopTitle">
-  <div class="shop">
-    <header><h2 id="shopTitle">Safehouse shop</h2><span class="wallet" id="shopWallet">£0</span></header>
+<div class="overlay" id="shopOverlay" hidden role="dialog" aria-modal="true" aria-labelledby="shopTitle" aria-describedby="shopWho">
+  <div class="shop" id="shopPanel" tabindex="-1">
+    <header>
+      <div><span class="sh-eb"><i>●</i> SAFEHOUSE · STOCK ROOM</span><h2 id="shopTitle">Safehouse shop</h2></div>
+      <div class="sh-wal"><small>WALLET</small><span class="wallet" id="shopWallet">£0</span></div>
+    </header>
     <p class="who" id="shopWho">Type your codename to open your safehouse.</p>
-    <div id="shopCats"></div>
-    <div class="msg2" id="shopMsg" aria-live="polite"></div>
-    <footer style="display:flex;justify-content:flex-end"><button class="pn-btn primary" type="button" id="shopDone">Done</button></footer>
+    <div class="cats" id="shopCats"></div>
+    <footer>
+      <div class="sh-l"><div class="msg2" id="shopMsg" role="status" aria-live="polite"></div><span class="sh-hint"><kbd>Esc</kbd> closes the shop. Everything you buy is saved for your codename.</span></div>
+      <button class="pn-btn primary" type="button" id="shopDone">Done</button>
+    </footer>
   </div>
 </div>
 
@@ -632,8 +670,12 @@
     $("#idProg").style.width = !name ? "0" : hi === undefined ? "100%" : `${Math.round((r.count - lo) / (hi - lo) * 100)}%`;
     const got = name && window.PNBadges ? PNBadges.forCodename(name) : [];
     $("#idBadges").innerHTML = !name ? "" : got.length ? got.map(id => PNBadges.hex(id, true)).join("") + `<span class="none">&nbsp;${got.length} of ${PNBadges.LIST.length} badges</span>` : `<span class="none">No badges yet. Each one is earned for something special.</span>`;
-    const frame = name ? P.lootFor(name).equip.frame : "frame-standard";
-    $("#idcard").className = "idcard " + frame;
+    const loot = name ? P.lootFor(name) : null;
+    $("#idcard").className = "idcard " + (loot ? loot.equip.frame : "frame-standard");
+    // Callsign bought in the safehouse shop
+    const call = loot ? P.shopItem(loot.equip.call) : null;
+    $("#idCall").hidden = !(call && call.color);
+    if(call && call.color){ $("#idCallName").innerHTML = `<i aria-hidden="true">${call.icon}</i> ${call.name}`; $("#idCallName").style.setProperty("--c", call.color); }
     $("#idNextRank").textContent = !name ? "·" : r.next || "Top rank";
     $("#idWallet").textContent = name ? gbp(P.walletOf(name)) : "£0";
     $("#idNext").textContent = !name ? "Type a codename to load an agent file." : r.next ? `${r.toNext} more vault${r.toNext === 1 ? "" : "s"} to become ${/^[AEIOU]/.test(r.next) ? "an" : "a"} ${r.next}.` : "Top rank. A legend in the network.";
@@ -662,45 +704,104 @@
   [0, 400, 1200].forEach(t => setTimeout(drawBeams, t));
   if(document.fonts) document.fonts.ready.then(drawBeams);
 
-  // Safehouse shop: spend the codename's wallet on cosmetics
-  const shopOverlay = $("#shopOverlay");
+  // Safehouse shop: spend the codename's wallet. Gadgets first, because they change the game; the looks after.
+  const shopOverlay = $("#shopOverlay"), shopPanel = $("#shopPanel"), shopWallet = $("#shopWallet");
+  const SHOP_ORDER = ["gadget", "call", "holo", "term", "door", "frame"];
+  const shopName = () => codename.value.trim().toUpperCase();
+  const shopSay = (text, cls) => { const m = $("#shopMsg"); m.textContent = text; m.className = "msg2" + (cls ? " " + cls : ""); };
+  // The wallet ticks down to its new value rather than jumping (instant with reduced motion)
+  let tickRaf = 0;
+  function tickWallet(from, to){
+    cancelAnimationFrame(tickRaf);
+    const paint = v => { shopWallet.textContent = gbp(v); $("#idWallet").textContent = gbp(v); };
+    if(from === to || P.reducedMotion()){ paint(to); return; }
+    shopWallet.classList.add("down");
+    const t0 = performance.now(), ms = 700;
+    let lastTick = 0;
+    (function step(now){
+      const k = Math.min(1, (now - t0) / ms), e = 1 - Math.pow(1 - k, 3);
+      paint(from + (to - from) * e);
+      if(now - lastTick > 70 && k < 1){ lastTick = now; PNSound.play("tick"); }
+      if(k < 1) tickRaf = requestAnimationFrame(step); else { paint(to); shopWallet.classList.remove("down"); }
+    })(t0);
+  }
+  // One card: swatch or icon, name, what it does, price, and the button that buys or equips it
+  function shopCard(key, it, loot, name){
+    const owned = it.price === 0 || loot.owned.includes(it.id), eq = loot.equip[key] === it.id;
+    const short = name && !owned ? P.shortBy(name, it.id) : 0;
+    const el = document.createElement("div"); el.className = "item" + (eq ? " eq" : "") + (owned ? " owned" : "") + (short ? " locked" : "");
+    const face = key === "call" && it.color ? `<div class="ico call" style="--c:${it.color}" aria-hidden="true"><i>${it.icon}</i>${it.name}</div>`
+      : key === "gadget" || key === "call" ? `<div class="ico" aria-hidden="true">${it.icon}</div>`
+      : `<div class="sw" style="background:${P.shopSwatch(it)}" aria-hidden="true"></div>`;
+    el.innerHTML = `${face}<div class="nm">${it.name}</div><div class="ds">${it.desc || ""}</div>
+      <div class="pr">${eq || owned ? (it.price ? "Owned · " + gbp(it.price) : "Free") : gbp(it.price)}</div>
+      ${eq ? '<span class="tag">EQUIPPED</span>' : owned ? '<span class="tag own">OWNED</span>' : ""}`;
+    const b = document.createElement("button"); b.type = "button";
+    b.textContent = eq ? "Equipped" : owned ? "Equip" : `Buy ${gbp(it.price)}`;
+    b.setAttribute("aria-label", eq ? `${it.name}: equipped` : owned ? `Equip ${it.name}` : `Buy ${it.name} for ${gbp(it.price)}`);
+    b.disabled = !name || eq;
+    if(short) b.setAttribute("aria-disabled", "true");   // still focusable, so the reason can be heard and clicked for
+    b.addEventListener("click", () => {
+      if(!name || eq) return;
+      if(!owned){
+        // Check the wallet again at click time: it can never go below zero, and an owned item is never paid for twice
+        if(P.shortBy(name, it.id) > 0){ shopSay(`Not enough for ${it.name}. You need ${gbp(P.shortBy(name, it.id))} more. Crack more vaults in Prime Hack.`, "bad"); PNSound.play("denied"); return; }
+        const before = P.walletOf(name), r = P.buyItem(name, it.id);
+        if(!r.ok){ shopSay(r.why, "bad"); PNSound.play("denied"); return; }
+        P.equipItem(name, it.id);
+        if(r.already){ PNSound.play("blip"); shopSay(`You already own ${it.name}. It's equipped.`, "ok"); }
+        else { PNSound.play("cash"); setTimeout(() => PNSound.play("chirp"), 350); shopSay(`Bought ${it.name} for ${gbp(it.price)}. It's equipped. ${gbp(P.walletOf(name))} left.`, "ok"); }
+        renderShop(); renderIdCard(); tickWallet(before, P.walletOf(name));
+      } else {
+        P.equipItem(name, it.id); PNSound.play("blip"); shopSay(`${it.name} equipped.`, "ok");
+        renderShop(); renderIdCard();
+      }
+      // Keep the keyboard where it was: on this item's button, or the card itself once the button says Equipped
+      const card = $(`#shopCats [data-item="${it.id}"]`), again = card && card.querySelector("button");
+      if(again && !again.disabled) again.focus({ preventScroll: true }); else if(card) card.focus({ preventScroll: true });
+    });
+    el.appendChild(b);
+    if(short){ const n = document.createElement("div"); n.className = "need"; n.textContent = `Need ${gbp(short)} more`; el.appendChild(n); }
+    el.dataset.item = it.id; el.tabIndex = -1;
+    return el;
+  }
   function renderShop(){
-    const name = codename.value.trim().toUpperCase();
-    $("#shopWho").textContent = name ? `Agent ${name}'s safehouse. Money comes from vaults you crack in Prime Hack; higher levels pay far more.` : "Type your codename first to open your safehouse.";
-    $("#shopWallet").textContent = name ? gbp(P.walletOf(name)) : "£0";
+    const name = shopName();
+    $("#shopWho").textContent = name ? `Agent ${name}'s safehouse. Money comes from vaults you crack in Prime Hack; higher levels pay far more. Each category equips one item.` : "Type your codename first to open your safehouse.";
+    shopWallet.textContent = name ? gbp(P.walletOf(name)) : "£0";
     const loot = name ? P.lootFor(name) : { owned: [], equip: {} };
     const cats = $("#shopCats"); cats.innerHTML = "";
-    Object.entries(P.SHOP).forEach(([key, cat]) => {
-      const box = document.createElement("div"); box.className = "cat";
-      box.innerHTML = `<span>${cat.label}</span><div class="items"></div>`;
-      cat.items.forEach(it => {
-        const owned = it.price === 0 || loot.owned.includes(it.id), eq = loot.equip[key] === it.id;
-        const swatch = key === "term" ? (it.cycle ? "linear-gradient(90deg,#2fbf8a,#6ec8ff,#ff4fd8,#ffc94d)" : `rgb(${it.rgb})`)
-          : key === "door" ? { "door-steel": "#1c4a44", "door-brass": "#8a6a2a", "door-carbon": "repeating-linear-gradient(45deg,#1a1d1f 0 5px,#0e1011 5px 10px)", "door-neon": "linear-gradient(90deg,#ff4fd8,#6ec8ff)", "door-diamond": "linear-gradient(120deg,#bfe9ff,#fff,#9fd8ff)" }[it.id]
-          : { "frame-standard": "#16333a", "frame-bronze": "#b87333", "frame-silver": "#c9d6dc", "frame-gold": "#ffc94d", "frame-holo": "linear-gradient(120deg,#ff4fd8,#6ec8ff,#2fbf8a,#ffc94d)" }[it.id];
-        const el = document.createElement("div"); el.className = "item" + (eq ? " eq" : "");
-        el.innerHTML = `<div class="sw" style="background:${swatch}"></div><div class="nm">${it.name}</div><div class="pr">${it.price ? gbp(it.price) : "Free"}</div>`;
-        const b = document.createElement("button"); b.type = "button";
-        b.textContent = eq ? "Equipped" : owned ? "Equip" : `Buy ${gbp(it.price)}`;
-        b.disabled = !name || eq || (!owned && P.walletOf(name) < it.price);
-        b.addEventListener("click", () => {
-          if(!owned){
-            const r = P.buyItem(name, it.id);
-            if(!r.ok){ $("#shopMsg").textContent = r.why; PNSound.play("denied"); return; }
-            PNSound.play("cash"); $("#shopMsg").textContent = `Bought ${it.name}. It's equipped.`;
-          } else { PNSound.play("click"); $("#shopMsg").textContent = `${it.name} equipped.`; }
-          P.equipItem(name, it.id); renderShop(); renderIdCard();
-        });
-        el.appendChild(b);
-        box.querySelector(".items").appendChild(el);
-      });
+    SHOP_ORDER.filter(k => P.SHOP[k]).forEach(key => {
+      const cat = P.SHOP[key];
+      const box = document.createElement("section"); box.className = "cat"; box.setAttribute("aria-labelledby", "cat-" + key);
+      box.innerHTML = `<div class="cat-h"><span class="cat-t" id="cat-${key}">${cat.label}</span><span class="cat-b">${cat.blurb || ""}</span></div><div class="items"></div>`;
+      cat.items.forEach(it => box.querySelector(".items").appendChild(shopCard(key, it, loot, name)));
       cats.appendChild(box);
     });
   }
-  $("#shopBtn").addEventListener("click", () => { $("#shopMsg").textContent = ""; renderShop(); shopOverlay.hidden = false; PNSound.play("click"); $("#shopDone").focus(); });
-  $("#shopDone").addEventListener("click", () => { shopOverlay.hidden = true; });
-  shopOverlay.addEventListener("click", e => { if(e.target === shopOverlay) shopOverlay.hidden = true; });
-  document.addEventListener("keydown", e => { if(e.key === "Escape") shopOverlay.hidden = true; });
+  function openShop(){
+    shopSay(""); renderShop(); shopOverlay.hidden = false; shopOverlay.scrollTop = 0;
+    PNSound.play("holo");
+    shopPanel.focus({ preventScroll: true });   // the panel first, so Tab goes to the first item, not past the dialog
+  }
+  function closeShop(){
+    if(shopOverlay.hidden) return;
+    shopOverlay.hidden = true; PNSound.play("whooshDown");
+    $("#shopBtn").focus();   // back where the keyboard came from
+  }
+  $("#shopBtn").addEventListener("click", openShop);
+  $("#shopDone").addEventListener("click", closeShop);
+  shopOverlay.addEventListener("click", e => { if(e.target === shopOverlay) closeShop(); });
+  document.addEventListener("keydown", e => { if(e.key === "Escape" && !shopOverlay.hidden) closeShop(); });
+  // Keep Tab inside the dialog while it's open
+  shopOverlay.addEventListener("keydown", e => {
+    if(e.key !== "Tab") return;
+    const f = [...shopPanel.querySelectorAll("button:not(:disabled), [href], input, select, [tabindex]:not([tabindex='-1'])")].filter(el => el.offsetParent !== null);
+    if(!f.length) return;
+    const first = f[0], last = f[f.length - 1];
+    if(e.shiftKey && (document.activeElement === first || document.activeElement === shopPanel)){ e.preventDefault(); last.focus(); }
+    else if(!e.shiftKey && document.activeElement === last){ e.preventDefault(); first.focus(); }
+  });
 
   const soundBtn = $("#soundBtn");
   const syncSound = () => { soundBtn.textContent = `Sound: ${PNSound.isOn() ? "on" : "off"}`; soundBtn.setAttribute("aria-pressed", PNSound.isOn() ? "true" : "false"); };

@@ -407,6 +407,15 @@
 .vdoor.skin-diamond .hub{ color:#0b2a36; border-color:#0b2a36; }
 html.term-cycle .terminal{ animation:termCycle 8s linear infinite; }
 @keyframes termCycle{ to{ filter:hue-rotate(360deg); } }
+/* The equipped vault door, small, on the funds-banked screen */
+.doorWrap.mini{ display:flex; flex-direction:column; align-items:center; gap:8px; margin-bottom:4px; }
+.vdoor.mini{ width:110px; height:110px; border-width:3px; transform-origin:center; box-shadow:0 0 24px rgba(var(--accent-rgb),.25), inset 0 0 30px rgba(0,0,0,.6); }
+.vdoor.mini .hub{ font-size:8px; letter-spacing:.1em; border-width:2px; }
+.vdoor.mini .hub::before{ height:2px; } .vdoor.mini .hub::after{ width:2px; }
+.doorSkin{ font-family:var(--font-ui); font-size:10px; letter-spacing:.22em; color:var(--text-faint); }
+/* Callsign from the safehouse shop: a coloured pill in the HUD bar */
+.hudPill.hudCall{ border-color:var(--c); color:var(--c); box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--c) 30%, transparent), 0 0 12px color-mix(in srgb, var(--c) 25%, transparent); }
+.hudPill.hudCall strong{ color:var(--c); } .hudPill.hudCall i{ font-style:normal; margin-right:2px; }
 .cf-badges{ display:flex; flex-wrap:wrap; gap:10px; }
 .cf-badges span.bn{ display:inline-flex; align-items:center; gap:8px; font-size:14px; }
 
@@ -2615,7 +2624,7 @@ const Rig = (() => {
     raise(n){
       if(Run.index > Run.locksPerRun || FF.active || api.busy) return;
       const before = api.trace;
-      api.trace = Math.min(100, api.trace + n); api.peak = Math.max(api.peak || 0, api.trace); api.paintTrace();
+      api.trace = Math.min(100, api.trace + n * TRACE_MULT); api.peak = Math.max(api.peak || 0, api.trace); api.paintTrace();
       if(before < 50 && api.trace >= 50 && window.PNHandler) PNHandler.say("Careful, {agent}. They're starting to trace the signal.");
       if(before < 75 && api.trace >= 75 && window.PNSound) PNSound.play("alarm");
       if(api.trace >= 100) api.traced();
@@ -2647,6 +2656,7 @@ const Rig = (() => {
   return api;
 })();
 const TRACE_STEP = { L1: 15, L2: 18, L3: 20 };   // trace added by a wrong product; a non-prime adds two thirds of this
+const TRACE_MULT = PN && PN.perk ? PN.perk("trace", 1) : 1;   // safehouse gadget: the trace scrambler (×0.75) or ghost cloak (×0.5) slow every rise
 
 // ===================== SUCCESS SCREENS =====================
 // Hold ENTER to fast-forward the cinematic parts (not the parts students play).
@@ -2755,7 +2765,11 @@ async function vaultDoor(cracked){
 // Inside the vault: the bank drains, the wallet fills, then the rank stamp
 async function drainAndStamp(o, { acct, banked, walletBefore, walletAfter, codename, before, after }){
   const stage = o.querySelector(".doorStage");
+  // The vault door bought in the safehouse shop: the full door sequence is out of the heist, so the equipped
+  // skin shows here as the door you just came through (its hub spins as the money lands)
+  const skin = PN ? PN.shopItem(PN.lootFor().equip.door) : null;
   stage.innerHTML = `<div class="doorTitle">SAFE HOUSE // FUNDS BANKED</div>
+    ${skin ? `<div class="doorWrap mini" title="Vault door: ${skin.name}"><div class="vdoor mini skin-${skin.id.replace("door-", "")}"><div class="hub">VAULT</div></div><small class="doorSkin">${skin.name.toUpperCase()} DOOR</small></div>` : ""}
     <div class="vaultReveal">
       <div class="money"><div><small>THIS RUN</small><b class="run" style="color:var(--warning)"></b></div><div class="take"><small>YOUR WALLET</small><b class="wal"></b></div></div>
       <div class="money"><div class="drain"><small>${acct.name.toUpperCase()} · LEFT</small><b class="bal"></b></div><div><small>AGENT</small><b style="font-size:18px">${codename}</b></div></div>
@@ -2773,6 +2787,7 @@ async function drainAndStamp(o, { acct, banked, walletBefore, walletAfter, coden
   });
   wal.textContent = gbp(walletAfter);
   SFX("cash");
+  const miniDoor = stage.querySelector(".vdoor.mini"); if(miniDoor) miniDoor.classList.add("spin");
   await animate(400, () => {});
   const stamp = stage.querySelector(".stamp");
   const promoted = before && after && after.rank !== before.rank;
@@ -3228,15 +3243,26 @@ function boot(){
   newRunSameDifficulty();
   updateRunUI();
 
-  // Terminal colour bought in the safehouse shop
+  // Terminal colour, callsign and gadget bought in the safehouse shop (the vault door skin is applied in vaultDoor)
   if(PN){
-    const t = PN.shopItem(PN.lootFor().equip.term);
+    const loot = PN.applyLoot ? PN.applyLoot() : PN.lootFor();
+    const t = PN.shopItem(loot.equip.term);
     if(t && t.id !== "term-green"){
       const [r, g, b] = t.rgb.split(",").map(Number);
       document.documentElement.style.setProperty("--accent-rgb", t.rgb);
       document.documentElement.style.setProperty("--accent", `rgb(${r},${g},${b})`);
     }
     document.documentElement.classList.toggle("term-cycle", !!(t && t.cycle));
+    // Callsign: a badge in the HUD bar next to the wallet
+    const c = PN.shopItem(loot.equip.call);
+    if(c && c.color){
+      const pill = document.createElement("span"); pill.className = "hudPill hudCall"; pill.style.setProperty("--c", c.color);
+      pill.innerHTML = `Callsign: <strong><i aria-hidden="true">${c.icon}</i> ${c.name}</strong>`; pill.title = `Callsign ${c.name}, from the safehouse shop`;
+      walletLabel.parentNode.after(pill);
+    }
+    // Gadget: the trace scrambler and ghost cloak slow the trace (TRACE_MULT); say so on the trace bar
+    const g = PN.shopItem(loot.equip.gadget);
+    if(g && g.perk && g.perk.trace){ const tl = document.querySelector(".trace .tl span"); if(tl) tl.insertAdjacentHTML("beforeend", `<small class="gad" style="display:block;margin:2px 0 0;color:#7dffc4">${g.name.toUpperCase()} ON · CLIMBS SLOWER</small>`); }
   }
   const target = Bank.getCurrentAccount();
   addLine("PRIME HACK // TERMINAL ONLINE", "ok");

@@ -17,7 +17,7 @@
     floors: "blueprintProgress",            // numbers finished in Factor Vault this mission
     textSize: "primenet_textsize_v1",       // older text-size-only settings, read once and folded into `learner`
     learner: "primenet_learner_v1",
-    loot: "primenet_loot_v1",               // { CODENAME: { owned:[ids], equip:{ term, door, frame } } }, bought in the safehouse shop         // { CODENAME: { text, font, motion } }, each learner's settings on this computer
+    loot: "primenet_loot_v1",               // { CODENAME: { owned:[ids], equip:{ term, door, frame, holo, gadget, call } } }, bought in the safehouse shop         // { CODENAME: { text, font, motion } }, each learner's settings on this computer
   };
 
   const LEVELS = {
@@ -188,62 +188,109 @@
     return a;
   }
 
-  /* Safehouse shop: cosmetics bought with the wallet each codename earns in Prime Hack.
+  /* Safehouse shop: bought with the wallet each codename earns in Prime Hack. Each category equips one item.
+     Looks: terminal colour and vault door (Prime Hack), ID card frame and callsign (title screen, Prime Hack bar),
+     hologram tint (the BRIEF in every twist). Gadgets change how a stage plays; see perk() and applyLoot().
+     Every item has a swatch (a CSS background) or an icon for its shop card, and a one-line desc shown there.
      Prices climb steeply so the best items need higher levels (bigger vaults). */
   const SHOP = {
-    term: { label: "Terminal colour", items: [
-      { id: "term-green",  name: "Classic green", price: 0,       rgb: "47,191,138" },
-      { id: "term-amber",  name: "Amber CRT",     price: 10000,   rgb: "255,176,64" },
-      { id: "term-ice",    name: "Ice blue",      price: 25000,   rgb: "110,200,255" },
-      { id: "term-pink",   name: "Hot pink",      price: 50000,   rgb: "255,79,216" },
-      { id: "term-gold",   name: "Gold",          price: 250000,  rgb: "255,201,77" },
-      { id: "term-cycle",  name: "Spectrum cycle",price: 1000000, rgb: "47,191,138", cycle: true },
+    term: { label: "Terminal colour", blurb: "The colour of the whole Prime Hack terminal.", items: [
+      { id: "term-green",  name: "Classic green", price: 0,       rgb: "47,191,138",  desc: "The standard PRIMENET green." },
+      { id: "term-amber",  name: "Amber CRT",     price: 10000,   rgb: "255,176,64",  desc: "Warm amber, like an old monitor." },
+      { id: "term-ice",    name: "Ice blue",      price: 25000,   rgb: "110,200,255", desc: "Cold blue light." },
+      { id: "term-pink",   name: "Hot pink",      price: 50000,   rgb: "255,79,216",  desc: "Loud and proud." },
+      { id: "term-gold",   name: "Gold",          price: 250000,  rgb: "255,201,77",  desc: "For agents with money to burn." },
+      { id: "term-cycle",  name: "Spectrum cycle",price: 1000000, rgb: "47,191,138",  cycle: true, desc: "Slowly drifts through every colour.", swatch: "linear-gradient(90deg,#2fbf8a,#6ec8ff,#ff4fd8,#ffc94d)" },
     ]},
-    door: { label: "Vault door", items: [
-      { id: "door-steel",   name: "Steel",   price: 0 },
-      { id: "door-brass",   name: "Brass",   price: 25000 },
-      { id: "door-carbon",  name: "Carbon",  price: 100000 },
-      { id: "door-neon",    name: "Neon",    price: 250000 },
-      { id: "door-diamond", name: "Diamond", price: 1000000 },
+    door: { label: "Vault door", blurb: "Your vault door, shown when the money is banked at the end of Prime Hack.", items: [
+      { id: "door-steel",   name: "Steel",   price: 0,       desc: "Plain bank steel.",                   swatch: "#1c4a44" },
+      { id: "door-brass",   name: "Brass",   price: 25000,   desc: "Old-money brass.",                    swatch: "#8a6a2a" },
+      { id: "door-carbon",  name: "Carbon",  price: 100000,  desc: "Black carbon fibre.",                 swatch: "repeating-linear-gradient(45deg,#1a1d1f 0 5px,#0e1011 5px 10px)" },
+      { id: "door-neon",    name: "Neon",    price: 250000,  desc: "Pink and blue neon glow.",            swatch: "linear-gradient(90deg,#ff4fd8,#6ec8ff)" },
+      { id: "door-diamond", name: "Diamond", price: 1000000, desc: "A door made of diamond. Show-off.",   swatch: "linear-gradient(120deg,#bfe9ff,#fff,#9fd8ff)" },
     ]},
-    frame: { label: "ID card frame", items: [
-      { id: "frame-standard", name: "Standard",    price: 0 },
-      { id: "frame-bronze",   name: "Bronze",      price: 10000 },
-      { id: "frame-silver",   name: "Silver",      price: 50000 },
-      { id: "frame-gold",     name: "Gold",        price: 250000 },
-      { id: "frame-holo",     name: "Holographic", price: 1000000 },
+    frame: { label: "ID card frame", blurb: "The frame round your agent ID card.", items: [
+      { id: "frame-standard", name: "Standard",    price: 0,       desc: "Standard issue.",                    swatch: "#16333a" },
+      { id: "frame-bronze",   name: "Bronze",      price: 10000,   desc: "A bronze border.",                   swatch: "#b87333" },
+      { id: "frame-silver",   name: "Silver",      price: 50000,   desc: "A silver border.",                   swatch: "#c9d6dc" },
+      { id: "frame-gold",     name: "Gold",        price: 250000,  desc: "A gold border with a glow.",         swatch: "#ffc94d" },
+      { id: "frame-holo",     name: "Holographic", price: 1000000, desc: "A slow rainbow shimmer.",            swatch: "linear-gradient(120deg,#ff4fd8,#6ec8ff,#2fbf8a,#ffc94d)" },
+    ]},
+    // rgb is the tint's colour triplet and hi its bright hex; twist.js reads them as --hb-rgb and --hb-hi (see applyLoot)
+    holo: { label: "Hologram tint", blurb: "The colour of the BRIEF hologram in every twist.", items: [
+      { id: "holo-ice",    name: "Ice",         price: 0,      rgb: "140,235,255", hi: "#8feaff", desc: "The standard ice blue." },
+      { id: "holo-mint",   name: "Mint",        price: 10000,  rgb: "125,255,196", hi: "#7dffc4", desc: "Cool mint green." },
+      { id: "holo-amber",  name: "Amber",       price: 25000,  rgb: "255,201,77",  hi: "#ffc94d", desc: "Warm amber, like a warning light." },
+      { id: "holo-rose",   name: "Rose",        price: 50000,  rgb: "255,138,180", hi: "#ff8ab4", desc: "Soft pink." },
+      { id: "holo-violet", name: "Violet",      price: 100000, rgb: "200,160,255", hi: "#c8a0ff", desc: "Deep-space violet." },
+      { id: "holo-white",  name: "Ghost white", price: 250000, rgb: "235,245,255", hi: "#ebf5ff", desc: "Pure white light. Very rare." },
+    ]},
+    // One gadget at a time. perk keys: strikes (extra alarm strikes in a twist), lens (night tint on twists), trace (Prime Hack trace speed)
+    gadget: { label: "Gadgets", blurb: "One at a time. Each gadget changes how a stage plays.", items: [
+      { id: "gadget-none",      name: "No gadget",       price: 0,      icon: "○", desc: "Play it straight." },
+      { id: "gadget-drone",     name: "Decoy drone",     price: 5000,   icon: "⌖", desc: "One extra alarm strike in every twist. The drone takes the first hit.", perk: { strikes: 1 } },
+      { id: "gadget-lens",      name: "Night lens",      price: 15000,  icon: "◐", desc: "A soft green night-vision tint over every twist.", perk: { lens: 1 } },
+      { id: "gadget-scrambler", name: "Trace scrambler", price: 50000,  icon: "≋", desc: "In Prime Hack the trace climbs a quarter slower.", perk: { trace: 0.75 } },
+      { id: "gadget-cloak",     name: "Ghost cloak",     price: 250000, icon: "◈", desc: "The trace climbs half as fast, and you get the extra alarm strike too.", perk: { trace: 0.5, strikes: 1 } },
+    ]},
+    call: { label: "Callsign", blurb: "A badge on your ID card and in the Prime Hack bar.", items: [
+      { id: "call-none",    name: "No callsign", price: 0,       icon: "○", desc: "Just your codename." },
+      { id: "call-viper",   name: "VIPER",       price: 10000,   icon: "◆", color: "#2fbf8a", desc: "Quick and quiet." },
+      { id: "call-bolt",    name: "BOLT",        price: 25000,   icon: "⚡", color: "#ffe14d", desc: "Fastest fingers in the network." },
+      { id: "call-phantom", name: "PHANTOM",     price: 100000,  icon: "◐", color: "#c8a0ff", desc: "Never seen, never traced." },
+      { id: "call-zero",    name: "ZERO",        price: 250000,  icon: "◎", color: "#6ec8ff", desc: "The one they all talk about." },
+      { id: "call-legend",  name: "LEGEND",      price: 1000000, icon: "★", color: "#ffc94d", desc: "A million-pound name." },
     ]},
   };
-  const DEFAULT_EQUIP = { term: "term-green", door: "door-steel", frame: "frame-standard" };
+  const DEFAULT_EQUIP = { term: "term-green", door: "door-steel", frame: "frame-standard", holo: "holo-ice", gadget: "gadget-none", call: "call-none" };
   const shopItem = id => Object.values(SHOP).flatMap(c => c.items).find(i => i.id === id) || null;
+  const shopCat = item => Object.keys(SHOP).find(k => SHOP[k].items.includes(item)) || null;
+  // The CSS background for an item's shop swatch (colour items derive it from their rgb)
+  const shopSwatch = it => it.swatch || (it.rgb ? `rgb(${it.rgb})` : "transparent");
   function lootFor(codename){
     const name = cleanName(codename || (getAgent() || {}).codename || "");
     const saved = read(KEYS.loot, {})[name] || {};
     return { owned: saved.owned || [], equip: { ...DEFAULT_EQUIP, ...(saved.equip || {}) } };
   }
   function saveLoot(codename, loot){ const map = read(KEYS.loot, {}); map[cleanName(codename)] = loot; write(KEYS.loot, map); }
+  // The item this codename has equipped in a category (the current agent when no codename is given)
+  const equipped = (codename, cat) => shopItem(lootFor(codename).equip[cat]);
   // The wallet lives in each codename's bank (modules/bank.js); the shop reads and spends it directly
   const bankKey = codename => "PRIMENET_BANK_V1_" + cleanName(codename);
-  function walletOf(codename){ const b = read(bankKey(codename), null); return b && b.walletBalance ? b.walletBalance : 0; }
+  function walletOf(codename){ const b = read(bankKey(codename), null); return b && typeof b.walletBalance === "number" && b.walletBalance > 0 ? b.walletBalance : 0; }
+  // How much more this codename needs before it can buy the item (0 when it can, or already owns it)
+  function shortBy(codename, id){ const item = shopItem(id); if(!item || item.price === 0 || lootFor(codename).owned.includes(id)) return 0; return Math.max(0, item.price - walletOf(codename)); }
   function buyItem(codename, id){
     const item = shopItem(id), loot = lootFor(codename);
     if(!item || !cleanName(codename || "")) return { ok: false, why: "No codename" };
     if(item.price === 0 || loot.owned.includes(id)) return { ok: true, already: true };
     const bank = read(bankKey(codename), null);
-    if(!bank || (bank.walletBalance || 0) < item.price) return { ok: false, why: "Not enough in the wallet" };
+    if(!bank || typeof bank.walletBalance !== "number" || bank.walletBalance < item.price) return { ok: false, why: `Not enough in the wallet. You need ${"£" + shortBy(codename, id).toLocaleString("en-GB")} more.` };
     bank.walletBalance -= item.price;
     (bank.ledger = bank.ledger || []).push({ ts: Date.now(), type: "spend", module: "shop", item: id, amount: item.price });
     write(bankKey(codename), bank);
     loot.owned.push(id); saveLoot(codename, loot);
-    return { ok: true };
+    return { ok: true, left: bank.walletBalance };
   }
   function equipItem(codename, id){
     const item = shopItem(id), loot = lootFor(codename);
-    if(!item) return false;
+    if(!item || !cleanName(codename || "")) return false;   // never save loot under an empty name
     if(item.price > 0 && !loot.owned.includes(id)) return false;
-    const cat = Object.keys(SHOP).find(k => SHOP[k].items.includes(item));
-    loot.equip[cat] = id; saveLoot(codename, loot);
+    loot.equip[shopCat(item)] = id; saveLoot(codename, loot);
     return true;
+  }
+  // A gadget's effect for the current agent, e.g. perk("strikes") is 1 with the decoy drone; fallback (0) when the gadget has none
+  function perk(key, fallback){
+    const g = equipped(null, "gadget"), v = g && g.perk ? g.perk[key] : undefined;
+    return v === undefined ? (fallback === undefined ? 0 : fallback) : v;
+  }
+  // What the equipped items set on <html>: the hologram tint (--hb-rgb and --hb-hi, used by the twist brief) and the
+  // night lens class. Twist pages call it from PNTwist.init; Prime Hack from boot. Returns the loot for further use.
+  function applyLoot(codename){
+    const root = document.documentElement, h = equipped(codename, "holo");
+    if(h && h.rgb){ root.style.setProperty("--hb-rgb", h.rgb); root.style.setProperty("--hb-hi", h.hi); }
+    root.classList.toggle("pn-lens", !!perk("lens"));
+    return lootFor(codename);
   }
 
   // Add to this mission's agent data, e.g. the scan's signal strength and decoder charges
@@ -396,7 +443,7 @@
     TEXT_SIZES, TEXT_ORDER, textSizeFor, setTextSize, applyTextSize,
     prefsFor, setPrefs, applyPrefs, reducedMotion,
     mission, agentNumber, TARGETS, updateAgent, setMissionTarget,
-    SHOP, shopItem, lootFor, buyItem, equipItem, walletOf,
+    SHOP, shopItem, shopCat, shopSwatch, lootFor, buyItem, equipItem, walletOf, shortBy, equipped, perk, applyLoot,
   };
   // ---------- Twists the teacher allows in the bank rotation (feedback: leave out what hasn't been taught) ----------
   const TWIST_KEY = "primenet_twists_v1";

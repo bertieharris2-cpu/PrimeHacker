@@ -10,54 +10,62 @@
 <link rel="stylesheet" href="../shared/primenet.css">
 <style>
   /* Round 12 prototype: the square strongroom in context. We zoom in on the strongroom on the student's own
-     3D floor, lay its square floor (stage 1), then cross its pressure plates: the square-numbered plates are
-     live, so mark them and the agent walks to the safe on the safe plates (stage 2). */
-  .stage3d{ position:relative; height:250px; padding:0; overflow:hidden; background:radial-gradient(ellipse at 50% 40%, rgba(40,60,20,.25), rgba(2,8,10,.95)); }
-  .stage3d .hud{ position:absolute; left:12px; top:10px; font-family:var(--font-ui); font-size:12px; letter-spacing:.18em; color:#ffe14d; pointer-events:none; text-shadow:0 0 8px #000; }
+     3D floor, lay its square floor (stage 1), then cross its pressure plates (stage 2).
+     Round 14 (Bertie's night): the plates moved into the 3D stage. The camera pushes in from the whole floor,
+     the laid tiles drop into the room, a scanline reveals the numbered plates, and the crossing is shot low
+     with a laser route line, ending with a lock-on at the safe.
+     ?mode=A (default): the square-numbered plates are live. Mark every one; the agent walks round them.
+     ?mode=B: only the square-numbered plates are safe, and only in order (1, 4, 9, 16…). Tap the next square each time. */
+  main.tw{ width:min(1400px, 100%); }   /* wider than the usual 1100px: the 3D stage is the show */
+  .stage3d{ position:relative; height:300px; padding:0; overflow:hidden; background:radial-gradient(ellipse at 50% 40%, rgba(40,60,20,.25), rgba(2,8,10,.95)); transition:height .6s; }
+  .stage3d.big{ height:500px; }   /* stage 2: the plates need the room */
+  .stage3d canvas{ touch-action:none; }
+  .stage3d.big canvas{ cursor:pointer; }
+  .stage3d .hud{ position:absolute; left:40px; top:14px; font-family:var(--font-ui); font-size:13px; letter-spacing:.18em; color:#ffe14d; pointer-events:none; text-shadow:0 0 8px #000; }
+  .stage3d .corner{ position:absolute; width:22px; height:22px; border:2px solid rgba(255,255,255,.5); pointer-events:none; }
+  .stage3d .tl{ left:10px; top:10px; border-right:0; border-bottom:0; } .stage3d .tr{ right:10px; top:10px; border-left:0; border-bottom:0; }
+  .stage3d .bl{ left:10px; bottom:10px; border-right:0; border-top:0; } .stage3d .br{ right:10px; bottom:10px; border-left:0; border-top:0; }
+  /* A small readout in the corner of the feed (it never covers the plates) */
+  .stage3d .tag{ position:absolute; left:40px; bottom:14px; font-family:var(--font-mono); font-size:15px; letter-spacing:.14em; color:#8feaff; padding:6px 12px; border:1px solid rgba(143,234,255,.55); background:rgba(2,10,12,.78); opacity:0; transition:opacity .4s; pointer-events:none; }
+  .stage3d .tag.on{ opacity:1; } .stage3d .tag.gold{ color:#ffe14d; border-color:rgba(255,225,77,.6); }
   .steps{ display:flex; gap:6px; font-family:var(--font-ui); font-size:12px; letter-spacing:.16em; }
   .steps span{ border:1px solid var(--line); padding:3px 8px; color:var(--text-faint); }
   .steps span.on{ color:var(--warning); border-color:var(--warning); }
   .steps span.done{ color:var(--ok); border-color:rgba(61,220,151,.5); }
-  .build{ display:grid; grid-template-columns:minmax(0,1fr) 280px; gap:16px; align-items:start; }
-  .gridbox{ padding:14px; display:flex; flex-direction:column; gap:8px; align-items:center; }
+  .modeLab{ font-family:var(--font-ui); font-size:12px; letter-spacing:.14em; color:var(--text-faint); }
+  /* The side panel sits on the left and the grid keeps left, so the ORACLE panel (bottom right) never covers them */
+  .build{ display:grid; grid-template-columns:300px minmax(0,1fr); gap:16px; align-items:start; }
+  .gridbox{ padding:14px 14px 14px 48px; display:flex; flex-direction:column; gap:8px; align-items:flex-start; }
   .dg{ display:grid; gap:2px; touch-action:none; user-select:none; cursor:crosshair; }
   .dg i{ width:var(--c); height:var(--c); background:rgba(var(--accent-rgb),.08); border:1px solid rgba(var(--accent-rgb),.25); }
   .dg i.sel{ background:rgba(var(--accent-rgb),.45); border-color:var(--accent); }
   .dg.bad i.sel{ background:rgba(255,107,107,.4); border-color:#ff6b6b; }
   .dg i.done{ background:rgba(255,201,77,.45); border-color:#ffc94d; }
-  .read{ font-family:var(--font-mono); font-size:19px; min-height:1.4em; }
+  .read{ font-family:var(--font-mono); font-size:21px; min-height:1.4em; }
   .side{ padding:14px; display:flex; flex-direction:column; gap:10px; }
   .side .lab{ font-family:var(--font-ui); font-size:12px; letter-spacing:.16em; color:var(--text-faint); }
-  .target{ font-family:var(--font-ui); font-size:40px; font-weight:700; color:var(--accent); line-height:1; }
+  .target{ font-family:var(--font-ui); font-size:44px; font-weight:700; color:var(--accent); line-height:1; }
   .target small{ display:block; font-size:14px; color:var(--text-muted); font-weight:400; margin-top:4px; }
-  .answer{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; } .answer input{ width:80px; font-size:20px; text-align:center; padding:6px; }
-  .rooms{ display:flex; flex-direction:column; gap:3px; font-size:14px; color:var(--text-muted); } .rooms .ok{ color:#ffc94d; }
-  .plates{ padding:0; overflow:hidden; background:#010608; }
-  .plates svg{ display:block; width:100%; height:auto; }
-  .plate{ fill:#0b1d22; stroke:#2c4c55; cursor:pointer; }
-  .plate:hover{ stroke:var(--accent); }
-  .plate.live{ fill:rgba(255,60,90,.55); stroke:#ff6b8a; }
-  .plate.bad{ fill:rgba(255,160,60,.5); }
-  .plate.step{ fill:rgba(110,200,255,.35); stroke:#6ec8ff; }
-  .pnum{ font-family:var(--font-mono); font-weight:700; fill:#dff8ff; pointer-events:none; text-anchor:middle; dominant-baseline:middle; }
+  .answer{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; font-size:16px; } .answer input{ width:84px; font-size:22px; text-align:center; padding:6px; }
+  .rooms{ display:flex; flex-direction:column; gap:3px; font-size:15px; color:var(--text-muted); } .rooms .ok{ color:#ffc94d; }
   [hidden]{ display:none !important; }
-  @media (max-width:820px){ .build{ grid-template-columns:1fr; } }
+  @media (max-width:820px){ .build{ grid-template-columns:1fr; } .stage3d.big{ height:420px; } }
+  @media (prefers-reduced-motion: reduce){ .stage3d{ transition:none; } }
 </style>
 </head>
 <body>
 <main class="tw">
-  <div class="tw-bar"><span class="steps"><span id="st1" class="on">1 · STRONGROOM FLOOR</span><span id="st2">2 · PRESSURE PLATES</span></span><span id="bar"></span></div>
-  <section class="pn-panel stage3d" id="stage"><div class="hud" id="hud">STRONGROOM · STANDING BY</div></section>
+  <div class="tw-bar"><span class="steps"><span id="st1" class="on">1 · STRONGROOM FLOOR</span><span id="st2">2 · PRESSURE PLATES</span></span><span id="bar"></span><span class="modeLab" id="modeLab"></span></div>
+  <section class="pn-panel stage3d" id="stage" aria-label="The strongroom"><div class="corner tl"></div><div class="corner tr"></div><div class="corner bl"></div><div class="corner br"></div><div class="hud" id="hud">CAM 02 · STANDING BY</div><div class="tag" id="tag"></div></section>
   <div class="build" id="build">
-    <section class="pn-panel gridbox"><div class="dg" id="dg"></div><div class="read" id="read">&nbsp;</div></section>
     <aside class="pn-panel side">
       <span class="lab">FLOOR TILES DELIVERED</span><div class="target" id="target"></div>
       <div class="answer" id="answer" hidden><label for="sideIn">Side length:</label><input class="pn-input" id="sideIn" inputmode="numeric" maxlength="3"><button class="pn-btn small primary" type="button" id="sideBtn">Check</button></div>
       <button class="pn-btn small" type="button" id="noBtn" hidden>It can't be a square</button>
       <span class="lab">DELIVERIES</span><div class="rooms" id="rooms"></div>
     </aside>
+    <section class="pn-panel gridbox"><div class="dg" id="dg"></div><div class="read" id="read">&nbsp;</div></section>
   </div>
-  <section class="pn-panel plates" id="plates" hidden></section>
   <div class="tw-msg" id="msg" aria-live="polite"></div>
 </main>
 
@@ -73,44 +81,67 @@
   "use strict";
   const T = window.PNTwist, $ = id => document.getElementById(id);
   const L = T.peekLevel();
+  const MODE = new URLSearchParams(location.search).get("mode") === "B" ? "B" : "A";   // A is the default
+  const RM = window.Primenet && Primenet.reducedMotion ? Primenet.reducedMotion() : matchMedia("(prefers-reduced-motion: reduce)").matches;   // the learner's motion setting, or the system one
+  const sp = () => (window.PNTest ? PNTest.speed() : 1);
+  const wait = ms => new Promise(res => setTimeout(res, ms / sp()));
   // Round 13: the instructions live in the hologram brief (H hides or shows it), not on the page
   const GOALS = {
-    L1: "The strongroom's floor is square. Drag on the grid to lay a <b>square</b> of exactly the tiles delivered.",
-    L2: "Can each delivery make the <b>square</b> floor? Drag it out on the grid, or press <b>It can't be a square</b>.",
-    L3: "Type the square floor's <b>side length</b>. If the tiles can't make a square, press <b>It can't be a square</b>.",
+    L1: "The strongroom floor is <b>square</b>. Drag on the grid to lay a square using <b>exactly</b> the tiles delivered.",
+    L2: "Can each delivery make a <b>square</b> floor? Drag it out on the grid. If it can't, press <b>It can't be a square</b>.",
+    L3: "Type the <b>side length</b> of the square floor. If the tiles can't make a square, press <b>It can't be a square</b>.",
   };
   T.init({ id: "strongroom3d", stage: "FACTOR VAULT", title: "THE STRONGROOM", goal: GOALS[L],
     example: "16 tiles make a 4 × 4 square floor. 12 tiles can't: 3 × 3 = 9 is too few and 4 × 4 = 16 too many.",
     story: `There's the strongroom on ${T.targets()} floor. Its floor is square and pressure-plated. Work out its tiles, then we'll cross the plates.` });
+  $("modeLab").textContent = MODE === "B" ? "Option B · squares in order" : "Option A · mark the live plates";
+  function say(t, cls){ const m = $("msg"); m.textContent = t; m.className = "tw-msg" + (cls ? " " + cls : ""); }
+  const hud = t => { $("hud").textContent = t; };
+  const tag = (t, cls) => { const el = $("tag"); el.textContent = t; el.className = "tag" + (t ? " on" : "") + (cls ? " " + cls : ""); };
 
-  // ----- 3D: fly in to the strongroom (the square room, or the most nearly square one) -----
+  // ----- 3D: the whole floor, then a push-in to the strongroom (the square room, or the most nearly square one) -----
   const F = PNFloor3D.create($("stage"), {});
-  const TH = F.THREE;
+  const TH = F.THREE, V = (x, y, z) => new TH.Vector3(x, y, z);
   F.lightsOn(600);
   const target = F.rooms.slice().sort((p, q) => (p.a === p.b ? -1 : 0) - (q.a === q.b ? -1 : 0) || (q.a / q.b) - (p.a / p.b))[0];
   target.lineMat.color.setHex(0xffe14d); target.mesh.material.color.setHex(0xffc94d); target.mesh.material.emissive.setHex(0xffc94d);
   const beacon = new TH.Mesh(new TH.RingGeometry(Math.max(target.w, target.d) * 0.6, Math.max(target.w, target.d) * 0.68, 40), new TH.MeshBasicMaterial({ color: 0xffe14d, side: TH.DoubleSide, transparent: true }));
   beacon.rotation.x = -Math.PI / 2; beacon.position.set(target.x, 0.4, target.z); F.root.add(beacon);
-  F.onTick(now => { beacon.material.opacity = 0.4 + 0.4 * Math.sin(now / 260); });
+  F.onTick(now => { beacon.material.opacity = RM ? 0.6 : 0.4 + 0.3 * Math.sin(now / 520); });   // a slow breath, about once every three seconds
+  const fly = (shot, ms) => F.flyTo(shot, RM ? 1 : ms);   // reduced motion: the camera cuts instead of moving
+  const CAM_ROOM = { pos: V(target.x + 28, 64, target.z + 54), look: V(target.x, 3, target.z) };
   // Camera moves wait until the brief folds away, so the child sees them. Only the latest one waits; moves run one after another.
   let shot = null, flight = Promise.resolve();
   function camera(f){ shot = f; if(!T.briefOpen()) runShot(); }
   function runShot(){ const f = shot; shot = null; if(f) flight = flight.then(f); }
-  window.addEventListener("pn-brief", e => { if(e.detail.open) return; runShot(); if(L === "L3" && $("plates").hidden && !over) $("sideIn").focus(); });   // L3: straight back to typing
-  shot = () => { $("hud").textContent = "STRONGROOM · ZOOMING IN…";   // the brief opens first, so the fly-in waits for it
-    return F.flyTo({ pos: new TH.Vector3(target.x + 30, 70, target.z + 60), look: new TH.Vector3(target.x, 4, target.z) }, 2200).then(() => { if($("plates").hidden) $("hud").textContent = `STRONGROOM · ${target.name} ${target.a} × ${target.b}`; }); };
+  window.addEventListener("pn-brief", e => { if(e.detail.open) return; runShot(); if(L === "L3" && !inside && !over) $("sideIn").focus(); });   // L3: straight back to typing
+  shot = async () => { hud("CAM 02 · LOCATING THE STRONGROOM…"); T.SND("zoom"); await fly(CAM_ROOM, 2200); if(!inside){ hud("CAM 02 · STRONGROOM · LOCKED ON"); T.SND("chirp"); } };   // the brief opens first, so the push-in waits for it
+
+  // The laid floor: gold tiles drop into the strongroom, row by row, a blip per row
+  let tiles = [];
+  function clearTiles(){ const old = tiles; tiles = []; if(!old.length) return; if(RM){ old.forEach(m => F.root.remove(m)); return; } F.tween(260, e => old.forEach(m => { m.position.y = m.userData.y0 + 30 * e; }), t => t * t).then(() => old.forEach(m => F.root.remove(m))); }
+  function dropTiles(s){
+    clearTiles();
+    const size = Math.min(target.w, target.d) * 0.88 / s, x0 = target.x - size * (s - 1) / 2, z0 = target.z - size * (s - 1) / 2;
+    const geo = new TH.BoxGeometry(size * 0.84, 0.7, size * 0.84), mat = new TH.MeshBasicMaterial({ color: 0xffc94d });
+    const rowGap = Math.min(90, 1100 / s), tileGap = Math.min(24, rowGap / s);
+    for(let r = 0; r < s; r++) for(let c = 0; c < s; c++){ const m = new TH.Mesh(geo, mat); m.position.set(x0 + c * size, RM ? 0.55 : 26, z0 + r * size); m.userData = { y0: 0.55, t0: performance.now() + (r * rowGap + c * tileGap) / sp() }; F.root.add(m); tiles.push(m); }
+    for(let r = 0; r < s; r++) setTimeout(() => T.SND("blip", r), r * rowGap / sp());
+    return s * rowGap + 480;   // how long the drop takes (before the speed-up)
+  }
+  F.onTick(now => { if(RM) return; for(const m of tiles){ const k = Math.max(0, Math.min(1, (now - m.userData.t0) / (280 / sp()))); m.position.y = 26 - (26 - m.userData.y0) * (1 - (1 - k) * (1 - k)); } });
 
   // ----- Stage 1: the square floor (from the square strongroom twist) -----
   const SETS = { L1: () => T.shuffle([9, 16, 25, 36]).slice(0, 3), L2: () => T.shuffle([...T.shuffle([36, 49, 64, 81]).slice(0, 2), ...T.shuffle([40, 45, 50, 60, 72, 30]).slice(0, 2)]), L3: () => T.shuffle([...T.shuffle([121, 144, 169, 196, 225, 256, 289, 324]).slice(0, 2), ...T.shuffle([120, 150, 200, 250, 300, 180]).slice(0, 2)]) };
   const counts = SETS[L]();
-  let k = 0, over = false, right = 0;
+  let k = 0, over = false, right = 0, inside = false;
   const alarm = T.alarm(3, () => end(false));
   const SIZE = 10, dg = $("dg"), read = $("read");
-  function say(t, cls){ const m = $("msg"); m.textContent = t; m.className = "tw-msg" + (cls ? " " + cls : ""); }
-  function buildGrid(){ const c = 30; dg.style.gridTemplateColumns = `repeat(${SIZE}, ${c}px)`; dg.style.setProperty("--c", c + "px"); dg.innerHTML = Array.from({ length: SIZE * SIZE }, (_, i) => `<i data-r="${Math.floor(i / SIZE)}" data-c="${i % SIZE}"></i>`).join(""); }
-  function show(){ const n = counts[k]; $("bar").textContent = `Delivery ${k + 1} of ${counts.length}`; $("target").innerHTML = `${n}<small>tiles</small>`; read.innerHTML = "&nbsp;"; buildGrid(); dg.parentElement.hidden = L === "L3"; $("answer").hidden = L !== "L3"; $("noBtn").hidden = L === "L1"; if(L === "L3"){ $("sideIn").value = ""; $("sideIn").focus(); } }
+  function buildGrid(){ const c = 32; dg.style.gridTemplateColumns = `repeat(${SIZE}, ${c}px)`; dg.style.setProperty("--c", c + "px"); dg.innerHTML = Array.from({ length: SIZE * SIZE }, (_, i) => `<i data-r="${Math.floor(i / SIZE)}" data-c="${i % SIZE}"></i>`).join(""); }
+  function show(){ const n = counts[k]; clearTiles(); $("bar").textContent = `Delivery ${k + 1} of ${counts.length}`; $("target").innerHTML = `${n}<small>tiles</small>`; read.innerHTML = "&nbsp;"; buildGrid(); dg.parentElement.hidden = L === "L3"; $("answer").hidden = L !== "L3"; $("noBtn").hidden = L === "L1"; if(L === "L3"){ $("sideIn").value = ""; $("sideIn").focus(); } }
   const between = n => { const r0 = Math.floor(Math.sqrt(n)); return `${r0} × ${r0} = ${r0 * r0} and ${r0 + 1} × ${r0 + 1} = ${(r0 + 1) * (r0 + 1)}`; };
-  function next(ok, n, s){ $("rooms").insertAdjacentHTML("beforeend", s ? `<span class="ok">${n} tiles: ${s} × ${s} ✓</span>` : `<span>${n} tiles: not square</span>`); if(ok) right++; k++; if(ok && s) F.pulse(new TH.Vector3(target.x, 40, target.z), new TH.Vector3(target.x, F.H, target.z), 0xffe14d, 500); if(k === counts.length) return setTimeout(() => { if(!over) step2(); }, 900); setTimeout(() => { if(!over) show(); }, 800); }
+  const notSquare = n => `${n} isn't square: no whole number times itself makes ${n}. ${between(n)}.`;
+  function next(ok, n, s){ $("rooms").insertAdjacentHTML("beforeend", s ? `<span class="ok">${n} tiles: ${s} × ${s} ✓</span>` : `<span>${n} tiles: not square</span>`); if(ok) right++; k++; const drop = ok && s ? dropTiles(s) : 0; if(k === counts.length) return setTimeout(() => { if(!over) step2(); }, (drop ? drop + 700 : 900) / sp()); setTimeout(() => { if(!over) show(); }, (drop ? drop + 600 : 800) / sp()); }
   let anchor = null, cur = null;
   const cellFrom = e => { const t = document.elementFromPoint(e.clientX, e.clientY); return t && t.parentElement === dg ? { r: +t.dataset.r, c: +t.dataset.c } : null; };
   function paint(){ const r0 = Math.min(anchor.r, cur.r), r1 = Math.max(anchor.r, cur.r), c0 = Math.min(anchor.c, cur.c), c1 = Math.max(anchor.c, cur.c), h = r1 - r0 + 1, w = c1 - c0 + 1; dg.querySelectorAll("i").forEach(i => { const r = +i.dataset.r, c = +i.dataset.c; i.classList.toggle("sel", r >= r0 && r <= r1 && c >= c0 && c <= c1); }); dg.classList.toggle("bad", h !== w || h * w > counts[k]); read.textContent = `${h} × ${w} = ${h * w}`; return { h, w }; }
@@ -121,77 +152,218 @@
     if(h * w !== n){ say(`${h} × ${h} = ${h * h}. You need ${n} tiles.`, "warn"); T.SND("untag"); return; }
     dg.querySelectorAll("i.sel").forEach(i => { i.classList.remove("sel"); i.classList.add("done"); }); T.SND("correct", k); say(`${h} × ${h} = ${n}. That's the strongroom floor.`, "ok"); next(true, n, h); });
   $("noBtn").addEventListener("click", () => { if(over) return; const n = counts[k]; if(T.isSquare(n)){ const r0 = Math.sqrt(n); say(`It can: ${r0} × ${r0} = ${n}.`, "bad"); alarm.hit(); if(!over) next(false, n, r0); return; } T.SND("correct", k); say(`Right: ${between(n)}, so ${n} sits between two square numbers.`, "ok"); next(true, n, 0); });
-  $("sideBtn").addEventListener("click", () => { if(over) return; const n = counts[k], v = parseInt($("sideIn").value, 10); if(!Number.isInteger(v)){ say("Type a side length, or press \"It can't be a square\".", "warn"); return; } if(v * v === n){ T.SND("correct", k); say(`${v} × ${v} = ${n}. Side length ${v}.`, "ok"); return next(true, n, v); } say(T.isSquare(n) ? `${v} × ${v} = ${v * v}, not ${n}.` : `${v} × ${v} = ${v * v}. In fact ${n} isn't square: ${between(n)}.`, "bad"); alarm.hit(); });
+  $("sideBtn").addEventListener("click", () => { if(over) return; const n = counts[k], v = parseInt($("sideIn").value, 10); if(!Number.isInteger(v)){ say("Type a side length, or press \"It can't be a square\".", "warn"); return; } if(v * v === n){ T.SND("correct", k); say(`${v} × ${v} = ${n}. Side length ${v}.`, "ok"); return next(true, n, v); } say(T.isSquare(n) ? `${v} × ${v} = ${v * v}, not ${n}.` : `${v} × ${v} = ${v * v}. In fact ${n} isn't square: ${between(n)}.`, "bad"); alarm.hit(); $("sideIn").select(); });
   $("sideIn").addEventListener("keydown", e => { if(e.key === "Enter") $("sideBtn").click(); });
+  $("sideIn").addEventListener("input", () => T.SND("typing"));
 
-  // ----- Stage 2: the pressure plates, in perspective. Square numbers are live; mark them, then the agent crosses -----
-  const PC = { L1: { cols: 8, rows: 6, lo: 1, hi: 48 }, L2: { cols: 8, rows: 5, lo: 40, hi: 150 }, L3: { cols: 8, rows: 5, lo: 100, hi: 400 } }[L];
-  let plates = [], live = [], found = 0;
-  const VW = 900, VH = 380, CX = VW / 2, CY = 8, FOC = 350;   // near row at the bottom, the safe at the top
-  const P = (X, Z) => [CX + X / Z * FOC, CY + 1.1 / Z * FOC];   // the floor at Y = 1.1, seen from above the doorway
-  const quad = (x0, x1, z0, z1) => [P(x0, z0), P(x1, z0), P(x1, z1), P(x0, z1)].map(p => p.map(v => v.toFixed(1)).join(",")).join(" ");
-  function step2(){
-    $("build").hidden = true; $("plates").hidden = false; $("st1").className = "done"; $("st2").className = "on";
-    $("stage").style.transition = "height .6s"; $("stage").style.height = "140px";   // make room for the plates
-    T.setGoal("The <b>square-numbered</b> plates are live. Tap every one. Then the agent can walk round them to the safe.");
-    camera(() => { $("hud").textContent = "INSIDE THE STRONGROOM"; return F.flyTo({ pos: new TH.Vector3(target.x, 26, target.z + 18), look: new TH.Vector3(target.x, 0, target.z - 4) }, 1400); });
-    // Numbers: L1 is every number 1–48 in order; L2/L3 hide squares among near misses
-    let ns;
-    if(L === "L1") ns = T.range(PC.lo, PC.hi);
-    else { const sq = T.shuffle(T.range(1, 20).map(k2 => k2 * k2).filter(n => n >= PC.lo && n <= PC.hi)).slice(0, L === "L2" ? 5 : 6); const near = new Set(); sq.forEach(n => { near.add(n - 1); near.add(n + 1); near.add(n + 2); }); T.range(PC.lo, PC.hi).filter(n => n % 10 === 0).forEach(n => near.add(n)); let dec = T.shuffle([...near].filter(n => n >= PC.lo && n <= PC.hi && !T.isSquare(n))); if(dec.length < PC.cols * PC.rows - sq.length) dec = dec.concat(T.shuffle(T.range(PC.lo, PC.hi).filter(n => !T.isSquare(n) && !dec.includes(n)))); ns = T.shuffle([...sq, ...dec.slice(0, PC.cols * PC.rows - sq.length)]); }
-    plates = ns.slice(0, PC.cols * PC.rows); live = plates.filter(T.isSquare);
-    // Build the floor: rows run from the door (near) to the safe (far)
-    const zs = Array.from({ length: PC.rows + 1 }, (_, i) => 1.15 + i * (2.2 / PC.rows)), xw = 1.6 / PC.cols;
-    let g = `<rect width="${VW}" height="${VH}" fill="#010608"/>`;
-    plates.forEach((n, i) => {
-      const row = PC.rows - 1 - Math.floor(i / PC.cols), col = i % PC.cols;
-      const x0 = -0.8 + col * xw + 0.01, x1 = x0 + xw - 0.02, z0 = zs[row] + 0.01, z1 = zs[row + 1] - 0.01;
-      const [tx, ty] = P((x0 + x1) / 2, (z0 + z1) / 2);
-      g += `<polygon class="plate" data-n="${n}" data-r="${row}" data-c="${col}" points="${quad(x0, x1, z0, z1)}"/><text class="pnum" x="${tx}" y="${ty}" font-size="${(15 / ((z0 + z1) / 2) * 1.2).toFixed(1)}">${n}</text>`;
-    });
-    const [sx, sy] = P(0, zs[PC.rows] + 0.25);
-    g += `<g transform="translate(${sx},${sy - 18})"><rect x="-26" y="-14" width="52" height="30" fill="#2a2a2a" stroke="#ffc94d" stroke-width="2"/><circle cx="0" cy="1" r="8" fill="none" stroke="#ffc94d" stroke-width="2"/><text x="0" y="-20" text-anchor="middle" fill="#ffc94d" font-size="12" font-family="Chakra Petch" letter-spacing="2">SAFE</text></g>`;
-    const [dx, dy] = P(0, 1.1);
-    g += `<circle id="agent" cx="${dx}" cy="${Math.min(VH - 12, dy)}" r="9" fill="#6ec8ff" stroke="#fff" stroke-width="2"/>`;
-    $("plates").innerHTML = `<svg viewBox="0 0 ${VW} ${VH}">${g}</svg>`;
-    $("plates").querySelector("svg").addEventListener("click", e => { const p = e.target.closest(".plate"); if(p) tapPlate(p); });
-    $("bar").textContent = `Live plates found: 0 of ${live.length}`;
-    T.say("We're in. The square-numbered plates trigger the alarm. Mark them all.");
-    say("");
+  // ----- Stage 2: the pressure plates, inside the strongroom, in 3D. Row 0 is by the door, the last row by the safe -----
+  const PC = { A: { L1: { cols: 8, rows: 6, lo: 1, hi: 48 }, L2: { cols: 8, rows: 5, lo: 40, hi: 150 }, L3: { cols: 8, rows: 5, lo: 100, hi: 400 } },
+    B: { L1: { cols: 8, rows: 6, lo: 1, hi: 50 }, L2: { cols: 8, rows: 5, lo: 10, hi: 150 }, L3: { cols: 8, rows: 6, lo: 100, hi: 400 } } }[MODE][L];
+  const PS = 10, GW = PC.cols * PS, GD = PC.rows * PS, CX = target.x, CZ = target.z;
+  const cellPos = (r, c) => V(CX - GW / 2 + (c + 0.5) * PS, 0, CZ + GD / 2 - (r + 0.5) * PS);
+  const DOOR = V(CX, 0, CZ + GD / 2 + 6), SAFE = V(CX, 0, CZ - GD / 2 - 7), SAFE_FOOT = V(CX, 0, SAFE.z + 5.5);
+  const CD = 1.36 * (GD + 22);   // far enough back for the door and the safe to fit the frame
+  const CAM_PLATES = { pos: V(CX, 0.883 * CD, CZ - 1 + 0.469 * CD), look: V(CX, 0, CZ - 1) };   // 62° down: steep enough to read every number
+  const CAM_LOW = { pos: V(CX + 26, 11, CZ + GD / 2 + 30), look: V(CX, 3, CZ - GD / 2) };   // low, from beside the door
+  const CAM_SAFE = { pos: V(CX + 15, 10, CZ - GD / 2 + 20), look: V(CX, 3, SAFE.z) };
+  let plates = [], live = [], seq = [], found = 0, si = 0, ready = false, busy = false, walking = false, agent = null, room = null, routePts = [], routeLine = null, prevPlate = null;
+  const plateAt = (r, c) => plates[r * PC.cols + c];
+  const squaresIn = (lo, hi) => T.range(1, 20).map(k2 => k2 * k2).filter(n => n >= lo && n <= hi);
+  function decoys(sq, need){   // near misses of the squares first (n ± 1, n ± 2), then round numbers, then anything else in range
+    const near = new Set(); sq.forEach(n => [n - 1, n + 1, n - 2, n + 2].forEach(m => near.add(m)));
+    T.range(PC.lo, PC.hi).filter(n => n % 10 === 0).forEach(n => near.add(n));
+    const okN = n => n >= PC.lo && n <= PC.hi && !T.isSquare(n);
+    let d = T.shuffle([...near].filter(okN));
+    if(d.length < need) d = d.concat(T.shuffle(T.range(PC.lo, PC.hi).filter(n => okN(n) && !d.includes(n))));
+    return d.slice(0, need);
   }
-  function tapPlate(el){
-    if(over || el.classList.contains("live")) return;
-    const n = +el.dataset.n;
-    if(T.isSquare(n)){ el.classList.add("live"); found++; T.SND("correct", found); say(`${n} = ${Math.sqrt(n)} × ${Math.sqrt(n)}. Live plate marked.`, "ok"); $("bar").textContent = `Live plates found: ${found} of ${live.length}`; if(found === live.length) cross(); return; }
-    el.classList.add("bad"); setTimeout(() => el.classList.remove("bad"), 700);
-    say(`${n} isn't square: ${between(n)}. It's safe to step on.`, "bad"); alarm.hit();
-  }
-  // The agent walks from the door to the safe, only on safe plates (a shortest path round the live ones)
-  async function cross(){
-    over = true; T.hideBrief();   // the walk is the payoff, so nothing sits over it (and SKIP with the brief up still gets there)
-    const R = PC.rows, Cn = PC.cols, liveAt = (r0, c0) => T.isSquare(plates[(R - 1 - r0) * Cn + c0]);
-    const start = [0, Math.floor(Cn / 2)], prev = new Map(), q = [];
-    for(let c0 = 0; c0 < Cn; c0++) if(!liveAt(0, c0)){ q.push([0, c0]); prev.set(`0,${c0}`, null); }
-    let endKey = null;
-    while(q.length){ const [r0, c0] = q.shift(); if(r0 === R - 1){ endKey = `${r0},${c0}`; break; } [[1,0],[0,1],[0,-1],[-1,0]].forEach(([dr, dc]) => { const nr = r0 + dr, nc = c0 + dc, key = `${nr},${nc}`; if(nr < 0 || nc < 0 || nr >= R || nc >= Cn || prev.has(key) || liveAt(nr, nc)) return; prev.set(key, `${r0},${c0}`); q.push([nr, nc]); }); }
-    const path = []; for(let key = endKey; key; key = prev.get(key)) path.unshift(key.split(",").map(Number));
-    say("All live plates marked. Walking to the safe on the safe plates…", "ok"); T.SND("verified");
-    const agent = $("plates").querySelector("#agent");
-    for(const [r0, c0] of path){
-      while(T.briefOpen()) await new Promise(r => setTimeout(r, 100));   // the walk holds while the brief is up
-      const el = $("plates").querySelector(`.plate[data-r="${r0}"][data-c="${c0}"]`); if(!el) continue; el.classList.add("step");
-      const pts = el.getAttribute("points").split(" ").map(s => s.split(",").map(Number)), cx = pts.reduce((s, p) => s + p[0], 0) / 4, cy = pts.reduce((s, p) => s + p[1], 0) / 4;
-      agent.setAttribute("cx", cx); agent.setAttribute("cy", cy); T.SND("plot");
-      await new Promise(r => setTimeout(r, 180 / (window.PNTest ? PNTest.speed() : 1)));
+  function route(K, R, C){   // B: K plates from the door row to the safe row, R - 1 steps up and K - R sideways, never crossing itself
+    if(K < R) return null;   // fewer squares than rows (not with the PC table above): no route reaches the safe, so the caller's fallback lays them out
+    for(let t = 0; t < 400; t++){
+      const moves = T.shuffle([...Array(R - 1).fill("U"), ...Array(K - R).fill("S")]);
+      let r = 0, c = Math.floor(Math.random() * C); const cells = [[r, c]], used = new Set([`${r},${c}`]); let ok = true;
+      for(const m of moves){
+        const nx = (m === "U" ? [[r + 1, c]] : T.shuffle([[r, c - 1], [r, c + 1]])).find(([nr, nc]) => nr < R && nc >= 0 && nc < C && !used.has(`${nr},${nc}`));
+        if(!nx){ ok = false; break; }
+        [r, c] = nx; cells.push(nx); used.add(`${r},${c}`);
+      }
+      if(ok) return cells;
     }
-    T.SND("success");
-    setTimeout(() => T.finish({ ok: true, title: "SAFE REACHED",
-      lines: [`Floors laid right: <b>${right}</b> of ${counts.length}`, `Live plates: <b>${live.slice().sort((a, b) => a - b).join(", ")}</b>`, "A square number is a number times itself: the tiles in a square floor."] }), 700);
+    return null;
   }
-  function end(ok){ if(ok) return; over = true; T.finish({ ok: false, title: "ALARM TRIPPED", lines: [`Floors laid right: <b>${right}</b> of ${counts.length}`, "Square numbers: 1, 4, 9, 16, 25, 36, 49…"] }); }
+  function numbers(){   // the number on each plate (index = row × cols + col)
+    const N = PC.cols * PC.rows;
+    if(MODE === "A"){
+      if(L === "L1") return { ns: T.range(0, PC.rows - 1).flatMap(r => T.range((PC.rows - 1 - r) * PC.cols + 1, (PC.rows - r) * PC.cols)) };   // L1: every number 1 to 48 in order, 1 to 8 by the safe so it reads top to bottom
+      const sq = T.shuffle(squaresIn(PC.lo, PC.hi)).slice(0, L === "L2" ? 5 : 6);   // L2/L3: squares hidden among near misses
+      return { ns: T.shuffle([...sq, ...decoys(sq, N - sq.length)]) };
+    }
+    const sq = squaresIn(PC.lo, PC.hi), path = route(sq.length, PC.rows, PC.cols) || sq.map((_, i) => [Math.min(PC.rows - 1, i), i % PC.cols]);
+    const ns = Array(N).fill(0); path.forEach(([r, c], i) => { ns[r * PC.cols + c] = sq[i]; });
+    const dec = decoys(sq, N - sq.length); let d = 0; for(let i = 0; i < N; i++) if(!ns[i]) ns[i] = dec[d++];
+    return { ns, seq: sq };
+  }
+  // Plate faces are canvases: big numbers, coloured by state
+  const FACE = { hidden: ["#071417", "#123039", 0x071417], idle: ["#0b1d22", "#2c4c55", 0x0b1d22], live: ["#5a1024", "#ff6b8a", 0x7a1a30], bad: ["#6b4410", "#ffb347", 0x8a5a14], step: ["#0f3a52", "#6ec8ff", 0x145a7a], on: ["#1a6a86", "#ffffff", 0x2a8ab0] };
+  function setState(p, st){
+    p.state = st; const [bg, line, sideHex] = FACE[st], g = p.g2, S = 256;
+    g.clearRect(0, 0, S, S); g.fillStyle = bg; g.fillRect(0, 0, S, S); g.lineWidth = 10; g.strokeStyle = line; g.strokeRect(5, 5, S - 10, S - 10);
+    if(st !== "hidden"){ g.fillStyle = st === "idle" ? "#dff8ff" : "#ffffff"; g.font = `700 ${String(p.n).length >= 3 ? 122 : 156}px "Courier Prime", ui-monospace, monospace`; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText(p.n, S / 2, S / 2 + 8); }
+    p.tex.needsUpdate = true; p.side.color.setHex(sideHex); p.side.emissive.setHex(sideHex); p.top.color.setScalar(1);
+  }
+  function label(text, w, colour){ const cv = document.createElement("canvas"); cv.width = 512; cv.height = 128; const g = cv.getContext("2d"); g.font = "700 78px 'Chakra Petch', 'Inter', sans-serif"; g.letterSpacing = "8px"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillStyle = colour; g.fillText(text, 256, 68); const m = new TH.Mesh(new TH.PlaneGeometry(w, w / 4), new TH.MeshBasicMaterial({ map: new TH.CanvasTexture(cv), transparent: true, side: TH.DoubleSide, depthWrite: false })); m.rotation.x = -Math.PI / 4; return m; }   // leant back, so it reads from above and from the low camera
+  function buildRoom(){
+    F.root.children.forEach(o => { o.visible = false; });   // the rest of the floor goes: we're inside now
+    room = new TH.Group(); F.root.add(room);
+    const floor = new TH.Mesh(new TH.PlaneGeometry(320, 320), new TH.MeshBasicMaterial({ color: 0x04141a })); floor.rotation.x = -Math.PI / 2; floor.position.set(CX, -0.1, CZ); room.add(floor);
+    const grid = new TH.GridHelper(320, 32, 0x0d3440, 0x0a2a34); grid.position.set(CX, 0.02, CZ); room.add(grid);
+    const walls = new TH.LineSegments(new TH.EdgesGeometry(new TH.BoxGeometry(GW + 16, 16, GD + 30)), new TH.LineBasicMaterial({ color: 0xffc94d, transparent: true, opacity: 0.5 })); walls.position.set(CX, 8, CZ); room.add(walls);
+    const { ns, seq: s } = numbers(); seq = s || []; live = ns.filter(T.isSquare).sort((a, b) => a - b);
+    const geo = new TH.BoxGeometry(PS * 0.9, 0.8, PS * 0.9);
+    ns.forEach((n, i) => {
+      const r = Math.floor(i / PC.cols), c = i % PC.cols, cv = document.createElement("canvas"); cv.width = cv.height = 256;
+      const tex = new TH.CanvasTexture(cv), side = new TH.MeshStandardMaterial({ color: 0x0b1d22, emissive: 0x0b1d22, emissiveIntensity: 0.5 }), top = new TH.MeshBasicMaterial({ map: tex });
+      if(TH.SRGBColorSpace) tex.colorSpace = TH.SRGBColorSpace;   // the canvas colours come out as drawn
+      const m = new TH.Mesh(geo, [side, side, top, side, side, side]); m.position.copy(cellPos(r, c)).setY(0.4);
+      const p = { n, r, c, mesh: m, g2: cv.getContext("2d"), tex, side, top, state: "hidden", beam: null }; m.userData.plate = p; setState(p, "hidden"); room.add(m); plates.push(p);
+    });
+    // the safe at the far end, the door at the near end
+    const safe = new TH.Mesh(new TH.BoxGeometry(PS * 1.2, 7, 5), new TH.MeshStandardMaterial({ color: 0x2a2a2e, emissive: 0x151515 })); safe.position.set(SAFE.x, 3.5, SAFE.z);
+    safe.add(new TH.LineSegments(new TH.EdgesGeometry(safe.geometry), new TH.LineBasicMaterial({ color: 0xffc94d }))); room.add(safe);
+    const dial = new TH.Mesh(new TH.RingGeometry(1.1, 1.6, 24), new TH.MeshBasicMaterial({ color: 0xffc94d, side: TH.DoubleSide })); dial.position.set(SAFE.x, 3.5, SAFE.z + 2.55); room.add(dial);
+    const sl = label("SAFE", 12, "#ffe14d"); sl.position.set(SAFE.x, 9.6, SAFE.z); room.add(sl);
+    const door = new TH.Mesh(new TH.BoxGeometry(PS * 1.6, 0.5, 1.4), new TH.MeshBasicMaterial({ color: 0x2fbf8a })); door.position.set(DOOR.x, 0.3, DOOR.z + 3.5); room.add(door);
+    const dl = label("DOOR", 10, "#7dffc4"); dl.position.set(DOOR.x, 4.4, DOOR.z + 4); room.add(dl);
+    routeLine = new TH.Line(new TH.BufferGeometry(), new TH.LineBasicMaterial({ color: 0x8feaff, transparent: true, opacity: 0.95 })); room.add(routeLine);
+    agent = F.dot(0x6ec8ff, 2.2); agent.set(DOOR.x, DOOR.z);
+  }
+  // Live plates pulse calmly (about once every three seconds) and the route line follows the agent
+  F.onTick(now => {
+    if(!room) return;
+    const kk = RM ? 0 : Math.sin(now / 480);
+    plates.forEach(p => { if(p.state !== "live") return; p.top.color.setScalar(0.85 + 0.15 * kk); if(p.beam) p.beam.material.opacity = 0.55 + 0.25 * kk; });
+    if(walking && routePts.length) routeLine.geometry.setFromPoints([...routePts, agent.at().setY(1.2)]);
+  });
+  // The route the agent has walked: a flat laser ribbon on the plates, one strip per step
+  function ribbon(a, b){ const len = a.distanceTo(b); if(len < 0.1) return; const m = new TH.Mesh(new TH.PlaneGeometry(len, 1.4), new TH.MeshBasicMaterial({ color: 0x8feaff, transparent: true, opacity: 0.85, side: TH.DoubleSide, depthWrite: false })); m.rotation.set(-Math.PI / 2, 0, Math.atan2(-(b.z - a.z), b.x - a.x)); m.position.copy(a).lerp(b, 0.5).setY(0.9); room.add(m); }
+  function beam(p){ const b = new TH.Mesh(new TH.CylinderGeometry(0.25, 0.25, 14, 8), new TH.MeshBasicMaterial({ color: 0xff4f6d, transparent: true, opacity: 0.7, depthWrite: false })); b.position.copy(p.mesh.position).setY(0.8); b.scale.y = 0.02; room.add(b); p.beam = b; if(RM){ b.scale.y = 1; b.position.y = 7.8; return; } F.tween(320, e => { b.scale.y = Math.max(0.02, e); b.position.y = 0.8 + 7 * e; }); }
+  function flash(p){ setState(p, "bad"); setTimeout(() => { if(p.state === "bad") setState(p, "idle"); }, 700); }   // one orange flash, no strobing
+  // A scanline sweeps from the door to the safe; the numbers come up as it passes each row
+  async function sweep(){
+    hud("CAM 02 · INSIDE THE STRONGROOM · SCANNING PLATES");
+    if(RM){ reveal(); T.SND("scanline"); return; }
+    const mat = { color: 0x8feaff, transparent: true, side: TH.DoubleSide, depthWrite: false };
+    const bar = new TH.Mesh(new TH.PlaneGeometry(GW + 14, 1.2), new TH.MeshBasicMaterial({ ...mat, opacity: 0.9 })); bar.rotation.x = -Math.PI / 2;
+    const curtain = new TH.Mesh(new TH.PlaneGeometry(GW + 14, 12), new TH.MeshBasicMaterial({ ...mat, opacity: 0.1 })); room.add(bar, curtain);
+    const z0 = CZ + GD / 2 + 8, z1 = CZ - GD / 2 - 10; let shown = -1;
+    T.SND("scanline", 1.3 / sp());
+    await F.tween(1300, e => { const z = z0 + (z1 - z0) * e; bar.position.set(CX, 1.2, z); curtain.position.set(CX, 6, z);
+      const row = Math.min(PC.rows - 1, Math.floor((CZ + GD / 2 - z) / PS - 0.5));
+      while(shown < row){ shown++; plates.forEach(p => { if(p.r === shown && p.state === "hidden") setState(p, "idle"); }); T.SND("blip", shown); } }, t => t);
+    reveal(); room.remove(bar); room.remove(curtain);
+  }
+  function reveal(){ plates.forEach(p => { if(p.state === "hidden") setState(p, "idle"); }); ready = true; hud("CAM 02 · INSIDE THE STRONGROOM"); }
+  function step2(){
+    inside = true; $("build").hidden = true; $("stage").classList.add("big"); $("st1").className = "done"; $("st2").className = "on";   // the last delivery's feedback stays until the first tap
+    const sq4 = squaresIn(PC.lo, PC.hi).slice(0, 4);   // the first squares on these plates, for the brief
+    T.setGoal(MODE === "A" ? "Inside the strongroom. The plates with <b>square numbers</b> are live. Tap every live plate. Then the agent can walk round them to the safe."
+      : `Inside the strongroom. The agent can only step on <b>square-numbered</b> plates, in order: ${sq4.join(", ")} and so on. Tap the <b>next square number</b> each time.`,
+      { example: `${sq4.map(n => `${n} = ${Math.sqrt(n)} × ${Math.sqrt(n)}`).join(", ")}: square numbers. ${sq4[1] + 1} isn't: no whole number times itself makes it.` });   // the stage-1 example was about laying floors
+    buildRoom();
+    $("bar").textContent = MODE === "A" ? `Live plates found: 0 of ${live.length}` : `Squares stepped: 0 of ${seq.length}`;
+    tag(MODE === "A" ? `LIVE PLATES · 0 OF ${live.length}` : `START ON ${seq[0]}`);
+    T.say(MODE === "A" ? "We're in. The square-numbered plates trip the alarm. Mark every one." : "We're in. Only the square-numbered plates are safe, and only in order. Find the next square.");
+    camera(async () => { T.SND("zoom"); await fly(CAM_PLATES, 1400); await sweep(); });
+    $("stage").scrollIntoView({ block: "nearest", behavior: RM ? "auto" : "smooth" });
+  }
+  // Tapping a plate: a ray from the camera through the tap
+  const ray = new TH.Raycaster(), cvs = $("stage").querySelector("canvas");
+  cvs.addEventListener("pointerdown", e => {
+    if(!inside || !ready || over) return;
+    const r = cvs.getBoundingClientRect(); ray.setFromCamera({ x: ((e.clientX - r.left) / r.width) * 2 - 1, y: -((e.clientY - r.top) / r.height) * 2 + 1 }, F.camera);
+    const hit = ray.intersectObjects(plates.map(p => p.mesh), false)[0]; if(hit) tapPlate(hit.object.userData.plate);
+  });
+  // Debug hook for the tests: where each plate sits on the screen, and the stage 2 state
+  window.__pnStrong = { ready: () => ready, seq: () => seq.slice(), si: () => si, plates: () => { const r = cvs.getBoundingClientRect(); return plates.map(p => { const v = p.mesh.position.clone().project(F.camera); return { n: p.n, state: p.state, x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height }; }); } };
+  function tapPlate(p){
+    if(over || !ready) return;
+    if(MODE === "B") return hopTo(p);
+    if(p.state === "live") return;
+    const n = p.n;
+    if(T.isSquare(n)){ const s = Math.sqrt(n); setState(p, "live"); beam(p); found++; T.SND("correct", found); say(`${n} = ${s} × ${s}. Live plate marked.`, "ok"); $("bar").textContent = `Live plates found: ${found} of ${live.length}`; tag(`LIVE PLATES · ${found} OF ${live.length}`); if(found === live.length) cross(); return; }
+    flash(p); T.SND("untag"); say(`${notSquare(n)} It's safe to step on.`, "bad"); alarm.hit();
+  }
+  // B: the agent steps onto the next square in the sequence
+  async function hopTo(p){
+    if(busy) return;
+    const n = p.n, want = seq[si], prev = seq[si - 1];
+    if(n !== want){
+      flash(p); T.SND("untag"); alarm.hit();
+      const sq = `${Math.sqrt(want)} × ${Math.sqrt(want)}`;
+      say(!T.isSquare(n) ? notSquare(n) : prev === undefined ? `${n} is square, but the first square is ${want}: ${sq}.` : `${n} is square, but the next square after ${prev} is ${want}: ${sq}.`, "bad");
+      return;
+    }
+    busy = true; walking = true; if(!routePts.length) routePts.push(agent.at().setY(1.2));
+    setState(p, "on"); T.SND("chirp");
+    const from = agent.at().setY(0), to = cellPos(p.r, p.c);
+    await agent.walk([agent.at(), to], RM ? 1 : 360);
+    if(over){ busy = false; return; }   // the alarm tripped mid-step
+    ribbon(from, to); routePts.push(to.clone().setY(1.2)); if(prevPlate) setState(prevPlate, "step"); prevPlate = p; si++;
+    T.SND("correct", si); say(`${n} = ${Math.sqrt(n)} × ${Math.sqrt(n)}. Safe plate.`, "ok"); $("bar").textContent = `Squares stepped: ${si} of ${seq.length}`;
+    busy = false;
+    if(si === seq.length) return arrive();
+    tag(`NEXT SQUARE · AFTER ${n}`);
+  }
+  // A: all live plates marked. The agent walks from the door to the safe on the safe plates (a shortest path round the live ones)
+  function bfs(){
+    const R = PC.rows, Cn = PC.cols, blocked = (r, c) => T.isSquare(plateAt(r, c).n), prev = new Map(), q = [];
+    T.range(0, Cn - 1).sort((a, b) => Math.abs(a - (Cn - 1) / 2) - Math.abs(b - (Cn - 1) / 2)).forEach(c => { if(!blocked(0, c)){ q.push([0, c]); prev.set(`0,${c}`, null); } });
+    let endKey = null;
+    while(q.length){ const [r, c] = q.shift(); if(r === R - 1){ endKey = `${r},${c}`; break; } for(const [dr, dc] of [[1, 0], [0, 1], [0, -1], [-1, 0]]){ const nr = r + dr, nc = c + dc, key = `${nr},${nc}`; if(nr < 0 || nc < 0 || nr >= R || nc >= Cn || prev.has(key) || blocked(nr, nc)) continue; prev.set(key, `${r},${c}`); q.push([nr, nc]); } }
+    const path = []; for(let key = endKey; key; key = prev.get(key)) path.unshift(key.split(",").map(Number));
+    return path.length ? path : T.range(0, R - 1).map(r => [r, Math.floor(Cn / 2)]);   // no way round (can't happen with so few live plates): straight up
+  }
+  async function cross(){
+    over = true; ready = false; shot = null; T.hideBrief(); await flight;   // the walk is the payoff, so nothing sits over it (and no queued shot fights the camera)
+    say("All live plates marked. Crossing to the safe on the safe plates…", "ok"); T.SND("verified"); tag("AGENT CROSSING", "gold");
+    await wait(600); T.SND("whoosh"); await fly(CAM_LOW, 1100);
+    walking = true; routePts = [DOOR.clone().setY(1.2)];
+    for(const [r, c] of bfs()){
+      while(T.briefOpen()) await wait(100);   // the walk holds while the brief is up
+      const p = plateAt(r, c), from = agent.at().setY(0), to = cellPos(r, c); T.SND("tick");
+      await agent.walk([agent.at(), to], RM ? 1 : 230); ribbon(from, to); routePts.push(to.clone().setY(1.2)); setState(p, "step");
+    }
+    const last = agent.at().setY(0); await agent.walk([agent.at(), SAFE_FOOT], RM ? 1 : 320); ribbon(last, SAFE_FOOT); routePts.push(SAFE_FOOT.clone().setY(1.2));
+    await lockon(true);
+  }
+  async function arrive(){   // B: on the last square. Straight on to the safe while the camera drops in beside it
+    over = true; ready = false; shot = null; T.hideBrief(); await flight; say("Every square in order. Crossing to the safe…", "ok"); tag("AGENT CROSSING", "gold"); T.SND("whoosh");
+    const last = agent.at().setY(0); await Promise.all([fly(CAM_SAFE, 1000), agent.walk([agent.at(), SAFE_FOOT], RM ? 1 : 800)]); ribbon(last, SAFE_FOOT); routePts.push(SAFE_FOOT.clone().setY(1.2));
+    await lockon(false);
+  }
+  // At the safe: a lock-on, a gold ring that swells three times, and the camera pushes in
+  async function lockon(pushIn){
+    walking = false; routeLine.geometry.setFromPoints(routePts);
+    T.SND("lockon"); tag("SAFE · LOCKED ON", "gold"); hud("CAM 02 · SAFE · LOCKED ON");
+    const ring = new TH.Mesh(new TH.RingGeometry(PS * 0.45, PS * 0.6, 40), new TH.MeshBasicMaterial({ color: 0xffe14d, transparent: true, opacity: 0.85, side: TH.DoubleSide, depthWrite: false })); ring.rotation.x = -Math.PI / 2; ring.position.set(SAFE_FOOT.x, 0.5, SAFE_FOOT.z); room.add(ring);
+    (async () => { for(let i = 0; i < 3; i++){ if(RM){ await wait(600); continue; } await F.tween(650, e => { ring.scale.setScalar(0.6 + 1.2 * e); ring.material.opacity = 0.9 * (1 - e); }, t => t); } ring.scale.setScalar(1); ring.material.opacity = 0.7; })();
+    if(pushIn) await fly(CAM_SAFE, 1000);
+    await wait(1200);
+    T.say("Safe reached. Nice crossing.");
+    T.finish({ ok: true, title: "SAFE REACHED",
+      lines: [`Floors laid right: <b>${right}</b> of ${counts.length}`, MODE === "A" ? `Live plates: <b>${live.join(", ")}</b>` : `Squares in order: <b>${seq.join(", ")}</b>`,
+        MODE === "A" ? "A square number is a number times itself: the tiles in a square floor." : "A square number is a number times itself. The gaps between them are the odd numbers: 3, 5, 7, 9…"] });
+  }
+  function end(ok){ if(ok) return; over = true; ready = false; T.finish({ ok: false, title: "ALARM TRIPPED", lines: [`Floors laid right: <b>${right}</b> of ${counts.length}`, "Square numbers: 1, 4, 9, 16, 25, 36, 49…"] }); }
   show();
-  if(window.PNTest) PNTest.skip("Solve this stage", () => {
-    if(!$("plates").hidden){ $("plates").querySelectorAll(".plate").forEach(p => { if(T.isSquare(+p.dataset.n) && !p.classList.contains("live")) tapPlate(p); }); return; }
+  if(window.PNTest) PNTest.skip("Solve this stage", async () => {
+    if(inside){
+      if(over) return "Already crossing.";
+      reveal();
+      if(MODE === "A"){ plates.forEach(p => { if(T.isSquare(p.n) && p.state !== "live") tapPlate(p); }); return "Live plates marked."; }
+      while(si < seq.length && !over){ if(busy){ await wait(50); continue; } await hopTo(plates.find(p => p.n === seq[si])); }
+      return "Squares stepped.";
+    }
     const n = counts[k]; if(n === undefined) return;
     if(T.isSquare(n)){ if(L === "L3"){ $("sideIn").value = Math.sqrt(n); $("sideBtn").click(); } else next(true, n, Math.sqrt(n)); }
     else $("noBtn").click();

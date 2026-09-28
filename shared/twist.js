@@ -10,7 +10,8 @@
   const qs = new URLSearchParams(location.search);
   const css = `
   .tw{ position:relative; z-index:1; width:min(1100px, 100%); margin:0 auto; padding:18px 16px 40px; display:flex; flex-direction:column; gap:16px; }
-  .tw-head{ display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:12px; border-bottom:1px solid var(--line); padding-bottom:12px; }
+  .tw-head{ display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:12px; border-bottom:1px solid var(--line); padding-bottom:12px;
+    padding-right:max(0px, calc(150px - (100vw - 100%) / 2)); }   /* on a page widened to the screen edge, room for the fixed BRIEF tab in the corner; (100vw - 100%) / 2 is the gap beside the header */
   .tw-head .l{ display:flex; flex-direction:column; gap:2px; }
   .tw-head .eb{ font-family:var(--font-ui); font-size:12px; font-weight:700; letter-spacing:.22em; color:var(--accent); }
   .tw-head h1{ margin:0; font-family:var(--font-ui); font-size:clamp(24px,3.4vw,34px); letter-spacing:.12em; }
@@ -20,6 +21,8 @@
   .tw-lv a[aria-current="true"]{ color:var(--accent); border-color:var(--accent); box-shadow:inset 0 0 0 1px rgba(var(--accent-rgb),.35); }
   /* Round 13 (Bertie): no worksheet-style GOAL line. Instructions arrive as a hologram brief that zooms in over the
      game, then folds away into a small BRIEF tab once they've got it. H (or tapping the tab) zooms it back out. */
+  /* The brief's colour: ice blue unless a hologram tint from the safehouse shop overrides --hb-rgb / --hb-hi (Primenet.applyLoot) */
+  :root{ --hb-rgb:140,235,255; --hb-hi:#8feaff; }
   .twb-layer{ position:fixed; inset:0; z-index:8600; pointer-events:none; perspective:1200px; }
   .twb-dim{ position:absolute; inset:0; background:radial-gradient(ellipse at 50% 40%, rgba(0,20,26,.25), rgba(0,4,6,.62)); opacity:0; transition:opacity .3s; pointer-events:none; }
   .twb-layer.open .twb-dim{ opacity:1; pointer-events:auto; cursor:pointer; }
@@ -29,31 +32,34 @@
   .twb-layer.open .twb-win{ transform:translate(-50%,-50%); opacity:1; filter:none; }
   .twb-win .hw{ position:relative; color:#dff8ff; font-family:var(--font-mono, "Courier Prime", monospace);
     background:linear-gradient(160deg, rgba(10,44,56,.97), rgba(5,26,34,.96) 60%, rgba(9,40,52,.97));   /* Bertie: opaque enough to read easily */
-    border:1px solid rgba(140,235,255,.8); box-shadow:0 0 34px rgba(110,220,255,.4), inset 0 0 40px rgba(110,220,255,.14);
+    border:1px solid rgba(var(--hb-rgb),.8); box-shadow:0 0 34px rgba(var(--hb-rgb),.4), inset 0 0 40px rgba(var(--hb-rgb),.14);
     clip-path:polygon(0 14px, 14px 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%);
     backdrop-filter:blur(5px); -webkit-backdrop-filter:blur(5px); animation:twbFlick 5s infinite; }
-  .twb-win .hw::before{ content:""; position:absolute; inset:0; pointer-events:none; background:repeating-linear-gradient(0deg, rgba(160,240,255,.07) 0 1px, transparent 1px 3px); }
-  .twb-win .hw::after{ content:""; position:absolute; left:0; right:0; height:40%; top:-40%; pointer-events:none; background:linear-gradient(transparent, rgba(160,240,255,.12), transparent); animation:twbSweep 2.6s ease-in-out infinite; }
+  .twb-win .hw::before{ content:""; position:absolute; inset:0; pointer-events:none; background:repeating-linear-gradient(0deg, rgba(var(--hb-rgb),.07) 0 1px, transparent 1px 3px); }
+  .twb-win .hw::after{ content:""; position:absolute; left:0; right:0; height:40%; top:-40%; pointer-events:none; background:linear-gradient(transparent, rgba(var(--hb-rgb),.12), transparent); animation:twbSweep 2.6s ease-in-out infinite; }
   @keyframes twbSweep{ to{ top:100%; } }
   @keyframes twbFlick{ 0%,100%,92%,94%{ opacity:1; } 93%{ opacity:.6; } 97%{ opacity:.85; } }
-  .twb-t{ display:flex; justify-content:space-between; gap:12px; padding:10px 22px; border-bottom:1px solid rgba(140,235,255,.45); font-family:var(--font-ui, sans-serif); font-weight:700; font-size:12px; letter-spacing:.24em; color:#8feaff; }
+  .twb-t{ display:flex; justify-content:space-between; gap:12px; padding:10px 22px; border-bottom:1px solid rgba(var(--hb-rgb),.45); font-family:var(--font-ui, sans-serif); font-weight:700; font-size:12px; letter-spacing:.24em; color:var(--hb-hi); }
   .twb-t i{ font-style:normal; color:#ff6b8a; animation:twbBlink 1s steps(2) infinite; } @keyframes twbBlink{ 50%{ opacity:.2; } }
   .twb-b{ padding:22px 26px 18px; display:flex; flex-direction:column; gap:16px; }
-  .twb-step{ font-family:var(--font-ui, sans-serif); font-size:clamp(22px,2.8vw,31px); line-height:1.4; letter-spacing:.02em; color:#f6feff; text-shadow:0 0 16px rgba(120,230,255,.45); }
+  .twb-step{ font-family:var(--font-ui, sans-serif); font-size:clamp(22px,2.8vw,31px); line-height:1.4; letter-spacing:.02em; color:#f6feff; text-shadow:0 0 16px rgba(var(--hb-rgb),.45); }
   .twb-step b{ color:#ffe68a; text-shadow:0 0 14px rgba(255,220,120,.5); }
   .twb-goal{ font-size:18px; line-height:1.55; color:rgba(230,250,255,.9); } .twb-goal b{ color:#ffe68a; }
   .twb-goal:empty, .twb-ex:empty{ display:none; }
-  .twb-ex{ font-size:16px; line-height:1.5; color:rgba(230,250,255,.82); border-left:3px solid rgba(140,235,255,.6); padding:2px 0 2px 14px; } .twb-ex b{ color:#ffffff; }
+  .twb-ex{ font-size:16px; line-height:1.5; color:rgba(230,250,255,.82); border-left:3px solid rgba(var(--hb-rgb),.6); padding:2px 0 2px 14px; } .twb-ex b{ color:#ffffff; }
   .twb-f{ display:flex; justify-content:space-between; align-items:center; gap:10px; padding:0 26px 18px; font-size:14px; color:rgba(180,240,255,.85); letter-spacing:.08em; }
-  .twb-f kbd, .twb-chip kbd{ font-family:var(--font-ui, sans-serif); font-weight:700; font-size:12px; color:#062027; background:#8feaff; padding:1px 6px; box-shadow:0 0 10px rgba(140,235,255,.6); }
-  .twb-go{ font:inherit; font-family:var(--font-ui, sans-serif); font-weight:700; font-size:14px; letter-spacing:.18em; color:#062027; background:#8feaff; border:0; padding:11px 20px; cursor:pointer; box-shadow:0 0 18px rgba(140,235,255,.55); }
+  .twb-f kbd, .twb-chip kbd{ font-family:var(--font-ui, sans-serif); font-weight:700; font-size:12px; color:#062027; background:var(--hb-hi); padding:1px 6px; box-shadow:0 0 10px rgba(var(--hb-rgb),.6); }
+  .twb-go{ font:inherit; font-family:var(--font-ui, sans-serif); font-weight:700; font-size:14px; letter-spacing:.18em; color:#062027; background:var(--hb-hi); border:0; padding:11px 20px; cursor:pointer; box-shadow:0 0 18px rgba(var(--hb-rgb),.55); }
   .twb-go:focus-visible, .twb-chip:focus-visible{ outline:2px solid #ffe68a; outline-offset:3px; }
   .twb-chip{ position:fixed; right:18px; top:16px; z-index:8601; display:flex; align-items:center; gap:8px; font:inherit; font-family:var(--font-ui, sans-serif); font-weight:700; font-size:12px; letter-spacing:.22em;
-    color:#8feaff; background:rgba(110,220,255,.12); border:1px solid rgba(140,235,255,.7); padding:8px 12px; cursor:pointer; box-shadow:0 0 16px rgba(110,220,255,.3);
+    color:var(--hb-hi); background:rgba(var(--hb-rgb),.12); border:1px solid rgba(var(--hb-rgb),.7); padding:8px 12px; cursor:pointer; box-shadow:0 0 16px rgba(var(--hb-rgb),.3);
     clip-path:polygon(0 8px, 8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%); transition:opacity .25s, transform .25s; }
   .twb-chip.hide{ opacity:0; transform:scale(.8); pointer-events:none; }
   .twb-chip.ping{ animation:twbPing 1s ease-in-out 3; }
-  @keyframes twbPing{ 50%{ background:rgba(140,235,255,.4); box-shadow:0 0 30px rgba(140,235,255,.8); } }
+  @keyframes twbPing{ 50%{ background:rgba(var(--hb-rgb),.4); box-shadow:0 0 30px rgba(var(--hb-rgb),.8); } }
+  /* Safehouse gadgets: the night lens is a soft green tint over the whole twist; the decoy drone's alarm pip is dashed mint */
+  html.pn-lens body::after{ content:""; position:fixed; inset:0; z-index:9500; pointer-events:none; background:radial-gradient(ellipse at 50% 45%, rgba(70,210,130,.09), rgba(40,150,95,.14) 60%, rgba(0,30,15,.42) 100%); }
+  .tw-meter i.decoy{ border-style:dashed; border-color:rgba(125,255,196,.85); } .tw-meter i.decoy.on{ background:#7dffc4; box-shadow:0 0 10px #7dffc4; }
   .twb-sr{ position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); }
   @media (prefers-reduced-motion: reduce){ .twb-win{ transition:opacity .2s; } .twb-win .hw, .twb-win .hw::after, .twb-chip.ping{ animation:none; } }
   .tw-bar{ display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:10px 18px; font-size:15px; color:var(--text-muted); }
@@ -101,6 +107,7 @@
   function peekLevel(){ const a = PN && PN.getAgent(); return ["L1", "L2", "L3"].includes(qs.get("level")) ? qs.get("level") : (a && a.level) || "L1"; }
   function init({ id, stage, title, goal, story, brief, example, eyebrow }){
     const st = document.createElement("style"); st.textContent = css + (EMBED ? " .pnh{ display:none !important; }" : ""); document.head.appendChild(st);
+    if(PN && PN.applyLoot) PN.applyLoot();   // safehouse shop: hologram tint and night lens
     level = peekLevel();
     const wrap = document.querySelector(".tw") || document.body;
     const head = document.createElement("header"); head.className = "tw-head";
@@ -119,8 +126,9 @@
 
   // Alarm meter: max strikes, then onTrip()
   function alarm(max, onTrip, host){
+    const decoy = PN && PN.perk ? PN.perk("strikes") : 0; max += decoy;   // safehouse gadget: the decoy drone takes the first strike
     const el = document.createElement("span"); el.className = "tw-meter";
-    el.innerHTML = `ALARM ${Array.from({ length: max }, () => "<i></i>").join("")}`;
+    el.innerHTML = `ALARM ${Array.from({ length: max }, (_, k) => k < decoy ? '<i class="decoy" title="Decoy drone: one extra strike"></i>' : "<i></i>").join("")}`;
     (host || document.querySelector(".tw-bar") || document.body).appendChild(el);
     let n = 0;
     return {
@@ -215,7 +223,7 @@
     if(opts.quiet){ if(!B.open){ B.chip.classList.remove("ping"); void B.chip.offsetWidth; B.chip.classList.add("ping"); } }
     else showBrief();
   }
-  function setGoal(html, opts = {}){ if(!B) return; B.goalHTML = html; B.stepHTML = ""; render(); if(!opts.quiet) showBrief(); }
+  function setGoal(html, opts = {}){ if(!B) return; B.goalHTML = html; B.stepHTML = ""; if(opts.example !== undefined) B.ex.innerHTML = opts.example ? `Example: ${opts.example}` : ""; render(); if(!opts.quiet) showBrief(); }   // opts.example: a new example for the new goal ("" clears it)
   function say(text, opts){ if(EMBED){ window.parent.postMessage({ type: "pn-twist-say", text }, "*"); return; } if(window.PNHandler) PNHandler.say(text, opts); }
   const target = () => (PN && PN.mission && PN.mission().target) || "Sentinel Finance";
   const targets = () => { const t = target(); return /s$/i.test(t) ? t + "'" : t + "'s"; };   // possessive: "Rivercross Utilities'"
