@@ -94,7 +94,9 @@
   const T = window.PNTwist, $ = id => document.getElementById(id), NS = "http://www.w3.org/2000/svg";
   // Bertie's options for the finale search. A: the light runs along the boxes and stops at the key box.
   // B: it hops between the gold boxes (the common factors), smallest to biggest, and stops at the biggest.
-  const MODE = new URLSearchParams(location.search).get("mode") === "B" ? "B" : "A";
+  // Bertie liked both finales, so with no ?mode the page alternates them: sweep one play, hops the next
+  const MODE = (() => { const q = new URLSearchParams(location.search).get("mode"); if(q === "A" || q === "B") return q;
+    try{ const last = localStorage.getItem("primenet_walls_finale"), next = last === "A" ? "B" : "A"; localStorage.setItem("primenet_walls_finale", next); return next; }catch(e){ return "A"; } })();
   const L = T.init({ id: "walls3d", stage: "FACTOR VAULT", title: "DEPOSIT-BOX ROOM",
     goal: T.peekLevel() === "L1" ? "Which rectangles of boxes fit on the <b>back wall</b>? Tap a rectangle to try it on the wall. Tap it again to <b>turn it round</b>. Or drag boxes out on the wall. Then use the box numbers to find the <b>key box</b>." : "Which rectangles of boxes fit on the <b>back wall</b>? They can be <b>turned round</b>. Then use the box numbers to find the <b>key box</b>.",
     example: "On a back wall 8 wide and 6 high, 4 × 6 fits. 2 × 12 doesn't: 12 is too wide and too tall.",
