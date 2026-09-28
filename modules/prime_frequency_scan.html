@@ -546,6 +546,8 @@ html.pn-mode-on .devPanel{ top: calc(var(--pn-mode-h, 62px) + 50px); }
     </div>
   </div>
 
+<script src="../shared/story.js"></script>
+
 <script src="../shared/primenet.js"></script>
 <script src="../shared/voice.js"></script>
 <script src="../shared/mode.js"></script>
@@ -727,9 +729,9 @@ html.pn-mode-on .devPanel{ top: calc(var(--pn-mode-h, 62px) + 50px); }
     main.append(title, barWrap, note);
     const w = MODE.watch("Starting the scanner", { seconds: CONFIG.bootDurationMs / 1000 });
 
-    // animate loading fill
+    // animate loading fill (full a moment before the scene moves on, so the whole bar is seen)
     let p = 0;
-    const step = 100 / Math.max(1, Math.floor(CONFIG.bootDurationMs / 80));
+    const step = 100 / Math.max(1, Math.floor((CONFIG.bootDurationMs - 400) / 80));
     const tick = setInterval(() => {
       p = Math.min(100, p + step);
       fill.style.width = `${p}%`;
@@ -752,7 +754,7 @@ html.pn-mode-on .devPanel{ top: calc(var(--pn-mode-h, 62px) + 50px); }
     clearMain();
 
     const title = el("div", { class: "titleBig", text: "PRIME FREQUENCY SCAN" });
-    const sub = el("div", { class: "sub", text: "Secure channels require stable numerical signals. Noise must be filtered before access is granted." });
+    const sub = el("div", { class: "sub", text: "Their building plans are travelling to their security firm on an encrypted channel. The channel hides behind prime frequencies." });
     const divider = el("div", { class: "divider" });
 
     MODE.turn("Start the scan");
@@ -761,7 +763,7 @@ html.pn-mode-on .devPanel{ top: calc(var(--pn-mode-h, 62px) + 50px); }
       text: "BEGIN SCAN",
       onClick: () => {
         SND("start");
-        if(window.PNHandler) PNHandler.once("scan-start", "{agent}, {target} hides its keys in prime signals. A prime has exactly two factors: 1 and itself. Tag every one in the band.", { delay: 600 });
+        if(window.PNHandler) PNHandler.once("scan-start", PNStory.LINES.scanStart + " A prime has exactly two factors: 1 and itself.", { delay: 600 });
         bandIndex = 0;
         progress = new Array(CONFIG.bands.length).fill(false);
         renderScan();
@@ -918,7 +920,7 @@ html.pn-mode-on .devPanel{ top: calc(var(--pn-mode-h, 62px) + 50px); }
   function renderVerified(b){
     state = State.VERIFIED;
     setStatus(`VERIFIED: ${bandLabel(b)}`);
-    setConsole("SIGNALS VERIFIED", "Encryption layer unlocked.");
+    setConsole("SIGNALS VERIFIED", "Channel locked on.");
     clearMain();
 
     const title = el("div", { class: "titleBig ok", text: "SIGNALS VERIFIED" });
@@ -975,7 +977,7 @@ html.pn-mode-on .devPanel{ top: calc(var(--pn-mode-h, 62px) + 50px); }
     setConsole("Live traffic detected.", "Click the prime peaks before they leave the scope.");
     MODE.turn("Grab the prime peaks");
     clearMain();
-    if(window.PNHandler) PNHandler.once("scan-intercept", "Live traffic from {target}. Grab the prime peaks as they pass. Leave the noise.", { delay: 200 });
+    if(window.PNHandler) PNHandler.once("scan-intercept", PNStory.LINES.scanPeaks, { delay: 200 });
 
     const pool = []; for(let n = cfg.from; n <= cfg.to; n++) pool.push(n);
     const pr = pool.filter(isPrime).sort(() => Math.random() - .5), co = pool.filter(n => !isPrime(n)).sort(() => Math.random() - .5);
@@ -1083,24 +1085,24 @@ html.pn-mode-on .devPanel{ top: calc(var(--pn-mode-h, 62px) + 50px); }
   function renderComplete(){
     state = State.COMPLETE;
     SND("success");
-    if(window.PNHandler) PNHandler.once("scan-done", "Signal's clean, {agent}. Next we need {target}'s blueprint. Head for the vault.", { delay: 700 });
+    if(window.PNHandler) PNHandler.once("scan-done", PNStory.LINES.scanEnd, { delay: 700 });
     setStatus("STATUS: READY");
-    setConsole("Core systems synchronised.", "Primary encryption now accessible.");
+    setConsole("FILE CAPTURED", "Building plans, encrypted.");
     clearMain();
 
-    const title = el("div", { class: "titleBig", text: "PRIME FREQUENCY CALIBRATION COMPLETE" });
+    const title = el("div", { class: "titleBig", text: "FILE CAPTURED: BUILDING PLANS" });
     const segs = renderSegments();
     const decoders = decodersFor(signal);
     if(PN) PN.updateAgent({ signal, decoders });
     if(window.PNBadges){ if(signal === 100) PNBadges.award("clean-sweep"); if(interceptPerfect) PNBadges.award("interceptor"); }
     const bonus = el("div", { class: "bonusCard", html: `<div>FINAL SIGNAL STRENGTH</div><div class="big">${signal}%</div>
-      <div class="perk">${decoders ? `Strong signal: ${decoders} decoder charge${decoders === 1 ? "" : "s"} for the Factor Vault. Each one cracks a factor pair for you.` : "Weak signal: no decoder charges this time. A cleaner scan earns them."}</div>` });
-    const sub = el("div", { class: "sub", text: "All bands verified. Secure channels stabilised." });
+      <div class="perk">${signal >= 80 ? "Strong signal: a clean copy of the file." : "Weak signal, but we got the file. A cleaner scan next time."}</div>` });
+    const sub = el("div", { class: "sub", text: "The plans are captured, but still encrypted. Next: decrypt them." });
 
-    MODE.turn("Lock on to the target");
+    MODE.turn("Decrypt the plans");
     const proceed = el("button", {
       class: "pn-go",
-      text: "PROCEED TO THE TARGET",
+      text: "DECRYPT THE PLANS",
       onClick: async () => {
         proceed.disabled = true; restart.disabled = true;
         setConsole("ROUTE SET", "Next: LOCK ON TO THE TARGET.");

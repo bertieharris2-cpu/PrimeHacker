@@ -39,9 +39,9 @@
 <div class="lab">
   <header class="top">
     <div>
-      <div class="eb">PRIMENET · BANK HEIST</div>
+      <div class="eb">PRIMENET · MISSION TWISTS</div>
       <h1>TWIST LAB</h1>
-      <p class="lede">Every rotating task from the bank heist map, playable on its own. Pick a level to jump straight in. These pages don't change a mission. Each mission plays three of them, each at its own place in the story.</p>
+      <p class="lede">Every rotating task from the mission, playable on its own. Pick a level to jump straight in. These pages don't change a mission. Each mission plays three of them, each at its own place in the story.</p>
     </div>
     <a class="pn-btn small" href="../index.html" style="text-decoration:none">← Title screen</a>
   </header>
@@ -50,6 +50,7 @@
 </div>
 
 <script src="../shared/sound.js"></script>
+<script src="../shared/story.js"></script>
 <script src="../shared/primenet.js"></script>
 <script>
 (() => {
@@ -92,7 +93,7 @@
       { id: "blackout", t: "Server blackout", d: "Lights out: shut down the prime servers by torchlight. Opens Prime Hack with the blackout set as this run's finale; SKIP (teacher mode) cracks the locks fast.", m: "primes", mn: "Primes", link: `<a href="prime_hack.html?finale=blackout">Open Prime Hack</a><small>title-screen level</small>` },
       { id: "getaway", t: "Getaway chase", d: "The tracking-map getaway. Opens Prime Hack with the getaway as this run's finale.", m: "pfact", mn: "Story", link: `<a href="prime_hack.html?finale=getaway">Open Prime Hack</a><small>title-screen level</small>` },
     ] },
-    { name: "Saved for other heists", when: "Not in the bank rotation", items: [
+    { name: "Saved for other heists", when: "Not in the mission rotation", items: [
       { id: "primefloor", t: "Fake floor", d: "Parked (round 12). Four floor numbers: prove the real ones with a factor pair; the prime one is the fake. Its slot will become the corrupted-blueprint array puzzle.", m: "primes", mn: "Primes and factor pairs", page: "twist_primefloor.html", isNew: 1 },
       { id: "cluelock", t: "Product-and-clue lock", d: "The product of two primes plus a clue (their sum, difference or range).", m: "primes", mn: "Primes and products", page: "twist_cluelock.html", other: 1 },
     ] },

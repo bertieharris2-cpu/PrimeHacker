@@ -7,6 +7,7 @@
   /* Teacher PIN. Change it here: it applies on every computer that runs this copy of the game.
      It keeps students out of the teacher controls; it is not strong security. */
   const TEACHER_PIN = "2357";
+  const SHELL = window.parent !== window && window.name === "pnshell";   // shown inside the full screen shell (see toShell)
 
   const KEYS = {
     settings: "primenet_settings_v1",
@@ -524,7 +525,7 @@
   // Bottom-left, small. Asks first, because leaving part-way through a stage loses that stage's progress.
   function homeButton(){
     if(!/\/modules\//.test(location.pathname.replace(/\\/g, "/"))) return;
-    if(window.parent !== window) return;   // a twist playing inside a mission stage
+    if(window.parent !== window && !SHELL) return;   // a twist playing inside a mission stage
     const st = document.createElement("style");
     st.textContent = `.pn-home{ all:unset; box-sizing:border-box; position:fixed; left:0; top:50%; transform:translateY(-50%); z-index:99990; writing-mode:vertical-rl; rotate:180deg;
         font-family:"Chakra Petch","Inter",system-ui,sans-serif; font-weight:700; font-size:11px; letter-spacing:.2em; color:rgba(235,255,248,.75);
@@ -560,8 +561,52 @@
   if(document.readyState === "loading") document.addEventListener("DOMContentLoaded", homeButton); else homeButton();
 
   // ---------- Full screen button (Bertie): every page, top-left of the MENU tab; F11 or Escape leave as usual ----------
+  // Browsers always leave full screen when the page changes. So pressing FULL SCREEN turns this tab into a "shell":
+  // the top page goes full screen and shows the game in a full-window frame (named "pnshell"). Scene changes happen
+  // inside the frame, so full screen never drops. The framed pages talk to the shell by postMessage only (file://).
+  function toShell(){
+    const de = document.documentElement, url = location.href;
+    de.requestFullscreen({ navigationUI: "hide" }).catch(() => {});
+    // This copy of the page carries on inside the frame, so silence and stop it here
+    try{ speechSynthesis.cancel(); speechSynthesis.speak = () => {}; }catch(e){}
+    document.querySelectorAll("audio,video").forEach(m => { try{ m.pause(); }catch(e){} });
+    try{ HTMLMediaElement.prototype.play = () => Promise.resolve(); AudioScheduledSourceNode.prototype.start = () => {}; }catch(e){}
+    for(let i = setTimeout(() => {}); i > 0; i--) clearTimeout(i);
+    for(let i = requestAnimationFrame(() => {}); i > 0; i--) cancelAnimationFrame(i);
+    window.setTimeout = window.setInterval = window.requestAnimationFrame = () => 0;
+    document.head.querySelectorAll("style,link,script").forEach(n => n.remove());
+    de.removeAttribute("style"); de.removeAttribute("class");
+    const body = document.createElement("body"), f = document.createElement("iframe");
+    de.replaceChild(body, document.body);
+    const st = document.createElement("style");
+    st.textContent = `html,body{ margin:0; height:100%; overflow:hidden; background:#020a0c; } .pn-shell{ position:fixed; inset:0; width:100%; height:100%; border:0; display:block; }`;
+    document.head.appendChild(st);
+    f.className = "pn-shell"; f.name = "pnshell"; f.allow = "fullscreen; autoplay"; f.title = document.title; f.src = url;
+    const tell = () => { try{ f.contentWindow.postMessage({ type: "pn-fs-state", on: !!document.fullscreenElement }, "*"); }catch(e){} };
+    const focus = () => { f.focus(); try{ f.contentWindow.focus(); }catch(e){} };
+    f.addEventListener("load", () => { focus(); tell(); });   // pupils type a lot: keys go to each new scene
+    document.addEventListener("fullscreenchange", () => { tell(); focus(); try{ sessionStorage.setItem("primenet_fullscreen", document.fullscreenElement ? "1" : "0"); }catch(e){} });
+    window.addEventListener("message", e => {
+      const d = e.data || {};
+      if(e.source !== f.contentWindow) return;
+      if(d.type === "pn-fs"){ if(d.on && !document.fullscreenElement) de.requestFullscreen({ navigationUI: "hide" }).catch(() => {}); else if(!d.on && document.fullscreenElement) document.exitFullscreen().catch(() => {}); }
+      if(d.type === "pn-shell-hi"){ if(d.title) document.title = d.title; tell(); }
+    });
+    body.appendChild(f);
+  }
+  // Inside the shell: full screen belongs to the top page, so this page's full screen calls (and any page's own
+  // FULLSCREEN buttons) ask the shell, and document.fullscreenElement mirrors the shell's state.
+  if(SHELL){
+    let on = false;
+    Object.defineProperty(document, "fullscreenElement", { configurable: true, get: () => on ? document.documentElement : null });
+    Element.prototype.requestFullscreen = function(){ parent.postMessage({ type: "pn-fs", on: true }, "*"); return Promise.resolve(); };
+    document.exitFullscreen = () => { parent.postMessage({ type: "pn-fs", on: false }, "*"); return Promise.resolve(); };
+    window.addEventListener("message", e => { const d = e.data || {}; if(e.source !== parent || d.type !== "pn-fs-state" || on === !!d.on) return; on = !!d.on; document.dispatchEvent(new Event("fullscreenchange")); });
+    const hi = () => parent.postMessage({ type: "pn-shell-hi", title: document.title }, "*");
+    if(document.readyState === "loading") document.addEventListener("DOMContentLoaded", hi); else hi();
+  }
   function fullscreenButton(){
-    if(window.parent !== window || !document.documentElement.requestFullscreen) return;
+    if((window.parent !== window && !SHELL) || !document.documentElement.requestFullscreen) return;
     const st = document.createElement("style");
     st.textContent = `.pn-full{ all:unset; box-sizing:border-box; position:fixed; right:12px; bottom:12px; z-index:99990; font-family:"Chakra Petch",sans-serif; font-weight:700; font-size:11px; letter-spacing:.16em; color:rgba(235,255,248,.75);
         background:rgba(6,20,25,.9); border:1px solid rgba(40,120,140,.7); padding:7px 10px; cursor:pointer; }
@@ -572,12 +617,15 @@
     const b = document.createElement("button"); b.type = "button"; b.className = "pn-full"; b.title = "Full screen (Escape leaves it)";
     const label = () => { b.textContent = document.fullscreenElement ? "EXIT FULL SCREEN ⤡" : "FULL SCREEN ⤢"; };
     label();
-    b.addEventListener("click", e => { e.stopPropagation(); if(document.fullscreenElement){ try{ sessionStorage.setItem("primenet_fullscreen", "0"); }catch(err){} document.exitFullscreen(); } else document.documentElement.requestFullscreen().catch(() => {}); });
+    b.addEventListener("click", e => { e.stopPropagation(); if(document.fullscreenElement){ try{ if(!SHELL) sessionStorage.setItem("primenet_fullscreen", "0"); }catch(err){} document.exitFullscreen(); } else if(SHELL) document.documentElement.requestFullscreen(); else toShell(); });
     b.addEventListener("keydown", e => e.stopPropagation());
-    document.addEventListener("fullscreenchange", () => { label(); try{ sessionStorage.setItem("primenet_fullscreen", document.fullscreenElement ? "1" : "0"); }catch(e){} });
     document.body.appendChild(b);
-    // Browsers leave full screen whenever the page changes, and only allow it again after a press on the new page.
-    // So if the pupil chose full screen, the first click or key press on each new page puts it back.
+    if(SHELL){ document.addEventListener("fullscreenchange", label); return; }
+    // Fallback outside the shell (e.g. after a refresh): the browser drops full screen as the page changes, which
+    // mustn't count as the pupil turning it off. Only Escape or the EXIT button do that.
+    let leaving = false; window.addEventListener("pagehide", () => { leaving = true; }); window.addEventListener("beforeunload", () => { leaving = true; });
+    document.addEventListener("fullscreenchange", () => { label(); try{ if(document.fullscreenElement) sessionStorage.setItem("primenet_fullscreen", "1"); else if(!leaving) sessionStorage.setItem("primenet_fullscreen", "0"); }catch(e){} });
+    // If the pupil chose full screen, the first click or key press on a new page puts it back.
     let want = false; try{ want = sessionStorage.getItem("primenet_fullscreen") === "1"; }catch(e){}
     if(want && !document.fullscreenElement){
       const again = () => { document.removeEventListener("pointerdown", again, true); document.removeEventListener("keydown", again, true); if(!document.fullscreenElement) document.documentElement.requestFullscreen().catch(() => {}); };

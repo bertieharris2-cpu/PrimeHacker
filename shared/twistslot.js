@@ -9,7 +9,7 @@
   const qs = new URLSearchParams(location.search);
   // Round 15: ORACLE's line as each twist starts, in the heist story
   const INTRO = {
-    corrupt:    "Interference. One floor came through wrong. Fix the plan before we go in.",
+    corrupt:    "Part of the file arrived damaged. Rebuild it so FOX and WREN aren't planning around a hole.",
     patrols:    "Guards on the door. Watch their timings and we slip past.",
     cubes:      "Fuse box. Wire the relays and we black out their cameras.",
     walls:      "Change of plan. The key card is in a deposit box in the basement.",

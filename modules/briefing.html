@@ -49,7 +49,7 @@
   .lines{ min-height:5.4em; font-size:19px; line-height:1.65; cursor:pointer; }
   .lines p{ margin:0 0 6px; }
   .lines b{ color:#ffe14d; font-weight:700; }
-  .dossier{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin:18px 0 6px; }
+  .dossier{ display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin:18px 0 6px; }
   .dossier > div{ border:1px solid var(--line); padding:10px 12px; opacity:0; transform:translateY(6px); transition:all .35s ease; }
   .dossier > div.on{ opacity:1; transform:none; }
   .dossier .k{ font-family:var(--font-ui); font-size:11px; letter-spacing:.16em; color:var(--text-faint); text-transform:uppercase; }
@@ -73,9 +73,10 @@
   @keyframes pinPulse{ 0%{ box-shadow:0 0 0 0 rgba(var(--accent-rgb),.6); } 100%{ box-shadow:0 0 0 14px rgba(var(--accent-rgb),0); } }
   .pin.sel{ background:var(--accent); color:#041012; }
   .pin .lk{ margin-left:5px; color:#f2c14e; }
-  .pin .hit{ margin-left:5px; color:#ff6b6b; }
+  .pin .hit{ margin-left:5px; color:#7dffc4; }
   .tcard{ display:grid; grid-template-columns:1fr auto; gap:10px 18px; align-items:center; border:1px solid var(--line); padding:12px 14px; margin-top:12px; min-height:64px; }
   .tcard .nm{ font-family:var(--font-ui); font-weight:700; font-size:20px; letter-spacing:.06em; }
+  .tcard .hook{ font-size:16px; line-height:1.45; margin:4px 0 6px; max-width:62ch; }
   .tcard .meta{ font-size:14px; color:var(--text-muted); line-height:1.5; }
   .tcard .meta b{ color:var(--text-primary); }
   @media (max-width:700px){ .idscan{ grid-template-columns:1fr; justify-items:center; text-align:center; } .dossier{ grid-template-columns:1fr; } }
@@ -108,7 +109,7 @@
     <div class="head">SELECT TARGET <span id="mapNote"></span></div>
     <div class="pn-panel" style="padding:18px 20px">
       <div class="map" id="map"><svg viewBox="0 0 860 400" aria-hidden="true" id="mapSvg"></svg></div>
-      <div class="tcard" id="tcard"><div class="meta">Pick a bank on the map. Your clearance decides which ones you can hit: harder banks sit deeper in the city.</div></div>
+      <div class="tcard" id="tcard"><div class="meta">Pick a target on the map. Your clearance decides which ones you can take on: tougher targets sit deeper in the city.</div></div>
     </div>
   </section>
 
@@ -117,19 +118,20 @@
     <div class="pn-panel brief">
       <div class="comms talking" id="comms">
         <div class="wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
-        <div><div class="who">ORACLE</div><div class="sub">Your handler // encrypted channel</div></div>
+        <div><div class="who">ORACLE</div><div class="sub">PRIMENET team lead // encrypted channel</div></div>
       </div>
       <div class="lines" id="lines" aria-live="polite" title="Click to show all"></div>
       <div class="dossier" id="dossier">
         <div><div class="k">Target</div><div class="v" id="dTarget"></div></div>
         <div><div class="k">Operation</div><div class="v" id="dOp"></div></div>
-        <div><div class="k">Agent</div><div class="v" id="dAgent"></div></div>
+        <div><div class="k">Inside</div><div class="v" id="dInside">FOX and WREN</div></div>
+        <div><div class="k">Tech specialist</div><div class="v" id="dAgent"></div></div>
       </div>
       <div class="route" id="route">
-        <span class="st h">1 · Frequency Scan</span><span class="ar">→</span>
-        <span class="st b">2 · Factor Vault ×3 floors</span><span class="ar">→</span>
-        <span class="st b">3 · Blueprint</span><span class="ar">→</span>
-        <span class="st h">4 · Prime Hack</span>
+        <span class="st h">1 · Intercept the plans</span><span class="ar">→</span>
+        <span class="st b">2 · Decrypt 3 floors</span><span class="ar">→</span>
+        <span class="st b">3 · Plan the route</span><span class="ar">→</span>
+        <span class="st h">4 · The heist and the vault</span>
       </div>
       <div class="actions">
         <span class="note">Press <b>Enter</b> or click to accept.</span>
@@ -140,6 +142,7 @@
 </div>
 
 <script src="../shared/sound.js"></script>
+<script src="../shared/story.js"></script>
 <script src="../shared/primenet.js"></script>
 <script src="../shared/voice.js"></script>
 <script src="../shared/mode.js"></script>
@@ -215,17 +218,17 @@
     c.innerHTML = `<div class="ok">IDENTITY CONFIRMED</div>
       Agent <b>${m.codename}</b> · ${PN.agentNumber(m.codename)}<br>
       Rank: ${r.rank} · Clearance ${agent.level} (${PN.LEVELS[agent.level].rank})`;
-    await sleep(1500);
+    if(window.PNHandler) PNHandler.say(PNStory.LINES.welcome);
+    await sleep(2600);
     await chooseTarget();
     m = PN.mission();
     brief();
   }
 
-  // ---------- Target map: choose which bank to hit ----------
-  // Three districts, one per level. Only banks at the agent's clearance can be picked.
+  // ---------- Target map: choose the target ----------
+  // Three districts, one per level. Only targets at the agent's clearance can be picked.
   const DISTRICT = { L1: "Old Town", L2: "Harbour", L3: "Financial District" };
   const SECURITY = { L1: "Low", L2: "Medium", L3: "High" };
-  const VAULT = { L1: "£200,000 to £900,000", L2: "£2m to £9m", L3: "£20m to £90m" };
   const PINS = {   // map positions, as % of the map
     "Rivercross Utilities": [12, 34], "Northwick Transit": [24, 22], "Sentinel Finance": [16, 62], "Haven Council": [30, 50],
     "Ember Freight": [44, 78], "Crystal Holdings": [55, 64], "Vault Secure": [42, 58], "Pinnacle Corp": [60, 86],
@@ -257,20 +260,20 @@
       $("#stepId").hidden = true; $("#stepMap").hidden = false;
       $("#mapNote").textContent = `CLEARANCE ${agent.level} · ${DISTRICT[agent.level].toUpperCase()}`;
       drawCity();
-      MODE.turn("Pick a bank on the map");
-      if(window.PNHandler) PNHandler.say("Pick your target, {agent}. Banks in your clearance are lit up on the map.");
+      MODE.turn("Pick a target on the map");
+      if(window.PNHandler) PNHandler.say(PNStory.LINES.pickTarget);
       const map = $("#map"), card = $("#tcard");
       let chosen = null;
       Object.entries(PN.TARGETS).forEach(([lvl, names]) => names.forEach(name => {
         const [x, y] = PINS[name] || [50, 50], open = lvl === agent.level, hits = timesHit(name);
         const b = document.createElement("button"); b.type = "button"; b.className = "pin" + (open ? " open" : "");
         b.style.left = x + "%"; b.style.top = y + "%";
-        b.innerHTML = `${name}${open ? "" : `<span class="lk">${lvl}</span>`}${hits ? `<span class="hit">HIT ×${hits}</span>` : ""}`;
+        b.innerHTML = `${name}${open ? "" : `<span class="lk">${lvl}</span>`}${hits ? `<span class="hit">✓${hits > 1 ? " ×" + hits : ""}</span>` : ""}`;
         b.setAttribute("aria-label", open ? `${name}, ${DISTRICT[lvl]}, security ${SECURITY[lvl]}` : `${name}: needs clearance ${lvl}`);
         b.addEventListener("click", () => {
-          if(!open){ SND("denied"); card.innerHTML = `<div class="meta"><b>${name}</b> is in the ${DISTRICT[lvl]}. It needs clearance ${lvl}. Pick a higher level on the title screen to hit it.</div>`; return; }
+          if(!open){ SND("denied"); card.innerHTML = `<div class="meta"><b>${name}</b> is in the ${DISTRICT[lvl]}. It needs clearance ${lvl}. Pick a higher level on the title screen to take it on.</div>`; return; }
           map.querySelectorAll(".pin").forEach(p => p.classList.remove("sel")); b.classList.add("sel"); chosen = name; SND("tag");
-          card.innerHTML = `<div><div class="nm">${name}</div><div class="meta">${DISTRICT[lvl]} · security <b>${SECURITY[lvl]}</b> · vault holds <b>${VAULT[lvl]}</b>${hits ? ` · you've hit it <b>${hits}</b> time${hits > 1 ? "s" : ""}` : ""}</div></div>
+          card.innerHTML = `<div><div class="nm">${name}</div><div class="hook">${PNStory.target(name).hook}</div><div class="meta">${DISTRICT[lvl]} · security <b>${SECURITY[lvl]}</b>${hits ? ` · you've done this one <b>${hits}</b> time${hits > 1 ? "s" : ""}` : ""}</div></div>
             <button class="pn-btn primary pn-go" type="button" id="lockTarget">Lock target</button>`;
           $("#lockTarget").addEventListener("click", () => { PN.setMissionTarget(chosen); SND("lock"); $("#stepMap").hidden = true; resolve(); });
           $("#lockTarget").focus();
@@ -282,11 +285,7 @@
   }
 
   // ---------- Briefing ----------
-  const LINES = () => [
-    `*${m.codename}*, ORACLE here. Tonight's target: *${m.target}*.`,
-    `Find the primes. Build the bank. Crack the locks. Then the money.`,
-    `I'm on comms the whole way.`,
-  ];
+  const LINES = () => PNStory.LINES.briefing.map(l => PNStory.fill(l));   // shared/story.js
   let skipTyping = false;
   async function brief(){
     $("#stepId").hidden = true; $("#stepMap").hidden = true; $("#stepBrief").hidden = false;

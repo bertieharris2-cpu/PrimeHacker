@@ -572,6 +572,8 @@ body{ font-size: var(--font-size); }
     </main>
   </div>
 
+  <script src="../shared/story.js"></script>
+
   <script src="../shared/primenet.js"></script>
   <script src="../shared/mode.js"></script>
   <script src="../shared/badges.js"></script>
@@ -1086,7 +1088,7 @@ body{ font-size: var(--font-size); }
       if(PN) PN.log("vault-complete", { n: N, level: currentDifficulty });
       if(window.PNBadges && Number.isInteger(Math.sqrt(N))) PNBadges.award("square-hunter");
       setHint(`Every pair found! Floor ${floorDone} is decrypted.`, "good");
-      if(window.PNMode) PNMode.watch(`Floor ${floorDone} decrypted. Building it…`, { seconds: 2.4 });
+      if(window.PNMode) PNMode.watch(`Floor ${floorDone} decrypted. Building it…`, { seconds: 1.7 });   // full before the page moves on at 2 s
       const go = `vault_grid_demo.html?n=${N}`;
       setTimeout(() => (window.PNGlitch ? PNGlitch.go(go, { style: "sweep" }) : (location.href = go)), 2000 / (window.PNTest ? PNTest.speed() : 1));
     }
@@ -1362,7 +1364,7 @@ body{ font-size: var(--font-size); }
       badge.classList.remove("pulse"); void badge.offsetWidth; badge.classList.add("pulse");
       if(window.PNMode) PNMode.turn(PRACTICE ? `Find every pair that makes ${N}` : `Find every pair that makes ${N} to decrypt floor ${floor}`);
       if(!PRACTICE && window.PNHandler) PNHandler.once(`vault-floor-${floor}-${N}`, [
-        "These are {target}'s plans. Each factor pair of N is a room on this floor. Find every pair and the floor decrypts.",
+        "Floor one of {target}'s plans. Each factor pair of N is a room. Find every pair and the floor decrypts.",
         "Floor two. Same drill: every pair, and don't forget 1 × N.",
         "Last floor, {agent}. Then we'll have the whole building.",
       ][floor - 1] || "Find every pair.", { delay: 900 });

@@ -1435,6 +1435,7 @@ button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [clas
 </div>
 
 <!-- Mission data (agent, level, record), then the banking system, which keeps a wallet per codename -->
+<script src="../shared/story.js"></script>
 <script src="../shared/primenet.js"></script>
 <script src="../shared/mode.js"></script>
 <script src="../shared/badges.js"></script>
@@ -2333,16 +2334,17 @@ function siphonShare(cracked){
 }
 const fmtTime = s => { s = Math.max(0, Math.round(s)); const m = Math.floor(s / 60); return m ? `${m} min ${s % 60}s` : `${s}s`; };
 async function siphonScreen({ acct, pot, frac, secs, blackout }){
+  const VERB = window.PNStory ? PNStory.verb(acct.name) : { word:"SIPHON", doing:"Siphoning the hidden money", done:"TRANSFER COMPLETE", line:"" };   // siphon, expose or retrieve (shared/story.js)
   const agent = PN && PN.getAgent() ? PN.getAgent().codename : "AGENT";
   const o = overlay("siphonOverlay");
-  o.innerHTML = `<div class="siphon" role="dialog" aria-label="Siphoning funds">
+  o.innerHTML = `<div class="siphon" role="dialog" aria-label="${VERB.word}">
     <div class="sp-code" aria-hidden="true"></div>
     <div class="sp-main">
-      <div class="sp-head"><span>FUNDS TRANSFER // LIVE</span><span class="sp-route">${acct.name.toUpperCase()} → wallet://${agent.toLowerCase()}</span></div>
+      <div class="sp-head"><span>${VERB.word} // LIVE</span><span class="sp-route">${acct.name.toUpperCase()} → PRIMENET RECOVERY</span></div>
       <div><div class="sp-lab"><span>LINE OPEN<small>until security cuts it</small></span><b class="sp-t">00.0s</b></div><div class="sp-bar red"><i></i></div></div>
-      <div><div class="sp-lab"><span>SIPHONED</span><b class="sp-m">£0</b></div><div class="sp-bar green"><i></i></div>
-        <div class="sp-sub"><span>of <b>${gbp(pot)}</b> in reach</span><span class="sp-rate"></span></div></div>
-      <div class="sp-msg" aria-live="polite">Transfer running. Security are working out where the money's going…</div>
+      <div><div class="sp-lab"><span>RECOVERED</span><b class="sp-m">£0</b></div><div class="sp-bar green"><i></i></div>
+        <div class="sp-sub"><span>of <b>${gbp(pot)}</b> hidden</span><span class="sp-rate"></span></div></div>
+      <div class="sp-msg" aria-live="polite">${VERB.line}</div>
     </div></div>`;
   const code = o.querySelector(".sp-code"), red = o.querySelector(".sp-bar.red i"), green = o.querySelector(".sp-bar.green i");
   const tEl = o.querySelector(".sp-t"), mEl = o.querySelector(".sp-m"), rate = o.querySelector(".sp-rate"), msg = o.querySelector(".sp-msg"), box = o.querySelector(".siphon");
@@ -2353,7 +2355,7 @@ async function siphonScreen({ acct, pot, frac, secs, blackout }){
   const FULL = 8000, open = FULL * frac + (frac >= 1 ? 1200 : 0);
   rate.textContent = `${gbp(Math.round(pot / (FULL / 1000)))} a second`;
   if(window.PNMode) PNMode.money();   // the £ step on the stage strip lights up: this is where the money comes
-  const w = Mode.watch("The money: siphoning from the vault");
+  const w = Mode.watch(VERB.doing);
   setCinematic(true);
   SFX("drone", open / 1000 + 1);
   let ticks = 0, lastBeep = 99;
@@ -2374,12 +2376,12 @@ async function siphonScreen({ acct, pot, frac, secs, blackout }){
   const pace = `You cracked the four locks in ${fmtTime(secs)}${blackout ? " and knocked out their monitoring" : ""}.`;
   if(frac >= 1){
     box.classList.add("done"); SFX("cash"); SFX("success");
-    msg.innerHTML = `<span class="big">TRANSFER COMPLETE</span>${pace} Fast enough to take the lot: ${gbp(taken)}.`;
+    msg.innerHTML = `<span class="big">${VERB.done}</span>${pace} Fast enough to recover all of it: ${gbp(taken)}.`;
   } else {
     box.classList.add("cut"); SFX("denied"); SFX("alarm");
-    msg.innerHTML = `<span class="big">LINE CUT</span>${pace} Security cut the line at <b>${Math.round(frac * 100)}%</b>: ${gbp(taken)} got through. Crack the locks faster and the line stays open longer.`;
+    msg.innerHTML = `<span class="big">LINE CUT</span>${pace} Security cut the line at <b>${Math.round(frac * 100)}%</b>: ${gbp(taken)} got through. The rest is frozen for the authorities. Crack the locks faster and the line stays open longer.`;
   }
-  if(window.PNHandler) PNHandler.say(frac >= 1 ? "Every penny's through. Now move." : "They've cut the line. Take what we've got and move.");
+  if(window.PNHandler) PNHandler.say(frac >= 1 ? "Every penny's through. Now get FOX and WREN out." : "They've cut the line. What got through is safe. Now get FOX and WREN out.");
   await animate(3200, pr => w.progress((open + pr * 3200) / (open + 3200)));
   setCinematic(false);
   w.end();
@@ -2389,10 +2391,10 @@ async function siphonScreen({ acct, pot, frac, secs, blackout }){
 // ORACLE: get out, get out, get out
 async function getOut(){
   const o = overlay("getOutOverlay");
-  o.innerHTML = `<div class="getOut" role="alert"><span>GET OUT</span><span>GET OUT</span><span>GET OUT</span><small>POLICE ARE ON THE WAY</small></div>`;
-  const w = Mode.watch("Get out! The police are coming", { seconds: 2.7 });
+  o.innerHTML = `<div class="getOut" role="alert"><span>GET OUT</span><span>GET OUT</span><span>GET OUT</span><small>THE BUILDING IS LOCKING DOWN</small></div>`;
+  const w = Mode.watch("Get out! The building is locking down", { seconds: 2.7 });
   setCinematic(true);
-  if(window.PNHandler) PNHandler.say("Get out, get out, get out! Police are on their way.");
+  if(window.PNHandler) PNHandler.radio("getOut");
   SFX("radio");
   const spans = o.querySelectorAll("span");
   for(const sp of spans){ sp.classList.add("on"); SFX("alarm"); await animate(520, () => {}); }
@@ -2430,9 +2432,9 @@ function pursuitMap(){
   return `<svg viewBox="0 0 ${W} ${H}">${g}</svg>`;
 }
 const RADIO = {
-  start: ["All units: suspect vehicle leaving the vault district, heading east.", "Control to all units: silent alarm triggered. Vehicle on the move.", "Units 7 and 12, respond. Suspect vehicle eastbound."],
-  right: ["Unit 7: lost visual. Where did they go?", "Unit 12: they took the side streets. Gap widening.", "Control: suspect speed increasing. Keep up.", "Unit 7: blocked at the junction. Can't follow."],
-  wrong: ["Unit 12: got them. Closing the gap.", "Unit 7: right behind them now. Closing fast.", "Control: suspect slowing. Close in.", "Unit 12: we're on them. Lights on."],
+  start: ["Security to all patrols: a van is leaving the site, heading east.", "Control to all patrols: silent alarm triggered. Van on the move.", "Patrols 7 and 12, follow that van. Eastbound."],
+  right: ["Patrol 7: lost them. Where did they go?", "Patrol 12: they took the side streets. Gap widening.", "Control: the van's speeding up. Keep up.", "Patrol 7: blocked at the junction. Can't follow."],
+  wrong: ["Patrol 12: got them. Closing the gap.", "Patrol 7: right behind them now. Closing fast.", "Control: the van's slowing. Close in.", "Patrol 12: we're on them."],
 };
 // Round 9: the getaway asks about different properties: prime, square and (at L3) cube. The car keeps moving the
 // whole time; right calls speed it up and open the gap, wrong ones let the police close in. Police radio crackles.
@@ -2466,10 +2468,10 @@ async function getaway(){
   const qs = getawayQuestions();
   const o = overlay("gaOverlay");
   o.innerHTML = `<div class="getaway" role="dialog" aria-label="Getaway">
-    <div class="ga-head"><span>PURSUIT // LIVE TRACKING</span><span>GAP <b class="ga-gap">0 m</b></span></div>
+    <div class="ga-head"><span>SECURITY PURSUIT // LIVE TRACKING</span><span>GAP <b class="ga-gap">0 m</b></span></div>
     <div class="ga-map">${pursuitMap()}<div class="ga-corner"><span class="rec">●</span> SAT-LINK 3 · ${new Date().toLocaleTimeString("en-GB")}</div></div>
     <div class="ga-radio"></div>
-    <div class="ga-q"><small class="ga-count">CALL 1 OF 3</small><div class="ga-n">?</div><div class="ga-prop"></div><div class="ga-ask">Every right call puts distance between you and the police.</div>
+    <div class="ga-q"><small class="ga-count">CALL 1 OF 3</small><div class="ga-n">?</div><div class="ga-prop"></div><div class="ga-ask">Every right call puts distance between the van and their security team.</div>
       <div class="ga-btns"><button type="button" data-a="y">YES<kbd>Y</kbd></button><button type="button" data-a="n">NO<kbd>N</kbd></button></div>
       <div class="ga-timer"><i></i></div><div class="ga-fb"></div></div></div>`;
   const route = o.querySelector("#gaRoute"), done = o.querySelector("#gaDone"), me = o.querySelector("#gaMe"), cops = [o.querySelector("#gaCop0"), o.querySelector("#gaCop1")];
@@ -2527,14 +2529,14 @@ async function getaway(){
     await sleep(1500);
   }
   Getaway.answer = null;
-  say(score === 3 ? "Control: we've lost them. All units stand down." : score === 2 ? "Unit 7: lost them at the last junction." : "Unit 12: they ditched the car in the tunnels. Search the area.");
+  say(score === 3 ? "Control: we've lost them. All patrols stand down." : score === 2 ? "Patrol 7: lost them at the last junction." : "Patrol 12: they left the van in the tunnels. Search the area.");
   finishing = true; if(score === 3) gapTo = .34;
   await new Promise(r => { const t = setInterval(() => { if(car >= 1){ clearInterval(t); r(); } }, 50); });
   running = false;
   const q = o.querySelector(".ga-q");
-  q.innerHTML = score === 3 ? `<div class="ga-result">CLEAN GETAWAY<small>3 out of 3. No one followed you home. +5% on the haul.</small></div>`
-    : score === 2 ? `<div class="ga-result" style="color:var(--warning)">CLOSE CALL<small>2 out of 3. You lost them at the last junction.</small></div>`
-    : `<div class="ga-result" style="color:#ff6b6b">SIRENS ALL THE WAY<small>${score} out of 3. You ditched the car in the tunnels and walked home.</small></div>`;
+  q.innerHTML = score === 3 ? `<div class="ga-result">CLEAN GETAWAY<small>3 out of 3. Nobody followed the van. +5% on what we recovered.</small></div>`
+    : score === 2 ? `<div class="ga-result" style="color:var(--warning)">CLOSE CALL<small>2 out of 3. The van lost them at the last junction.</small></div>`
+    : `<div class="ga-result" style="color:#ff6b6b">CLOSE ONE<small>${score} out of 3. FOX and WREN left the van in the tunnels and walked home.</small></div>`;
   SFX(score === 3 ? "success" : "commit");
   await sleep(2200);
   o.remove();
@@ -2936,6 +2938,7 @@ async function onLockSolved(){
   const hackSecs = Run.cracked.reduce((a, c) => a + (c.ms || 0), 0) / 1000;
   const tierMove = nextTier(Run.cracked, Run.wrongTotal || 0);
   Sound.ok();
+  if(window.PNHandler && !PRACTICE) PNHandler.radio("vaultOpen");
   await sleep(500);
   await alarmSequence();
   if(typeof Rig !== "undefined" && Rig.setBreach) Rig.setBreach(Run.locksPerRun);
@@ -3012,14 +3015,14 @@ async function onLockSolved(){
   const home = overlay(); home.innerHTML = `<div class="doorStage"></div>`;
   await drainAndStamp(home, { acct: acctSnapshot, banked, walletBefore, walletAfter: Bank.getWalletBalance(), codename, before, after });
   addLine("VAULT BREACH COMPLETE // SESSION SAVED", "ok");
-  if(window.PNHandler) PNHandler.say(`We're out clean. ${acctSnapshot.name} won't know what hit them. Outstanding work, {agent}.`);
+  if(window.PNHandler) { PNHandler.radio("safe"); PNHandler.say(`FOX and WREN are out safe, and ${acctSnapshot.name} has been found out. Outstanding work, {agent}.`, { delay: 4200 }); }
   await caseFile({ codename, levelId: DIFF, cracked: Run.cracked.slice(), wrong: Run.wrongTotal || 0, banked, walletAfter: Bank.getWalletBalance(), after, startedAt: Run.startedAt, tierMove, frac });
 
   // A new run at the same clearance; the locks follow the agent's tier
   newRunSameDifficulty();
   addBlank();
-  lockBanner(tierMove.move > 0 ? "New run. They've seen how fast you are: tougher locks." : tierMove.move < 0 ? "New run. A quieter bank this time." : "New run. A new bank.");
-  if(window.PNHandler && tierMove.move > 0) PNHandler.say("Word's out about how fast you crack locks, {agent}. This bank has upgraded its security.");
+  lockBanner(tierMove.move > 0 ? "New run. They've seen how fast you are: tougher locks." : tierMove.move < 0 ? "New run. A quieter target this time." : "New run. A new target.");
+  if(window.PNHandler && tierMove.move > 0) PNHandler.say("Word's out about how fast you crack locks, {agent}. This target has upgraded its security.");
   focusInput();
 }
 
@@ -3388,7 +3391,7 @@ async function boot(){
   addLine("Type the two primes, then ENTER.", "sys");
   if(window.PNHandler){
     if(PRACTICE) PNHandler.say("Practice run. Two locks. Type the two primes.", { delay: 1200 });
-    else PNHandler.once("hack-start", `${target ? target.name : "{target}"}'s vault. Four locks. Type the two primes for each.`, { delay: 1200 });
+    else if(PNHandler.once("hack-start", `${target ? target.name : "{target}"}'s vault. Four locks. Type the two primes for each.`, { delay: 1200 })) PNHandler.radio("vault", { delay: 5200 });
   }
   addBlank();
   lockBanner(PRACTICE ? (PRACTICE_PAIR ? "Practice" : `Practice · lock difficulty ${(Run.tier || 0) + 1}`) : `Clearance ${DIFF}`);

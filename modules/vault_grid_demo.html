@@ -381,6 +381,8 @@ button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [clas
   </div>
 </div>
 
+<script src="../shared/story.js"></script>
+
 <script src="../shared/primenet.js"></script>
 <script src="../shared/mode.js"></script>
 <script src="../shared/badges.js"></script>
@@ -1313,7 +1315,7 @@ document.querySelector(".title div:first-child").insertAdjacentHTML("afterend",
   await pause(1900);
   if(window.PNHandler){
     const f = Math.max(1, Math.min(floorsBuilt(), FLOORS_NEEDED));
-    PNHandler.once(`grid-${f}-${initialN}`, f >= FLOORS_NEEDED ? "Three floors mapped. Let's put {target}'s building together." : `Floor ${f} is solid. Every room is one factor pair of ${initialN}.`, { delay: 400 });
+    PNHandler.once(`grid-${f}-${initialN}`, f >= FLOORS_NEEDED ? "Three floors decrypted. Let's put {target}'s building together so FOX and WREN can see it." : `Floor ${f} is solid. Every room is one factor pair of ${initialN}.`, { delay: 400 });
   }
   await droneFlythrough(window.lastPlacements || []);
   await pause(1000);

@@ -1,4 +1,4 @@
-/* ORACLE, the student's handler. Short comms messages at key moments, typed out with a
+/* ORACLE, the PRIMENET team lead (and FOX and WREN, the agents inside, via radio()). Short comms messages at key moments, typed out with a
    radio crackle. Games call PNHandler.say("…") or PNHandler.once("key", "…").
    {agent} and {target} in a message become the codename and this mission's bank.
    Messages never block the game: they sit in the corner and fade after a few seconds. */
@@ -38,17 +38,20 @@
   }
 
   function fill(text){
-    const m = PN && PN.mission ? PN.mission() : { codename:"AGENT", target:"the bank" };
+    const m = PN && PN.mission ? PN.mission() : { codename:"AGENT", target:"the target" };
     const poss = n => /s$/i.test(n) ? `${n}'` : `${n}'s`;   // "Rivercross Utilities'", "Atlas Prime's"
-    return String(text).replace(/\{target\}'s/g, poss(m.target)).replace(/\{agent\}/g, m.codename).replace(/\{target\}/g, m.target)
+    return String(text).replace(/\{target\}'s/g, poss(m.target)).replace(/\{(agent|codename)\}/g, m.codename).replace(/\{target\}/g, m.target)
       .replace(/(\w+s)'s\b/g, "$1'");
   }
 
-  async function show(text){
+  const WHO = { ORACLE:["ORACLE","// PRIMENET LEAD","#2fbf8a"], FOX:["FOX","// AGENT INSIDE","#ffb35c"], WREN:["WREN","// AGENT INSIDE","#7fd4ff"] };
+  async function show(item){
     build();
+    const text = item.text, who = WHO[item.who] || WHO.ORACLE;
     const box = document.createElement("div"); box.className = "pnh-box talking";
     box.innerHTML = `<div class="pnh-wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
-      <div><div class="pnh-who">ORACLE <span>// HANDLER</span></div><div class="pnh-text"></div></div>`;
+      <div><div class="pnh-who" style="color:${who[2]}">${who[0]} <span>${who[1]}</span></div><div class="pnh-text"></div></div>`;
+    box.style.borderLeftColor = who[2];
     wrap.innerHTML = ""; wrap.appendChild(box);
     let skip = false, closed = false;
     const close = () => { closed = true; box.classList.remove("on"); };
@@ -97,8 +100,8 @@
   }
 
   window.PNHandler = {
-    say(text, { delay = 0 } = {}){
-      const t = fill(text);
+    say(text, { delay = 0, who = "ORACLE" } = {}){
+      const t = { text: fill(text), who };
       // Only the newest waiting message is kept, so a fast student never gets stale news
       setTimeout(() => { queue = [t]; if(document.body) pump(); else document.addEventListener("DOMContentLoaded", pump); }, delay);
     },
@@ -106,6 +109,8 @@
       try{ if(sessionStorage.getItem(onceKey(key))) return false; sessionStorage.setItem(onceKey(key), "1"); }catch(e){}
       this.say(text, opts); return true;
     },
+    // FOX or WREN over the radio: a random line from a bank in shared/story.js
+    radio(bank, opts = {}){ if(!window.PNStory) return; const r = PNStory.radio(bank); this.say(r.text, { ...opts, who: r.who }); return r; },
     fill,
   };
 })();

@@ -12,7 +12,7 @@
   "use strict";
   const PN = window.Primenet;
   const qs = new URLSearchParams(location.search);
-  const EMBED = window.parent !== window;
+  const EMBED = window.parent !== window && window.name !== "pnshell";   // a twist in a stage (not the full screen shell)
   const PRACTICE = qs.get("practice") === "1";
   const SND = (n, a) => { if(window.PNSound) PNSound.play(n, a); };
   const speed = () => (window.PNTest ? PNTest.speed() : 1);
@@ -184,30 +184,63 @@
     tickTimer = setInterval(() => { tick.innerHTML = codeLine(); }, 380);
   }
   function stopRain(){ clearInterval(rainTimer); clearInterval(tickTimer); if(rain) rain.classList.remove("on"); }
+  // Teacher: every bar must reach the right-hand end. When a WATCH ends, its fill runs quickly to 100% (from wherever
+  // a timed or progress() fill had got to) and the strip stays up until the full bar has been seen.
+  let hideTimer = null, fullAt = 0, hideGen = 0;
+  function fillUp(fill){
+    const box = fill.parentNode.clientWidth, px = fill.offsetWidth;
+    if(!box || px >= box - 1){ fill.style.transition = "none"; fill.style.width = "100%"; fullAt = 0; return; }
+    fill.style.transition = "none"; fill.style.width = px + "px"; void fill.offsetWidth;
+    fill.style.transition = "width .22s ease-out"; fill.style.width = "100%";
+    fullAt = performance.now() + 320;
+  }
+  function hideBar(){
+    clearTimeout(hideTimer); hideTimer = null;
+    const gen = ++hideGen, wait = fullAt - performance.now();
+    if(wait <= 0){ bar.classList.remove("on"); return; }
+    hideTimer = setTimeout(() => { hideTimer = null; whenFull(() => { if(gen === hideGen && watchCount === 0) bar.classList.remove("on"); }); }, wait);
+  }
+  // Runs fn once a frame with the full bar has been drawn (a busy page can skip frames)
+  function whenFull(fn){
+    const fill = bar.querySelector(".bar i"); let seen = 0, tries = 0;
+    const check = () => {
+      if(fill.offsetWidth >= fill.parentNode.clientWidth - 1) seen++;
+      if(seen >= 2 || ++tries > 30) fn(); else requestAnimationFrame(check);
+    };
+    requestAnimationFrame(check);
+  }
   function settleIdle(){ if(watchCount > 0) return; const w = idleWaiters; idleWaiters = []; w.forEach(f => f()); }
 
   function watch(label, { seconds = 0, onSkip = null } = {}){
     if(EMBED) return { progress(){}, end(){} };
+    clearTimeout(hideTimer); hideTimer = null;
     show(); setChip("watch", label); state = "watch"; watchCount++;
-    const fill = bar.querySelector(".bar i"); fill.style.transition = "none"; fill.style.width = "0"; void fill.offsetWidth;
-    let timer = null, ended = false;
-    if(seconds > 0){ fill.style.transition = `width ${seconds / speed()}s linear`; requestAnimationFrame(() => { fill.style.width = "100%"; }); }
+    const fill = bar.querySelector(".bar i");
+    let timer = null, ended = false, pending = null;
+    const begin = () => {
+      timer = null; fill.style.transition = "none"; fill.style.width = "0"; void fill.offsetWidth;
+      if(seconds > 0){ fill.style.transition = `width ${seconds / speed()}s linear`; requestAnimationFrame(() => { fill.style.width = "100%"; }); }
+      if(pending !== null) h.progress(pending);
+    };
+    // A WATCH that has only just ended shows its full bar for a moment before this one starts from empty
+    const hold = fullAt - performance.now();
+    if(hold > 0) timer = setTimeout(() => whenFull(() => { if(!ended) begin(); }), hold); else begin();
     if(onSkip){ bar.classList.add("canskip"); bar._skip = () => { SND("whoosh"); onSkip(); }; } else bar._skip = null;
     startRain(); say("Watch. " + label);
     const h = {
-      progress(k){ if(ended) return; fill.style.transition = "width .3s linear"; fill.style.width = Math.round(Math.max(0, Math.min(1, k)) * 100) + "%"; },
+      progress(k){ if(ended) return; if(timer){ pending = k; return; } fill.style.transition = "width .3s linear"; fill.style.width = Math.round(Math.max(0, Math.min(1, k)) * 100) + "%"; },
       label(t){ if(!ended) bar.querySelector(".lab").innerHTML = t; },
-      end(){ if(ended) return; ended = true; clearTimeout(timer); watchCount = Math.max(0, watchCount - 1); if(watchCount === 0){ stopRain(); bar._skip = null; bar.classList.remove("canskip"); fill.style.width = "100%"; if(state === "watch") state = "idle"; } settleIdle(); },
+      end(){ if(ended) return; ended = true; clearTimeout(timer); watchCount = Math.max(0, watchCount - 1); if(watchCount === 0){ stopRain(); bar._skip = null; bar.classList.remove("canskip"); fillUp(fill); if(state === "watch") state = "idle"; } settleIdle(); },
     };
     return h;
   }
   function turn(label){
     if(EMBED) return;
     // No bar for YOUR TURN (Bertie didn't like it): the WATCH strip slides away, a soft chirp, and the job is read aloud
-    if(bar){ stopRain(); bar.classList.remove("on"); }
+    if(bar){ stopRain(); hideBar(); }
     state = "turn"; SND("chirp"); say(label);
   }
-  function done(){ if(!bar) return; stopRain(); bar.classList.remove("on"); document.documentElement.classList.remove("pn-mode-on"); state = "none"; }
+  function done(){ if(!bar) return; stopRain(); hideBar(); document.documentElement.classList.remove("pn-mode-on"); state = "none"; }
   function idle(){ return watchCount === 0 ? Promise.resolve() : new Promise(r => idleWaiters.push(r)); }
   // Run an async cinematic inside a WATCH: PNMode.during("Building floor 1", 20, async h => { ... })
   async function during(label, seconds, fn, opts = {}){

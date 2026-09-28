@@ -7,7 +7,7 @@
 <link rel="stylesheet" href="../shared/primenet.css">
 
 <meta charset="UTF-8" />
-<title>Bank Blueprint Assembled</title>
+<title>Blueprint Assembled</title>
 <style>
   :root{
     --fill1: rgba(var(--accent-rgb), 0.65);
@@ -319,7 +319,7 @@ button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [clas
 <body>
   <div class="container">
     <div class="blueprint-header">
-      <h1>Bank Blueprint Complete</h1>
+      <h1>Blueprint Complete</h1>
       <p>Three floors rebuilt from your factor pairs</p>
     </div>
 
@@ -335,6 +335,7 @@ button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [clas
 
   <!-- Three.js is included with the game so the 3D view works without internet -->
   <script src="../shared/vendor/three.min.js"></script>
+  <script src="../shared/story.js"></script>
   <script src="../shared/primenet.js"></script>
   <script src="../shared/mode.js"></script>
   <script src="../shared/badges.js"></script>
@@ -428,6 +429,7 @@ function powerUpPrompt(title){
       (window.PNSound ? PNSound.whenUnlocked(() => powerUpPrompt("ASSEMBLE THE BLUEPRINT")) : Promise.resolve()).then(async () => {
         // Round 15: chapter 3, the building
         if(window.PNMode){ PNMode.chapter("building"); await PNMode.chapterCard(3, "The building"); }
+        if(window.PNHandler && !(window.PNTwistSlot && PNTwistSlot.has("assembled"))) PNHandler.say(PNStory.LINES.building, { delay: 1500 });
         const t = document.querySelector("h1"); if(t && PN) t.textContent = `${PN.mission().target}: assembling`;
         // Feedback: the plotter didn't match the arrays and slowed things down; straight into the 3D build
         // SPACE on the power-up prompt scrolls the page after this runs; bring the building back into view
@@ -492,7 +494,7 @@ function powerUpPrompt(title){
     // Round 15: two WATCH bars on this page's cinematics: the assembly (chapter 3, fills to 100% at STRUCTURE ASSEMBLED)
     // and the plan (chapter 4, lights to route); planAt(k) is the plan's progress (0..1).
     let bpWatch = null;
-    function watchStart(label = 'ORACLE is building the bank'){ if(!bpWatch && window.PNMode) bpWatch = PNMode.watch(label); }
+    function watchStart(label = 'Building the blueprint'){ if(!bpWatch && window.PNMode) bpWatch = PNMode.watch(label); }
     function watchAt(k){ if(bpWatch) bpWatch.progress(k); }
     function watchLabel(t){ if(bpWatch && bpWatch.label) bpWatch.label(t); }
     function watchEnd(){ if(bpWatch){ bpWatch.progress(1); bpWatch.end(); bpWatch = null; } if(window.PNMode) PNMode.done(); }
@@ -695,7 +697,7 @@ function powerUpPrompt(title){
       function hideLabel(){ labelEl.classList.remove('on'); }
       // A calm floor-by-floor ring, used when the floor plan is repaired
       async function greenRings(w){
-        for(const [i, f] of order.entries()){ ring(f.yOffset + 0.5, 0x3dffa8); SND("chirp"); if(w) w.progress((i + 1) / (order.length + 1)); await wait(380); }
+        for(const [i, f] of order.entries()){ ring(f.yOffset + 0.5, 0x3dffa8); SND("chirp"); if(w) w.progress((i + 1) / order.length); await wait(380); }   // the last ring fills the bar
       }
 
       // ---------- Chapter 3: the corrupted floor (only when the corrupted blueprint is in this mission) ----------
@@ -712,7 +714,7 @@ function powerUpPrompt(title){
           spinning = false;
           SND("static", 0.8); setTimeout(() => SND("radio"), 250 / speedUp()); setTimeout(() => SND("glitch"), 700 / speedUp());
           say('Interference on floor 2…');
-          if(window.PNHandler) PNHandler.say("Interference. Floor 2 came through wrong. It won't fit.");
+          if(window.PNHandler) PNHandler.say(PNStory.LINES.corrupt);
           f.lines.forEach(m => m.color.set(0xff4f6d)); f.plate.material.color.set(0xff4f6d);
           if(reduced()) setBig(1);
           else {
@@ -759,14 +761,14 @@ function powerUpPrompt(title){
           f.boxes.forEach(b => { b.material.emissiveIntensity = 0.02; b.material.opacity = 0.06; b.material.needsUpdate = true; });
           if(f.plate && f.plate.material){ f.plate.material.opacity = 0.15; f.plate.material.needsUpdate = true; }
           SND("clamp"); ring(f.yOffset + 0.5, 0x333333);
-          wd.progress((i + 1) / (order.length + 1));
+          wd.progress((i + 1) / order.length);   // the last floor going dark fills the bar
           await wait(380);
         }
         bpEvent('blackout');
         weakPulse = false;
         card('i-dark', `<b>CAMERAS DARK</b>Every ceiling relay powered: the lights and cameras are off.`);
         showLabel('CAMERAS DARK', 'green');
-        if(window.PNHandler) PNHandler.say("Lights out. Their cameras are blind. Keep moving.");
+        if(window.PNHandler) PNHandler.radio("cubesDone");
         await wait(1100);
         hideLabel(); wd.end();
       }
@@ -775,6 +777,7 @@ function powerUpPrompt(title){
       async function afterAssembly(){
         // Round 15: chapter 4, the plan (no twists in this chapter)
         if(window.PNMode){ PNMode.chapter("plan"); await PNMode.chapterCard(4, "The plan"); }
+        if(window.PNHandler) PNHandler.say(PNStory.LINES.plan);
         watchStart('Lights on');
         // Lit windows: every room has a × b windows, so every room on a floor has exactly N lights
         say('Powering up…'); watchLabel('Lights on');
@@ -981,7 +984,7 @@ function powerUpPrompt(title){
           g.fillStyle = gr; g.fillRect(0, 0, 64, 64); return new THREE.CanvasTexture(cv); })();
         const agent = new THREE.Sprite(new THREE.SpriteMaterial({ map: dotTex, depthTest: false, transparent: true }));
         agent.scale.set(9, 9, 1); agent.position.copy(pts[0]); agent.renderOrder = 21; mainGroup.add(agent);
-        const tag = badge('YOU', '#6ec8ff', 80); tag.position.copy(pts[0]).add(V(0, 8, 0)); mainGroup.add(tag); fadeIn([tag]);
+        const tag = badge('FOX + WREN', '#ffb35c', 150); tag.position.copy(pts[0]).add(V(0, 8, 0)); mainGroup.add(tag); fadeIn([tag]);
         const halo = new THREE.Mesh(new THREE.RingGeometry(3, 3.6, 40), new THREE.MeshBasicMaterial({ color: BLUE, transparent: true, side: THREE.DoubleSide, depthTest: false }));
         halo.rotation.x = -Math.PI / 2; halo.position.copy(pts[0]); halo.renderOrder = 20; mainGroup.add(halo);
         let pulsing = true; (function pulse(t){ if(!pulsing) return; const k = (t / 1200) % 1; halo.scale.setScalar(1 + k * 2.2); halo.material.opacity = 1 - k; requestAnimationFrame(pulse); })(0);
@@ -1159,7 +1162,7 @@ function powerUpPrompt(title){
         const w0 = shortWatch('GO GO GO', 2);
         const go = document.createElement('div'); go.className = 'bp-go'; go.textContent = 'GO GO GO'; stageEl.appendChild(go);
         SND("powerup"); bpEvent('go');
-        if(window.PNHandler) PNHandler.say("Go, go, go. Stick to the route.");
+        if(window.PNHandler) PNHandler.radio("headingIn");
         let base = 0;
         if(!reduced()){
           follow.dir.copy(camera.position).sub(camLook).normalize();
@@ -1199,7 +1202,7 @@ function powerUpPrompt(title){
             cctv.innerHTML = `<i></i><i></i><i></i><i></i><span class="rec"><b>●</b> REC</span><span class="cam">CAM 04 · FIRE DOOR</span><span class="ts">${new Date().toLocaleTimeString('en-GB')}</span>`;
             stageEl.appendChild(cctv); SND("tag");
             showLabel('GUARDS ON THE DOOR', 'red');
-            if(window.PNHandler) PNHandler.say("Guards on the door. Two of them. Watch their timings.");
+            if(window.PNHandler) PNHandler.radio("patrols");
             await wait(3000);
             w.end();
           };
@@ -1207,6 +1210,7 @@ function powerUpPrompt(title){
           bpEvent('twist:entry');
           pacing = false; guards.forEach(gd => mainGroup.remove(gd)); if(cctv) cctv.remove(); hideLabel(); push(1);
           tickAt(D.door, 'entry');
+          if(window.PNHandler) PNHandler.radio("patrolsDone");
           await wait(500);
         }
 
@@ -1233,7 +1237,7 @@ function powerUpPrompt(title){
             mainGroup.add(box);
             SND("zoom"); push(0.6);
             showLabel('FUSE BOX', 'gold');
-            if(window.PNHandler) PNHandler.say("Fuse box. Get that panel open.");
+            if(window.PNHandler) PNHandler.radio("cubes");
             await wait(1100);
             SND("clamp");
             await tween(reduced() ? 1 : 520, e => { hinge.rotation.y = -1.9 * e; }, easeOutBack);
@@ -1273,7 +1277,7 @@ function powerUpPrompt(title){
             SND("static", 0.9); SND("radio");
             showLabel('COMMS · INCOMING', 'blue');
             await stageStatic(900);
-            if(window.PNHandler) PNHandler.say("Change of plan. The key card is in a deposit box in the basement.");
+            if(window.PNHandler) { PNHandler.say("Change of plan. The key card is in a deposit box in the basement."); PNHandler.radio("planb", { delay: 3800 }); }
             // The basement: a plate under floor 1
             const pg = new THREE.BoxGeometry(maxExtentX * 1.8, 0.6, maxExtentZ * 1.8);
             const plate = new THREE.Mesh(pg, new THREE.MeshBasicMaterial({ color: 0x3a7bff, transparent: true, opacity: 0, depthWrite: false }));
@@ -1322,7 +1326,7 @@ function powerUpPrompt(title){
             (function pulse(t){ if(!glow) return; sMesh.material.emissiveIntensity = reduced() ? 0.6 : 0.35 + 0.45 * (0.5 + 0.5 * Math.sin(t / 380)); requestAnimationFrame(pulse); })(0);
             ring(y2 + 0.3, 0xff4f6d); SND("ping"); push(0.8);
             showLabel('PRESSURE PLATES', 'red');
-            if(window.PNHandler) PNHandler.say("Strongroom. The floor is pressure plated. Careful.");
+            if(window.PNHandler) PNHandler.radio("strongroom");
             bpEvent('strong-glow');
             await wait(3200);
             w.end();
@@ -1343,7 +1347,7 @@ function powerUpPrompt(title){
         const wv = shortWatch('At the vault', 2.4);
         ring(vPt.y + 0.3, 0xffc94d); SND("verified"); push(0.9);
         showLabel('THE VAULT', 'gold'); bpEvent('vault');
-        if(window.PNHandler) PNHandler.say("We're at the vault. Get the locks open.");
+        if(window.PNHandler) PNHandler.say("FOX and WREN are at the vault. Get the locks open, {codename}.");
         await wait(2400);
         wv.end();
       }
@@ -1545,11 +1549,11 @@ function powerUpPrompt(title){
         () => `upload chunk ${hex()}${hex()} ........ ok`,
       ];
       const ov = document.createElement('div'); ov.className = 'arm';
-      ov.innerHTML = `<h2>INITIATE PRIME HACK PROTOCOL</h2><div class="scr" aria-hidden="true"></div><div class="bar"><b></b></div>
-        <div class="st"><span class="msg">Type anything to upload the breach kit.</span><span class="pct">0%</span></div>`;
+      ov.innerHTML = `<h2>SEND THE ACCESS KIT TO FOX AND WREN</h2><div class="scr" aria-hidden="true"></div><div class="bar"><b></b></div>
+        <div class="st"><span class="msg">Type anything to send the access kit.</span><span class="pct">0%</span></div>`;
       document.body.appendChild(ov);
       SND("comms");
-      if(window.PNMode) PNMode.turn('Type to upload the breach kit');
+      if(window.PNMode) PNMode.turn('Type to send the access kit');
       const scr = ov.querySelector('.scr'), bar = ov.querySelector('.bar b'), msg = ov.querySelector('.msg'), pct = ov.querySelector('.pct'), st = ov.querySelector('.st');
       const lines = [''], NEED = 60; let n = 0, cur = LINES[0](), cls = 'c1', pos = 0, done = false;
       function show(){ scr.innerHTML = lines.slice(-8).map((l, i, arr) => i === arr.length - 1 ? `<span class="${cls}">${l}</span>▌` : l).join('\n'); }
@@ -1563,7 +1567,7 @@ function powerUpPrompt(title){
         lines[lines.length - 1] += cur.slice(pos, pos + step); pos += step;
         if(pos >= cur.length){ lines.push(''); cur = LINES[Math.floor(Math.random() * LINES.length)](); pos = 0; cls = ['c1', 'c2', 'c3', 'c4'][Math.floor(Math.random() * 4)]; }
         const k = Math.min(1, n / NEED); bar.style.width = (k * 100) + '%'; pct.textContent = Math.round(k * 100) + '%';
-        if(k >= 1){ done = true; msg.textContent = 'Breach kit uploaded. Press ENTER to start the hack.'; st.classList.add('ready'); SND("verified"); }
+        if(k >= 1){ done = true; msg.textContent = 'Access kit sent. Press ENTER to go in.'; st.classList.add('ready'); SND("verified"); }
         show();
       }
       function finish(){ document.removeEventListener('keydown', key); ov.remove(); document.querySelectorAll('.quiz').forEach(q => q.remove()); onDone(); }
@@ -1612,7 +1616,7 @@ function powerUpPrompt(title){
           const ok = o === Q.ans;
           if(!ok) b.classList.add('wrong');
           SND(ok ? "correct" : "wrong", 4);
-          why.innerHTML = ok ? `<b>Intel confirmed: +10% on this heist.</b> ${Q.why}` : `Not quite. ${Q.why} No bonus this time.`;
+          why.innerHTML = ok ? `<b>Intel confirmed: +10% on what we recover.</b> ${Q.why}` : `Not quite. ${Q.why} No bonus this time.`;
           if(PN) PN.updateAgent({ quizDone: true, intelBonus: ok ? 10 : 0 });
           if(ok && window.PNBadges && !DEMO_MODE) PNBadges.award("analyst");
           setTimeout(onDone, 900 / (window.PNTest ? PNTest.speed() : 1));   // straight into the typing; the answer stays on screen

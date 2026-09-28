@@ -71,6 +71,7 @@
 
 <script src="../shared/vendor/three.min.js"></script>
 <script src="../shared/sound.js"></script>
+<script src="../shared/story.js"></script>
 <script src="../shared/primenet.js"></script>
 <script src="../shared/voice.js"></script>
 <script src="../shared/mode.js"></script>
@@ -205,7 +206,7 @@
     stamp.classList.add("on", "shake"); SND("lockon");
     await sleep(700);
     if(left) return;
-    if(window.PNHandler) PNHandler.say("Their plans are encrypted. Each floor is locked with a number. Find its factor pairs and the floor decrypts.");
+    if(window.PNHandler) PNHandler.say(PNStory.LINES.decrypt);
     const rows = [...document.querySelectorAll("#floors div")];
     for(const r of rows){ if(left) return; r.classList.add("on"); SND("chirp"); await sleep(280); }
     await sleep(6000);   // time to read (or hear) ORACLE's line
