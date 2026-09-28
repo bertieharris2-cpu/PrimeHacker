@@ -572,10 +572,17 @@
     const b = document.createElement("button"); b.type = "button"; b.className = "pn-full"; b.title = "Full screen (Escape leaves it)";
     const label = () => { b.textContent = document.fullscreenElement ? "EXIT FULL SCREEN ⤡" : "FULL SCREEN ⤢"; };
     label();
-    b.addEventListener("click", e => { e.stopPropagation(); if(document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen().catch(() => {}); });
+    b.addEventListener("click", e => { e.stopPropagation(); if(document.fullscreenElement){ try{ sessionStorage.setItem("primenet_fullscreen", "0"); }catch(err){} document.exitFullscreen(); } else document.documentElement.requestFullscreen().catch(() => {}); });
     b.addEventListener("keydown", e => e.stopPropagation());
-    document.addEventListener("fullscreenchange", label);
+    document.addEventListener("fullscreenchange", () => { label(); try{ sessionStorage.setItem("primenet_fullscreen", document.fullscreenElement ? "1" : "0"); }catch(e){} });
     document.body.appendChild(b);
+    // Browsers leave full screen whenever the page changes, and only allow it again after a press on the new page.
+    // So if the pupil chose full screen, the first click or key press on each new page puts it back.
+    let want = false; try{ want = sessionStorage.getItem("primenet_fullscreen") === "1"; }catch(e){}
+    if(want && !document.fullscreenElement){
+      const again = () => { document.removeEventListener("pointerdown", again, true); document.removeEventListener("keydown", again, true); if(!document.fullscreenElement) document.documentElement.requestFullscreen().catch(() => {}); };
+      document.addEventListener("pointerdown", again, true); document.addEventListener("keydown", again, true);
+    }
   }
   if(document.readyState === "loading") document.addEventListener("DOMContentLoaded", fullscreenButton); else fullscreenButton();
 })();

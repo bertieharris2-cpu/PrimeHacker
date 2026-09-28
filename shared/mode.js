@@ -20,18 +20,19 @@
   const say = (t, tries = 0) => { if(window.PNVoice) PNVoice.speak(t); else if(tries < 10) setTimeout(() => say(t, tries + 1), 200); };
 
   const css = `
-  html.pn-mode-on body{ padding-top:var(--pn-mode-h, 62px) !important; }
-  .pnm{ position:fixed; left:0; right:0; top:0; z-index:9400; display:flex; align-items:stretch; gap:0; min-height:58px;
+  /* Round 16 (Bertie): the bar only shows for WATCH, as a thin strip over the page (it never pushes the page down).
+     YOUR TURN has no bar: the page itself is the cue. The chapter cards say where you are. */
+  .pnm{ position:fixed; left:0; right:0; top:0; z-index:9400; display:flex; align-items:stretch; gap:0; min-height:40px;
     font-family:"Chakra Petch", var(--font-ui, sans-serif); color:#eafcff; background:#041318; border-bottom:2px solid #1d4a55; box-shadow:0 6px 24px rgba(0,0,0,.5);
     transform:translateY(-110%); transition:transform .35s cubic-bezier(.2,1,.3,1), background .3s, border-color .3s; }
   .pnm.on{ transform:none; }
-  .pnm .chip{ flex:0 0 auto; display:flex; align-items:center; gap:10px; padding:0 20px; font-weight:700; font-size:22px; letter-spacing:.18em; }
-  .pnm .chip svg{ width:28px; height:28px; }
-  .pnm .mid{ flex:1 1 auto; min-width:0; display:flex; flex-direction:column; justify-content:center; gap:5px; padding:8px 16px; }
-  .pnm .lab{ font-size:19px; font-weight:600; letter-spacing:.04em; line-height:1.25; }   /* long jobs wrap rather than get cut off */
-  .pnm .bar{ height:12px; background:rgba(110,200,255,.14); border:1px solid rgba(110,200,255,.45); display:none; }
+  .pnm .chip{ flex:0 0 auto; display:flex; align-items:center; gap:8px; padding:0 14px; font-weight:700; font-size:15px; letter-spacing:.18em; }
+  .pnm .chip svg{ width:20px; height:20px; }
+  .pnm .mid{ flex:1 1 auto; min-width:0; display:flex; flex-direction:row; align-items:center; gap:14px; padding:6px 14px; }
+  .pnm .lab{ flex:0 1 auto; font-size:15px; font-weight:600; letter-spacing:.04em; line-height:1.25; }   /* long jobs wrap rather than get cut off */
+  .pnm .bar{ flex:1 1 auto; height:8px; background:rgba(110,200,255,.14); border:1px solid rgba(110,200,255,.45); display:none; }
   .pnm .bar i{ display:block; height:100%; width:0; background:linear-gradient(90deg,#3aa7ff,#8feaff); box-shadow:0 0 12px #6ec8ff; transition:width .25s linear; }
-  .pnm .tick{ font-family:"Courier Prime", monospace; font-size:13px; color:rgba(160,230,255,.75); white-space:nowrap; overflow:hidden; display:none; }
+  .pnm .tick{ flex:0 0 auto; max-width:30vw; font-family:"Courier Prime", monospace; font-size:12px; color:rgba(160,230,255,.75); white-space:nowrap; overflow:hidden; display:none; }
   .pnm .skip{ display:none; align-self:center; margin-right:12px; font:inherit; font-weight:700; font-size:12px; letter-spacing:.16em; color:#bfefff; background:transparent; border:1px solid rgba(140,235,255,.5); padding:7px 12px; cursor:pointer; }
   .pnm.watch{ background:linear-gradient(90deg,#062235,#041a26); border-color:#3aa7ff; }
   .pnm.watch .chip{ background:#0d3552; color:#8feaff; }
@@ -43,7 +44,7 @@
   .pnm.pulse .chip{ animation:pnmPulse .9s ease-out 2; }
   @keyframes pnmPulse{ 40%{ filter:brightness(1.6); box-shadow:0 0 30px #2fbf8a; } }
   /* Where am I: the mission's stages, right-hand side */
-  .pnm .stages{ flex:0 0 auto; display:flex; align-items:center; gap:6px; padding:0 14px; border-left:1px solid rgba(255,255,255,.08); font-size:12px; font-weight:700; letter-spacing:.12em; }
+  .pnm .stages{ display:none !important; flex:0 0 auto; align-items:center; gap:6px; padding:0 14px; border-left:1px solid rgba(255,255,255,.08); font-size:12px; font-weight:700; letter-spacing:.12em; }
   .pnm .st{ padding:5px 8px; border:1px solid rgba(255,255,255,.14); color:rgba(235,255,248,.45); white-space:nowrap; }
   .pnm .st.done{ color:#7dffc4; border-color:rgba(47,191,138,.5); }
   .pnm .st.done::before{ content:"✓ "; }
@@ -115,7 +116,7 @@
   }
   function show(){
     build();
-    document.documentElement.classList.add("pn-mode-on");
+    
     requestAnimationFrame(() => bar.classList.add("on"));
   }
 
@@ -202,9 +203,9 @@
   }
   function turn(label){
     if(EMBED) return;
-    show(); stopRain(); setChip("turn", label); state = "turn";
-    void bar.offsetWidth; bar.classList.add("pulse");
-    SND("chirp"); say(label);
+    // No bar for YOUR TURN (Bertie didn't like it): the WATCH strip slides away, a soft chirp, and the job is read aloud
+    if(bar){ stopRain(); bar.classList.remove("on"); }
+    state = "turn"; SND("chirp"); say(label);
   }
   function done(){ if(!bar) return; stopRain(); bar.classList.remove("on"); document.documentElement.classList.remove("pn-mode-on"); state = "none"; }
   function idle(){ return watchCount === 0 ? Promise.resolve() : new Promise(r => idleWaiters.push(r)); }
