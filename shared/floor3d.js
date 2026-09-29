@@ -60,7 +60,7 @@
     // Rooms with a × b ceiling lights on top, as in the blueprint
     const rooms = L.rooms.map(r0 => {
       const a = Math.min(r0.w, r0.h), b = Math.max(r0.w, r0.h);
-      const r = { a, b, rows: r0.h, cols: r0.w, gx: r0.x, gy: r0.y, gw: r0.w, gh: r0.h, door: r0.door, w: r0.w * cell - cell * 0.25, d: r0.h * cell - cell * 0.25, x: (r0.x + r0.w / 2) * cell - PLATE / 2, z: (r0.y + r0.h / 2) * cell - PLATE / 2, name: roomName(a, b) };
+      const r = { a, b, rows: r0.h, cols: r0.w, gx: r0.x, gy: r0.y, gw: r0.w, gh: r0.h, door: r0.door, w: r0.w * cell - cell * 0.25, d: r0.h * cell - cell * 0.25, x: (r0.x + r0.w / 2) * cell - PLATE / 2, z: (r0.y + r0.h / 2) * cell - PLATE / 2, name: r0.name || roomName(a, b) };   // the grid page saves each room's name
       const strong = a === b;
       const geom = new THREE.BoxGeometry(r.w, H, r.d);
       const mesh = new THREE.Mesh(geom, new THREE.MeshStandardMaterial({ color: 0x00ff99, emissive: 0x00ff99, emissiveIntensity: 0.25, transparent: true, opacity: strong ? 0.24 : 0.16 }));

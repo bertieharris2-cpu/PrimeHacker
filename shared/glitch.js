@@ -99,6 +99,8 @@
     let flagged = false, kind = "1";
     try{ kind = sessionStorage.getItem(FLAG); flagged = !!kind; sessionStorage.removeItem(FLAG); }catch(e){}
     if(!flagged) return;
+    // A page can opt out of the incoming static (<html data-glitch-in="off">), so the fuzz plays once, on the way out
+    if(kind === "1" && document.documentElement.dataset.glitchIn === "off") return;
     if(kind === "sweep" && !reduced()){
       const el = layer(); el.querySelector("canvas").remove(); el.querySelector(".shade").remove();
       sweep(el, false, 520).then(() => el.remove());

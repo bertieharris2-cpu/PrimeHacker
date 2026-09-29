@@ -289,9 +289,21 @@ body::before{
     repeating-linear-gradient(120deg, rgba(var(--accent-rgb), .06) 0 1px, transparent 2px 44px) !important;
 }
 button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [class*="Title"]{ font-family: var(--font-ui); }
+/* Arriving from the factor vault: the page starts on the glowing file the arrays flew into, and the floor zooms out of it */
+.fileRing{ position:fixed; left:50%; top:50%; width:170px; height:170px; margin:-85px 0 0 -85px; z-index:9000; pointer-events:none; border-radius:50%;
+  display:flex; align-items:center; justify-content:center; color:var(--accent);
+  background:radial-gradient(circle, rgba(var(--accent-rgb),.22), rgba(7,20,24,.92) 70%); box-shadow:0 0 44px rgba(var(--accent-rgb),.4), inset 0 0 30px rgba(var(--accent-rgb),.22); }
+.fileRing[hidden]{ display:none; }
+.fileRing::before{ content:""; position:absolute; inset:-7px; border-radius:50%; background:conic-gradient(var(--accent) calc(var(--k, 1) * 360deg), rgba(var(--accent-rgb),.18) 0);
+  -webkit-mask:radial-gradient(closest-side, transparent calc(100% - 6px), #000 calc(100% - 5px)); mask:radial-gradient(closest-side, transparent calc(100% - 6px), #000 calc(100% - 5px)); }
+.fileRing svg{ width:62px; height:76px; }
+.fileRing b{ position:absolute; top:100%; margin-top:22px; white-space:nowrap; font-family:var(--font-ui); font-size:24px; letter-spacing:.14em; text-shadow:0 0 16px rgba(var(--accent-rgb),.6); }
+html.fileIn .wrap > *{ opacity:0; }
 </style>
 </head>
 <body>
+<div class="fileRing" id="fileRing" hidden aria-hidden="true"><svg viewBox="0 0 48 58"><path d="M6 2h24l12 12v42H6z" style="fill:rgba(var(--accent-rgb),.14)" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"/><path d="M30 2v12h12M13 27h22M13 35h22M13 43h14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg><b id="fileRingLab"></b></div>
+<script>try{ const f = sessionStorage.getItem("pn_file_in"); if(f){ document.documentElement.classList.add("fileIn"); document.getElementById("fileRing").hidden = false; document.getElementById("fileRingLab").textContent = "OPENING FLOOR " + f; } }catch(e){}</script>
 <div class="wrap">
   <div class="title">
     <div>VAULT GRID: 19×19</div>
@@ -708,9 +720,19 @@ function floorRating(n){
   return { pairs, rating: pairs <= 2 ? "WEAK" : pairs === 3 ? "STANDARD" : "SECURE" };
 }
 
-/* Rooms get names from their shape, so the floor plan reads like a building.
-   Square pairs are the reinforced strongroom (gold). */
+/* Rooms get names so the floor plan reads like a real building. Square pairs are the reinforced strongroom (gold).
+   Bertie: mostly ordinary rooms, offices and toilets most of all; archives and servers only now and then.
+   The number is how many of each go in the bag (a floor draws without putting back). */
+const ROOM_BAG = [["OFFICE", 8], ["TOILETS", 4], ["OPEN-PLAN OFFICE", 2], ["MEETING ROOM", 3], ["KITCHEN", 2], ["RECEPTION", 1], ["STAIRS", 1], ["LIFT", 1],
+  ["STORE CUPBOARD", 2], ["BREAK ROOM", 1], ["PRINT ROOM", 1], ["CLEANER'S CUPBOARD", 1], ["LOCKERS", 1], ["POST ROOM", 1], ["STAFF ROOM", 1],
+  ["IT DESK", 1], ["PLANT ROOM", 1], ["BOARDROOM", 1], ["CANTEEN", 1], ["FIRST AID", 1], ["QUIET ROOM", 1], ["TRAINING ROOM", 1], ["SHOWERS", 1],
+  ["BIKE STORE", 1], ["WAITING AREA", 1], ["SECURITY DESK", 1], ["COPY ROOM", 1], ["ARCHIVE", 1], ["SERVER ROOM", 1]];
+function nameRooms(placements, seed){
+  const rnd = mulberry32((seed ^ 0x0FF1CE) >>> 0), bag = ROOM_BAG.flatMap(([n, k]) => Array(k).fill(n));
+  placements.forEach(r => { r.name = r.w === r.h ? "STRONGROOM" : bag.length ? bag.splice(Math.floor(rnd() * bag.length), 1)[0] : "OFFICE"; });
+}
 function roomName(rect){
+  if(rect.name) return rect.name;
   const a = Math.min(rect.w, rect.h), b = Math.max(rect.w, rect.h);
   if(a === b) return "STRONGROOM";
   if(a === 1) return "ARCHIVE";        // feedback round 7: the space between rooms is the corridor
@@ -947,10 +969,11 @@ async function run(seed, wanted){
   window.lastPlacements = placements;
   // Doors face the widest corridor; one fire exit on the outer wall. Saved so the Blueprint rebuilds this exact floor.
   placements.forEach(r => { r.door = doorFor(r, GRID); });
+  nameRooms(placements, currentSeed);
   window.lastExit = exitFor(placements, GRID);
   try{
     const all = JSON.parse(localStorage.getItem("blueprintLayouts") || "{}");
-    all[currentN] = { grid: GRID, rooms: placements.map(({ x, y, w, h, door }) => ({ x, y, w, h, door })), exit: window.lastExit };
+    all[currentN] = { grid: GRID, rooms: placements.map(({ x, y, w, h, door, name }) => ({ x, y, w, h, door, name })), exit: window.lastExit };
     localStorage.setItem("blueprintLayouts", JSON.stringify(all));
   }catch(e){}
   window.lastSeed = currentSeed;
@@ -1295,15 +1318,33 @@ function buildSeconds(n){
   const build = 0.95 + (k - 1) * 0.26 + 0.09 + 0.54 + fillMs(n) / 1000 + 0.1;   // border lead, stagger, laser lead, one room's fill
   const reduced = PN && PN.reducedMotion && PN.reducedMotion();
   const drone = reduced ? 0 : Math.max(9, pairs * 1.6);
-  const intel = reduced || !window.PNHolo ? 0 : 3 * 0.95;
-  return build + 0.7 + 1.3 + 1.9 + drone + intel + 1;
+  return build + 0.7 + 1.3 + 1.9 + drone + 1;   // the intel windows open during the drone
+}
+
+// From the factor vault: the empty floor grid zooms out of the glowing file, then the lasers draw on it (about 1.2 s)
+async function openFile(){
+  const ring = document.getElementById("fileRing");
+  if(!document.documentElement.classList.contains("fileIn")) return;
+  try{ sessionStorage.removeItem("pn_file_in"); }catch(e){}
+  GRID = initialN + 1; STEP = 100 / GRID; buildGrid();
+  const sp = window.PNTest ? PNTest.speed() : 1, reduced = !!(PN && PN.reducedMotion && PN.reducedMotion());
+  await realWait(250);   // a beat on the file, as it was left on the vault page
+  const r = stageEl.getBoundingClientRect(), dx = innerWidth / 2 - (r.left + r.width / 2), dy = innerHeight / 2 - (r.top + r.height / 2), T = (reduced ? 600 : 1200) / sp;
+  const zoom = stageEl.animate(reduced ? [{ opacity: 0 }, { opacity: 1 }]
+    : [{ transform: `translate(${dx}px, ${dy}px) scale(.05)`, opacity: 0 }, { opacity: 1, offset: .3 }, { transform: "none", opacity: 1 }], { duration: T, easing: "cubic-bezier(.25,.7,.25,1)" });
+  ring.animate(reduced ? [{ opacity: 1 }, { opacity: 0 }] : [{ opacity: 1, transform: "none" }, { opacity: 0, transform: "scale(1.8)" }], { duration: 750 / sp, easing: "ease-in", fill: "forwards" });
+  [...document.querySelector(".wrap").children].filter(el => el !== stageEl).forEach(el => el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 600 / sp, delay: T * 0.55, fill: "backwards" }));
+  document.documentElement.classList.remove("fileIn");
+  await zoom.finished.catch(() => {});
+  ring.remove();
 }
 
 // Students: lasers build the floor plan, it rises into 3D, the drone looks round, then straight into the hack-in.
 if(PN) PN.log("grid", { n: initialN });
 document.querySelector(".title div:first-child").insertAdjacentHTML("afterend",
   `<div>FLOOR ${Math.max(1, Math.min(floorsBuilt(), FLOORS_NEEDED))} OF ${FLOORS_NEEDED}</div>`);
-(window.PNSound ? PNSound.whenUnlocked(() => powerUpPrompt("POWER UP THE GRID")) : Promise.resolve())
+openFile()
+.then(() => window.PNSound ? PNSound.whenUnlocked(() => powerUpPrompt("POWER UP THE GRID")) : null)
 .then(() => {
   window.scrollTo(0, 0); setTimeout(() => window.scrollTo(0, 0), 60);
   // One WATCH for the laser build, the tilt, the drone and the floor intel, timed from the real durations
@@ -1392,6 +1433,8 @@ async function droneFlythrough(placements){
   window.sweepTrail = 0.22;
   if(!SKIPPING) SND("scan", sweepMs / 1000);
   let live = true; (function follow(now){ if(!live) return; const k = ((now || performance.now()) - t0) / sweepMs; window.sweep = k <= 1 ? -1 + k * (GRID + 2) : null; if(k > 1) window.roofGrid = Math.max(window.roofGrid || 0, 0.22); rerenderGrid(); requestAnimationFrame(follow); })();
+  // Bertie: the intel windows open one after another while the drone scans, not all at the end
+  const intel = floorAnalysis(placements, dur * sp);
   const lines = [];
   const altTimer = setInterval(() => { alt.textContent = (8 + Math.random() * 6).toFixed(1); }, 180);
   for(const [i, r] of rooms.entries()){
@@ -1411,11 +1454,11 @@ async function droneFlythrough(placements){
   clearInterval(altTimer);
   window.gridHighlight = null; rerenderGrid();
   hud.remove();
-  await floorAnalysis(placements);
+  await intel;
 }
 
 // After the drone: intel on the floor, the kind of thing an agent wants (feedback round 9: no maths here).
-// Each window opens large in the middle, holds, then zooms out to its place, so at the end all three are showing.
+// The three windows open in their places one by one through the drone's scan (span: the scan's length in ms), so at the end all three are showing.
 let analysisWins = [];
 function cctvSvg(r){
   const guard = `<g><circle r="9" fill="rgba(255,80,110,.25)"><animateMotion dur="6s" repeatCount="indefinite" path="M40 96 L160 96 L160 64 L60 64 Z"/></circle><circle r="5" fill="#ff6b8a"><animateMotion dur="6s" repeatCount="indefinite" path="M40 96 L160 96 L160 64 L60 64 Z"/></circle></g>`;
@@ -1432,12 +1475,13 @@ function cctvSvg(r){
     <text x="6" y="114" fill="rgba(223,248,255,.8)" font-size="9" font-family="monospace">${r}</text>
   </svg>`;
 }
-async function floorAnalysis(placements){
+async function floorAnalysis(placements, span){
   if(!window.PNHolo) return;
   const { rating } = floorRating(currentN);
   const rnd = mulberry32((currentN * 7919) ^ 0x5eed);
   const pickR = a => a[Math.floor(rnd() * a.length)];
   const rooms = placements.map(r => roomName(r));
+  const lower = t => t.toLowerCase().replace(/\bit\b/, "IT");   // "the IT desk"
   const strongRoom = placements.find(r => r.w === r.h);
   const guards = rating === "WEAK" ? 1 : rating === "SECURE" ? 3 : 2;
   const nightStart = pickR(["21:30", "22:00", "22:30"]), gapMin = rating === "WEAK" ? 6 : rating === "SECURE" ? 2 : 4;
@@ -1449,7 +1493,7 @@ async function floorAnalysis(placements){
     { title: "SHIFT ROTA", flag: `SECURITY ${rating}`, w: 300,
       html: `DAY &nbsp;&nbsp;07:00–15:00 · <span class="yl">${guards + 2}</span> guards<br>EVE &nbsp;&nbsp;15:00–${nightStart} · <span class="yl">${guards + 1}</span> guards<br>NIGHT ${nightStart}–07:00 · <span class="yl">${guards}</span> guard${guards === 1 ? "" : "s"}<br><span class="k">Shift change at ${nightStart}: the floor is empty for <span class="${col}">${gapMin} min</span>.</span>` },
     { title: `CCTV · CAM 0${1 + Math.floor(rnd() * 8)}`, flag: "LIVE", w: 280, cctv: true,
-      html: `${cctvSvg(camRoom)}<span class="k">Camera pans every 12 s. Blind spot by the ${pickR(rooms).toLowerCase()} door.</span>` },
+      html: `${cctvSvg(camRoom)}<span class="k">Camera pans every 12 s. Blind spot by the ${lower(pickR(rooms))} door.</span>` },
     { title: "KEYCARD LOG", flag: "LAST NIGHT", w: 300,
       html: log.map(l => `${l.t} <span class="yl">${l.role}</span> ${l.who}<br><span class="k">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ${l.room}</span>`).join("<br>") + (strongRoom ? `<br><span class="k">No one swiped into the <span class="yl">strongroom</span>.</span>` : "") },
     { title: "RADIO INTERCEPT", flag: "CH 4", w: 300,
@@ -1459,7 +1503,7 @@ async function floorAnalysis(placements){
     { title: "STAFF FILE", flag: "HR SERVER", w: 290,
       html: `${pickR(names)} · <span class="yl">${pickR(["Night manager", "Head of security", "Cleaner", "IT support"])}</span><br>Keycard: level ${1 + Math.floor(rnd() * 3)}<br>Leaves at ${pickR(["22:10", "23:40", "05:55"])}<br><span class="k">${pickR(["Writes passwords on sticky notes.", "Always takes the lift.", "Never checks the back office."])}</span>` },
     { title: "VENTILATION", flag: "PLANT ROOM", w: 280,
-      html: `Main duct runs above the ${pickR(rooms).toLowerCase()}<br>Grille size: <span class="yl">60 × 45 cm</span><br>Airflow: ${pickR(["low overnight", "off after 22:00", "steady"])}<br><span class="k">Too loud to hear footsteps near it.</span>` },
+      html: `Main duct runs above the ${lower(pickR(rooms))}<br>Grille size: <span class="yl">60 × 45 cm</span><br>Airflow: ${pickR(["low overnight", "off after 22:00", "steady"])}<br><span class="k">Too loud to hear footsteps near it.</span>` },
   ];
   // Round 12: more variety: three windows per floor, a different mix each time (CCTV more often than not)
   const cctvFirst = rnd() < 0.7;
@@ -1468,16 +1512,11 @@ async function floorAnalysis(placements){
   const slots = [{ x: 15, y: 26 }, { x: 85, y: 30 }, { x: 15, y: 68 }];
   const list = chosen.map((w, i) => ({ ...w, ...slots[i] }));
   analysisWins = [];
-  const sp = () => (window.PNTest ? PNTest.speed() : 1);
-  for(const w of list){
-    const win = PNHolo.open({ ...w, x: 50, y: 46, tilt: 0 });
-    analysisWins.push(win);
-    win.el.style.transform = "translate(-50%,-50%) scale(1.45)";
-    SND("holo");
-    if(!SKIPPING) await PNHolo.wait(600);
-    win.el.style.transition = "left .5s ease, top .5s ease, transform .5s ease";
-    win.el.style.left = w.x + "%"; win.el.style.top = w.y + "%"; win.el.style.transform = "translate(-50%,-50%) scale(1)";
-    if(!SKIPPING) await PNHolo.wait(350);
+  let at = 0;
+  for(const [i, w] of list.entries()){
+    const due = span * (0.22 + 0.26 * i);   // about a quarter, half and three quarters of the way through the scan
+    await pause(due - at); at = due;
+    analysisWins.push(PNHolo.open({ ...w, tilt: 0, sound: !SKIPPING }));
   }
   // A ticking CCTV clock
   const clock = document.querySelector(".cctvClock");

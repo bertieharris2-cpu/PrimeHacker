@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" class="phase-build">
+<html lang="en" class="phase-build" data-glitch-in="off">
 <head>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -509,6 +509,14 @@ body::before{
 button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [class*="Title"]{ font-family: var(--font-ui); }
 body{ font-size: var(--font-size); }
 .title-main{ color: var(--accent) !important; }
+/* Floor done: the arrays fly into a glowing file in the middle; vault_grid_demo opens with the same ring */
+.fileRing{ position:fixed; left:50%; top:50%; width:170px; height:170px; margin:-85px 0 0 -85px; z-index:9000; pointer-events:none; border-radius:50%;
+  display:flex; align-items:center; justify-content:center; color:var(--accent);
+  background:radial-gradient(circle, rgba(var(--accent-rgb),.22), rgba(7,20,24,.92) 70%); box-shadow:0 0 44px rgba(var(--accent-rgb),.4), inset 0 0 30px rgba(var(--accent-rgb),.22); }
+.fileRing::before{ content:""; position:absolute; inset:-7px; border-radius:50%; background:conic-gradient(var(--accent) calc(var(--k, 1) * 360deg), rgba(var(--accent-rgb),.18) 0);
+  -webkit-mask:radial-gradient(closest-side, transparent calc(100% - 6px), #000 calc(100% - 5px)); mask:radial-gradient(closest-side, transparent calc(100% - 6px), #000 calc(100% - 5px)); }
+.fileRing svg{ width:62px; height:76px; }
+.fileRing b{ position:absolute; top:100%; margin-top:22px; white-space:nowrap; font-family:var(--font-ui); font-size:24px; letter-spacing:.14em; text-shadow:0 0 16px rgba(var(--accent-rgb),.6); }
 </style>
 </head>
 <body>
@@ -1088,9 +1096,41 @@ body{ font-size: var(--font-size); }
       if(PN) PN.log("vault-complete", { n: N, level: currentDifficulty });
       if(window.PNBadges && Number.isInteger(Math.sqrt(N))) PNBadges.award("square-hunter");
       setHint(`Every pair found! Floor ${floorDone} is decrypted.`, "good");
-      if(window.PNMode) PNMode.watch(`Floor ${floorDone} decrypted. Building it…`, { seconds: 1.7 });   // full before the page moves on at 2 s
+      if(window.PNMode) PNMode.watch(`Floor ${floorDone} decrypted. Building it…`, { seconds: 2.3 });   // full as the page moves on
       const go = `vault_grid_demo.html?n=${N}`;
-      setTimeout(() => (window.PNGlitch ? PNGlitch.go(go, { style: "sweep" }) : (location.href = go)), 2000 / (window.PNTest ? PNTest.speed() : 1));
+      setTimeout(() => absorbArrays(floorDone, go), 900 / (window.PNTest ? PNTest.speed() : 1));
+    }
+    // Bertie: no flash between pages. The arrays fly into a glowing file in the middle, the page fades away round it,
+    // and the grid page starts on the same file and zooms the floor out of it. Reduced motion: a plain fade.
+    const FILE_SVG = `<svg viewBox="0 0 48 58" aria-hidden="true"><path d="M6 2h24l12 12v42H6z" style="fill:rgba(var(--accent-rgb),.14)" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"/><path d="M30 2v12h12M13 27h22M13 35h22M13 43h14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>`;
+    async function absorbArrays(floor, url){
+      const sp = window.PNTest ? PNTest.speed() : 1, reduced = !!(PN && PN.reducedMotion && PN.reducedMotion());
+      const ring = document.createElement("div"); ring.className = "fileRing"; ring.setAttribute("role", "status");
+      ring.innerHTML = `${FILE_SVG}<b>FLOOR ${floor} SAVED</b>`;
+      ring.style.setProperty("--k", reduced ? 1 : 0);
+      document.body.appendChild(ring);
+      ring.animate(reduced ? [{ opacity: 0 }, { opacity: 1 }] : [{ opacity: 0, transform: "scale(.6)" }, { opacity: 1, transform: "none" }], { duration: 450 / sp, easing: "ease-out", fill: "both" });
+      const fade = el => el && el.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 700 / sp, delay: 250 / sp, easing: "ease-in", fill: "forwards" });
+      [".app", ".corner-ctl", ".pnh"].forEach(q => fade(document.querySelector(q)));
+      let total = 900;
+      if(!reduced){
+        // clones fly (the panel clips its contents), one after another
+        const tiles = [...vaultRight.querySelectorAll(".array-tile")], cx = innerWidth / 2, cy = innerHeight / 2, gap = Math.min(90, 500 / Math.max(1, tiles.length));
+        tiles.forEach((t, i) => {
+          const r = t.getBoundingClientRect(), c = t.cloneNode(true);
+          Object.assign(c.style, { position: "fixed", left: r.left + "px", top: r.top + "px", width: r.width + "px", height: r.height + "px", margin: "0", zIndex: "8999", pointerEvents: "none" });
+          document.body.appendChild(c); t.style.visibility = "hidden";
+          c.animate([{ transform: "none", opacity: 1 }, { transform: `translate(${cx - r.left - r.width / 2}px, ${cy - r.top - r.height / 2}px) scale(.05)`, opacity: .2 }],
+            { duration: 800 / sp, delay: (150 + i * gap) / sp, easing: "cubic-bezier(.55,0,.75,.35)", fill: "both" }).finished.then(() => c.remove());
+        });
+        // the ring fills as the arrays go in
+        const t0 = performance.now(), fillMs = 950 + Math.max(0, tiles.length - 1) * gap;
+        total = fillMs + 250;   // a short beat on the full file
+        (function fill(now){ const k = Math.min(1, (now - t0) / (fillMs / sp)); ring.style.setProperty("--k", k * k * (3 - 2 * k)); if(k < 1) requestAnimationFrame(fill); })(t0);
+      }
+      await new Promise(r => setTimeout(r, total / sp));
+      try{ sessionStorage.setItem("pn_file_in", String(floor)); }catch(e){}
+      location.href = url;
     }
     function makeArrayTile(a, b, label){
       const cols = b;   // the whole array, every square (packVault shrinks the squares to fit)

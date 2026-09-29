@@ -9,8 +9,9 @@
 <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Inter:wght@400;600;700;800&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../shared/primenet.css">
 <style>
-  /* Round 15: chapter 2 opener. A hologram of the bank's building from the outside (no floor plans yet: they're
-     encrypted), then TARGET LOCKED and ORACLE's line about decrypting each floor. About 6 seconds, WATCH, skippable. */
+  /* Round 15: chapter 2 opener. Round 16: lasers first trace a map of the town, the camera zooms in on the target's
+     building, TARGET LOCKED, then the hologram of its floors with soft red interference bands (still encrypted) and
+     ORACLE's line about decrypting each floor. About 13 seconds, WATCH, skippable. */
   html, body{ height:100%; }
   body{ margin:0; overflow:hidden; background:radial-gradient(ellipse at 50% 55%, #0b2a33 0%, #04101a 55%, #01060a 100%); color:var(--text-primary); font-family:var(--font-ui); }
   .tl-stage{ position:fixed; inset:0; }
@@ -23,6 +24,7 @@
   .tl-vig{ position:fixed; inset:0; pointer-events:none; z-index:2; box-shadow:inset 0 0 180px rgba(0,0,0,.85); }
   .tl-head{ position:fixed; left:22px; top:calc(var(--pn-mode-h, 62px) + 16px); z-index:3; font-family:var(--font-mono); font-size:13px; letter-spacing:.14em; color:rgba(140,230,255,.75); line-height:1.7; }
   .tl-head b{ color:#bff4ff; font-weight:700; }
+  .tl-head em{ font-style:normal; color:#ffc94d; }
   /* the lock-on brackets close in on the building */
   .tl-ret{ position:fixed; left:50%; top:54%; width:720px; height:620px; transform:translate(-50%,-50%); z-index:3; pointer-events:none; opacity:0;
     transition:width 1.1s cubic-bezier(.2,.8,.2,1), height 1.1s cubic-bezier(.2,.8,.2,1), opacity .3s, border-color .3s; }
@@ -55,6 +57,9 @@
   .pn-powerup small{ display:block; margin-top:8px; letter-spacing:.06em; font-weight:400; color:var(--text-muted); }
   @media (max-width:700px){ .tl-floors{ top:auto; bottom:24px; left:16px; } .tl-head{ left:16px; } }
   @media (prefers-reduced-motion: reduce){ .tl-scan::after{ animation:none; } .tl-ret{ transition:none; } }
+  /* reduced motion: the stamp just appears (its entrance is an animation, which reduced motion switches off) */
+  @media (prefers-reduced-motion: reduce){ .tl-stamp.on{ animation:none; opacity:1; transform:translate(-50%,-50%) rotate(-6deg); } }
+  .pn-reduce-motion .tl-stamp.on{ animation:none; opacity:1; transform:translate(-50%,-50%) rotate(-6deg); }
 </style>
 </head>
 <body>
@@ -90,12 +95,12 @@
   const reduced = () => !!(PN && PN.reducedMotion && PN.reducedMotion());
   const M = PN ? PN.mission() : { target: "Rivercross Utilities", operation: "SILENT HERON", codename: "AGENT" };
   document.getElementById("bank").textContent = M.target;
-  document.getElementById("head").innerHTML = `PRIMENET // TARGET ACQUISITION<br>OPERATION <b>${M.operation}</b><br>SIGNAL TRACED TO <b>${M.target.toUpperCase()}</b>`;
+  document.getElementById("head").innerHTML = `PRIMENET // TARGET ACQUISITION<br>OPERATION <b>${M.operation}</b><br>SIGNAL TRACED TO <b>${M.target.toUpperCase()}</b><br><em id="stat">MAPPING THE TOWN</em>`;
   if(PN) PN.log("target-locked", { target: M.target });
 
-  // ---------- The hologram: the building's outside, three storeys, no plans inside ----------
-  const CYAN = 0x6fe8ff;
-  let reveal = 0, tint = 0;   // 0..1 floors appearing; 0..1 how gold the lock-on has turned it
+  // ---------- The scene: lasers trace the town, zoom to the target, then its three storeys (no plans inside) ----------
+  const CYAN = 0x6fe8ff, RED = 0xff5a66;
+  let mapP = 0, zoomK = 0, reveal = 0, tint = 0, crypt = 0;   // 0..1: map drawn; camera zoomed in; floors appearing; lock-on gold; red encryption bands
   const floors = [];
   (function scene(){
     if(!window.THREE){ return nogl(); }
@@ -105,12 +110,77 @@
     renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
     host.appendChild(renderer.domElement);
     const sc = new THREE.Scene();
-    const cam = new THREE.PerspectiveCamera(38, 1, 0.1, 100);
-    cam.position.set(0, 4.2, 15.5); cam.lookAt(0, 2.1, 0);
+    const cam = new THREE.PerspectiveCamera(38, 1, 0.1, 200);
     const W = 6, D = 4, H = 1.35;
-    const line = (op = .9) => new THREE.LineBasicMaterial({ color: CYAN, transparent: true, opacity: op, blending: THREE.AdditiveBlending, depthWrite: false });
-    const root = new THREE.Group(); sc.add(root);
-    // Windows on each face of a storey, as one set of line segments
+    const line = (op = .9, c = CYAN) => new THREE.LineBasicMaterial({ color: c, transparent: true, opacity: op, blending: THREE.AdditiveBlending, depthWrite: false });
+    const world = new THREE.Group(); sc.add(world);
+    const root = new THREE.Group(); world.add(root);
+    let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;   // same town every time
+
+    // --- The town map: streets, then building outlines, split between four lasers ---
+    const streams = [[], [], [], []], box = [];
+    const quad = (x, z) => (x >= 0 ? 0 : 1) + (z >= 0 ? 0 : 2);
+    const fade = (x, z) => Math.max(.12, Math.min(1, 1 - (Math.hypot(x, z) - 16) / 24));   // dimmer towards the edge of the map
+    const seg = (list, a, b, kind, k) => list.push({ a, b, kind, k, d: Math.hypot(a[0] + b[0], a[2] + b[2]) / 2 });
+    for(let r = -4; r <= 3; r++) for(let c = -3; c <= 3; c++) for(const e of [-1, 1]){   // road edges, broken at each junction
+      const x = (r + .5) * 10 + e, z0 = c * 10 - 4, z1 = c * 10 + 4;
+      seg(streams[quad(x, c * 10)], [x, 0, z0], [x, 0, z1], 0, fade(x, c * 10));
+      seg(streams[quad(c * 10, x)], [z0, 0, x], [z1, 0, x], 0, fade(c * 10, x));
+    }
+    function building(list, cx, cz, w, d, h, k){
+      const x0 = cx - w / 2, x1 = cx + w / 2, z0 = cz - d / 2, z1 = cz + d / 2, cs = [[x0, z0], [x1, z0], [x1, z1], [x0, z1]], out = [];
+      const ring = y => cs.forEach((p, i) => { const q = cs[(i + 1) % 4]; out.push([[p[0], y, p[1]], [q[0], y, q[1]]]); });
+      ring(0); cs.forEach(p => out.push([[p[0], 0, p[1]], [p[0], h, p[1]]])); ring(h);
+      out.forEach(([a, b]) => seg(list, a, b, 1, k));
+    }
+    for(let bx = -3; bx <= 3; bx++) for(let bz = -3; bz <= 3; bz++){
+      if(!bx && !bz) continue;   // the target's block
+      const cx = bx * 10, cz = bz * 10, k = fade(cx, cz), near = Math.max(Math.abs(bx), Math.abs(bz));
+      const lots = rnd() < .3 ? [[0, 0, 7, 7]] : rnd() < .5 ? [[-2, 0, 3.2, 7], [2, 0, 3.2, 7]] : [[-2, -2, 3.2, 3.2], [2, -2, 3.2, 3.2], [-2, 2, 3.2, 3.2], [2, 2, 3.2, 3.2]];
+      lots.forEach(([ox, oz, lw, ld]) => {
+        if(rnd() < .12) return;   // a car park
+        const w = lw * (.65 + rnd() * .3), d = ld * (.65 + rnd() * .3), h = (near === 1 ? 1 : 1.4) * (.8 + rnd() * rnd() * 5.5);
+        building(box, cx + ox, cz + oz, w, d, h, k);
+      });
+    }
+    box.forEach(s => streams[quad(s.a[0], s.a[2])].push(s));
+    streams.forEach(l => l.sort((p, q) => p.kind - q.kind || p.d - q.d));   // streets first, from the middle outwards
+    // A set of segments that a laser draws in order; the last one grows to meet the laser's tip
+    function tracer(list, colFn, parent){
+      const n = list.length, src = new Float32Array(n * 6), col = new Float32Array(n * 8);   // colour is RGBA: fading uses alpha, or faded lines turn black
+      list.forEach((s, i) => { src.set(s.a, i * 6); src.set(s.b, i * 6 + 3); col.set([.75, .95, 1, colFn(s), .75, .95, 1, colFn(s)], i * 8); });
+      const g = new THREE.BufferGeometry(), pos = new THREE.BufferAttribute(src.slice(), 3), ca = new THREE.BufferAttribute(col.slice(), 4);
+      g.setAttribute("position", pos); g.setAttribute("color", ca); g.setDrawRange(0, 0);
+      const mat = new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false });
+      const obj = new THREE.LineSegments(g, mat); obj.frustumCulled = false; parent.add(obj);
+      let cur = -1; const tip = new THREE.Vector3();
+      return { obj, mat, list, col, ca, set(p){
+        if(p <= 0){ g.setDrawRange(0, 0); return null; }
+        const f = Math.min(1, p) * n, k = Math.min(n - 1, Math.floor(f)), fr = p >= 1 ? 1 : f - k, a = pos.array;
+        if(cur >= 0 && cur !== k) for(let j = 3; j < 6; j++) a[cur * 6 + j] = src[cur * 6 + j];
+        for(let j = 0; j < 3; j++) a[k * 6 + 3 + j] = src[k * 6 + j] + (src[k * 6 + 3 + j] - src[k * 6 + j]) * fr;
+        cur = k; pos.needsUpdate = true; g.setDrawRange(0, (k + 1) * 2);
+        return p >= 1 ? null : tip.set(a[k * 6 + 3], a[k * 6 + 4], a[k * 6 + 5]);
+      } };
+    }
+    const cyan = new THREE.Color(CYAN);
+    const city = streams.map(l => tracer(l, s => s.k * (s.kind ? .85 : .5), world));
+    // The target: one tall block the lasers finish on, gold once it's locked
+    const tBox = []; building(tBox, 0, 0, W, D, 3 * H, 1);
+    const target = tracer(tBox, () => 1, root);
+    // The lasers: beams from four emitters up high, each with a glowing tip
+    const dot = (() => { const c = document.createElement("canvas"); c.width = c.height = 64; const x = c.getContext("2d"), gr = x.createRadialGradient(32, 32, 0, 32, 32, 32);
+      gr.addColorStop(0, "rgba(255,255,255,1)"); gr.addColorStop(.25, "rgba(160,240,255,.8)"); gr.addColorStop(1, "rgba(111,232,255,0)"); x.fillStyle = gr; x.fillRect(0, 0, 64, 64); return new THREE.CanvasTexture(c); })();
+    const EMIT = [[22, 20, -22], [-22, 20, -22], [22, 20, 18], [-22, 20, 18]];
+    const lasers = EMIT.map(e => {
+      const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute([...e, ...e], 3));
+      const beam = new THREE.Line(g, line(.85, 0xbff4ff)); beam.frustumCulled = false; world.add(beam);
+      const tip = new THREE.Sprite(new THREE.SpriteMaterial({ map: dot, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false })); tip.scale.setScalar(2.8); world.add(tip);
+      const src = new THREE.Sprite(tip.material); src.position.set(...e); src.scale.setScalar(1.6); world.add(src);
+      return { beam, tip, src, e };
+    });
+
+    // --- The hologram: three storeys, each with soft red interference drifting across it ---
     function windows(w, d, h){
       const pts = [], rect = (a, b, c, e, f) => { // quad corners in 3D
         [[a, b], [b, c], [c, e], [e, a]].forEach(([p, q]) => pts.push(...p, ...q)); };
@@ -120,13 +190,36 @@
       face(4, d, (z0, z1) => { const x = w / 2 + .001; rect([x, y0, z0], [x, y0, z1], [x, y1, z1], [x, y1, z0]); rect([-x, y0, z0], [-x, y0, z1], [-x, y1, z1], [-x, y1, z0]); });
       const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute(pts, 3)); return g;
     }
+    // A soft, blurry texture of broken horizontal noise lines (the "encrypted" look)
+    const noiseTex = (() => {
+      const c = document.createElement("canvas"); c.width = 256; c.height = 128; const x = c.getContext("2d");
+      for(let i = 0; i < 26; i++){
+        const y = rnd() * 128, th = 1 + rnd() * 3; x.fillStyle = `rgba(255,60,80,${.15 + rnd() * .45})`;
+        for(let u = rnd() * 30; u < 256; u += 8 + rnd() * 40) x.fillRect(u, y, 6 + rnd() * 50, th);
+      }
+      const b = document.createElement("canvas"); b.width = 256; b.height = 128; const bx = b.getContext("2d");
+      bx.filter = "blur(2px)"; bx.drawImage(c, 0, 0); bx.filter = "none"; bx.globalAlpha = .5; bx.drawImage(c, 0, 0);
+      const t = new THREE.CanvasTexture(b); t.wrapS = t.wrapT = THREE.RepeatWrapping; return t;
+    })();
+    // A wobbly red loop round a storey's walls, which drifts slowly up and fades in and out
+    function fuzzLoop(w, d){
+      const pts = [], cs = [[-w / 2, -d / 2], [w / 2, -d / 2], [w / 2, d / 2], [-w / 2, d / 2]];
+      cs.forEach((p, i) => { const q = cs[(i + 1) % 4]; for(let s = 0; s < 14; s++){ const u = s / 14; pts.push(new THREE.Vector3(p[0] + (q[0] - p[0]) * u, (rnd() - .5) * .07, p[1] + (q[1] - p[1]) * u)); } });
+      pts.push(pts[0].clone());
+      return new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), line(0, RED));
+    }
     for(let i = 0; i < 3; i++){
       const f = new THREE.Group(); f.position.y = i * H;
-      const box = new THREE.BoxGeometry(W, H, D); box.translate(0, H / 2, 0);
-      const shell = new THREE.LineSegments(new THREE.EdgesGeometry(box), line(.95));
-      const glass = new THREE.Mesh(box, new THREE.MeshBasicMaterial({ color: CYAN, transparent: true, opacity: .07, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }));
+      const bx = new THREE.BoxGeometry(W, H, D); bx.translate(0, H / 2, 0);
+      const shell = new THREE.LineSegments(new THREE.EdgesGeometry(bx), line(.95));
+      const glass = new THREE.Mesh(bx, new THREE.MeshBasicMaterial({ color: CYAN, transparent: true, opacity: .07, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }));
       const win = new THREE.LineSegments(windows(W, D, H), line(.55));
-      f.add(glass, shell, win); root.add(f); floors.push({ g: f, mats: [shell.material, win.material, glass.material], base: [.95, .55, .07] });
+      const tex = noiseTex.clone(); tex.needsUpdate = true; tex.repeat.set(2, 1); tex.offset.set(rnd(), rnd());
+      const sleeve = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, H * .9, 4, 1, true), new THREE.MeshBasicMaterial({ map: tex, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }));
+      sleeve.rotation.y = Math.PI / 4; sleeve.scale.set((W + .08) / Math.SQRT2, 1, (D + .08) / Math.SQRT2); sleeve.position.y = H / 2;
+      const loops = [fuzzLoop(W + .1, D + .1), fuzzLoop(W + .14, D + .14)];
+      f.add(glass, shell, win, sleeve, ...loops); root.add(f);
+      floors.push({ g: f, mats: [shell.material, win.material, glass.material], base: [.95, .55, .07], sleeve, tex, loops, ph: i * .37 });
     }
     // Roof: parapet, plant rooms and an antenna
     const roof = new THREE.Group(); roof.position.y = 3 * H; root.add(roof);
@@ -138,35 +231,62 @@
     const ant = new THREE.BufferGeometry(); ant.setAttribute("position", new THREE.Float32BufferAttribute([1.9, 0, -1.1, 1.9, 1.6, -1.1, 1.7, 1.2, -1.1, 2.1, 1.2, -1.1], 3));
     const antL = new THREE.LineSegments(ant, line(.8)); roof.add(antL); roofMats.push(antL.material);
     const beacon = new THREE.Mesh(new THREE.SphereGeometry(.07, 10, 8), new THREE.MeshBasicMaterial({ color: 0xff6b6b })); beacon.position.set(1.9, 1.62, -1.1); roof.add(beacon);
-    // Ground: target rings and a faint grid
-    const rings = new THREE.Group(); sc.add(rings);
-    [4.6, 5.4, 6.4].forEach((r, k) => {
+    // Ground: target rings (they fade in as the camera arrives)
+    const rings = new THREE.Group(); world.add(rings);
+    const ringMats = [4.6, 5.4, 6.4].map((r, k) => {
       const c = new THREE.BufferGeometry().setFromPoints(Array.from({ length: 97 }, (_, i) => { const a = i / 96 * Math.PI * 2; return new THREE.Vector3(Math.cos(a) * r, 0, Math.sin(a) * r); }));
-      const l = new THREE.Line(c, line(k === 0 ? .55 : .25)); rings.add(l);
+      const l = new THREE.Line(c, line(0)); rings.add(l); return [l.material, k === 0 ? .55 : .25];
     });
-    const grid = new THREE.GridHelper(16, 32, CYAN, CYAN); grid.material.transparent = true; grid.material.opacity = .08; sc.add(grid);
 
     function size(){ const w = window.innerWidth, h = window.innerHeight; renderer.setSize(w, h, false); cam.aspect = w / h; cam.updateProjectionMatrix(); }
     size(); window.addEventListener("resize", size);
-    const gold = new THREE.Color(0xffc94d), cyan = new THREE.Color(CYAN), col = new THREE.Color();
-    const t0 = performance.now();
+    const gold = new THREE.Color(0xffc94d), col = new THREE.Color();
+    const C0 = new THREE.Vector3(0, 46, 32), C1 = new THREE.Vector3(0, 4.2, 15.5), L0 = new THREE.Vector3(0, 0, 2), L1 = new THREE.Vector3(0, 2.1, 0), look = new THREE.Vector3();
+    const ease = k => k < .5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
+    let last = performance.now(), t = 0, spin = 0, zDone = -1;
     (function frame(now){
-      const t = (now - t0) / 1000;
-      root.rotation.y = reduced() ? .6 : .6 + t * .32;
-      rings.rotation.y = -t * .15;
+      const dt = Math.min(.1, (now - last) / 1000) * speed(), rm = reduced(); last = now; t += dt;
+      // Camera: from high over the town down to the building
+      const z = ease(zoomK);
+      cam.position.lerpVectors(C0, C1, z); look.lerpVectors(L0, L1, z); cam.lookAt(look);
+      world.rotation.y = rm ? .45 : .45 + t * .025;
+      if(reveal > 0 && !rm) spin += dt * .32;
+      root.rotation.y = spin; rings.rotation.y = rm ? 0 : -t * .15;
+      // Lasers draw the town, then all four finish on the target
+      const tips = city.map(c => c.set(mapP / .8)), tt = target.set((mapP - .72) / .28);
+      const lk = mapP > 0 && mapP < 1 && !rm ? 1 : 0;
+      lasers.forEach((L, i) => {
+        const p = tips[i] || tt;   // the hologram hasn't turned yet, so its space matches the town's
+        const on = lk && p; L.beam.visible = L.tip.visible = !!on; L.src.visible = !!lk;
+        if(on){ const a = L.beam.geometry.attributes.position; a.setXYZ(1, p.x, p.y, p.z); a.needsUpdate = true; L.tip.position.copy(p); }
+      });
+      // The rest of the town fades back as the camera zooms in; the streets stay faintly
+      if(zoomK !== zDone){ zDone = zoomK;
+        city.forEach(c => { c.list.forEach((s, i) => { const v = c.col[i * 8 + 3] * (s.kind ? Math.pow(1 - zoomK, 2) : 1 - .7 * zoomK); c.ca.array[i * 8 + 3] = c.ca.array[i * 8 + 7] = v; }); c.ca.needsUpdate = true; });
+      }
+      ringMats.forEach(([m, op]) => { m.opacity = op * zoomK; });
       col.copy(cyan).lerp(gold, tint * .55);
+      target.mat.color.copy(cyan).lerp(gold, tint * .9); target.mat.opacity = 1 - reveal;
       floors.forEach((f, i) => {
         const k = Math.max(0, Math.min(1, reveal * 3 - i));   // bottom floor first
         f.g.scale.y = .001 + .999 * k; f.g.visible = k > 0;
-        const flick = reduced() ? 1 : .88 + .12 * Math.sin(t * 23 + i * 2.1) * Math.sin(t * 7.3);
+        const flick = rm ? 1 : .9 + .1 * Math.sin(t * 2.3 + i * 2.1);   // a slow shimmer, not a flicker
         f.mats.forEach((m, j) => { m.opacity = f.base[j] * k * flick; if(m.color) m.color.copy(col); });
+        // Encrypted: blurry red bands drift slowly across the walls, and two red lines rise and fade
+        const c = crypt * k;
+        if(!rm){ f.tex.offset.y -= dt * .045; f.tex.offset.x += dt * .012; }
+        f.sleeve.material.opacity = c * (rm ? .55 : .5 + .2 * Math.sin(t * .8 + i * 2));
+        f.loops.forEach((l, j) => {
+          const u = rm ? .3 + j * .4 : (t * .09 + f.ph + j * .5) % 1;
+          l.position.y = H * (.1 + .8 * u); l.material.opacity = c * (rm ? .5 : .75 * Math.sin(Math.PI * u));
+        });
       });
       const rk = Math.max(0, Math.min(1, reveal * 3 - 2.6) / .4);
       roof.visible = rk > 0; roofMats.forEach(m => { m.opacity = .8 * rk; m.color.copy(col); });
-      beacon.visible = rk > 0 && Math.sin(t * 6) > 0;
+      beacon.visible = rk > 0 && (rm || Math.sin(t * 3) > 0);
       renderer.render(sc, cam);
       requestAnimationFrame(frame);
-    })(t0);
+    })(last);
   })();
   function nogl(){ const d = document.createElement("div"); d.className = "tl-nogl"; d.textContent = "HOLOGRAM OFFLINE"; document.body.appendChild(d); }
 
@@ -187,25 +307,41 @@
     document.body.appendChild(ov);
     return () => ov.remove();
   }
-  async function animateReveal(ms){
+  // Run fn(k) with k going 0..1 over ms (the test speed-up applies); reduced motion jumps straight to the end
+  function tween(ms, fn, jump){
+    if(jump){ fn(1); return Promise.resolve(); }
     const t0 = performance.now(), dur = ms / speed();
-    await new Promise(res => (function f(now){ reveal = Math.min(1, (now - t0) / dur); if(reveal < 1 && !left) requestAnimationFrame(f); else { reveal = 1; res(); } })(t0));
+    return new Promise(res => (function f(now){ const k = Math.min(1, (now - t0) / dur); fn(k); if(k < 1 && !left) requestAnimationFrame(f); else { fn(1); res(); } })(t0));
   }
+  const stat = t => { const e = document.getElementById("stat"); if(e) e.textContent = t; };
   async function play(){
     await (window.PNSound ? PNSound.whenUnlocked(() => powerUpPrompt("LOCK ON TO THE TARGET")) : Promise.resolve());
     if(window.PNMode) await PNMode.chapterCard(2, "Decrypt the plans");
     if(left) return;
-    watchH = window.PNMode ? PNMode.watch("Target locked", { seconds: 6.8, onSkip: goOn }) : null;
+    watchH = window.PNMode ? PNMode.watch("Target locked", { seconds: 13.3, onSkip: goOn }) : null;
     const ret = document.getElementById("ret"), stamp = document.getElementById("stamp");
-    SND("scanline", 1.1);
-    ret.classList.add("on"); requestAnimationFrame(() => requestAnimationFrame(() => ret.classList.add("close")));
-    await animateReveal(1400);
+    // 1. Lasers trace the town map
+    SND("laser"); [900, 1800].forEach(ms => setTimeout(() => { if(!left && mapP < 1) SND("laser"); }, ms / speed()));
+    await tween(2600, k => { mapP = k; });
     if(left) return;
-    await sleep(150);
-    ret.classList.add("locked"); tint = 1;
-    stamp.classList.add("on", "shake"); SND("lockon");
+    stat("TARGET BUILDING FOUND"); SND("chirp");
+    await sleep(200);
+    // 2. Zoom in on the target's building, brackets closing in
+    SND("zoom");
+    setTimeout(() => { ret.classList.add("on"); requestAnimationFrame(() => requestAnimationFrame(() => ret.classList.add("close"))); }, 700 / speed());
+    await tween(1600, k => { zoomK = k; }, reduced());
+    if(left) return;
+    await sleep(100);
+    // 3. TARGET LOCKED
+    ret.classList.add("on", "close", "locked"); tint = 1;
+    stamp.classList.add("on", "shake"); SND("lockon"); stat("TARGET LOCKED");
     await sleep(700);
     if(left) return;
+    // 4. The hologram builds, floor by floor, and each floor is scrambled red
+    SND("scanline", 1.1);
+    await tween(1300, k => { reveal = k; crypt = Math.max(0, k * 1.4 - .4); });
+    if(left) return;
+    stat("FLOOR PLANS ENCRYPTED");
     if(window.PNHandler) PNHandler.say(PNStory.LINES.decrypt);
     const rows = [...document.querySelectorAll("#floors div")];
     for(const r of rows){ if(left) return; r.classList.add("on"); SND("chirp"); await sleep(280); }
