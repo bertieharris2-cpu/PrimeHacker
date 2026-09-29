@@ -9,7 +9,7 @@
   const SECURITY = { L1: "Low", L2: "Medium", L3: "High" };
   const PINS = {   // pin positions as % of the map (the same as briefing.html); each target building stands on its pin
     "Rivercross Utilities": [12, 34], "Northwick Transit": [24, 22], "Sentinel Finance": [16, 62], "Haven Council": [30, 50],
-    "Ember Freight": [44, 78], "Crystal Holdings": [55, 64], "Vault Secure": [42, 58], "Pinnacle Corp": [60, 86],
+    "Ember Freight": [44, 78], "Crystal Holdings": [55, 64], "Vault Secure": [42, 51], "Pinnacle Corp": [60, 86],
     "Helix Dynamics": [72, 30], "Nexus Global": [86, 22], "Kronos Finance": [80, 50], "Atlas Prime": [92, 42],
   };
   const DISTRICTS = [
@@ -71,7 +71,7 @@
     "Haven Council": { note: "The town hall and clock tower, between the river and Haven Park.", parts: [box(258,200,28,22,16), box(258,200,8,8,22,{ y0: 16, roof: "pyramid", rh: 8 })] },
     "Ember Freight": { note: "A big warehouse on the docks, with a crane over the water.", parts: [box(378,312,40,22,14,{ roof: "saw" }), { t: "crane", x: 400, y: 297, h: 34, jib: 22 }] },
     "Crystal Holdings": { note: "A glass block of flats looking over the harbour.", parts: [box(473,256,24,18,40), box(473,256,18,12,8,{ y0: 40 })] },
-    "Vault Secure": { note: "A squat, armoured building covered in aerials.", parts: [box(361,232,22,20,16), box(361,232,16,14,3,{ y0: 16 }), mast(367,227,12,{ y0: 19, dish: true })] },
+    "Vault Secure": { note: "A squat, armoured building covered in aerials.", parts: [box(361,204,22,20,16), box(361,204,16,14,3,{ y0: 16 }), mast(367,199,12,{ y0: 19, dish: true })] },
     "Pinnacle Corp": { note: "A tower with a pointed top, right by the water.", parts: [box(516,344,24,24,38,{ roof: "pyramid", rh: 20 })] },
     "Helix Dynamics": { note: "A factory with two tall chimneys.", parts: [box(619,120,36,22,22,{ roof: "saw" }), cyl(606,112,3,40,{ y0: 22 }), cyl(616,112,3,40,{ y0: 22 })] },
     "Nexus Global": { note: "A tower topped by a huge broadband mast.", parts: [box(740,88,20,20,70), box(740,88,12,12,10,{ y0: 70 }), mast(740,88,40,{ y0: 80, dish: true })] },
