@@ -6,6 +6,8 @@
    - PNMode.done()       : hides the bar.
    - PNMode.idle()       : a promise that resolves when no WATCH is running (twists wait on it).
    - PNMode.typeThrough({ label, keys }) : a short "hack in" where any key types gobbledegook; resolves when full.
+     With dock:"br" it is a small panel in the bottom-right over the page (the page stays live, ORACLE moves left of it);
+     it stays up at 100% and resolves with { el, close } so the page can show its own message in it.
    - PNMode.money(amount): lights the £ step at the end of the mission.
    The stage strip (SCAN · VAULT 1 2 3 · BLUEPRINT · HACK · £ after the hack) sits on the right of the bar. */
 (function(){
@@ -67,12 +69,23 @@
   .pnm-type .meter{ height:14px; border:1px solid #2fbf8a; } .pnm-type .meter i{ display:block; height:100%; width:0; background:#2fbf8a; box-shadow:0 0 14px #2fbf8a; }
   .pnm-type .hint{ font-family:"Chakra Petch", sans-serif; font-size:18px; letter-spacing:.1em; color:#eafff4; text-align:center; }
   .pnm-type .hint kbd{ font:inherit; font-weight:700; color:#03170e; background:#2fbf8a; padding:2px 8px; }
+  /* typeThrough({ dock:"br" }): the same terminal, small, bottom right, above the FULL SCREEN button */
+  html{ --pnm-dock-w:min(460px, calc(100vw - 24px)); }
+  .pnm-type.dock{ inset:auto; right:12px; bottom:52px; width:var(--pnm-dock-w); padding:0; background:none; display:block; }
+  .pnm-type.dock .box{ width:100%; padding:10px 14px; gap:7px; background:rgba(3,16,23,.95); box-shadow:0 10px 40px rgba(0,0,0,.6), 0 0 28px rgba(47,191,138,.25); cursor:pointer; }
+  .pnm-type.dock .hd{ font-size:15px; letter-spacing:.14em; }
+  .pnm-type.dock .code{ font-size:15px; line-height:1.3; height:2.6em; }
+  .pnm-type.dock .meter{ height:12px; }
+  .pnm-type.dock .hint{ font-size:17px; letter-spacing:.04em; line-height:1.45; text-wrap:balance; min-height:2.9em; }
+  .pnm-type.dock .hint.done{ color:#7dffc4; font-weight:700; letter-spacing:.1em; text-shadow:0 0 16px rgba(47,191,138,.6); }
+  .pnm-type.dock.full .code::after{ content:none; }
+  html.pnm-docked .pnh{ right:calc(var(--pnm-dock-w) + 24px); bottom:52px; }
   .pnm-chap{ position:fixed; inset:0; z-index:9420; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; pointer-events:none;
     background:radial-gradient(ellipse at 50% 50%, rgba(4,26,36,.92), rgba(1,8,12,.96)); opacity:0; transition:opacity .3s; font-family:"Chakra Petch", sans-serif; }
   .pnm-chap.on{ opacity:1; }
   .pnm-chap small{ font-size:18px; letter-spacing:.4em; color:#8feaff; }
   .pnm-chap b{ font-size:clamp(34px,6vw,72px); letter-spacing:.14em; color:#eafcff; text-shadow:0 0 30px rgba(110,220,255,.5); text-transform:uppercase; }
-  @media (max-width:900px){ .pnm .stages{ display:none; } .pnm-rain{ display:none; } }
+  @media (max-width:900px){ .pnm .stages{ display:none; } .pnm-rain{ display:none; } html.pnm-docked .pnh{ right:18px; bottom:auto; top:70px; } }
   @media (prefers-reduced-motion: reduce){ .pnm{ transition:none; } .pnm.pulse .chip, .pnm-type .code::after{ animation:none; } }
   html.pn-reduce-motion .pnm.pulse .chip{ animation:none; }`;
 
@@ -251,27 +264,38 @@
   }
 
   // ---------- A short hack where any key types gobbledegook ----------
-  function typeThrough({ label = "HACKING IN", keys = 16, hint = "Type anything to hack in" } = {}){
+  function typeThrough({ label = "HACKING IN", keys = 16, hint = "Type anything to hack in", dock = "" } = {}){
     if(EMBED) return Promise.resolve();
     build();   // its styles live with the WATCH strip; a page can reach its first typing before any WATCH
     return new Promise(resolve => {
-      const ov = document.createElement("div"); ov.className = "pnm-type"; ov.setAttribute("role", "dialog"); ov.setAttribute("aria-label", label);
+      const ov = document.createElement("div"); ov.className = "pnm-type" + (dock ? " dock" : "");
+      ov.setAttribute("role", dock ? "region" : "dialog"); ov.setAttribute("aria-label", label);
       ov.innerHTML = `<div class="box"><div class="hd"><span>${label}</span><span class="pc">0%</span></div><div class="code"></div><div class="meter"><i></i></div>
         <div class="hint">${hint}: <kbd>any key</kbd> or tap</div></div>`;
       document.body.appendChild(ov);
+      if(dock) document.documentElement.classList.add("pnm-docked");
       if(state !== "turn") turn(label.charAt(0) + label.slice(1).toLowerCase());
       const code = ov.querySelector(".code"), meter = ov.querySelector(".meter i"), pc = ov.querySelector(".pc");
       let n = 0, text = "", stream = codeLine() + "\n";
       const need = Math.max(4, Math.round(keys / Math.max(1, speed() / 2)));
+      const close = () => { ov.remove(); if(!document.querySelector(".pnm-type.dock")) document.documentElement.classList.remove("pnm-docked"); };
+      // Docked, a tap anywhere types too, except on the page's own buttons
+      const tap = e => { if(ov.contains(e.target) || !e.target.closest("button, a, input, select, textarea, [role=button], .pnh-box")) press(null); };
       const press = e => {
         if(e && e.type === "keydown"){ if(e.ctrlKey || e.metaKey || e.altKey || e.key === "Tab") return; e.preventDefault(); e.stopPropagation(); }
+        if(n >= need) return;
         for(let k = 0; k < 4 + Math.floor(Math.random() * 4); k++){ if(!stream.length) stream = codeLine().replace(/<\/?b>/g, "") + "\n"; text += stream[0]; stream = stream.slice(1); }
-        code.textContent = text.slice(-900); n++; SND("typing");
+        code.textContent = text.slice(-900); code.scrollTop = code.scrollHeight; n++; SND("typing");
         const k = Math.min(1, n / need); meter.style.width = Math.round(k * 100) + "%"; pc.textContent = Math.round(k * 100) + "%";
-        if(k >= 1){ document.removeEventListener("keydown", press, true); SND("lockon"); setTimeout(() => { ov.remove(); resolve(); }, 450 / speed()); }
+        if(k >= 1){
+          document.removeEventListener("keydown", press, true); document.removeEventListener("pointerdown", tap, true); SND("lockon");
+          if(dock){ ov.classList.add("full"); setTimeout(() => resolve({ el: ov, close }), 450 / speed()); }   // stays up at 100%
+          else setTimeout(() => { ov.remove(); resolve(); }, 450 / speed());
+        }
       };
       document.addEventListener("keydown", press, true);
-      ov.addEventListener("pointerdown", () => press(null));
+      if(dock) document.addEventListener("pointerdown", tap, true);
+      else ov.addEventListener("pointerdown", () => press(null));
     });
   }
 

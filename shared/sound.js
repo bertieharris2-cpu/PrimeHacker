@@ -177,6 +177,23 @@
     typing(){ tone({ f: 900 + Math.random() * 900, type:"square", dur: 0.01, vol: 0.02, lp: 3500, verb:false }); noise({ dur: 0.008, vol: 0.05, type:"highpass", freq: 5000 }); },   // a keyboard, one key
     zoom(){ noise({ dur: 0.26, vol: 0.09, freq: 700, to: 3200, q: 1.5 }); tone({ f: 2400, type:"square", at: 0.24, dur: 0.05, vol: 0.025, lp: 5000, verb:false }); },   // a camera pushing in, then a blip
     static(dur=0.5){ noise({ dur, vol: 0.09, type:"highpass", freq: 1800 }); for(let i = 0; i < 5; i++) noise({ at: Math.random() * dur, dur: 0.04, vol: 0.14, freq: 600 + Math.random() * 2000, q: 3 }); },   // interference
+    // Teacher: a soft wavering interference bed under a wobbling, corrupted floor (dur in seconds). Fades in and out, no sharp edges.
+    disturb(dur=3){
+      const c = ctx, t = c.currentTime, len = Math.floor(c.sampleRate * (dur + 0.1));
+      const buf = c.createBuffer(1, len, c.sampleRate), d = buf.getChannelData(0);
+      for(let i = 0; i < len; i++) d[i] = Math.random()*2 - 1;
+      const src = c.createBufferSource(); src.buffer = buf;
+      const fl = c.createBiquadFilter(); fl.type = "bandpass"; fl.frequency.value = 1100; fl.Q.value = 0.8;
+      const g = c.createGain(), wob = c.createGain(), lfo = c.createOscillator(), depth = c.createGain();
+      lfo.frequency.value = 7; depth.gain.value = 0.5; wob.gain.value = 0.6;   // the wobble: loudness wavers 7 times a second
+      lfo.connect(depth); depth.connect(wob.gain);
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.07, t + 0.25);
+      g.gain.setValueAtTime(0.07, t + Math.max(0.3, dur - 0.4)); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      src.connect(fl); fl.connect(wob); wob.connect(g); g.connect(out());
+      src.start(t); src.stop(t + dur + 0.05); lfo.start(t); lfo.stop(t + dur + 0.05);
+      tone({ f: 58, type:"sawtooth", dur, vol: 0.03, lp: 260, attack: 0.3, verb:false });   // a low mains hum under it
+      for(let i = 0; i < Math.round(dur * 3); i++) noise({ at: Math.random() * dur * 0.9, dur: 0.05, vol: 0.06, freq: 700 + Math.random() * 1800, q: 3 });   // a few soft crackles
+    },
     tick(){ tone({ f: 1000, type:"square", dur: 0.012, vol: 0.02, lp: 3000, verb:false }); },
   };
 

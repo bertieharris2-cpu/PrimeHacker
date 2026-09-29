@@ -272,6 +272,14 @@ body .pnm-type.big-hack .stream b{ color:#ffe68a; font-weight:400; }
 body .pnm-type.big-hack .code{ height:min(22vh, 220px); font-size:24px; line-height:1.35; }
 body .pnm-type.big-hack .meter{ height:20px; }
 body .pnm-type.big-hack .hint{ font-size:22px; }
+/* Teacher: the hack is a small terminal docked bottom right over the finished floor (PNMode.typeThrough dock), with a short code stream */
+body .pnm-type.dock .stream{ height:calc(3 * 1.4em + 6px); overflow:hidden; display:flex; flex-direction:column; justify-content:flex-end;
+  font-family:"Courier Prime", monospace; font-size:13px; line-height:1.4; color:rgba(125,255,196,.42); border-bottom:1px solid rgba(47,191,138,.25); padding-bottom:6px; white-space:nowrap; }
+body .pnm-type.dock .stream div{ flex:0 0 auto; overflow:hidden; }
+body .pnm-type.dock .stream b{ color:#ffe68a; font-weight:400; }
+body .pnm-type.dock .hint{ opacity:1; }   /* not the page's own dim .hint */
+/* Teacher: the code rain stays a short strip here, so it never runs into the right-hand intel window below it */
+body .pnm-rain{ height:90px; }
 .moving{ position:fixed; inset:0; z-index:9460; display:flex; align-items:center; justify-content:center; background:rgba(1,8,12,.95); opacity:0; transition:opacity .3s ease; }
 .moving.on{ opacity:1; }
 .moving b{ font-family:"Chakra Petch", var(--font-ui); font-weight:700; font-size:clamp(28px, 3.4vw, 54px); letter-spacing:.12em; color:#7dffc4; text-shadow:0 0 30px rgba(47,191,138,.6); text-align:center; padding:0 20px; }
@@ -1250,10 +1258,10 @@ const nextPage = () => blueprintReady() ? "vault_blueprint_viewer.html" : "facto
 let phase = "build";   // build → typing → moving
 const realWait = ms => new Promise(r => setTimeout(r, ms / (window.PNTest ? PNTest.speed() : 1)));   // not cut short by SKIPPING
 
-// Make the type-through box bigger: a stream of code fills it, a line for every key
+// A stream of code over the typed text in the type-through box, a line for every key
 function enlargeTyping(){
   const ov = [...document.querySelectorAll(".pnm-type")].pop(); if(!ov) return () => {};
-  ov.classList.add("big-hack");
+  if(!ov.classList.contains("dock")) ov.classList.add("big-hack");
   const stream = document.createElement("div"); stream.className = "stream"; stream.setAttribute("aria-hidden", "true");
   ov.querySelector(".code").before(stream);
   const line = () => { const d = document.createElement("div"); d.innerHTML = window.PNMode ? PNMode.codeLine() : ""; stream.appendChild(d); while(stream.children.length > 40) stream.firstChild.remove(); };
@@ -1263,8 +1271,8 @@ function enlargeTyping(){
   const mo = new MutationObserver(() => { code.scrollTop = code.scrollHeight; }); mo.observe(code, { childList: true, characterData: true, subtree: true });
   const onKey = e => { if(e.ctrlKey || e.metaKey || e.altKey || e.key === "Tab") return; line(); line(); };
   window.addEventListener("keydown", onKey, true);
-  ov.addEventListener("pointerdown", () => { line(); line(); });
-  return () => { window.removeEventListener("keydown", onKey, true); mo.disconnect(); };
+  document.addEventListener("pointerdown", onKey, true);
+  return () => { window.removeEventListener("keydown", onKey, true); document.removeEventListener("pointerdown", onKey, true); mo.disconnect(); };
 }
 // Teacher SKIP during the typing: type it all at once
 function finishTyping(){
@@ -1277,16 +1285,23 @@ async function typeToNext(){
   const f = floorsBuilt(), last = f >= FLOORS_NEEDED, nextF = Math.min(f + 1, FLOORS_NEEDED);
   if(window.PNMode){
     phase = "typing";
-    const done = PNMode.typeThrough({ label: last ? "ASSEMBLING THE BLUEPRINT" : `DECRYPTING FLOOR ${nextF}`, keys: 40,
+    // Teacher: docked small in the bottom right, so the floor (still ticking over) stays in view
+    const done = PNMode.typeThrough({ label: last ? "ASSEMBLING THE BLUEPRINT" : `DECRYPTING FLOOR ${nextF}`, keys: 40, dock: "br",
       hint: last ? "Type anything to put the blueprint together" : `Type anything to break into floor ${nextF}` });
     const stop = enlargeTyping();
-    await done; stop();
+    const dock = await done; stop();
+    phase = "moving";
+    // The message shows in the terminal under its full bar
+    const hint = dock && dock.el.querySelector(".hint");
+    if(hint){ hint.classList.add("done"); hint.setAttribute("role", "status"); hint.textContent = last ? "BLUEPRINT READY\u00a0· ASSEMBLING" : `DECRYPTION COMPLETE\u00a0· MOVING TO FLOOR ${nextF}`; }
+  }
+  if(!document.querySelector(".pnm-type .hint.done")){
+    const card = document.createElement("div"); card.className = "moving"; card.setAttribute("role", "status");
+    card.innerHTML = `<b>${last ? "BLUEPRINT READY · ASSEMBLING" : `DECRYPTION COMPLETE · MOVING TO FLOOR ${nextF}`}</b>`;
+    document.body.appendChild(card);
+    requestAnimationFrame(() => card.classList.add("on"));
   }
   phase = "moving";
-  const card = document.createElement("div"); card.className = "moving"; card.setAttribute("role", "status");
-  card.innerHTML = `<b>${last ? "BLUEPRINT READY · ASSEMBLING" : `DECRYPTION COMPLETE · MOVING TO FLOOR ${nextF}`}</b>`;
-  document.body.appendChild(card);
-  requestAnimationFrame(() => card.classList.add("on"));
   SND("success");
   await realWait(1200);
   analysisWins.forEach(w => w.close());
@@ -1475,6 +1490,12 @@ function cctvSvg(r){
     <text x="6" y="114" fill="rgba(223,248,255,.8)" font-size="9" font-family="monospace">${r}</text>
   </svg>`;
 }
+// Teacher: the right-hand window sits just under the code rain (top right), never on it
+function clearOfRain(el){
+  const rain = document.querySelector(".pnm-rain"); if(!rain || !rain.offsetHeight) return;
+  const gap = rain.getBoundingClientRect().bottom + 12 - (el.offsetTop - el.firstElementChild.offsetHeight / 2);
+  if(gap > 0) el.style.top = (el.offsetTop + gap) + "px";
+}
 async function floorAnalysis(placements, span){
   if(!window.PNHolo) return;
   const { rating } = floorRating(currentN);
@@ -1509,6 +1530,8 @@ async function floorAnalysis(placements, span){
   const cctvFirst = rnd() < 0.7;
   const rest = pool.filter(w => !w.cctv).sort(() => rnd() - 0.5);
   const chosen = (cctvFirst ? [pool.find(w => w.cctv), ...rest] : rest).slice(0, 3);
+  // The tall keycard log never goes top right: that window must fit between the code rain and the docked terminal
+  if(chosen[1].title === "KEYCARD LOG") chosen.push(chosen.splice(1, 1)[0]);
   const slots = [{ x: 15, y: 26 }, { x: 85, y: 30 }, { x: 15, y: 68 }];
   const list = chosen.map((w, i) => ({ ...w, ...slots[i] }));
   analysisWins = [];
@@ -1516,7 +1539,9 @@ async function floorAnalysis(placements, span){
   for(const [i, w] of list.entries()){
     const due = span * (0.22 + 0.26 * i);   // about a quarter, half and three quarters of the way through the scan
     await pause(due - at); at = due;
-    analysisWins.push(PNHolo.open({ ...w, tilt: 0, sound: !SKIPPING }));
+    const win = PNHolo.open({ ...w, tilt: 0, sound: !SKIPPING });
+    analysisWins.push(win);
+    if(i === 1) clearOfRain(win.el);
   }
   // A ticking CCTV clock
   const clock = document.querySelector(".cctvClock");

@@ -12,30 +12,48 @@
   /* Round 12 prototype, second pass (Bertie's notes): the blueprint is corrupted as the floors assemble. A spatial
      puzzle: fit a mix of room arrays onto a bigger squared floor, around corridors, the lift, stairs and fire exit. About the
      same challenge at every level. When it all fits, the rooms rise in 3D and the floor rejoins the building.
-     Round 13: what to do sits in the hologram brief (H), not on the page. */
-  .fbox{ padding:14px; display:flex; flex-direction:column; gap:8px; align-items:center; }
-  .fbox .lab{ align-self:stretch; display:flex; justify-content:space-between; font-family:var(--font-ui); font-size:12px; letter-spacing:.16em; color:var(--text-faint); }
-  .fg{ position:relative; background:
+     Round 13: what to do sits in the hologram brief (H), not on the page.
+     Round 16 (teacher): fits one screen (1280 × 720 up) with no scrolling, the rooms wait in a tray on the right, the brief
+     comes as a comms message, more blacked-out squares, and a few L-shaped rooms (two arrays joined). */
+  main.tw{ width:min(1760px, 100%); height:100vh; padding:10px 16px 0; gap:10px; overflow:hidden; }
+  .tw .tw-head{ padding-bottom:8px; } .tw .tw-head h1{ font-size:clamp(22px, 2.4vw, 30px); }
+  .cb-main{ flex:1; min-height:0; display:grid; grid-template-columns:minmax(0, 1fr) clamp(250px, 22vw, 400px); gap:14px; }
+  .fbox{ padding:10px 14px; display:flex; flex-direction:column; gap:8px; min-height:0; }
+  .fbox .lab, .tray .lab{ display:flex; flex-wrap:wrap; justify-content:space-between; gap:4px 14px; font-family:var(--font-ui); font-size:13px; letter-spacing:.14em; color:var(--text-faint); }
+  .fbox .lab b{ color:var(--text-primary); }
+  .fwrap{ flex:1; min-height:0; display:flex; align-items:center; justify-content:center; }
+  .fg{ position:relative; flex:none; background:
       repeating-linear-gradient(0deg, rgba(74,163,255,.22) 0 1px, transparent 1px var(--c)),
       repeating-linear-gradient(90deg, rgba(74,163,255,.22) 0 1px, transparent 1px var(--c)), #04121a;
     border:2px solid rgba(74,163,255,.7); box-shadow:0 0 30px rgba(74,163,255,.12) inset; touch-action:none; }
   .fg.glitch{ animation:cg .5s steps(3) 2; }
   @keyframes cg{ 50%{ filter:hue-rotate(80deg) contrast(1.4); transform:translateX(2px); } }
-  .blk{ position:absolute; display:flex; align-items:center; justify-content:center; font-family:var(--font-ui); font-size:10px; letter-spacing:.12em; pointer-events:none; }
+  .blk{ position:absolute; display:flex; align-items:center; justify-content:center; font-family:var(--font-ui); font-size:11px; letter-spacing:.12em; pointer-events:none; }
   .blk.lift, .blk.stairs{ background:repeating-linear-gradient(45deg, rgba(255,255,255,.05) 0 5px, rgba(0,0,0,.2) 5px 10px), #243238; border:1px solid #5b6f75; color:#9fb7bb; }
-  /* Round 13 (Bertie): corridors and open space are blacked out, so rooms spread out like the other floor plans */
-  .blk.hall, .blk.void{ background:repeating-linear-gradient(135deg, rgba(255,255,255,.035) 0 3px, transparent 3px 9px), #010406; border:1px dashed rgba(120,150,160,.35); color:rgba(160,190,200,.45); font-size:9px; letter-spacing:.2em; }
+  /* Round 13 (Bertie): corridors and open space are blacked out, so rooms spread out like the other floor plans.
+     Round 16: blacked-out squares are drawn one by one, hatched in one pattern (fixed to the screen, so it runs on across
+     neighbours) and outlined only where they meet the floor, so each patch reads as one "no room here" shape */
+  .blk.hall, .blk.void{ background:repeating-linear-gradient(135deg, rgba(160,190,200,.13) 0 3px, transparent 3px 10px) fixed, #010406; color:rgba(160,190,200,.5); font-size:10px; letter-spacing:.2em; }
+  .blk.hall{ border:1px dashed rgba(120,150,160,.45); }
+  .blk.void{ border:0 solid rgba(140,170,180,.6); }
   .blk.hall.v{ writing-mode:vertical-rl; }
-  .blk.exit{ background:rgba(47,191,138,.35); border:1px solid #2fbf8a; color:#9fffd4; font-size:8px; }
-  .pc{ position:absolute; display:grid; gap:1px; padding:1px; cursor:grab; touch-action:none; user-select:none; z-index:2; }
+  .blk.exit{ background:rgba(47,191,138,.35); border:1px solid #2fbf8a; color:#9fffd4; font-size:9px; }
+  .pc{ position:absolute; display:grid; gap:1px; padding:1px; cursor:grab; touch-action:none; user-select:none; z-index:2; pointer-events:none; }
+  .pc i{ pointer-events:auto; }   /* the gap in an L's box doesn't catch the pointer */
   .pc i{ background:hsla(var(--h), 60%, 42%, .85); border:1px solid hsla(var(--h), 80%, 70%, .9); }
-  .pc .tag{ position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); font-family:var(--font-ui); font-weight:700; font-size:11px; color:#fff; background:rgba(0,0,0,.55); padding:1px 4px; white-space:nowrap; pointer-events:none; }
-  .pc.drag{ cursor:grabbing; z-index:50; filter:drop-shadow(0 8px 14px rgba(0,0,0,.6)); }
+  .pc u{ visibility:hidden; }   /* the gap in an L-shaped room's box */
+  .pc .tag{ position:absolute; transform:translate(-50%,-50%); font-family:var(--font-ui); font-weight:700; font-size:var(--fs, 13px); color:#fff; background:rgba(0,0,0,.6); padding:1px 5px; white-space:nowrap; pointer-events:none; }
+  .pc .flip{ all:unset; pointer-events:auto; position:absolute; transform:translate(-50%,-50%); display:flex; align-items:center; justify-content:center; width:var(--fb, 26px); height:var(--fb, 26px); border-radius:50%;
+    font-family:var(--font-ui); font-weight:700; font-size:calc(var(--fb, 26px) * .62); color:#062027; background:hsl(var(--h), 80%, 72%); cursor:pointer; box-shadow:0 0 8px rgba(0,0,0,.6); }
+  .pc .flip:focus-visible{ outline:2px solid #ffe68a; outline-offset:2px; }
+  .pc.drag{ cursor:grabbing; z-index:9000; filter:drop-shadow(0 8px 14px rgba(0,0,0,.6)); }
   .pc.bad i{ background:rgba(255,79,109,.55); border-color:#ff6b8a; }
-  .tray{ padding:12px 14px; display:flex; flex-direction:column; gap:8px; }
-  .tray .lab{ font-family:var(--font-ui); font-size:12px; letter-spacing:.16em; color:var(--text-faint); display:flex; justify-content:space-between; }
-  .slots{ position:relative; }
-  .stage3d{ position:relative; height:440px; padding:0; overflow:hidden; background:radial-gradient(ellipse at 50% 45%, rgba(20,60,70,.4), rgba(2,8,10,.95)); }
+  .tray{ padding:10px 12px; display:flex; flex-direction:column; gap:8px; min-height:0; }
+  .slots{ position:relative; flex:1; min-height:0; overflow-x:hidden; overflow-y:auto; }
+  .tray .how{ font-family:var(--font-ui); font-size:13px; letter-spacing:.1em; color:var(--text-muted); line-height:1.5; }
+  .tray .how b{ color:#ffe68a; }
+  .cb-foot{ flex:none; min-height:48px; display:flex; align-items:flex-start; padding-right:170px; }   /* bottom right stays clear for the FULL SCREEN button */
+  .stage3d{ position:relative; grid-column:1 / -1; height:100%; padding:0; overflow:hidden; background:radial-gradient(ellipse at 50% 45%, rgba(20,60,70,.4), rgba(2,8,10,.95)); }
   .stage3d .rep{ position:absolute; left:0; right:0; bottom:18px; text-align:center; font-family:var(--font-ui); font-weight:700; letter-spacing:.3em; font-size:26px; color:#3dffa8; text-shadow:0 0 18px rgba(61,255,168,.7); opacity:0; transition:opacity .6s; }
   .stage3d .rep.on{ opacity:1; }
   [hidden]{ display:none !important; }
@@ -43,11 +61,12 @@
 </head>
 <body>
 <main class="tw">
-  <div class="tw-bar"><span>Rooms placed: <b id="placed">0</b> of <b id="total">0</b></span></div>
-  <section class="pn-panel fbox" id="fbox"><div class="lab"><span>FLOOR PLAN · CORRUPTED</span><span id="gridLab"></span></div><div class="fg" id="fg"></div></section>
-  <section class="pn-panel tray" id="tray"><span class="lab"><span>ROOMS RECOVERED FROM THE FILE</span><span>DRAG · TAP TO TURN</span></span><div class="slots" id="slots"></div></section>
-  <section class="pn-panel stage3d" id="stage" hidden><div class="rep" id="rep">BLUEPRINT REPAIRED</div></section>
-  <div class="tw-msg" id="msg" aria-live="polite"></div>
+  <div class="cb-main">
+    <section class="pn-panel fbox" id="fbox"><div class="lab"><span>FLOOR PLAN · CORRUPTED</span><span>ROOMS PLACED <b id="placed">0</b> OF <b id="total">0</b></span><span id="gridLab"></span></div><div class="fwrap" id="fwrap"><div class="fg" id="fg"></div></div></section>
+    <section class="pn-panel tray" id="tray"><span class="lab"><span>ROOMS TO PLACE</span><span id="left"></span></span><div class="how">Drag a room onto the floor. <b>Tap</b> it to turn it. <b>⇋</b> flips an L-shaped room.</div><div class="slots" id="slots"></div></section>
+    <section class="pn-panel stage3d" id="stage" hidden><div class="rep" id="rep">BLUEPRINT REPAIRED</div></section>
+  </div>
+  <div class="cb-foot"><div class="tw-msg" id="msg" aria-live="polite"></div></div>
 </main>
 
 <script src="../shared/vendor/three.min.js"></script>
@@ -62,25 +81,41 @@
 (() => {
   "use strict";
   const T = window.PNTwist, $ = id => document.getElementById(id);
-  const L = T.init({ id: "corrupt", stage: "BLUEPRINT", title: "CORRUPTED BLUEPRINT",
-    context: "The plan for this floor came through scrambled.",
-    goal: "Rooms can't <b>overlap</b>. Keep the <b>corridors</b> (black), lift, stairs and fire exit clear.",
-    example: "Each room is an array of squares. A 3 × 4 room can turn round to 4 × 3: same 12 squares, different shape.",
+  // Round 16 (teacher): the brief arrives as a comms message bottom right and fades, so they can start straight away
+  const L = T.init({ id: "corrupt", stage: "BLUEPRINT", title: "CORRUPTED BLUEPRINT", briefStyle: "comms",
+    context: "The plan for this floor came through scrambled. Drag every room back onto the floor so no free square is left. <b>Tap</b> a room to turn it.",
+    goal: "Rooms can't <b>overlap</b>. Keep the <b>corridors</b>, the <b>blacked-out squares</b>, lift, stairs and fire exit clear. Every other square gets used.",
+    example: "A 3 × 4 room can turn round to 4 × 3: same 12 squares, different shape. An L-shaped room is two arrays joined: 3 × 2 + 1 × 2 is 6 + 2 = 8 squares. <b>⇋</b> flips it over.",
     story: `Interference on the file. The plan for one of ${T.targets()} floors is scrambled. The rooms came through, but not where they go. Fit them back together.` });
 
   // Feedback: a spatial puzzle, a mix of arrays, about the same at every level. Round 13: a bigger floor with
-  // blacked-out corridors and open space, so it's harder and the finished plan looks like the other floors
-  const W = 16, H = 11, TARGET = [9, 13];
-  // Build a solution first (so it's always solvable), then scramble the rooms into the tray
+  // blacked-out corridors and open space. Round 16: more blacked-out squares and a few L-shaped rooms, more of both at L2 and L3
+  const W = 16, H = 11;
+  const LV = { L1: { patches: 3, ls: 1, rooms: [8, 12], voids: [10, 22] }, L2: { patches: 4, ls: 2, rooms: [9, 13], voids: [13, 26] }, L3: { patches: 5, ls: 3, rooms: [10, 14], voids: [18, 32] } }[L] || { patches: 3, ls: 1, rooms: [8, 12], voids: [10, 22] };
+  // A room is one rectangle, or two joined into an L, as parts inside a bw × bh box
+  const rect = (w, h) => ({ bw: w, bh: h, parts: [{ x: 0, y: 0, w, h }] });
+  const ell = (w, h, nw, nh) => ({ bw: w, bh: h, parts: [{ x: 0, y: 0, w: w - nw, h }, { x: w - nw, y: nh, w: nw, h: h - nh }] });   // a w × h box with an nw × nh gap top right
+  const rot = s => ({ bw: s.bh, bh: s.bw, parts: s.parts.map(q => ({ x: s.bh - q.y - q.h, y: q.x, w: q.h, h: q.w })) });   // a quarter turn clockwise
+  const flip = s => ({ bw: s.bw, bh: s.bh, parts: s.parts.map(q => ({ ...q, x: s.bw - q.x - q.w })) });
+  const cellsOf = s => s.parts.flatMap(q => Array.from({ length: q.w * q.h }, (_, k) => [q.x + k % q.w, q.y + Math.floor(k / q.w)]));
+  const area = s => s.parts.reduce((n, q) => n + q.w * q.h, 0);
+  const turnN = (s, k) => { for(let i = 0; i < k; i++) s = rot(s); return s; };
+  const ELLS = [[3, 3, 1, 1], [3, 3, 2, 2], [3, 3, 1, 2], [3, 2, 1, 1], [4, 2, 2, 1], [4, 2, 1, 1], [4, 3, 2, 1], [4, 3, 2, 2], [4, 3, 1, 2], [3, 4, 1, 2], [4, 4, 2, 2], [4, 3, 3, 1]];
+  // Rectangles: arrays from 2 × 2 up to 4 × 5, plus at most one thin 1 × 3 / 1 × 4 room
+  const SIZES = [[2, 2], [2, 3], [2, 4], [2, 5], [3, 3], [3, 4], [3, 5], [4, 4], [2, 6], [1, 3], [1, 4], [4, 5]];
+
+  // Build a solution first (so it's always solvable), then scramble the rooms into the tray. Every square no room
+  // uses is blacked out, so the free squares add up to exactly the rooms' squares.
   function makePuzzle(){
     let best = null;
-    for(let attempt = 0; attempt < 400; attempt++){
-      const occ = Array.from({ length: H }, () => Array(W).fill(0));
+    for(let attempt = 0; attempt < 600; attempt++){
+      const occ = Array.from({ length: H }, () => Array(W).fill(0));   // 0 free, 1 block or room, 2 blacked out
       const blocks = [];
+      const inB = (x, y) => x >= 0 && y >= 0 && x < W && y < H;
       const put = b => { for(let y = b.y; y < b.y + b.h; y++) for(let x = b.x; x < b.x + b.w; x++) occ[y][x] = 1; };
       const free = b => { if(b.x < 0 || b.y < 0 || b.x + b.w > W || b.y + b.h > H) return false; for(let y = b.y; y < b.y + b.h; y++) for(let x = b.x; x < b.x + b.w; x++) if(occ[y][x]) return false; return true; };
-      // A corridor right across the floor to the fire exit, one branching off it to a wall, and a patch or two of
-      // open space; then the lift (2 × 2) beside the corridor and the stairs (2 × 3) on an outer wall
+      // A corridor right across the floor to the fire exit, one branching off it to a wall; then the lift (2 × 2)
+      // beside the corridor and the stairs (2 × 3) on an outer wall
       const cy = 3 + Math.floor(Math.random() * (H - 6)), exitLeft = Math.random() < .5;
       const exit = { x: exitLeft ? 0 : W - 1, y: cy, w: 1, h: 1, kind: "exit", name: "EXIT" };
       const hall = { x: exitLeft ? 1 : 0, y: cy, w: W - 1, h: 1, kind: "hall", name: "CORRIDOR" };
@@ -91,80 +126,152 @@
       const stairs = { x: exitLeft ? W - 2 : 0, y: sy, w: 2, h: 3, kind: "stairs", name: "STAIRS" };
       for(const b of [exit, hall, hall2, lift, stairs]){ if(!free(b)) break; put(b); blocks.push(b); }
       if(blocks.length < 5) continue;
-      for(let v = 0, tries = 0; v < 1 + Math.floor(Math.random() * 2) && tries < 40; tries++){
-        const w = 2 + Math.floor(Math.random() * 2), h = 2 + Math.floor(Math.random() * 2);
-        const b = { x: Math.floor(Math.random() * (W - w + 1)), y: Math.floor(Math.random() * (H - h + 1)), w, h, kind: "void", name: "" };
-        if(free(b)){ put(b); blocks.push(b); v++; }
-      }
-      // Rooms: arrays from 2 × 2 up to 4 × 5, plus at most one thin 1 × 3 / 1 × 4 room
-      const SIZES = [[2, 2], [2, 3], [2, 4], [2, 5], [3, 3], [3, 4], [3, 5], [4, 4], [2, 6], [1, 3], [1, 4], [4, 5]];
-      const rooms = [];
-      const cells = []; for(let y = 0; y < H; y++) for(let x = 0; x < W; x++) cells.push([x, y]);
-      T.shuffle(cells).forEach(([x, y]) => {
-        if(occ[y][x]) return;
-        for(const [a, b] of T.shuffle(SIZES)){
-          const r = Math.random() < .5 ? { x, y, w: a, h: b } : { x, y, w: b, h: a };
-          if(a === 1 && rooms.some(q => Math.min(q.w, q.h) === 1)) continue;
-          if(free(r)){ put(r); rooms.push(r); break; }
+      // Scattered blacked-out patches of 1 to 5 squares, each a random wiggly shape
+      for(let v = 0, tries = 0; v < LV.patches && tries < 60; tries++){
+        let x = Math.floor(Math.random() * W), y = Math.floor(Math.random() * H);
+        if(occ[y][x]) continue;
+        const n = 1 + Math.floor(Math.random() * 5);
+        for(let k = 0; k < n; k++){
+          occ[y][x] = 2;
+          const [dx, dy] = T.pick([[1, 0], [-1, 0], [0, 1], [0, -1]]);
+          if(inB(x + dx, y + dy) && !occ[y + dy][x + dx]){ x += dx; y += dy; }
         }
-      });
-      const freeCells = W * H - blocks.reduce((s, b) => s + b.w * b.h, 0), used = rooms.reduce((s, r) => s + r.w * r.h, 0), fill = used / freeCells;
-      if(rooms.length < TARGET[0] || rooms.length > TARGET[1]) continue;
-      if(!best || fill > best.fill) best = { rooms, blocks, fill };
-      if(fill >= 0.86) break;
+        v++;
+      }
+      const rooms = [];
+      const fits = (s, x, y) => cellsOf(s).every(([i, j]) => inB(x + i, y + j) && !occ[y + j][x + i]);
+      const place = (s, x, y) => { cellsOf(s).forEach(([i, j]) => occ[y + j][x + i] = 1); rooms.push({ ...s, x, y }); };
+      // The L-shaped rooms go in first, so each puzzle has its share
+      for(let k = 0, tries = 0; k < LV.ls && tries < 200; tries++){
+        const [w, h, nw, nh] = T.pick(ELLS);
+        let s = turnN(ell(w, h, nw, nh), Math.floor(Math.random() * 4)); if(Math.random() < .5) s = flip(s);
+        const x = Math.floor(Math.random() * (W - s.bw + 1)), y = Math.floor(Math.random() * (H - s.bh + 1));
+        if(fits(s, x, y)){ place(s, x, y); k++; }
+      }
+      if(rooms.length < LV.ls) continue;
+      // Then rectangles, sweeping across from the top left: at each empty square, one of the biggest arrays that fits there
+      for(let y = 0; y < H; y++) for(let x = 0; x < W; x++){
+        if(occ[y][x]) continue;
+        const thin = rooms.some(q => q.parts.length === 1 && Math.min(q.bw, q.bh) === 1);
+        const opts = T.shuffle(SIZES.flatMap(([a, b]) => a === b ? [rect(a, b)] : [rect(a, b), rect(b, a)])).filter(s => (!thin || Math.min(s.bw, s.bh) > 1) && fits(s, x, y)).sort((p, q) => area(q) - area(p));
+        if(opts.length) place(opts[Math.floor(Math.random() * Math.min(3, opts.length))], x, y);
+      }
+      // Squares no room uses are blacked out
+      const voids = []; for(let y = 0; y < H; y++) for(let x = 0; x < W; x++) if(occ[y][x] !== 1){ occ[y][x] = 2; voids.push([x, y]); }
+      if(rooms.length < LV.rooms[0] || rooms.length > LV.rooms[1] || voids.length < LV.voids[0] || voids.length > LV.voids[1]) continue;
+      const score = Math.abs(voids.length - (LV.voids[0] + LV.voids[1]) / 2);
+      if(!best || score < best.score) best = { rooms, blocks, voids, score, occ };
+      if(score <= 3) break;
     }
     return best;
   }
   const P = makePuzzle();
+  const isVoid = Array.from({ length: H }, (_, y) => Array.from({ length: W }, (_, x) => P.occ[y][x] === 2));
+  const blocked = Array.from({ length: H }, (_, y) => Array.from({ length: W }, (_, x) => isVoid[y][x] || P.blocks.some(b => x >= b.x && x < b.x + b.w && y >= b.y && y < b.y + b.h)));
+  const toFill = P.rooms.reduce((n, r) => n + area(r), 0);
   $("total").textContent = P.rooms.length;
-  $("gridLab").textContent = `${W} × ${H} SQUARES`;
+  $("gridLab").textContent = `${W} × ${H} · ${toFill} SQUARES TO FILL`;
 
-  const C = 38, fg = $("fg");
-  fg.style.setProperty("--c", C + "px"); fg.style.width = W * C + "px"; fg.style.height = H * C + "px";
-  P.blocks.forEach(b => { const d = document.createElement("div"); d.className = "blk " + b.kind; Object.assign(d.style, { left: b.x * C + "px", top: b.y * C + "px", width: b.w * C + "px", height: b.h * C + "px" }); d.textContent = b.name; fg.appendChild(d); });
-  const pieces = [];
-  const occAt = (x, y, skip) => P.blocks.some(b => x >= b.x && x < b.x + b.w && y >= b.y && y < b.y + b.h) || pieces.some(p => p !== skip && p.onBoard && x >= p.x && x < p.x + p.w && y >= p.y && y < p.y + p.h);
-  const valid = (p, x, y) => { if(x < 0 || y < 0 || x + p.w > W || y + p.h > H) return false; for(let j = y; j < y + p.h; j++) for(let i = x; i < x + p.w; i++) if(occAt(i, j, p)) return false; return true; };
-
-  // Tray: the rooms, scrambled and some turned round, laid out in rows below the floor
-  const slots = $("slots");
-  T.shuffle(P.rooms).forEach((r, idx) => {
-    const turned = Math.random() < .5 && r.w !== r.h;
-    const el = document.createElement("div"); el.className = "pc";
-    const p = { el, sol: r, w: turned ? r.h : r.w, h: turned ? r.w : r.h, hue: (170 + idx * 47) % 360, onBoard: false, x: 0, y: 0, k: idx };
-    el.style.setProperty("--h", p.hue);
-    pieces.push(p); paint(p); wire(p);
+  const fg = $("fg"), fwrap = $("fwrap"), slots = $("slots");
+  let C = 38;   // board square size in px, set by fit() to use the screen
+  const blkEls = [];
+  P.blocks.forEach(b => { const d = document.createElement("div"); d.className = "blk " + b.kind; d.textContent = b.name; fg.appendChild(d); blkEls.push([d, b]); });
+  P.voids.forEach(([x, y]) => {
+    const d = document.createElement("div"); d.className = "blk void";
+    const edge = (i, j) => !(i >= 0 && j >= 0 && i < W && j < H && isVoid[j][i]) ? "2px" : "0";
+    d.style.borderWidth = `${edge(x, y - 1)} ${edge(x + 1, y)} ${edge(x, y + 1)} ${edge(x - 1, y)}`;
+    fg.appendChild(d); blkEls.push([d, { x, y, w: 1, h: 1 }]);
   });
-  function layoutTray(){
-    const width = Math.max(300, slots.clientWidth || 1000); let x = 0, y = 0, rowH = 0;
-    pieces.filter(p => !p.onBoard).forEach(p => { const w = p.w * C, h = p.h * C; if(x + w > width){ x = 0; y += rowH + 14; rowH = 0; } p.home = { left: x, top: y }; x += w + 14; rowH = Math.max(rowH, h); });
-    slots.style.height = (y + rowH + 6) + "px";
-    pieces.filter(p => !p.onBoard).forEach(toTray);
+  const pieces = [];
+  const occAt = (x, y, skip) => blocked[y][x] || pieces.some(p => p !== skip && p.onBoard && p.cells.some(([i, j]) => p.x + i === x && p.y + j === y));
+  const valid = (p, x, y) => p.cells.every(([i, j]) => x + i >= 0 && y + j >= 0 && x + i < W && y + j < H && !occAt(x + i, y + j, p));
+
+  // Tray: the rooms, scrambled and turned round (L-shaped rooms flipped over too at L3)
+  T.shuffle(P.rooms).forEach((r, idx) => {
+    let s = turnN({ bw: r.bw, bh: r.bh, parts: r.parts }, Math.floor(Math.random() * 4));
+    if(L === "L3" && r.parts.length > 1 && Math.random() < .5) s = flip(s);
+    const el = document.createElement("div"); el.className = "pc";
+    const p = { el, sol: r, ...s, cells: cellsOf(s), hue: (170 + idx * 47) % 360, onBoard: false, x: 0, y: 0, k: idx, cs: C };
+    el.style.setProperty("--h", p.hue);
+    pieces.push(p); wire(p);
+  });
+  const setShape = (p, s) => { p.bw = s.bw; p.bh = s.bh; p.parts = s.parts; p.cells = cellsOf(s); };
+  const shapeOf = p => ({ bw: p.bw, bh: p.bh, parts: p.parts });
+  const fsOf = cs => Math.max(11, Math.min(15, Math.round(cs * .34)));
+  const label = (p, cs) => {
+    if(p.parts.length === 1) return `${p.bh} × ${p.bw}`;
+    const [a, b] = p.parts, sum = `${a.h}×${a.w} + ${b.h}×${b.w}`;
+    return sum.length * fsOf(cs) * .62 + 10 < p.bw * cs ? sum : `L · ${area(p)}`;   // the sum of arrays when it fits, else the area
+  };
+  // Draw a room at square size cs (the board's C, or smaller in the tray)
+  function paint(p, cs){
+    p.cs = cs; const el = p.el, filled = new Set(p.cells.map(([i, j]) => i + "," + j));
+    el.style.gridTemplateColumns = `repeat(${p.bw}, ${cs - 1}px)`; el.style.gridAutoRows = `${cs - 1}px`;
+    let h = ""; for(let j = 0; j < p.bh; j++) for(let i = 0; i < p.bw; i++) h += filled.has(i + "," + j) ? "<i></i>" : "<u></u>";
+    const big = p.parts.reduce((m, q) => q.w * q.h > m.w * m.h ? q : m), mid = p.parts.length > 1 && label(p, cs).includes("+");   // the tag sits on the bigger part (a long sum across the whole room)
+    h += `<span class="tag" style="${p.bw === 1 && p.bh > 1 ? "writing-mode:vertical-rl;" : ""}left:${1 + (mid ? p.bw / 2 : big.x + big.w / 2) * cs}px;top:${1 + (big.y + big.h / 2) * cs}px">${label(p, cs)}</span>`;
+    if(p.parts.length > 1){   // the flip button sits in the gap of the L
+      const g = { x: 0, y: 0 }; for(let j = 0; j < p.bh; j++) for(let i = 0; i < p.bw; i++) if(!filled.has(i + "," + j) && ((i === 0 || i === p.bw - 1) && (j === 0 || j === p.bh - 1))){ g.x = i; g.y = j; }
+      h += `<button class="flip" type="button" aria-label="Flip this room over" title="Flip over" style="left:${1 + (g.x + .5) * cs}px;top:${1 + (g.y + .5) * cs}px">⇋</button>`;
+    }
+    el.innerHTML = h;
+    el.style.setProperty("--fs", fsOf(cs) + "px");
+    el.style.setProperty("--fb", Math.max(18, Math.min(30, Math.round(cs * .8))) + "px");
+    const fb = el.querySelector(".flip");
+    if(fb){ fb.addEventListener("pointerdown", e => e.stopPropagation()); fb.addEventListener("click", e => { e.stopPropagation(); flipP(p); }); }
   }
-  function paint(p){ p.el.style.gridTemplateColumns = `repeat(${p.w}, ${C - 1}px)`; p.el.innerHTML = "<i></i>".repeat(p.w * p.h) + `<span class="tag">${p.h} × ${p.w}</span>`; p.el.querySelectorAll("i").forEach(i => i.style.height = (C - 1) + "px"); }
-  function toTray(p){ p.onBoard = false; slots.appendChild(p.el); p.el.style.left = p.home.left + "px"; p.el.style.top = p.home.top + "px"; }
-  function toBoard(p, x, y){ p.onBoard = true; p.x = x; p.y = y; fg.appendChild(p.el); p.el.style.left = x * C + "px"; p.el.style.top = y * C + "px"; }
+  // Fit the floor to the space it has (1280 × 720 and up, no scrolling). The BRIEF and HINTS tabs sit bottom left, so keep clear of them.
+  function fit(){
+    const r = fwrap.getBoundingClientRect(), left = Math.max(0, 170 - r.left);
+    fwrap.style.paddingLeft = left + "px";
+    C = Math.max(22, Math.min(76, Math.floor(Math.min((r.width - left - 8) / W, (r.height - 8) / H))));
+    fg.style.setProperty("--c", C + "px"); fg.style.width = W * C + 4 + "px"; fg.style.height = H * C + 4 + "px";
+    blkEls.forEach(([d, b]) => Object.assign(d.style, { left: b.x * C + "px", top: b.y * C + "px", width: b.w * C + "px", height: b.h * C + "px" }));
+    pieces.filter(p => p.onBoard).forEach(p => { paint(p, C); p.el.style.left = p.x * C + "px"; p.el.style.top = p.y * C + "px"; });
+    layoutTray();
+  }
+  // Tray: shelf-pack the rooms still to place, as big as will fit without scrolling (it scrolls if it really must)
+  function layoutTray(){
+    const rest = pieces.filter(p => !p.onBoard), width = Math.max(160, slots.clientWidth - 4), height = slots.clientHeight;
+    const pack = cs => { let x = 0, y = 0, rowH = 0; const gap = Math.max(8, cs * .4), out = rest.map(p => { const w = p.bw * cs + 1, h = p.bh * cs + 1; if(x > 0 && x + w > width){ x = 0; y += rowH + gap; rowH = 0; } const o = { left: x, top: y }; x += w + gap; rowH = Math.max(rowH, h); return o; }); return { out, h: y + rowH }; };
+    // ORACLE's comms box sits bottom right, over the foot of the tray: keep rooms out from under it when they still fit at a good size
+    const clear = height - Math.max(0, slots.getBoundingClientRect().bottom - (innerHeight - 215));
+    const size = lim => { let cs = Math.min(C, 44), res = pack(cs); while(cs > 18 && (res.h > lim || rest.some(p => p.bw * cs + 1 > width))){ cs--; res = pack(cs); } return [cs, res]; };
+    let [cs, res] = size(clear); if(cs < 26) [cs, res] = size(height);
+    rest.forEach((p, k) => { p.home = res.out[k]; paint(p, cs); toTray(p); });
+    $("left").textContent = rest.length ? `${rest.length} LEFT` : "";
+  }
+  function toTray(p){ p.onBoard = false; slots.appendChild(p.el); p.el.style.position = ""; p.el.style.left = p.home.left + "px"; p.el.style.top = p.home.top + "px"; }
+  function toBoard(p, x, y){ p.onBoard = true; p.x = x; p.y = y; fg.appendChild(p.el); p.el.style.position = ""; paint(p, C); p.el.style.left = x * C + "px"; p.el.style.top = y * C + "px"; }
   function say(t, cls){ const m = $("msg"); m.textContent = t; m.className = "tw-msg" + (cls ? " " + cls : ""); }
   let over = false, turns = 0, misfits = 0;
-  function turn(p){
-    [p.w, p.h] = [p.h, p.w]; paint(p); turns++;
-    if(p.onBoard && !valid(p, p.x, p.y)){ [p.w, p.h] = [p.h, p.w]; paint(p); say("No room to turn it there. Move it first.", "warn"); T.SND("untag"); return; }
-    T.SND("tag"); if(!p.onBoard) layoutTray();
+  // Turn (a quarter turn) or flip a room, in place on the floor if there's space
+  function reshape(p, s, what){
+    if(over) return;
+    const old = shapeOf(p); setShape(p, s); turns++;
+    if(p.onBoard && !valid(p, p.x, p.y)){ setShape(p, old); say(`No room to ${what} it there. Move it first.`, "warn"); T.SND("untag"); return; }
+    T.SND("tag"); if(p.onBoard) paint(p, C); else layoutTray();
   }
+  const turn = p => reshape(p, rot(shapeOf(p)), "turn");
+  const flipP = p => reshape(p, flip(shapeOf(p)), "flip");
+  const gridPos = (e, s) => { const g = fg.getBoundingClientRect(); return [Math.round((e.clientX - s.ox - g.left - fg.clientLeft) / C), Math.round((e.clientY - s.oy - g.top - fg.clientTop) / C)]; };
   function wire(p){
     let start = null;
     p.el.addEventListener("pointerdown", e => {
       if(over) return; e.preventDefault();
       const r = p.el.getBoundingClientRect();
-      start = { x: e.clientX, y: e.clientY, ox: e.clientX - r.left, oy: e.clientY - r.top, moved: false };
+      start = { x: e.clientX, y: e.clientY, fx: (e.clientX - r.left) / r.width, fy: (e.clientY - r.top) / r.height, moved: false };
       window.addEventListener("pointermove", move); window.addEventListener("pointerup", up);
     });
     const move = e => {
       if(!start) return;
       if(!start.moved && Math.hypot(e.clientX - start.x, e.clientY - start.y) < 6) return;
-      if(!start.moved){ start.moved = true; p.el.classList.add("drag"); const r = p.el.getBoundingClientRect(); document.body.appendChild(p.el); p.el.style.position = "fixed"; p.el.style.left = r.left + "px"; p.el.style.top = r.top + "px"; T.SND("tag"); }
+      if(!start.moved){   // picked up: full size, held at the same point
+        start.moved = true; p.el.classList.add("drag"); document.body.appendChild(p.el); p.el.style.position = "fixed"; paint(p, C);
+        start.ox = start.fx * (p.bw * C + 1); start.oy = start.fy * (p.bh * C + 1); T.SND("tag");
+      }
       p.el.style.left = (e.clientX - start.ox) + "px"; p.el.style.top = (e.clientY - start.oy) + "px";
-      const g = fg.getBoundingClientRect(), gx = Math.round((e.clientX - start.ox - g.left) / C), gy = Math.round((e.clientY - start.oy - g.top) / C);
+      const [gx, gy] = gridPos(e, start);
       p.el.classList.toggle("bad", inside(e) && !valid(p, gx, gy));
     };
     const up = e => {
@@ -172,10 +279,10 @@
       if(!start) return;
       const s = start; start = null;
       if(!s.moved){ turn(p); return; }
-      p.el.classList.remove("drag", "bad"); p.el.style.position = "";
-      const g = fg.getBoundingClientRect(), gx = Math.round((e.clientX - s.ox - g.left) / C), gy = Math.round((e.clientY - s.oy - g.top) / C);
-      if(inside(e) && valid(p, gx, gy)){ toBoard(p, gx, gy); T.SND("clamp"); say(`${p.h} × ${p.w} room placed.`, "ok"); }
-      else if(inside(e)){ p.onBoard = false; misfits++; T.SND("untag"); say("That's over a corridor, the lift, the stairs or another room. Try another spot, or turn it.", "warn"); fg.classList.remove("glitch"); void fg.offsetWidth; fg.classList.add("glitch"); }
+      p.el.classList.remove("drag", "bad");
+      const [gx, gy] = gridPos(e, s);
+      if(inside(e) && valid(p, gx, gy)){ toBoard(p, gx, gy); T.SND("clamp"); say(`${label(p, 99)} room placed.`, "ok"); }
+      else if(inside(e)){ p.onBoard = false; misfits++; T.SND("untag"); say("That's over a corridor, a blacked-out square, the lift, the stairs or another room. Try another spot, or turn it.", "warn"); fg.classList.remove("glitch"); void fg.offsetWidth; fg.classList.add("glitch"); }
       else { p.onBoard = false; }
       layoutTray(); update();
     };
@@ -191,7 +298,7 @@
     $("fbox").hidden = true; $("tray").hidden = true; $("stage").hidden = false;
     const G = Math.max(W, H), offY = Math.floor((G - H) / 2);
     const exitB = P.blocks.find(b => b.kind === "exit");
-    const layout = { grid: G, rooms: pieces.map(p => ({ x: p.x, y: p.y + offY, w: p.w, h: p.h })), exit: exitB ? { x: exitB.x, y: exitB.y + offY } : null };
+    const layout = { grid: G, rooms: pieces.flatMap(p => p.parts.map(q => ({ x: p.x + q.x, y: p.y + q.y + offY, w: q.w, h: q.h }))), exit: exitB ? { x: exitB.x, y: exitB.y + offY } : null };   // an L rises as its two arrays
     const F = PNFloor3D.create($("stage"), { layout, blocks: P.blocks.filter(b => b.kind === "lift" || b.kind === "stairs").map(b => ({ ...b, y: b.y + offY })), flat: true });
     F.camera.position.set(0, 175, 70); F.look.set(0, 0, 0);
     F.lightsOn(10);
@@ -205,11 +312,13 @@
     T.say("Floor rebuilt. Sending it back into the blueprint.");
     setTimeout(() => T.finish({ ok: true, title: "BLUEPRINT REPAIRED", lines: [], effect: "repaired", auto: 2200 }), 1400 / (window.PNTest ? PNTest.speed() : 1));
   }
-  layoutTray();
-  // Quiet: the brief zooms in by itself a moment after load, with this on top and the goal underneath
-  T.step(`Drag all <b>${pieces.length} rooms</b> onto the floor. <b>Tap</b> a room to turn it round.`, { quiet: true, name: "Rebuild the floor" });
+  fit();
+  let rz = 0; window.addEventListener("resize", () => { cancelAnimationFrame(rz); rz = requestAnimationFrame(() => { if(!over) fit(); }); });
+  // Quiet: goes to HINTS (?), which only opens when the pupil asks
+  T.step(`Drag all <b>${pieces.length} rooms</b> onto the floor. <b>Tap</b> a room to turn it round. <b>⇋</b> flips an L-shaped room over.`, { quiet: true, name: "Rebuild the floor" });
+  window.PNCorrupt = { P, pieces, W, H, cellsOf };   // read-only, for automated checks
   if(window.PNTest) PNTest.skip("Fit every room", () => {
-    pieces.forEach(p => { if(p.onBoard) return; const s = p.sol; if(p.w !== s.w){ [p.w, p.h] = [p.h, p.w]; paint(p); } toBoard(p, s.x, s.y); });
+    pieces.forEach(p => { p.onBoard = false; }); pieces.forEach(p => { const s = p.sol; setShape(p, { bw: s.bw, bh: s.bh, parts: s.parts }); toBoard(p, s.x, s.y); });   // every room to its place in the known solution
     layoutTray(); update();
   });
 })();

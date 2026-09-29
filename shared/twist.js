@@ -3,7 +3,9 @@
    a header with the level switch, an alarm meter, ORACLE, number helpers and the result screen.
    PNTwist.init({ id, stage, title, goal, story }) then PNTwist.level(), .alarm(max, onTrip), .finish({...}).
    Instructions: the goal opens as a hologram brief; PNTwist.step(html) shows each new step there (H hides/shows it).
-   Anything timed should wait while PNTwist.briefOpen() is true (a "pn-brief" event fires on window when it opens or closes). */
+   Anything timed should wait while PNTwist.briefOpen() is true (a "pn-brief" event fires on window when it opens or closes).
+   init({ briefStyle: "comms" }): the brief arrives as an ORACLE comms message (bottom right, fades) instead of the big panel,
+   so the pupil can start straight away; H (or the BRIEF tab) sends it again. */
 (function(){
   "use strict";
   const PN = window.Primenet;
@@ -110,7 +112,7 @@
 
   // The level from ?level=, else the agent's level, else L1 (safe to call before init)
   function peekLevel(){ const a = PN && PN.getAgent(); return ["L1", "L2", "L3"].includes(qs.get("level")) ? qs.get("level") : (a && a.level) || "L1"; }
-  function init({ id, stage, title, goal, story, brief, example, eyebrow, briefTitle, context }){
+  function init({ id, stage, title, goal, story, brief, example, eyebrow, briefTitle, context, briefStyle }){
     const st = document.createElement("style"); st.textContent = css + (EMBED ? " .pnh{ display:none !important; }" : ""); document.head.appendChild(st);
     if(PN && PN.applyLoot) PN.applyLoot();   // safehouse shop: hologram tint and night lens
     level = peekLevel();
@@ -124,8 +126,8 @@
       <div class="r"><nav class="tw-lv" aria-label="Level">${lv}</nav><button class="pn-btn small" type="button" id="twNew">New round</button><a class="pn-btn small" href="twist_lab.html" style="text-decoration:none">Twist Lab</a></div>`;
     wrap.prepend(head);
     if(!MISSION && head.querySelector("#twNew")) head.querySelector("#twNew").addEventListener("click", () => location.reload());
-    buildBrief(goal || brief || "", example, briefTitle, context || story);
-    if(story && window.PNHandler && !EMBED) setTimeout(() => PNHandler.say(story), 500);   // in a mission the stage's ORACLE introduces it
+    buildBrief(goal || brief || "", example, briefTitle, context || story, briefStyle);
+    if(story && window.PNHandler && !EMBED && briefStyle !== "comms") setTimeout(() => PNHandler.say(story), 500);   // in a mission the stage's ORACLE introduces it; comms style: the brief is the message
     if(PN) PN.log("twist", { id, level });
     return level;
   }
@@ -196,25 +198,31 @@
     layer.querySelector(".twb-go").addEventListener("click", () => hideWin(w));
     layer.querySelector(".twb-dim").addEventListener("click", () => hideWin(w));
     layer.querySelector(".twb-say").addEventListener("click", e => { e.stopPropagation(); if(window.PNVoice) PNVoice.speak(w.win.querySelector(".twb-b").innerText, { force: true }); });
-    chip.addEventListener("click", () => showWin(w));
+    chip.addEventListener("click", () => { if(kind === "brief" && B && B.comms) comms(); else showWin(w); });
     const auto = layer.querySelector(".twb-autoIn");
     if(auto) auto.addEventListener("change", e => { try{ localStorage.setItem(AUTO_KEY, e.target.checked ? "1" : "0"); }catch(err){} SND("click"); });
     return w;
   }
-  function buildBrief(goal, example, title, context){
+  function buildBrief(goal, example, title, context, style){
     W.brief = makeWin("brief", title || "BRIEF", title || "BRIEF", "H", 96);
     W.hints = makeWin("hints", "HINTS", "? HINTS", "?", 146);
-    B = { goalHTML: goal, stepHTML: "", context: context || goal, name: "", example: example || "" };
+    B = { goalHTML: goal, stepHTML: "", context: context || goal, name: "", example: example || "", comms: style === "comms" };
     render();
     document.addEventListener("keydown", e => {
       if(e.ctrlKey || e.metaKey || e.altKey) return;
       const t = e.target, typing = t && (t.isContentEditable || t.tagName === "TEXTAREA" || (t.tagName === "INPUT" && /^(text|search|password|email|url|tel)$/.test(t.type || "text") && !/numeric|decimal/.test(t.inputMode || "")));
       if(typing) return;
-      if(e.key === "h" || e.key === "H"){ e.preventDefault(); toggleWin(W.brief); }
+      if(e.key === "h" || e.key === "H"){ e.preventDefault(); if(B.comms) comms(); else toggleWin(W.brief); }
       else if(e.key === "?" || e.key === "/"){ e.preventDefault(); toggleWin(W.hints); }
     });
+    if(B.comms){   // no panel: the tab stays put and sends the comms again
+      setTimeout(() => { W.brief.chip.classList.remove("hide"); W.hints.chip.classList.remove("hide"); comms(); }, EMBED ? 1200 : 600);   // in a mission, after the stage's own intro line
+      return;
+    }
     setTimeout(() => { showWin(W.brief); W.hints.chip.classList.remove("hide"); }, 350);
   }
+  // Comms style: the brief as ORACLE's message (the stage's ORACLE in a mission); <b> becomes ORACLE's highlight
+  function comms(){ if(!B || document.querySelector(".tw-result")) return; say(String(B.context).replace(/<b>(.*?)<\/b>/g, "*$1*").replace(/<[^>]+>/g, "")); }
   function render(){
     if(!B) return;
     W.brief.step.innerHTML = B.context;
@@ -248,7 +256,7 @@
   }
   function toggleWin(w){ if(w.open) hideWin(w); else showWin(w); }
   function ping(w){ if(!w || w.open) return; w.chip.classList.remove("ping"); void w.chip.offsetWidth; w.chip.classList.add("ping"); }
-  function showBrief(){ showWin(W.brief); }
+  function showBrief(){ if(B && B.comms) comms(); else showWin(W.brief); }
   function hideBrief(){ hideWin(W.hints, true); hideWin(W.brief); if(W.hints) hideWin(W.hints); }
   function showHints(){ showWin(W.hints); }
   function step(html, opts = {}){
@@ -266,7 +274,7 @@
     if(opts.name !== undefined) B.name = opts.name;
     if(opts.context !== undefined) B.context = opts.context;
     render();
-    if(opts.context !== undefined && !opts.quiet) showWin(W.brief); else ping(W.brief);
+    if(opts.context !== undefined && !opts.quiet){ if(B.comms) comms(); else showWin(W.brief); } else ping(W.brief);
     if(!opts.quiet && autoHints() && opts.context === undefined) showWin(W.hints); else ping(W.hints);
   }
   function say(text, opts){ if(EMBED){ window.parent.postMessage({ type: "pn-twist-say", text }, "*"); return; } if(window.PNHandler) PNHandler.say(text, opts); }

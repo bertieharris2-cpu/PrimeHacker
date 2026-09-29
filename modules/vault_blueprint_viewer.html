@@ -295,6 +295,21 @@ body{ padding:12px 16px !important; overflow-y:auto; }
 @media (prefers-reduced-motion: reduce){ .bp-go, .bp-cctv, .bp-cctv .rec b{ animation:none; } }
 html.pn-reduce-motion .bp-go, html.pn-reduce-motion .bp-cctv, html.pn-reduce-motion .bp-cctv .rec b{ animation:none; }
 
+/* Teacher (0:12): a mini hacking terminal under the WATCH code rain (mode.js .pnm-rain) while the blueprint assembles.
+   Any key types code. Same font, size and colours as the rain so it reads as part of it. */
+.bp-term{ position:fixed; right:0; top:calc(var(--pn-mode-h, 62px) + min(32vh, 300px)); width:min(260px, 20vw); height:min(19vh, 150px); z-index:9390; pointer-events:none; overflow:hidden;
+  font-family:"Courier Prime", monospace; font-size:12px; line-height:1.45; color:rgba(110,220,255,.42); padding:6px 10px;
+  background:rgba(3,14,20,.5); border-top:1px dashed rgba(110,220,255,.25); opacity:0; transition:opacity .4s; display:flex; flex-direction:column; }
+.bp-term.on{ opacity:1; }
+.bp-term .hd{ letter-spacing:.12em; color:rgba(110,220,255,.6); }
+.bp-term .hd b{ color:#ffe68a; font-weight:400; }
+.bp-term .ln{ flex:1; display:flex; flex-direction:column; justify-content:flex-end; overflow:hidden; white-space:pre-wrap; word-break:break-all; }
+.bp-term .ln b{ color:#ffe68a; font-weight:400; } .bp-term .ln i{ font-style:normal; color:rgba(160,255,210,.55); } .bp-term .ln u{ text-decoration:none; opacity:.6; }
+.bp-term .cur{ animation:bpCur 1s steps(2) infinite; } @keyframes bpCur{ 50%{ opacity:0; } }
+@media (max-width:900px){ .bp-term{ display:none; } }
+@media (prefers-reduced-motion: reduce){ .bp-term .cur{ animation:none; } }
+html.pn-reduce-motion .bp-term .cur{ animation:none; }
+
 .pn-powerup{ position:fixed; inset:0; z-index:9999; display:flex; align-items:center; justify-content:center; background:rgba(4,14,17,.72); font-family:var(--font-ui); }
 .pn-powerup div{ border:1px solid rgba(var(--accent-rgb),.6); background:rgba(9,32,38,.92); padding:22px 30px; text-align:center; letter-spacing:.16em; font-weight:700; color:var(--accent); animation:pnPulse 1.4s ease-in-out infinite; }
 .pn-powerup small{ display:block; margin-top:8px; letter-spacing:.06em; font-weight:400; color:var(--text-muted); }
@@ -505,6 +520,69 @@ function powerUpPrompt(title){
       const h = window.PNMode ? PNMode.watch(label, { seconds }) : null;
       return { progress(k){ if(h) h.progress(k); }, label(t){ if(h && h.label) h.label(t); }, end(){ if(h){ h.end(); PNMode.done(); } } };
     }
+    // Teacher (0:12): a mini terminal under the code rain while the blueprint assembles. Any key the pupil presses
+    // types a few characters of code (like the HACK mode in roleplay_terminal). Just for fun: it never blocks a key
+    // (only SPACE is kept from scrolling the page) and it goes when the build is done.
+    const bpTerm = (() => {
+      const CODE = [
+        "// PRIMENET uplink: rebuild the blueprint",
+        "import { floors, primes } from \"primenet/core\";",
+        "const plans = await vault.decrypt(\"{target}\");",
+        "for (const f of plans.floors) {",
+        "  f.rooms = factorPairs(f.n);",
+        "  building.stack(f);",
+        "}",
+        "function factorPairs(n) {",
+        "  const out = [];",
+        "  for (let a = 1; a * a <= n; a++) if (n % a === 0) out.push([a, n / a]);",
+        "  return out;",
+        "}",
+        "cameras.loop(feed = 4, frames = 0x3F);",
+        "firewall.bypass({ mode: \"stealth\", trace: false });",
+        "// lock each floor onto the one below",
+        "building.floors.forEach(f => f.dock());",
+        "def weak_point(walls):",
+        "    return min(walls, key = strength)",
+        "SELECT * FROM rooms WHERE locked = TRUE;",
+        "sudo ./ghost_protocol --silent --no-logs",
+        "ssh oracle@primenet -p 2357",
+      ];
+      const esc = t => t.replace(/[&<>]/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;" })[c]);
+      // Rain colours: keywords gold, strings green, comments dimmer
+      function HL(t){
+        const m = t.match(/^(.*?)(\/\/.*|#.*)?$/), code = m[1] || "", cm = m[2] || "";
+        const body = esc(code).split(/("[^"]*"?)/).map(part => part.startsWith('"') ? `<i>${part}</i>`
+          : part.replace(/\b(const|let|for|if|return|function|import|from|await|def|in|of|SELECT|FROM|WHERE|sudo|true|false|TRUE)\b/g, '<b>$1</b>')).join("");
+        return body + (cm ? `<u>${esc(cm)}</u>` : "");
+      }
+      let el = null, lnEl = null, on = false, done = [], src = "", pos = 0, row = 0, text = "", guard = null;
+      const target = () => (PN && PN.mission ? PN.mission().target : "TARGET");
+      function draw(){ lnEl.innerHTML = done.slice(-8).map(t => `<div>${HL(t)}</div>`).join("") + `<div>${HL(text)}<span class="cur">▌</span></div>`; }
+      function key(e){
+        if(!on || e.ctrlKey || e.metaKey || e.altKey || e.repeat) return;
+        if(e.key.length !== 1 && e.key !== "Backspace" && e.key !== "Tab" && e.key !== "Enter") return;
+        if(e.key === " " && e.target === document.body && !document.querySelector('.pn-powerup')) e.preventDefault();   // no page scroll
+        if(!src){ src = CODE[row++ % CODE.length].replace("{target}", target()); pos = 0; text = ""; }
+        const step = 2 + Math.floor(Math.random() * 4);
+        text += src.slice(pos, pos + step); pos += step;
+        if(pos >= src.length){ done.push(text); text = ""; src = ""; }
+        draw(); SND("key");
+      }
+      return {
+        start(){
+          if(on) return; on = true;
+          if(!el){ el = document.createElement('div'); el.className = 'bp-term'; el.setAttribute('aria-hidden', 'true');
+            el.innerHTML = '<div class="hd">&gt; <b>type to hack</b></div><div class="ln"></div>'; document.body.appendChild(el); lnEl = el.querySelector('.ln'); }
+          draw(); requestAnimationFrame(() => el.classList.add('on'));
+          document.addEventListener('keydown', key);
+          // never over ORACLE's comms box: if a long message reaches up this far, the terminal steps aside
+          guard = setInterval(() => { const h = document.querySelector('.pnh'), b = h && h.getBoundingClientRect();
+            el.style.visibility = b && b.height && b.top < el.getBoundingClientRect().bottom + 8 && b.left < window.innerWidth - 20 ? 'hidden' : ''; }, 300);
+        },
+        stop(){ if(!on) return; on = false; clearInterval(guard); document.removeEventListener('keydown', key); if(el){ const e0 = el; el = null; e0.classList.remove('on'); setTimeout(() => e0.remove(), 450); } },
+      };
+    })();
+    window.bpTerm = bpTerm;   // test hook
     // Test hook: what the page showed, in order (labels, twists, ticks)
     window.bpEvents = [];
     const bpEvent = e => { window.bpEvents.push(e); };
@@ -637,6 +715,21 @@ function powerUpPrompt(title){
         const p0 = camera.position.clone(); return tween(900, e => camera.position.lerpVectors(p0, target, e));
       }
       window.addEventListener('resize', onResize);
+      // Teacher (0:24): the labels column went and the stage grew to the left, so the building jumped sideways.
+      // Now the labels fade, then the view is shifted back to where the building was and glides to the new middle.
+      async function goWide(){
+        const fc = document.getElementById('floorsContainer');
+        if(!fc || window.innerWidth <= 900 || fc.classList.contains('wide')) return;
+        const lc = fc.querySelector('.blueprint-labels');
+        if(lc){ lc.style.transition = 'opacity .35s'; lc.style.opacity = 0; await wait(350); }
+        const r0 = renderer.domElement.getBoundingClientRect();
+        fc.classList.add('wide'); onResize();
+        const r1 = renderer.domElement.getBoundingClientRect(), dx = Math.round((r1.left + r1.width / 2) - (r0.left + r0.width / 2));
+        if(!dx) return;
+        const shift = x => { const w = renderer.domElement.clientWidth, h = renderer.domElement.clientHeight; if(x) camera.setViewOffset(w, h, x, 0, w, h); else camera.clearViewOffset(); };
+        shift(dx);
+        tween(1100, e => shift(Math.round(dx * (1 - e)))).then(() => shift(0));
+      }
 
       const labelFor = n => document.querySelector(`.floor-label[data-n="${n}"]`);
       const order = [floorGroups[2], floorGroups[1], floorGroups[0]];   // ground floor first
@@ -713,6 +806,7 @@ function powerUpPrompt(title){
           const w = shortWatch("Something's wrong with floor 2", 3.2);
           spinning = false;
           SND("static", 0.8); setTimeout(() => SND("radio"), 250 / speedUp()); setTimeout(() => SND("glitch"), 700 / speedUp());
+          SND("disturb", (reduced() ? 2400 : 3100) / 1000 / speedUp());   // Teacher: interference for as long as the floor wobbles
           say('Interference on floor 2…');
           if(window.PNHandler) PNHandler.say(PNStory.LINES.corrupt);
           f.lines.forEach(m => m.color.set(0xff4f6d)); f.plate.material.color.set(0xff4f6d);
@@ -1353,6 +1447,10 @@ function powerUpPrompt(title){
       }
       window.bpHeist = heist;
       window.bpObj = name => !!mainGroup.getObjectByName(name);   // test hook: is this object in the scene?
+      // test hook: the building's box on screen (page pixels), to check it never jumps
+      window.bpScreen = () => { const bx = new THREE.Box3(), r = renderer.domElement.getBoundingClientRect(); floorGroups.forEach(f => bx.expandByObject(f.group));
+        let x0 = 1e9, x1 = -1e9; for(let i = 0; i < 8; i++){ const v = new THREE.Vector3(i & 1 ? bx.max.x : bx.min.x, i & 2 ? bx.max.y : bx.min.y, i & 4 ? bx.max.z : bx.min.z).project(camera);
+          const x = r.left + (v.x + 1) / 2 * r.width; x0 = Math.min(x0, x); x1 = Math.max(x1, x); } return { x0: Math.round(x0), x1: Math.round(x1), cx: Math.round((x0 + x1) / 2) }; };
 
       // Final positions straight away when motion is reduced
       if(reduced()){
@@ -1369,7 +1467,7 @@ function powerUpPrompt(title){
         // Feedback round 9: floor 3 sat too high to see; the exploded floors are closer together and lower down
         const GAP = 38, BASE = -22;
         say('Decrypting floor plans…');
-        watchStart();
+        watchStart(); bpTerm.start();
         for(const [k, f] of order.entries()){
           watchAt(0.04 + 0.11 * k);
           labelFor(f.n)?.classList.remove('waiting');
@@ -1412,15 +1510,14 @@ function powerUpPrompt(title){
         spinning = true;
         watchAt(0.8);
         await exterior();
-        { const fc = document.getElementById('floorsContainer'); if(fc && window.innerWidth > 900){ fc.classList.add('wide'); onResize(); }
-          fitOn = true; fitCamera(false); }
+        await goWide(); fitOn = true; fitCamera(false);
         say(`${PN ? PN.mission().target.toUpperCase() : 'TARGET'} // STRUCTURE ASSEMBLED`);
         SND("success");
         { const h1 = document.querySelector("h1"); if(h1 && PN) h1.textContent = `${PN.mission().target}: blueprint complete`; }
         watchAt(1);
         await wait(1600);
         // Round 15: the assembly WATCH ends here; the corrupted floor (if it's in this mission), then chapter 4
-        watchEnd();
+        watchEnd(); bpTerm.stop();
         await corruptBeat();
         await afterAssembly();
       })();
