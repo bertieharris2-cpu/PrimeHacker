@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" class="phase-build">
+<html lang="en" class="phase-build" data-glitch-in="off">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -9,10 +9,10 @@
 <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Inter:wght@400;600;700;800&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../shared/primenet.css">
 <style>
-  /* Mission part two opener. The town and TARGET LOCKED now happen in the briefing (shared/townlock.js). Here: the email
-     intercepted in part one (an envelope with a padlock, building_plans.enc) opens, the hologram of the target's floors rises
-     out of it, PLANS INTERCEPTED, soft red interference bands (still encrypted) and ORACLE's line about decrypting each floor.
-     About 10 seconds, WATCH, skippable. */
+  /* Straight on from the live intercept (it fades in from the scan, no static and no chapter card). The town and TARGET
+     LOCKED happen in the briefing (shared/townlock.js). Here: the intercepted email (an envelope with a padlock,
+     building_plans.enc) opens, the hologram of the target's floors rises out of it and soft red interference bands
+     (still encrypted) creep over it as it rises, then ORACLE's line about decrypting each floor. About 8 seconds, WATCH, skippable. */
   html, body{ height:100%; }
   body{ margin:0; overflow:hidden; background:radial-gradient(ellipse at 50% 55%, #0b2a33 0%, #04101a 55%, #01060a 100%); color:var(--text-primary); font-family:var(--font-ui); }
   .tl-stage{ position:fixed; inset:0; z-index:1; }
@@ -37,15 +37,6 @@
   .tl-ret.on{ opacity:1; }
   .tl-ret.close{ width:min(46vw, 480px); height:min(62vh, 470px); }
   .tl-ret.locked i{ border-color:#ffc94d; filter:drop-shadow(0 0 10px rgba(255,201,77,.8)); }
-  /* the stamp */
-  .tl-stamp{ position:fixed; left:50%; top:72%; z-index:4; transform:translate(-50%,-50%) rotate(-6deg) scale(2.4); opacity:0; pointer-events:none; text-align:center;
-    border:5px solid #ffc94d; padding:14px 34px 12px; background:rgba(20,12,0,.55); box-shadow:0 0 40px rgba(255,201,77,.35), inset 0 0 30px rgba(255,201,77,.18); }
-  .tl-stamp b{ display:block; font-size:clamp(30px, 4vw, 54px); letter-spacing:.14em; white-space:nowrap; color:#ffc94d; text-shadow:0 0 24px rgba(255,201,77,.6); line-height:1; }
-  .tl-stamp span{ display:block; margin-top:10px; font-size:clamp(16px, 1.9vw, 24px); letter-spacing:.22em; color:#fff3cf; text-transform:uppercase; }
-  .tl-stamp.on{ animation:tlStamp .38s cubic-bezier(.3,1.6,.5,1) forwards; }
-  @keyframes tlStamp{ 0%{ opacity:0; transform:translate(-50%,-50%) rotate(-6deg) scale(2.4); } 100%{ opacity:1; transform:translate(-50%,-50%) rotate(-6deg) scale(1); } }
-  .tl-stamp.shake{ animation:tlStamp .38s cubic-bezier(.3,1.6,.5,1) forwards, tlShake .3s .38s steps(3) 1; }
-  @keyframes tlShake{ 33%{ margin-left:4px; } 66%{ margin-left:-3px; } }
   /* the three floors, each still encrypted */
   .tl-floors{ position:fixed; left:22px; top:calc(var(--pn-mode-h, 62px) + 110px); z-index:3; display:flex; flex-direction:column; gap:8px; }
   .tl-floors div{ font-family:var(--font-ui); font-weight:700; font-size:16px; letter-spacing:.16em; padding:8px 14px; border:1px solid rgba(255,107,107,.6); background:rgba(40,6,10,.6); color:#ffb0b0;
@@ -74,9 +65,6 @@
   @media (max-width:700px){ .tl-floors{ top:auto; bottom:24px; left:16px; } .tl-head{ left:16px; } }
   @media (prefers-reduced-motion: reduce){ .tl-scan::after{ animation:none; } .tl-ret{ transition:none; } .env{ transform:none; transition:opacity .45s ease; } body.env-out .env{ transform:none; } }
   .pn-reduce-motion .env, .pn-reduce-motion body.env-out .env{ transform:none; }
-  /* reduced motion: the stamp just appears (its entrance is an animation, which reduced motion switches off) */
-  @media (prefers-reduced-motion: reduce){ .tl-stamp.on{ animation:none; opacity:1; transform:translate(-50%,-50%) rotate(-6deg); } }
-  .pn-reduce-motion .tl-stamp.on{ animation:none; opacity:1; transform:translate(-50%,-50%) rotate(-6deg); }
 </style>
 </head>
 <body>
@@ -97,7 +85,6 @@
     <rect x="4" y="17" width="26" height="21" rx="3" fill="#3a0c12" stroke="#ff6b6b" stroke-width="2.4"/><circle cx="17" cy="25.5" r="2.6" fill="#ff8a8a"/><path d="M17 27.5v4.5" stroke="#ff8a8a" stroke-width="2.4" stroke-linecap="round"/></svg>
   <div class="env-name">building_plans.enc<small>ENCRYPTED ATTACHMENT</small></div>
 </div>
-<div class="tl-stamp" id="stamp" role="status" aria-live="polite"><b>PLANS INTERCEPTED</b><span id="bank"></span></div>
 <div class="tl-floors" id="floors">
   <div>FLOOR 3<small>ENCRYPTED</small></div>
   <div>FLOOR 2<small>ENCRYPTED</small></div>
@@ -124,7 +111,6 @@
   const sleep = ms => new Promise(r => setTimeout(r, ms / speed()));
   const reduced = () => !!(PN && PN.reducedMotion && PN.reducedMotion());
   const M = PN ? PN.mission() : { target: "Rivercross Utilities", operation: "SILENT HERON", codename: "AGENT" };
-  document.getElementById("bank").textContent = M.target;
   document.getElementById("head").innerHTML = `PRIMENET // INTERCEPTED EMAIL<br>OPERATION <b>${M.operation}</b><br>PLANS OF <b>${M.target.toUpperCase()}</b><br><em id="stat">EMAIL INTERCEPTED</em>`;
   if(PN) PN.log("target-locked", { target: M.target });
 
@@ -285,44 +271,48 @@
   }
   async function play(){
     await (window.PNSound ? PNSound.whenUnlocked(() => powerUpPrompt("OPEN THE INTERCEPTED EMAIL")) : Promise.resolve());
-    if(window.PNMode) await PNMode.chapterCard(2, "Decrypt the plans");
     if(left) return;
+    // Teacher feedback: no chapter card here, and no PLANS INTERCEPTED stamp; it flows straight on from the email
     const rm = reduced(), body = document.body;
-    watchH = window.PNMode ? PNMode.watch("Plans intercepted", { seconds: rm ? 8.2 : 10.7, onSkip: goOn }) : null;
-    const ret = document.getElementById("ret"), stamp = document.getElementById("stamp");
+    watchH = window.PNMode ? PNMode.watch("Decrypt the plans", { seconds: rm ? 7.4 : 8.4, onSkip: goOn }) : null;
+    const ret = document.getElementById("ret");
     placeEnv();
-    // 1. The intercepted email: an envelope with a padlock
+    // 1. The intercepted email: an envelope with a padlock (it arrives as the page fades in)
     body.classList.add("env-in"); SND("data");
-    await sleep(900);
+    await sleep(600);
     if(left) return;
     // 2. It opens (the padlock stays: the plans inside are still encrypted)
     stat("OPENING BUILDING_PLANS.ENC"); SND("latch");
-    await openFlap(650);
+    await openFlap(560);
     body.classList.add("env-lit");
-    await sleep(rm ? 700 : 150);
+    await sleep(rm ? 500 : 100);
     if(left) return;
-    // 3. The hologram rises out of it, the envelope sinks away, and the building grows to full size
+    // 3. The hologram rises out of it, the envelope sinks away, and the building grows to full size.
+    //    The soft red encryption creeps in while it is still rising, and ORACLE explains.
     SND("rise");
-    setTimeout(() => { if(!left) body.classList.add("env-out"); }, (rm ? 0 : 1300) / speed());
-    setTimeout(() => { if(!left){ ret.classList.add("on"); requestAnimationFrame(() => requestAnimationFrame(() => ret.classList.add("close"))); } }, (rm ? 0 : 1500) / speed());
-    await tween(2500, k => { rise = k; reveal = Math.min(1, k / .45); }, rm);
+    setTimeout(() => { if(!left) body.classList.add("env-out"); }, (rm ? 0 : 1200) / speed());
+    setTimeout(() => { if(!left){ ret.classList.add("on"); requestAnimationFrame(() => requestAnimationFrame(() => ret.classList.add("close"))); } }, (rm ? 0 : 1300) / speed());
+    const encrypt = async () => {
+      if(left) return;
+      SND("scanline", 1.1); stat("FLOOR PLANS ENCRYPTED");
+      if(window.PNHandler) PNHandler.say(PNStory.LINES.decrypt);
+      await tween(1000, k => { crypt = k; });
+    };
+    let red;
+    if(rm){ await tween(0, k => { rise = k; reveal = 1; }, true); }
+    else {
+      setTimeout(() => { red = encrypt(); }, 1100 / speed());   // about halfway up, once the floors are there
+      await tween(2200, k => { rise = k; reveal = Math.min(1, k / .45); });
+    }
     if(left) return;
-    // 4. PLANS INTERCEPTED
-    ret.classList.add("on", "close", "locked"); tint = 1;
-    stamp.classList.add("on", "shake"); SND("lockon"); stat("PLANS INTERCEPTED");
+    ret.classList.add("on", "close", "locked");
     tween(900, k => { ringK = k; }, rm);
-    await sleep(500);
+    if(rm) red = encrypt();
+    await red;
     if(left) return;
-    // 5. Each floor is scrambled red, and ORACLE explains
-    SND("scanline", 1.1);
-    if(window.PNHandler) PNHandler.say(PNStory.LINES.decrypt);
-    await tween(900, k => { crypt = k; });
-    if(left) return;
-    stat("FLOOR PLANS ENCRYPTED");
-    if(stamp.animate) stamp.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 700 / speed(), fill: "forwards" });   // out of the way of the red floors and ORACLE's line
     const rows = [...document.querySelectorAll("#floors div")];
     for(const r of rows){ if(left) return; r.classList.add("on"); SND("chirp"); await sleep(280); }
-    await sleep(rm ? 4200 : 4300);   // time to read (or hear) ORACLE's line
+    await sleep(4200);   // time to read (or hear) ORACLE's line
     goOn();
   }
   play();

@@ -169,7 +169,8 @@
   function chapter(key){ forced = key; if(bar) renderStages(); }
   // PNMode.chapterCard(3, "Decrypt the plans") : a short title card between chapters, ~1.6 s, as a WATCH
   function chapterCard(num, title, { seconds = 1.6 } = {}){
-    if(EMBED || PRACTICE) return Promise.resolve();
+    // Bertie: no MISSION · PART cards; the story flows straight on (kept as a no-op so pages needn't change)
+    if(EMBED || PRACTICE || !chapterCard.on) return Promise.resolve();
     build();
     const card = document.createElement("div"); card.className = "pnm-chap"; card.setAttribute("role", "status");
     // Bertie: not "chapters" (not mission-like). The card just says MISSION · PART ONE; title stays for the teacher's notes

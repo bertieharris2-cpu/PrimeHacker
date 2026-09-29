@@ -1147,12 +1147,14 @@ html.pn-mode-on .devPanel{ top: calc(var(--pn-mode-h, 62px) + 50px); }
       interceptDone = null;
       interceptPerfect = stats.missed === 0 && stats.noise === 0 && stats.locked > 0;
       setConsole("INTERCEPT CLOSED", `Locked ${stats.locked} of ${half} primes.`);
-      // Bertie: while the line goes flat, a short typing moment captures the email, then ACCESS GRANTED
+      // Bertie: while the line goes flat, a short typing moment captures the email, then EMAIL INTERCEPTED
       box.querySelectorAll(".ffHint").forEach(n => n.remove());
       await thinTerm(box, { label: "CAPTURING THE EMAIL", keys: 20, hint: "Type anything to capture it", doneText: "EMAIL CAPTURED" });
       running = false;
-      const w = MODE.watch("Access granted", { seconds: 2.4 });
-      flashAccessGranted(() => { w.end(); renderComplete(); });
+      const w = MODE.watch("Email intercepted", { seconds: 2.5 });
+      renderComplete();
+      // Teacher feedback: no separate results screen. EMAIL INTERCEPTED, then a calm fade into the email opening
+      flashAccessGranted(() => { w.end(); goToTarget(); }, { keep: true });
     }
     // Teacher test tool: close the intercept as if every prime was locked
     interceptDone = () => { if(!locked && thinTerm.finish) thinTerm.finish(); locked = true; chaos = 0; blips.forEach(b => { b.done = true; b.state = "gone"; b.el.remove(); }); spawned = queue.length; stats.locked = half; stats.left = 0; finish(); };
@@ -1169,56 +1171,37 @@ html.pn-mode-on .devPanel{ top: calc(var(--pn-mode-h, 62px) + 50px); }
     });
   }
 
+  // The email is ours: record the result (signal, decoders, badges) and ORACLE's line. The overlay covers the screen,
+  // then goToTarget() fades straight into target_locked.html, where the email opens.
   function renderComplete(){
     state = State.COMPLETE;
     SND("success");
-    if(window.PNHandler) PNHandler.once("scan-done", PNStory.LINES.scanEnd, { delay: 700 });
+    if(window.PNHandler) PNHandler.once("scan-done", PNStory.LINES.scanEnd, { delay: 150 });
     setStatus("STATUS: READY");
     setConsole("EMAIL INTERCEPTED", "Attachment: building plans, encrypted.");
-    clearMain();
-
-    const title = el("div", { class: "titleBig", text: "EMAIL INTERCEPTED" });
-    const segs = renderSegments();
     const decoders = decodersFor(signal);
     if(PN) PN.updateAgent({ signal, decoders });
     if(window.PNBadges){ if(signal === 100) PNBadges.award("clean-sweep"); if(interceptPerfect) PNBadges.award("interceptor"); }
-    const bonus = el("div", { class: "bonusCard", html: `<div>FINAL SIGNAL STRENGTH</div><div class="big">${signal}%</div>
-      <div class="perk">${signal >= 80 ? "Strong signal: a clean copy of the email." : "Weak signal, but we got the file. A cleaner scan next time."}</div>` });
-    const sub = el("div", { class: "sub", text: "Attachment: building plans. Still encrypted. Next: decrypt them." });
-
-    MODE.turn("Decrypt the plans");
-    const proceed = el("button", {
-      class: "pn-go",
-      text: "DECRYPT THE PLANS",
-      onClick: async () => {
-        proceed.disabled = true; restart.disabled = true;
-        setConsole("ROUTE SET", "Next: LOCK ON TO THE TARGET.");
-        if(PN) PN.log("scan-complete", { signal, bands: CONFIG.bands.map(b => `${b.start}-${b.end}`) });
-        // Round 15: no twist here any more; the scan goes straight on to the target (chapter 2 opener)
-        window.PNGlitch ? PNGlitch.go("target_locked.html") : (location.href = "target_locked.html");
-      }
-    });
-
-    const restart = el("button", {
-      text: "RESTART SCAN",
-      onClick: () => { signal = 100; renderBrief(); }
-    });
-
-    const btnRow = el("div", { class: "btnRow" }, [proceed, restart]);
-
-    main.append(title, segs, bonus, sub, btnRow);
+    if(PN) PN.log("scan-complete", { signal, bands: CONFIG.bands.map(b => `${b.start}-${b.end}`) });
+  }
+  function goToTarget(){
+    if(goToTarget.ran) return; goToTarget.ran = true;
+    // A plain fade to the dark background (no static); target_locked fades in from it
+    window.PNGlitch ? PNGlitch.go("target_locked.html", { style: "fade" }) : (location.href = "target_locked.html");
   }
 
-  function flashAccessGranted(onDone){
+  function flashAccessGranted(onDone, opts){
     // Simple centre overlay: code rain vibe without heavy graphics
     const overlay = el("div", {
       style: `
         position: fixed; inset: 0; display: grid; place-items: center;
         background: rgba(0,0,0,0.72);
         border: 1px solid rgba(47,191,138,0.35);
-        z-index: 9999;
+        z-index: 8990;
       `
     });
+    // just under ORACLE's box (9000), so the scanEnd line reads over it; a soft fade in, not a snap
+    if(overlay.animate) overlay.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 250, easing: "ease-out" });
 
     const box = el("div", {
       style: `
@@ -1252,7 +1235,7 @@ html.pn-mode-on .devPanel{ top: calc(var(--pn-mode-h, 62px) + 50px); }
     }
     code.textContent = lines.slice(0, 14).join("\n");
 
-    const big = el("div", { class: "titleBig ok", text: "ACCESS GRANTED" });
+    const big = el("div", { class: "titleBig ok", role: "status", text: "EMAIL INTERCEPTED" });
 
     const barWrap = el("div", { class: "barWrap", role: "progressbar", "aria-valuemin": "0", "aria-valuemax": "100", "aria-valuenow": "0" });
     barWrap.style.width = "100%";   // Bertie: the bar runs the full width of its box
@@ -1279,7 +1262,8 @@ html.pn-mode-on .devPanel{ top: calc(var(--pn-mode-h, 62px) + 50px); }
       barWrap.setAttribute("aria-valuenow", String(p));
       if (p >= 100){
         clearInterval(t);
-        setTimeout(() => { overlay.remove(); if(typeof onDone === "function") onDone(); }, 900);
+        // keep: the overlay stays up while the page fades out behind it (no flash of the old screen)
+        setTimeout(() => { if(!(opts && opts.keep)) overlay.remove(); if(typeof onDone === "function") onDone(); }, 800);
       }
     }, 90);
   }
@@ -1384,7 +1368,7 @@ html.pn-mode-on .devPanel{ top: calc(var(--pn-mode-h, 62px) + 50px); }
       <button type="button" id="devVerified">Signals Verified</button>
 
       <button type="button" id="devNoise">Noise Detected</button>
-      <button type="button" id="devAccess">Access Granted</button>
+      <button type="button" id="devAccess">Email Intercepted</button>
 
       <button type="button" id="devSpamOn">Console Stream ON</button>
       <button type="button" id="devSpamOff">Console Stream OFF</button>

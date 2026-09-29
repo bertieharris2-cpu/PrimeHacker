@@ -1,7 +1,8 @@
 /* Glitch transitions between stages: a quick screen tear and a burst of static, so moving
    between games feels like jumping between systems. PNGlitch.go(url) plays it and then
    opens the next page, which plays a short glitch as it appears. Reduced motion gets a
-   plain fade instead. */
+   plain fade instead. PNGlitch.go(url, { style:"fade" }) is a calm handover with no static: the
+   page fades to the dark background and the next page fades in from it. */
 (function(){
   "use strict";
   const FLAG = "primenet_glitch_in";
@@ -71,8 +72,18 @@
   }
 
   async function go(url, opts){
-    const style = opts && opts.style === "sweep" ? "sweep" : "glitch";
-    try{ sessionStorage.setItem(FLAG, style === "sweep" ? "sweep" : "1"); }catch(e){}
+    const style = opts && (opts.style === "sweep" || opts.style === "fade") ? opts.style : "glitch";
+    try{ sessionStorage.setItem(FLAG, style === "glitch" ? "1" : style); }catch(e){}
+    // "fade": fade to the dark background, then open the next page (reduced motion too: it's only a fade)
+    if(style === "fade" && document.body){
+      const el = layer(), shade = el.querySelector(".shade");
+      el.querySelector("canvas").remove();
+      const ms = (opts && opts.ms) || 450;
+      shade.style.transition = `opacity ${ms}ms ease-in`;
+      requestAnimationFrame(() => requestAnimationFrame(() => { shade.style.opacity = "1"; }));
+      setTimeout(() => { location.href = url; }, ms + 60);
+      return;
+    }
     if(style === "sweep" && document.body && !reduced()){
       const el = layer(); el.querySelector("canvas").remove();
       if(window.PNSound) PNSound.play("holo");
@@ -101,6 +112,14 @@
     if(!flagged) return;
     // A page can opt out of the incoming static (<html data-glitch-in="off">), so the fuzz plays once, on the way out
     if(kind === "1" && document.documentElement.dataset.glitchIn === "off") return;
+    if(kind === "fade"){
+      const el = layer(), shade = el.querySelector(".shade");
+      el.querySelector("canvas").remove();
+      shade.style.transition = "none"; shade.style.opacity = "1";
+      requestAnimationFrame(() => requestAnimationFrame(() => { shade.style.transition = "opacity .5s ease-out"; shade.style.opacity = "0"; }));
+      setTimeout(() => el.remove(), 700);
+      return;
+    }
     if(kind === "sweep" && !reduced()){
       const el = layer(); el.querySelector("canvas").remove(); el.querySelector(".shade").remove();
       sweep(el, false, 520).then(() => el.remove());

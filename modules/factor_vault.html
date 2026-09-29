@@ -439,6 +439,10 @@
     .drag-grid.bad i.sel{ background:rgba(255,107,107,.45); border-color:#ff6b6b; }
     .drag-grid i.placed{ background:hsla(calc(160 + var(--hue, 0)), 70%, 45%, .55); border-color:hsla(calc(160 + var(--hue, 0)), 80%, 65%, .9); }
     .drag-grid .dtag{ position:absolute; pointer-events:none; font-family:var(--font-mono); font-size:12px; line-height:1; padding:2px 4px; background:rgba(3,14,16,.85); color:#eafff6; transform:translate(2px, 2px); }
+    /* The turned-round copy of a drawn rectangle: swings out beside it for a moment, then fades (never takes clicks) */
+    .drag-grid .turned{ position:absolute; display:grid; gap:2px; pointer-events:none; z-index:2; }
+    .drag-grid .turned b{ background:hsla(calc(160 + var(--hue, 0)), 70%, 55%, .4); border:1px dashed hsla(calc(160 + var(--hue, 0)), 85%, 75%, .95); }
+    .drag-grid .turned span{ position:absolute; left:50%; top:50%; transform:translate(-50%, -50%); font-family:var(--font-mono); font-size:15px; font-weight:700; line-height:1; padding:3px 6px; white-space:nowrap; background:rgba(3,14,16,.9); color:#eafff6; }
     .dnote{ flex:0 0 auto; font-size:14px; color:var(--text-muted); min-height:0; text-align:center; }
     .dnote:empty{ display:none; }
 
@@ -449,7 +453,8 @@
     th, td{ border:1px solid var(--panel-border); text-align:center; font-weight:normal; height:var(--row-h, 52px); padding:0 10px; font-size:var(--row-fs, 24px); line-height:1; }
     th.n-head{ font-family:"Chakra Petch", var(--font-ui); font-weight:700; letter-spacing:.08em; color:var(--text-primary); background:rgba(var(--accent-rgb),.05); font-size:calc(var(--row-fs, 24px) * .9); }
     th.n-head b{ color:#ffc94d; }
-    td[contenteditable]{ cursor:text; background:rgba(var(--accent-rgb),.08); color:var(--text-primary); }
+    /* One line box as tall as the cell, so the caret (even in an empty cell) and the digits sit in the vertical middle */
+    td[contenteditable]{ cursor:text; background:rgba(var(--accent-rgb),.08); color:var(--text-primary); line-height:calc(var(--row-h, 52px) - 2px); }
     td[contenteditable]:focus{ outline:none; box-shadow:inset 0 0 0 2px rgba(var(--accent-rgb),.75); background:rgba(var(--accent-rgb),.16); }
     td.found{ color:var(--accent-hack); text-shadow:0 0 10px rgba(var(--accent-hack-rgb),.45); background:rgba(var(--accent-hack-rgb),.06); font-weight:700; }
     tr.fresh td{ animation:rowIn .7s ease-out 1; }
@@ -471,8 +476,9 @@
     .vault-grid{ flex:1 1 auto; min-height:0; }
     .array-top{ align-self:end; padding-bottom:3px; font-size:clamp(13px, 1.05vw, 18px) !important; color:#eafcff !important; }
     .array-left{ justify-self:end; padding-right:6px; font-size:clamp(13px, 1.05vw, 18px) !important; color:#eafcff !important; }
-    .arrays-empty{ position:absolute; left:14px; right:14px; top:50%; transform:translateY(-50%); text-align:center; font-size:16px; color:var(--text-muted); pointer-events:none; }
-    .arrays-empty[hidden]{ display:none; }
+    /* packVault measures the arrays straight after changing the square size: no size transitions here
+       (the reduced-motion setting gives every element a tiny transition, which left the arrays measured stale and tiny) */
+    #vaultRight *{ transition:none !important; }
     .array-tile.fresh .array-cell{ animation:cellGlow 1.2s ease-out 1; }
     @keyframes cellGlow{ 0%{ background:rgba(var(--accent-hack-rgb),.85); } 100%{ background:rgba(var(--accent-hack-rgb),.26); } }
 
@@ -575,7 +581,6 @@ body{ font-size: var(--font-size); }
       <section class="panel panel-vault" aria-label="Factor arrays">
         <div class="phead"><span>Arrays</span></div>
         <div class="vault-grid" id="vaultRight"></div>
-        <div class="arrays-empty" id="arraysEmpty">Each pair you find shows here as a rectangle, both ways round.</div>
       </section>
     </main>
   </div>
@@ -1070,7 +1075,7 @@ body{ font-size: var(--font-size); }
       freshKey = key;
       if(found.size === 1) setMode("Sector Authorization");
       audioManager.playCorrectTone();
-      setHint(x === y ? `${x} × ${x} = ${N} ✓ A square: it looks the same both ways round.` : `${x} × ${y} = ${N} ✓ Turned round, ${y} × ${x} makes ${N} too.`, "good");
+      setHint(x === y ? `${x} × ${x} = ${N} ✓ A square: it looks the same both ways round.` : `${x} × ${y} = ${N} ✓ Turned round, ${y} × ${x} is the same pair.`, "good");
       renderTable();
       renderVaults(key);
       if(found.size === allPairs.length) completeFloor();
@@ -1262,7 +1267,6 @@ body{ font-size: var(--font-size); }
         if(t.k === newKey) tile.classList.add("fresh");
         vaultRight.appendChild(tile);
       });
-      document.getElementById("arraysEmpty").hidden = tiles.length > 0;
       packVault(vaultRight);
       if(newKey) audioManager.playTileSpawn();
     }
@@ -1597,6 +1601,45 @@ body{ font-size: var(--font-size); }
       tag.textContent = `${pl.h}×${pl.w}`; tag.style.left = (pl.c0 * (size + 2)) + "px"; tag.style.top = (pl.r0 * (size + 2)) + "px";
       grid.appendChild(tag);
     }
+    // A correct drawing: its turned-round version (e.g. 8×2 beside 2×8) swings out beside it, then fades.
+    // Just a picture: the pair already counts, and the pupil can keep drawing straight away.
+    function showTurned(pl){
+      if(pl.h === pl.w) return;
+      const grid = document.getElementById("dragGrid"), size = +grid.dataset.size, step = size + 2;
+      const gw = +grid.dataset.cols * step - 2, gh = +grid.dataset.rows * step - 2;
+      const x0 = pl.c0 * step, y0 = pl.r0 * step, w0 = pl.w * step - 2, h0 = pl.h * step - 2;   // the drawn one
+      const w = h0, h = w0, gap = Math.max(8, size);                                              // the turned one
+      const spots = [
+        { x: x0 + w0 + gap, y: y0 }, { x: x0 - gap - w, y: y0 },
+        { x: x0, y: y0 + h0 + gap }, { x: x0, y: y0 - gap - h }
+      ];
+      const fits = q => q.x >= 0 && q.y >= 0 && q.x + w <= gw && q.y + h <= gh;
+      const spot = spots.find(fits) || { x: Math.max(0, Math.min(gw - w, spots[0].x)), y: Math.max(0, Math.min(gh - h, y0)) };
+      const g = document.createElement("div"); g.className = "turned"; g.setAttribute("aria-hidden", "true");
+      g.style.setProperty("--hue", pl.hue);
+      g.style.gridTemplateColumns = `repeat(${pl.h}, ${size}px)`; g.style.gridAutoRows = `${size}px`;
+      g.style.left = spot.x + "px"; g.style.top = spot.y + "px";
+      for(let k = 0; k < pl.h * pl.w; k++) g.appendChild(document.createElement("b"));
+      const tag = document.createElement("span"); tag.textContent = `${pl.w}×${pl.h}`; g.appendChild(tag);
+      grid.appendChild(g);
+      const reduced = !!(PN && PN.reducedMotion && PN.reducedMotion());
+      let anim;
+      if(reduced){
+        anim = g.animate([{ opacity: 0 }, { opacity: 1, offset: .12 }, { opacity: 1, offset: .7 }, { opacity: 0 }], { duration: 1300, easing: "linear", fill: "both" });
+      } else {
+        // Start exactly on top of the drawn rectangle (a quarter turn back), swing round into the space beside it
+        const dx = (x0 + w0 / 2) - (spot.x + w / 2), dy = (y0 + h0 / 2) - (spot.y + h / 2);
+        anim = g.animate([
+          { opacity: .85, transform: `translate(${dx}px, ${dy}px) rotate(-90deg)` },
+          { opacity: 1, transform: "none", offset: .4, easing: "linear" },
+          { opacity: 1, transform: "none", offset: .72 },
+          { opacity: 0, transform: "none" }
+        ], { duration: 1400, easing: "ease-in-out", fill: "both" });
+        tag.animate([{ opacity: 0 }, { opacity: 0, offset: .35 }, { opacity: 1, offset: .45 }, { opacity: 1 }], { duration: 1400, fill: "both" });
+      }
+      anim.onfinish = () => g.remove();
+      setTimeout(() => g.remove(), 1600);   // belt and braces
+    }
     let drawResize = null;
     window.addEventListener("resize", () => { clearTimeout(drawResize); drawResize = setTimeout(sizeDrawGrid, 120); });
     document.getElementById("dragClear").addEventListener("click", () => {
@@ -1641,10 +1684,10 @@ body{ font-size: var(--font-size); }
         if(!res.ok){ readTimer = setTimeout(resetRead, 1800); wrong(`${res.h} × ${res.w} = ${res.h * res.w} squares. You need exactly ${N}.`); return; }
         readTimer = setTimeout(resetRead, 2200);
         if(overlaps(res)){ setHint("That crosses a rectangle you already drew. Draw it in an empty space.", "bad"); if(window.PNSound) PNSound.play("untag"); return; }
-        if(found.has(keyOf(a, b))){ setHint(`You already have ${a} × ${b}. Try a different shape.`, "bad"); if(window.PNSound) PNSound.play("untag"); return; }
+        if(found.has(keyOf(a, b))){ setHint(`You already have ${a} × ${b}. Turned round, it is the same pair. Try a different shape.`, "bad"); if(window.PNSound) PNSound.play("untag"); return; }
         const pl = { ...res, hue: drawState.hue }; drawState.placed.push(pl); stampArray(pl);
         drawState.hue = (drawState.hue + 47) % 360;
-        acceptPair(a, b);
+        if(acceptPair(a, b)) showTurned(pl);
       };
       grid.addEventListener("pointerup", finish);
       grid.addEventListener("pointercancel", finish);
