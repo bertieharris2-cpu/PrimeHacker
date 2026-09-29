@@ -278,6 +278,7 @@ body .pnm-type.dock .stream{ height:calc(3 * 1.4em + 6px); overflow:hidden; disp
 body .pnm-type.dock .stream div{ flex:0 0 auto; overflow:hidden; }
 body .pnm-type.dock .stream b{ color:#ffe68a; font-weight:400; }
 body .pnm-type.dock .hint{ opacity:1; }   /* not the page's own dim .hint */
+body .pnm-type.dock .box{ background:#031017; }   /* solid, so no room label shows through it */
 /* Teacher: the code rain stays a short strip here, so it never runs into the right-hand intel window below it */
 body .pnm-rain{ height:90px; }
 .moving{ position:fixed; inset:0; z-index:9460; display:flex; align-items:center; justify-content:center; background:rgba(1,8,12,.95); opacity:0; transition:opacity .3s ease; }
@@ -297,7 +298,7 @@ body::before{
     repeating-linear-gradient(120deg, rgba(var(--accent-rgb), .06) 0 1px, transparent 2px 44px) !important;
 }
 button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [class*="Title"]{ font-family: var(--font-ui); }
-/* Arriving from the factor vault: the page starts on the glowing file the arrays flew into, and the floor zooms out of it */
+/* Arriving from the factor vault: the page fades in on a glowing OPENING FLOOR n file, and the floor zooms out of it */
 .fileRing{ position:fixed; left:50%; top:50%; width:170px; height:170px; margin:-85px 0 0 -85px; z-index:9000; pointer-events:none; border-radius:50%;
   display:flex; align-items:center; justify-content:center; color:var(--accent);
   background:radial-gradient(circle, rgba(var(--accent-rgb),.22), rgba(7,20,24,.92) 70%); box-shadow:0 0 44px rgba(var(--accent-rgb),.4), inset 0 0 30px rgba(var(--accent-rgb),.22); }
@@ -347,7 +348,7 @@ html.fileIn .wrap > *{ opacity:0; }
   <div class="legend">
     <div><span class="sw" style="background:var(--accent-hack)"></span>Room: one factor pair</div>
     <div><span class="sw" style="background:rgba(40,110,120,.6)"></span>Corridors and open floor</div>
-    <div><span class="sw" style="background:#ffbe5a"></span>Door</div>
+    <div><span class="sw" style="background:rgba(160,240,215,.5)"></span>Door</div>
     <div><span class="sw" style="background:#2fbf8a"></span>Fire exit</div>
   </div>
   <div class="hint">Now uses a random non-overlapping layout each run, and arrays animate with staggered overlap (smoother, less “one-by-one”).</div>
@@ -509,14 +510,12 @@ const pause=(ms)=>SKIPPING ? Promise.resolve() : new Promise(r=>{   // test tool
   const t = setTimeout(done, ms / (window.PNTest ? PNTest.speed() : 1));
   pausing.add(done);
 });
-let droneAnim = null;
 function finishNow(el){ if(el) el.getAnimations({ subtree: true }).forEach(a => { try{ a.finish(); }catch(e){} }); }
 function skipBuild(){
   if(SKIPPING) return;
   SKIPPING = true;
   [...pausing].forEach(f => f());
   finishNow(vaultEl);
-  if(droneAnim){ try{ droneAnim.finish(); }catch(e){} }
 }
 
 /* ---------- Seeded RNG so reruns are stable per seed ---------- */
@@ -1038,6 +1037,7 @@ async function triggerIsometricMorph(placements){
   
   // Start vault tilt animation (800ms total duration)
   vaultEl.classList.add("tilting-to-iso");
+  vaultEl.style.transform = TILT_ANGLES[window.currentTiltAngle];   // the tilt's end, for when reduced motion turns CSS animations off
   if(SKIPPING) finishNow(vaultEl); else SND("rise");
   
   // Show canvas but keep it invisible while tilting
@@ -1252,7 +1252,8 @@ if(tilt70Btn) tilt70Btn.addEventListener("click", () => applyTiltAngle(70));
 if(tilt75Btn) tilt75Btn.addEventListener("click", () => applyTiltAngle(75));
 
 // Round 17 (Bertie: "I don't like constantly clicking and then typing"): no Next floor button.
-// When the build finishes, a longer hack-in happens right here, then the game moves on by itself.
+// Teacher: one terminal. It opens as the drone recon starts, the pupil's typing runs the scan and opens the intel windows,
+// and at 100% it says where we go next and the game moves on by itself.
 function blueprintReady(){ return floorsBuilt() >= FLOORS_NEEDED; }
 const nextPage = () => blueprintReady() ? "vault_blueprint_viewer.html" : "factor_vault.html";
 let phase = "build";   // build → typing → moving
@@ -1281,29 +1282,31 @@ function finishTyping(){
   for(let i = 0; i < 400 && ov.isConnected && !/100%/.test(pc.textContent); i++) ov.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
   return true;
 }
-async function typeToNext(){
-  const f = floorsBuilt(), last = f >= FLOORS_NEEDED, nextF = Math.min(f + 1, FLOORS_NEEDED);
+async function reconToNext(){
+  const f = floorsBuilt(), last = f >= FLOORS_NEEDED, nextF = Math.min(f + 1, FLOORS_NEEDED), here = Math.max(1, Math.min(f, FLOORS_NEEDED));
+  let typed = window.PNMode ? 0 : 1, dock = null;   // no terminal: the scan just runs
+  phase = "typing";
+  const scan = droneRecon(window.lastPlacements || [], () => typed);
   if(window.PNMode){
-    phase = "typing";
-    // Teacher: docked small in the bottom right, so the floor (still ticking over) stays in view
-    const done = PNMode.typeThrough({ label: last ? "ASSEMBLING THE BLUEPRINT" : `DECRYPTING FLOOR ${nextF}`, keys: 40, dock: "br",
-      hint: last ? "Type anything to put the blueprint together" : `Type anything to break into floor ${nextF}` });
+    // Docked small in the bottom right, so the floor and its intel windows stay in view
+    const done = PNMode.typeThrough({ label: `HACKING FLOOR ${here}`, keys: 54, dock: "br", hint: "Type anything to scan the floor", onProgress: k => { typed = k; } });
     const stop = enlargeTyping();
-    const dock = await done; stop();
-    phase = "moving";
-    // The message shows in the terminal under its full bar
-    const hint = dock && dock.el.querySelector(".hint");
-    if(hint){ hint.classList.add("done"); hint.setAttribute("role", "status"); hint.textContent = last ? "BLUEPRINT READY\u00a0· ASSEMBLING" : `DECRYPTION COMPLETE\u00a0· MOVING TO FLOOR ${nextF}`; }
+    dock = await done; stop();
   }
-  if(!document.querySelector(".pnm-type .hint.done")){
+  typed = 1;   // done typing: the scan finishes (also if the terminal resolved without any keys)
+  phase = "moving";
+  const msg = last ? "BLUEPRINT READY\u00a0· ASSEMBLING" : `DECRYPTION COMPLETE\u00a0· MOVING TO FLOOR ${nextF}`;
+  // The message shows in the terminal under its full bar
+  const hint = dock && dock.el.querySelector(".hint");
+  if(hint){ hint.classList.add("done"); hint.setAttribute("role", "status"); hint.textContent = msg; }
+  else {
     const card = document.createElement("div"); card.className = "moving"; card.setAttribute("role", "status");
-    card.innerHTML = `<b>${last ? "BLUEPRINT READY · ASSEMBLING" : `DECRYPTION COMPLETE · MOVING TO FLOOR ${nextF}`}</b>`;
+    card.innerHTML = `<b>${msg}</b>`;
     document.body.appendChild(card);
     requestAnimationFrame(() => card.classList.add("on"));
   }
-  phase = "moving";
   SND("success");
-  await realWait(1200);
+  await Promise.all([scan, realWait(1600)]);   // a moment on the whole floor with its intel
   analysisWins.forEach(w => w.close());
   const next = nextPage();
   (window.PNGlitch ? PNGlitch.go(next, { style: "sweep" }) : (location.href = next));
@@ -1326,14 +1329,12 @@ if(window.PNTest){
   PNTest.add("Go to the next step now", () => { window.location.href = nextPage(); });
 }
 
-// How long the build, tilt, drone and floor intel take, in seconds at normal speed (matches run(), the morph, the drone and floorAnalysis)
+// How long the build and tilt take, in seconds at normal speed (matches run() and the morph). The recon after it is the pupil's typing.
 let buildWatch = null;
 function buildSeconds(n){
-  const wanted = generateFactorPairs(n), k = wanted.length, pairs = wanted.filter(p => p.w <= p.h).length;
+  const k = generateFactorPairs(n).length;
   const build = 0.95 + (k - 1) * 0.26 + 0.09 + 0.54 + fillMs(n) / 1000 + 0.1;   // border lead, stagger, laser lead, one room's fill
-  const reduced = PN && PN.reducedMotion && PN.reducedMotion();
-  const drone = reduced ? 0 : Math.max(9, pairs * 1.6);
-  return build + 0.7 + 1.3 + 1.9 + drone + 1;   // the intel windows open during the drone
+  return build + 0.7 + 1.3 + 1.9;
 }
 
 // From the factor vault: the empty floor grid zooms out of the glowing file, then the lasers draw on it (about 1.2 s)
@@ -1343,7 +1344,7 @@ async function openFile(){
   try{ sessionStorage.removeItem("pn_file_in"); }catch(e){}
   GRID = initialN + 1; STEP = 100 / GRID; buildGrid();
   const sp = window.PNTest ? PNTest.speed() : 1, reduced = !!(PN && PN.reducedMotion && PN.reducedMotion());
-  await realWait(250);   // a beat on the file, as it was left on the vault page
+  await realWait(450);   // a beat on OPENING FLOOR n as the page fades in
   const r = stageEl.getBoundingClientRect(), dx = innerWidth / 2 - (r.left + r.width / 2), dy = innerHeight / 2 - (r.top + r.height / 2), T = (reduced ? 600 : 1200) / sp;
   const zoom = stageEl.animate(reduced ? [{ opacity: 0 }, { opacity: 1 }]
     : [{ transform: `translate(${dx}px, ${dy}px) scale(.05)`, opacity: 0 }, { opacity: 1, offset: .3 }, { transform: "none", opacity: 1 }], { duration: T, easing: "cubic-bezier(.25,.7,.25,1)" });
@@ -1354,7 +1355,7 @@ async function openFile(){
   ring.remove();
 }
 
-// Students: lasers build the floor plan, it rises into 3D, the drone looks round, then straight into the hack-in.
+// Students: lasers build the floor plan, it rises into 3D, then the pupil types while the drone scans it.
 if(PN) PN.log("grid", { n: initialN });
 document.querySelector(".title div:first-child").insertAdjacentHTML("afterend",
   `<div>FLOOR ${Math.max(1, Math.min(floorsBuilt(), FLOORS_NEEDED))} OF ${FLOORS_NEEDED}</div>`);
@@ -1366,17 +1367,16 @@ openFile()
   buildWatch = window.PNMode ? PNMode.watch(`Building floor ${Math.max(1, Math.min(floorsBuilt(), FLOORS_NEEDED))}`, { seconds: buildSeconds(initialN), onSkip: skipBuild }) : null;
   return initVault(initialN);
 }).then(async () => {
+  // ORACLE speaks as the build finishes, before the terminal takes the bottom right (then the line tucks into the chip)
+  if(window.PNHandler){
+    const f = Math.max(1, Math.min(floorsBuilt(), FLOORS_NEEDED));
+    PNHandler.once(`grid-${f}-${initialN}`, f >= FLOORS_NEEDED ? "Three floors decrypted. Let's put {target}'s building together so FOX and WREN can see it." : `Floor ${f} is solid. Every room is one factor pair of ${initialN}.`, { delay: 200 });
+  }
   await pause(700);
   if(window.lastPlacements && window.lastPlacements.length) await triggerIsometricMorph(window.lastPlacements);
   await pause(1900);
-  if(window.PNHandler){
-    const f = Math.max(1, Math.min(floorsBuilt(), FLOORS_NEEDED));
-    PNHandler.once(`grid-${f}-${initialN}`, f >= FLOORS_NEEDED ? "Three floors decrypted. Let's put {target}'s building together so FOX and WREN can see it." : `Floor ${f} is solid. Every room is one factor pair of ${initialN}.`, { delay: 400 });
-  }
-  await droneFlythrough(window.lastPlacements || []);
-  await pause(1000);
   if(buildWatch){ buildWatch.end(); buildWatch = null; }
-  await typeToNext();
+  await reconToNext();
 });
 
 // ====== DRONE FLYTHROUGH ======
@@ -1418,8 +1418,11 @@ function pickGuards(placements){
   }
   return out;
 }
-async function droneFlythrough(placements){
-  if(!placements.length || (PN && PN.reducedMotion && PN.reducedMotion())) return;
+// Teacher: the pupil's typing runs the recon. The drone camera, its laser sweep, the cameras it spots, the room log
+// and the three intel windows (at about 30%, 60% and 90%) all follow the terminal's progress: progress() is 0..1.
+async function droneRecon(placements, progress){
+  if(!placements.length) return;
+  const rm = !!(PN && PN.reducedMotion && PN.reducedMotion());
   const seen = new Set(), rooms = placements.filter(r => { const k = [Math.min(r.w, r.h), Math.max(r.w, r.h)].join("x"); if(seen.has(k)) return false; seen.add(k); return true; });
   const box = stageEl.getBoundingClientRect();
   const hud = document.createElement("div"); hud.className = "droneHud";
@@ -1427,53 +1430,54 @@ async function droneFlythrough(placements){
   hud.innerHTML = `<div class="vign"></div><div class="corner tl"></div><div class="corner tr"></div><div class="corner bl"></div><div class="corner br"></div><div class="cross"></div>
     <div class="top"><span class="rec">● REC</span> DRONE CAM 02</div><div class="alt">ALT <span class="a">12.0</span>m<br>N=${currentN}</div><div class="log"></div>`;
   document.body.appendChild(hud);
-  if(!SKIPPING) SND("rise");
-  const sp = window.PNTest ? PNTest.speed() : 1, dur = Math.max(9000, rooms.length * 1600) / sp;   // feedback: slower, calmer camera
-  const anim = stageEl.animate([
+  SND("rise");
+  // Teacher: the camera only leans in a little, so the floor stays readable with the intel windows round it
+  const cam = rm ? null : stageEl.animate([
     { transform: "none" },
-    { transform: "scale(1.55) translate(14%, 12%) rotate(-2deg)", offset: .2 },
-    { transform: "scale(1.7) translate(-14%, 8%) rotate(2deg)", offset: .5 },
-    { transform: "scale(1.6) translate(-8%, -12%) rotate(-1deg)", offset: .8 },
+    { transform: "scale(1.1) translate(3%, 3%) rotate(-1deg)", offset: .25 },
+    { transform: "scale(1.14) translate(-3%, 2%) rotate(1deg)", offset: .55 },
+    { transform: "scale(1.08) translate(-2%, -2%)", offset: .8 },
     { transform: "none" },
-  ], { duration: dur, easing: "ease-in-out" });
-  droneAnim = anim; if(SKIPPING) anim.finish();
-  const log = hud.querySelector(".log"), alt = hud.querySelector(".a");
-  // Keep the room labels pinned to the rooms while the camera moves
+  ], { duration: 1000, easing: "ease-in-out", fill: "both" });
+  if(cam) cam.pause();
+  const log = hud.querySelector(".log"), alt = hud.querySelector(".a"), lines = [];
   // Round 10: the drone spots the floor's security cameras one by one (on corridor cells beside rooms), with a beep
   window.cams = pickCameras(placements);
   window.guards = pickGuards(placements);
-  window.cams.forEach((c, i) => pause((dur * sp) * (0.18 + 0.6 * i / Math.max(1, window.cams.length))).then(() => { c.shown = performance.now(); if(!SKIPPING) SND("beep"); }));
-  // Feedback round 9: a laser sweeps across the floor, showing the square grid of every room as it passes
-  const sweepMs = Math.min(dur * 0.45, 5200), t0 = performance.now();
   window.sweepTrail = 0.22;
-  if(!SKIPPING) SND("scan", sweepMs / 1000);
-  let live = true; (function follow(now){ if(!live) return; const k = ((now || performance.now()) - t0) / sweepMs; window.sweep = k <= 1 ? -1 + k * (GRID + 2) : null; if(k > 1) window.roofGrid = Math.max(window.roofGrid || 0, 0.22); rerenderGrid(); requestAnimationFrame(follow); })();
-  // Bertie: the intel windows open one after another while the drone scans, not all at the end
-  const intel = floorAnalysis(placements, dur * sp);
-  const lines = [];
+  const intel = floorAnalysis(placements);
   const altTimer = setInterval(() => { alt.textContent = (8 + Math.random() * 6).toFixed(1); }, 180);
-  for(const [i, r] of rooms.entries()){
-    await pause(dur * sp * 0.8 / rooms.length);
-    const a = Math.min(r.w, r.h), b = Math.max(r.w, r.h);
-    window.gridHighlight = r; rerenderGrid();
-    lines.push(`<div class="${a === b ? "strong" : ""}">ROOM ${String(i + 1).padStart(2, "0")} · ${roomName(r)} ${a}×${b} · ${a * b} squares ✓</div>`);
-    log.innerHTML = lines.slice(-4).join("");
-    if(!SKIPPING) SND("tag");
-  }
-  await anim.finished.catch(() => {});
-  droneAnim = null;
-  live = false; window.sweep = null;
-  if(SKIPPING) await new Promise(r => requestAnimationFrame(r));   // let the rise's last frame land first
-  window.roofGrid = Math.max(window.roofGrid || 0, 0.22);   // as when the sweep passes (also when skipped)
+  let k = 0, logged = 0, t = performance.now(), scanning = false;
+  await new Promise(done => (function follow(now){
+    const want = Math.max(0, Math.min(1, progress())), dt = Math.min(.1, (now - t) / 1000); t = now;
+    k += (want - k) * Math.min(1, dt * 3);   // the camera glides between key presses
+    if(want >= 1 && k > .99) k = 1;
+    if(cam) cam.currentTime = k * 1000;
+    // Feedback round 9: a laser crosses the floor (the first half of the scan), showing each room's squares as it passes
+    if(!rm){ const sw = k / .5; window.sweep = k > 0 && sw < 1 ? -1 + sw * (GRID + 2) : null; if(sw >= 1) window.roofGrid = Math.max(window.roofGrid || 0, 0.22); }
+    if(k > 0 && !scanning){ scanning = true; SND("scan", 3); }
+    window.cams.forEach((c, i) => { if(!c.shown && k >= .1 + .6 * i / Math.max(1, window.cams.length)){ c.shown = performance.now(); SND("beep"); } });
+    while(logged < rooms.length && k >= .85 * (logged + 1) / rooms.length){
+      const r = rooms[logged], a = Math.min(r.w, r.h), b = Math.max(r.w, r.h);
+      lines.push(`<div class="${a === b ? "strong" : ""}">ROOM ${String(logged + 1).padStart(2, "0")} · ${roomName(r)} ${a}×${b} · ${a * b} squares ✓</div>`);
+      log.innerHTML = lines.slice(-2).join(""); logged++;
+      SND("tag");
+    }
+    intel.update(want);   // the windows go with the terminal's own number
+    rerenderGrid();
+    if(k >= 1) done(); else requestAnimationFrame(follow);
+  })(t));
+  if(cam) cam.cancel();
+  window.sweep = null;
+  window.roofGrid = Math.max(window.roofGrid || 0, 0.22);   // as when the sweep passes
   if(!window._idleAnim) window._idleAnim = setInterval(() => { if(!document.hidden) rerenderGrid(); }, 120);   // guards keep walking, cameras keep blinking
   clearInterval(altTimer);
-  window.gridHighlight = null; rerenderGrid();
+  rerenderGrid();
   hud.remove();
-  await intel;
 }
 
-// After the drone: intel on the floor, the kind of thing an agent wants (feedback round 9: no maths here).
-// The three windows open in their places one by one through the drone's scan (span: the scan's length in ms), so at the end all three are showing.
+// During the recon: intel on the floor, the kind of thing an agent wants (feedback round 9: no maths here).
+// The three windows open one by one as the typing passes 30%, 60% and 90%, so at the end all three are showing.
 let analysisWins = [];
 function cctvSvg(r){
   const guard = `<g><circle r="9" fill="rgba(255,80,110,.25)"><animateMotion dur="6s" repeatCount="indefinite" path="M40 96 L160 96 L160 64 L60 64 Z"/></circle><circle r="5" fill="#ff6b8a"><animateMotion dur="6s" repeatCount="indefinite" path="M40 96 L160 96 L160 64 L60 64 Z"/></circle></g>`;
@@ -1490,14 +1494,29 @@ function cctvSvg(r){
     <text x="6" y="114" fill="rgba(223,248,255,.8)" font-size="9" font-family="monospace">${r}</text>
   </svg>`;
 }
-// Teacher: the right-hand window sits just under the code rain (top right), never on it
-function clearOfRain(el){
-  const rain = document.querySelector(".pnm-rain"); if(!rain || !rain.offsetHeight) return;
-  const gap = rain.getBoundingClientRect().bottom + 12 - (el.offsetTop - el.firstElementChild.offsetHeight / 2);
-  if(gap > 0) el.style.top = (el.offsetTop + gap) + "px";
+// Teacher: the windows sit round the floor: two on the left, one top right, clear of the code rain (top right),
+// the docked terminal (bottom right), the MENU tab, the drone's room log and each other
+function placeIntel(el, i){
+  const hw = el.firstElementChild, w = hw.offsetWidth, h = hw.offsetHeight, W = innerWidth, H = innerHeight, m = 14;
+  const rain = document.querySelector(".pnm-rain.on"), term = document.querySelector(".pnm-type.dock");
+  const top0 = Math.max(56, rain ? rain.getBoundingClientRect().bottom + 12 : 0), termTop = term ? term.getBoundingClientRect().top - m : H - 56;
+  let x, top;
+  if(i === 1){ x = Math.min(W - 16 - w / 2, W * .85); top = Math.max(top0, Math.min(H * .3 - h / 2, termTop - h)); }
+  else{
+    x = Math.max(42 + w / 2, W * .15);
+    if(i === 0) top = Math.max(56, H * .26 - h / 2);
+    else{
+      const w0 = analysisWins[0], above = w0 ? parseFloat(w0.el.style.top) + w0.el.firstElementChild.offsetHeight / 2 + m : 56;   // layout size: it may still be opening
+      const hud = document.querySelector(".droneHud"), hb = hud && hud.getBoundingClientRect();
+      const below = Math.min(H - 56, hb && hb.left + 46 < x + w / 2 ? hb.bottom - 18 - 44 - m : H);   // above the drone's room log (two lines)
+      top = Math.max(above, Math.min(H * .68 - h / 2, below - h));
+    }
+  }
+  el.style.left = x + "px"; el.style.top = (top + h / 2) + "px";
 }
-async function floorAnalysis(placements, span){
-  if(!window.PNHolo) return;
+function floorAnalysis(placements){
+  analysisWins = [];
+  if(!window.PNHolo) return { update(){} };
   const { rating } = floorRating(currentN);
   const rnd = mulberry32((currentN * 7919) ^ 0x5eed);
   const pickR = a => a[Math.floor(rnd() * a.length)];
@@ -1508,23 +1527,31 @@ async function floorAnalysis(placements, span){
   const nightStart = pickR(["21:30", "22:00", "22:30"]), gapMin = rating === "WEAK" ? 6 : rating === "SECURE" ? 2 : 4;
   const col = rating === "WEAK" ? "bad" : rating === "SECURE" ? "ok" : "yl";
   const camRoom = strongRoom ? "STRONGROOM" : pickR(rooms);
+  // Teacher: yellow only for a room that matters. Of the three windows, the first that names a room (the blind spot,
+  // the faulty alarm zone, the air duct) names it in yellow and lights that one room up on the floor as it opens.
+  // No such window, no highlight. Rooms with a name of their own are picked where possible, so there's no doubt which.
+  const own = placements.filter(r => !isStrong(r) && rooms.filter(n => n === roomName(r)).length === 1);
+  const pickRoom = () => pickR(own.length ? own : placements);
+  const blind = pickRoom(), duct = pickRoom(), fault = placements[1] || placements[0];
+  const nm = (r, key, up) => { const t = up ? roomName(r) : lower(roomName(r)); return key ? `<span class="yl">${t}</span>` : t; };
+  const logRooms = strongRoom ? rooms.filter(n => n !== "STRONGROOM") : rooms;   // no one swipes into the strongroom (below)
   const names = ["J. OKAFOR", "M. PATEL", "S. REID", "L. CHEN", "D. EVANS", "A. NOWAK", "R. SINGH", "K. MORGAN"];
-  const log = [0, 1, 2, 3].map(i => { const h = 1 + Math.floor(rnd() * 3), m = Math.floor(rnd() * 60); return { t: `0${h}:${String(m).padStart(2, "0")}`, who: pickR(names), room: pickR(rooms), role: pickR(["GUARD", "GUARD", "CLEANER", "IT"]) }; }).sort((a, b) => a.t.localeCompare(b.t));
+  const log = [0, 1, 2, 3].map(i => { const h = 1 + Math.floor(rnd() * 3), m = Math.floor(rnd() * 60); return { t: `0${h}:${String(m).padStart(2, "0")}`, who: pickR(names), room: pickR(logRooms.length ? logRooms : rooms), role: pickR(["GUARD", "GUARD", "CLEANER", "IT"]) }; }).sort((a, b) => a.t.localeCompare(b.t));
   const pool = [
     { title: "SHIFT ROTA", flag: `SECURITY ${rating}`, w: 300,
       html: `DAY &nbsp;&nbsp;07:00–15:00 · <span class="yl">${guards + 2}</span> guards<br>EVE &nbsp;&nbsp;15:00–${nightStart} · <span class="yl">${guards + 1}</span> guards<br>NIGHT ${nightStart}–07:00 · <span class="yl">${guards}</span> guard${guards === 1 ? "" : "s"}<br><span class="k">Shift change at ${nightStart}: the floor is empty for <span class="${col}">${gapMin} min</span>.</span>` },
     { title: `CCTV · CAM 0${1 + Math.floor(rnd() * 8)}`, flag: "LIVE", w: 280, cctv: true,
-      html: `${cctvSvg(camRoom)}<span class="k">Camera pans every 12 s. Blind spot by the ${lower(pickR(rooms))} door.</span>` },
+      html: key => `${cctvSvg(camRoom)}<span class="k">Camera pans every 12 s. Blind spot by the ${nm(blind, key)} door.</span>`, room: blind },
     { title: "KEYCARD LOG", flag: "LAST NIGHT", w: 300,
       html: log.map(l => `${l.t} <span class="yl">${l.role}</span> ${l.who}<br><span class="k">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ${l.room}</span>`).join("<br>") + (strongRoom ? `<br><span class="k">No one swiped into the <span class="yl">strongroom</span>.</span>` : "") },
     { title: "RADIO INTERCEPT", flag: "CH 4", w: 300,
       html: [`<span class="yl">GUARD 2:</span> ${pickR(["Coffee run, back in ten.", "Door on the east side sticks again.", "Nothing to report. Quiet night."])}`, `<span class="yl">CONTROL:</span> ${pickR(["Copy. Log it.", "Copy. Keep your radio on.", "Understood. Next check at the hour."])}`, `<span class="k">${pickR(["Their radios reuse one channel.", "Check-ins are every 30 minutes.", "Nobody mentioned the fire stairs."])}</span>`].join("<br>") },
     { title: "ALARM PANEL", flag: `${placements.length} ZONES`, w: 290,
-      html: placements.slice(0, 4).map((r, i) => `ZONE ${i + 1} · ${roomName(r)} <span class="${i === 1 ? "bad" : "ok"}">${i === 1 ? "FAULT" : "ARMED"}</span>`).join("<br>") + `<br><span class="k">Zone 2 has a fault. It's been ignored for days.</span>` },
+      html: key => placements.slice(0, 4).map((r, i) => `ZONE ${i + 1} · ${nm(r, key && r === fault, true)} <span class="${r === fault ? "bad" : "ok"}">${r === fault ? "FAULT" : "ARMED"}</span>`).join("<br>") + `<br><span class="k">Zone 2 has a fault. It's been ignored for days.</span>`, room: fault },
     { title: "STAFF FILE", flag: "HR SERVER", w: 290,
       html: `${pickR(names)} · <span class="yl">${pickR(["Night manager", "Head of security", "Cleaner", "IT support"])}</span><br>Keycard: level ${1 + Math.floor(rnd() * 3)}<br>Leaves at ${pickR(["22:10", "23:40", "05:55"])}<br><span class="k">${pickR(["Writes passwords on sticky notes.", "Always takes the lift.", "Never checks the back office."])}</span>` },
     { title: "VENTILATION", flag: "PLANT ROOM", w: 280,
-      html: `Main duct runs above the ${lower(pickR(rooms))}<br>Grille size: <span class="yl">60 × 45 cm</span><br>Airflow: ${pickR(["low overnight", "off after 22:00", "steady"])}<br><span class="k">Too loud to hear footsteps near it.</span>` },
+      html: key => `Main duct runs above the ${nm(duct, key)}<br>Grille size: <span class="yl">60 × 45 cm</span><br>Airflow: ${pickR(["low overnight", "off after 22:00", "steady"])}<br><span class="k">Too loud to hear footsteps near it.</span>`, room: duct },
   ];
   // Round 12: more variety: three windows per floor, a different mix each time (CCTV more often than not)
   const cctvFirst = rnd() < 0.7;
@@ -1532,20 +1559,19 @@ async function floorAnalysis(placements, span){
   const chosen = (cctvFirst ? [pool.find(w => w.cctv), ...rest] : rest).slice(0, 3);
   // The tall keycard log never goes top right: that window must fit between the code rain and the docked terminal
   if(chosen[1].title === "KEYCARD LOG") chosen.push(chosen.splice(1, 1)[0]);
-  const slots = [{ x: 15, y: 26 }, { x: 85, y: 30 }, { x: 15, y: 68 }];
-  const list = chosen.map((w, i) => ({ ...w, ...slots[i] }));
-  analysisWins = [];
-  let at = 0;
-  for(const [i, w] of list.entries()){
-    const due = span * (0.22 + 0.26 * i);   // about a quarter, half and three quarters of the way through the scan
-    await pause(due - at); at = due;
-    const win = PNHolo.open({ ...w, tilt: 0, sound: !SKIPPING });
-    analysisWins.push(win);
-    if(i === 1) clearOfRain(win.el);
-  }
-  // A ticking CCTV clock
-  const clock = document.querySelector(".cctvClock");
-  if(clock){ let t = 2 * 3600 + 14 * 60 + 7; const iv = setInterval(() => { if(!document.body.contains(clock)) return clearInterval(iv); t++; clock.textContent = [Math.floor(t / 3600), Math.floor(t / 60) % 60, t % 60].map(x => String(x).padStart(2, "0")).join(":"); }, 1000); }
+  const keyWin = chosen.find(w => w.room);
+  chosen.forEach((w, i) => { chosen[i] = { ...w, html: typeof w.html === "function" ? w.html(w === keyWin) : w.html, room: w === keyWin ? w.room : null }; });
+  const at = [.3, .6, .9];
+  return { update(k){
+    while(analysisWins.length < chosen.length && k >= at[analysisWins.length]){
+      const i = analysisWins.length, w = chosen[i], win = PNHolo.open({ ...w, tilt: 0 });
+      analysisWins.push(win); placeIntel(win.el, i);
+      if(w.room) window.gridHighlight = w.room;
+      // A ticking CCTV clock
+      const clock = w.cctv && win.el.querySelector(".cctvClock");
+      if(clock){ let t = 2 * 3600 + 14 * 60 + 7; const iv = setInterval(() => { if(!document.body.contains(clock)) return clearInterval(iv); t++; clock.textContent = [Math.floor(t / 3600), Math.floor(t / 60) % 60, t % 60].map(x => String(x).padStart(2, "0")).join(":"); }, 1000); }
+    }
+  } };
 }
 
 // ====== 3D CUBOID RECTANGLE RENDERER ======
@@ -1601,7 +1627,7 @@ function drawCuboid(ctx, rect, cellSize, gap, heightPx, mode=1){
   const Dh = {x: D.x + hx, y: D.y + hy};
   
   // Green buildings with bright edges: the original Vault Grid mix. Canvas can't read CSS variables.
-  // The room the drone is looking at glows amber; the square strongroom has gold edges.
+  // Teacher: yellow only where it matters. The square strongroom has gold edges; a room an intel window names glows amber.
   const hot = window.gridHighlight && window.gridHighlight === rect;
   const strong = rect.w === rect.h;
   const colors = hot ? {
@@ -1648,7 +1674,7 @@ function drawCuboid(ctx, rect, cellSize, gap, heightPx, mode=1){
   ctx.closePath();
   ctx.fill();
   
-  // DOOR: a dark opening with an amber frame on the chosen wall
+  // DOOR: a dark opening with a faint mint frame on the chosen wall (subtle: yellow is kept for rooms that matter)
   if(rect.door && heightPx > 2){
     const step = cellSize + gap, d = rect.door, wLen = Math.min(cellSize * 0.9, step);
     let F0, F1;
@@ -1658,7 +1684,7 @@ function drawCuboid(ctx, rect, cellSize, gap, heightPx, mode=1){
     const k = 0.62;
     ctx.fillStyle = "rgba(3, 12, 14, 0.92)";
     ctx.beginPath(); ctx.moveTo(F0.x, F0.y); ctx.lineTo(F1.x, F1.y); ctx.lineTo(F1.x + hx * k, F1.y + hy * k); ctx.lineTo(F0.x + hx * k, F0.y + hy * k); ctx.closePath(); ctx.fill();
-    ctx.strokeStyle = "rgba(255, 190, 90, 0.95)"; ctx.lineWidth = 1.2; ctx.stroke();
+    ctx.strokeStyle = "rgba(160, 240, 215, 0.5)"; ctx.lineWidth = 1; ctx.stroke();
   }
 
   // TOP FACE: Ah → Bh → Ch → Dh
@@ -1842,7 +1868,7 @@ function renderRectCuboids(ctx, rects, GRID, cellSize, gap, heightPx, mode=1){
     const modeConfig = EXTRUSION_MODES[mode] || EXTRUSION_MODES[1];
     const hx = modeConfig.hx(heightPx), hy = modeConfig.hy(heightPx), step = cellSize + gap;
     const spots = sorted.map(r => ({ key: r, x: r.x * step + r.w * step / 2 + hx, y: r.y * step + r.h * step / 2 + hy,
-      html: `${roomName(r)}<small>${Math.min(r.w, r.h)}×${Math.max(r.w, r.h)}</small>`, hot: window.gridHighlight === r }));
+      html: `${roomName(r)}<small>${Math.min(r.w, r.h)}×${Math.max(r.w, r.h)}</small>`, hot: window.gridHighlight === r || isStrong(r) }));
     if(window._exitAt) spots.push({ key: "exit", x: window._exitAt.x, y: window._exitAt.y, html: "FIRE EXIT", exit: true });
     placeGridTags(spots);
   } else placeGridTags([]);

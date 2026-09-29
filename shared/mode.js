@@ -60,6 +60,8 @@
     background:linear-gradient(180deg, rgba(3,14,20,.55), rgba(3,14,20,0)); opacity:0; transition:opacity .4s; }
   .pnm-rain.on{ opacity:1; }
   .pnm-rain b{ color:#ffe68a; font-weight:400; }
+  /* Teacher: beside the page's central container, not out at the screen edge (placeRain) */
+  html.pn-rain-hug .pnm-rain{ left:var(--pn-rain-l); right:auto; width:var(--pn-rain-w); top:var(--pn-rain-t); padding-left:4px; transition:opacity .4s, left .5s ease, width .5s ease; }   /* glides, never jumps, if the container moves */
   /* typeThrough: a short hack where any key types */
   .pnm-type{ position:fixed; inset:0; z-index:9450; display:flex; align-items:center; justify-content:center; padding:16px; background:rgba(1,8,12,.82); }
   .pnm-type .box{ width:min(760px,100%); background:#031017; border:1px solid #2fbf8a; box-shadow:0 0 40px rgba(47,191,138,.25); padding:18px 20px; display:flex; flex-direction:column; gap:12px; }
@@ -191,11 +193,27 @@
     bar.querySelector(".nm").textContent = kind === "watch" ? "WATCH" : "YOUR TURN";
     bar.querySelector(".lab").innerHTML = label || "";
   }
+  // Teacher: the rain sits 16px to the right of the page's central container rather than at the screen edge. A page marks
+  // it with data-pn-centre (="top" also lines the rain up with its top), or it's listed here. No container, or under 150px
+  // beside it: the top-right corner as before. Published as --pn-rain-l/-w/-t (html.pn-rain-hug) for the page's own panels.
+  // "720px": a box that wide in the middle of the screen (target_locked: the building and its scan, wider than the closed brackets)
+  const CENTRE = { briefing: ".stage", prime_frequency_scan: ".frame", target_locked: "720px", vault_grid_demo: "#stage", vault_blueprint_viewer: ".bp-stage top", prime_hack: ".terminalWindow" };
+  function placeRain(){
+    const de = document.documentElement, [sel = "", flag] = (CENTRE[(location.pathname.match(/(\w+)\.html$/) || [])[1]] || "").split(" "), px = /px$/.test(sel);
+    const el = document.querySelector("[data-pn-centre]") || (sel && !px && document.querySelector(sel));
+    const r = el ? (el.offsetWidth ? el.getBoundingClientRect() : null) : px ? { right: (de.clientWidth + parseFloat(sel)) / 2, top: 0 } : null;
+    const left = r ? Math.round(r.right + 16) : 0, w = Math.min(260, de.clientWidth - left), hug = !!r && w >= 150 && innerWidth > 900;
+    de.classList.toggle("pn-rain-hug", hug);
+    if(!hug) return;
+    de.style.setProperty("--pn-rain-l", left + "px"); de.style.setProperty("--pn-rain-w", w + "px");
+    de.style.setProperty("--pn-rain-t", ((el && el.dataset.pnCentre) || flag) === "top" ? `max(var(--pn-mode-h, 62px), ${Math.round(r.top)}px)` : "var(--pn-mode-h, 62px)");
+  }
+  addEventListener("resize", () => { if(rain) placeRain(); });
   function startRain(){
-    rain.classList.add("on");
+    placeRain(); rain.classList.add("on");
     clearInterval(rainTimer); clearInterval(tickTimer);
     const lines = [];
-    rainTimer = setInterval(() => { lines.push(codeLine()); if(lines.length > 30) lines.shift(); rain.innerHTML = lines.join("<br>"); SND("typing"); }, 150);
+    rainTimer = setInterval(() => { placeRain(); lines.push(codeLine()); if(lines.length > 30) lines.shift(); rain.innerHTML = lines.join("<br>"); SND("typing"); }, 150);
     const tick = bar.querySelector(".tick");
     tickTimer = setInterval(() => { tick.innerHTML = codeLine(); }, 380);
   }
@@ -265,7 +283,8 @@
   }
 
   // ---------- A short hack where any key types gobbledegook ----------
-  function typeThrough({ label = "HACKING IN", keys = 16, hint = "Type anything to hack in", dock = "" } = {}){
+  // onProgress(k): called with k (0..1) on every key, so a page can drive its own animation from the typing
+  function typeThrough({ label = "HACKING IN", keys = 16, hint = "Type anything to hack in", dock = "", onProgress = null } = {}){
     if(EMBED) return Promise.resolve();
     build();   // its styles live with the WATCH strip; a page can reach its first typing before any WATCH
     return new Promise(resolve => {
@@ -288,6 +307,7 @@
         for(let k = 0; k < 4 + Math.floor(Math.random() * 4); k++){ if(!stream.length) stream = codeLine().replace(/<\/?b>/g, "") + "\n"; text += stream[0]; stream = stream.slice(1); }
         code.textContent = text.slice(-900); code.scrollTop = code.scrollHeight; n++; SND("typing");
         const k = Math.min(1, n / need); meter.style.width = Math.round(k * 100) + "%"; pc.textContent = Math.round(k * 100) + "%";
+        if(onProgress) onProgress(k);
         if(k >= 1){
           document.removeEventListener("keydown", press, true); document.removeEventListener("pointerdown", tap, true); SND("lockon");
           if(dock){ ov.classList.add("full"); setTimeout(() => resolve({ el: ov, close }), 450 / speed()); }   // stays up at 100%

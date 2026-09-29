@@ -241,7 +241,8 @@
   function goOn(){
     if(left) return; left = true;
     if(watchH){ watchH.end(); watchH = null; }
-    window.PNGlitch ? PNGlitch.go(NEXT) : (location.href = NEXT);
+    // Teacher: no static between the encrypted building and the factor pairs, just a calm fade
+    window.PNGlitch ? PNGlitch.go(NEXT, { style: "fade" }) : (location.href = NEXT);
   }
   if(window.PNTest){
     PNTest.skip("Go to the Factor Vault", () => { goOn(); return "Going to the Factor Vault."; });

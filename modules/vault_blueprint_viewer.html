@@ -131,11 +131,6 @@
   .floor-label.weak{ border-color:#ff4f6d !important; }
   .floor-label .weaktag{ display:block; font-size:11px; letter-spacing:.14em; color:#ff4f6d; margin-top:2px; }
   .floor-label.picked{ background:rgba(var(--accent-rgb),.12); }
-  .intel{ display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:10px; width:min(900px, 100%); margin:10px auto 0; }
-  .intel > div{ border:1px solid var(--line); background:rgba(0,0,0,.25); padding:10px 12px; font-size:14px; line-height:1.45; color:var(--text-muted); opacity:0; transform:translateY(6px); transition:all .4s ease; }
-  .intel > div.on{ opacity:1; transform:none; }
-  .intel b{ display:block; font-size:11px; letter-spacing:.16em; margin-bottom:4px; }
-  .intel .i-win b{ color:#ffe9a3; } .intel .i-weak b{ color:#ff4f6d; } .intel .i-hid b{ color:#ffc94d; } .intel .i-exp b{ color:var(--accent); }
   .room-tip{ position:fixed; z-index:30; pointer-events:none; background:rgba(4,14,17,.95); border:1px solid var(--accent); padding:6px 10px; font-family:var(--font-mono); font-size:13px; color:var(--text-primary); white-space:nowrap; display:none; }
   .floor-info{ font-family:var(--font-mono); font-size:14px; color:var(--text-primary); text-align:center; min-height:1.4em; margin-top:4px; }
   .quiz{ position:fixed; right:16px; top:84px; z-index:50; width:min(420px, calc(100vw - 32px)); }
@@ -239,9 +234,7 @@ body{ padding:12px 16px !important; overflow-y:auto; }
 .bp-stage .blueprint-viewer-canvas{ width:100% !important; height:100% !important; border:0 !important; background:none !important; box-shadow:none !important; }
 .bp-stage .assembly-status{ position:absolute; left:0; right:0; top:10px; margin:0; pointer-events:none; }
 .bp-stage .floor-info{ position:absolute; left:12px; right:12px; bottom:10px; margin:0; pointer-events:none; }
-.bp-side{ display:flex; flex-direction:column; gap:10px; min-height:0; overflow-y:auto; padding-bottom:130px; }
-.bp-side .intel{ display:flex; flex-direction:column; gap:8px; width:auto; margin:0; }
-.bp-side .intel > div{ font-size:13px; }
+.bp-side{ display:flex; flex-direction:column; gap:10px; min-height:0; overflow-y:auto; padding-bottom:130px; }   /* the right-hand column: the code rain and the mini terminal sit over it */
 .bp-legend{ position:absolute; left:50%; transform:translateX(-50%); top:36px; display:none; flex-direction:row; flex-wrap:wrap; justify-content:center; gap:4px 16px; max-width:calc(100% - 24px); border:1px solid var(--line); background:rgba(4,14,17,.8); padding:8px 12px; font-size:12px; color:var(--text-muted); pointer-events:none; }
 .bp-legend.on{ display:flex; }
 .bp-legend b{ font-size:11px; letter-spacing:.16em; color:var(--accent); }
@@ -295,8 +288,8 @@ body{ padding:12px 16px !important; overflow-y:auto; }
 @media (prefers-reduced-motion: reduce){ .bp-go, .bp-cctv, .bp-cctv .rec b{ animation:none; } }
 html.pn-reduce-motion .bp-go, html.pn-reduce-motion .bp-cctv, html.pn-reduce-motion .bp-cctv .rec b{ animation:none; }
 
-/* Teacher (0:12): a mini hacking terminal under the WATCH code rain (mode.js .pnm-rain) while the blueprint assembles.
-   Any key types code. Same font, size and colours as the rain so it reads as part of it. */
+/* Teacher (0:12): a mini hacking terminal under the WATCH code rain (mode.js .pnm-rain) while the blueprint assembles,
+   and again while the plan plays. Any key types code. Same font, size and colours as the rain so it reads as part of it. */
 .bp-term{ position:fixed; right:0; top:calc(var(--pn-mode-h, 62px) + min(32vh, 300px)); width:min(260px, 20vw); height:min(19vh, 150px); z-index:9390; pointer-events:none; overflow:hidden;
   font-family:"Courier Prime", monospace; font-size:12px; line-height:1.45; color:rgba(110,220,255,.42); padding:6px 10px;
   background:rgba(3,14,20,.5); border-top:1px dashed rgba(110,220,255,.25); opacity:0; transition:opacity .4s; display:flex; flex-direction:column; }
@@ -306,6 +299,8 @@ html.pn-reduce-motion .bp-go, html.pn-reduce-motion .bp-cctv, html.pn-reduce-mot
 .bp-term .ln{ flex:1; display:flex; flex-direction:column; justify-content:flex-end; overflow:hidden; white-space:pre-wrap; word-break:break-all; }
 .bp-term .ln b{ color:#ffe68a; font-weight:400; } .bp-term .ln i{ font-style:normal; color:rgba(160,255,210,.55); } .bp-term .ln u{ text-decoration:none; opacity:.6; }
 .bp-term .cur{ animation:bpCur 1s steps(2) infinite; } @keyframes bpCur{ 50%{ opacity:0; } }
+/* Teacher: in the right-hand column with the rain (mode.js --pn-rain-*), 16px from the 3D view and a little lower */
+html.pn-rain-hug .bp-term{ left:var(--pn-rain-l); right:auto; width:var(--pn-rain-w); top:calc(var(--pn-rain-t) + min(32vh, 300px) + 6px); padding-left:4px; transition:opacity .4s, left .5s ease, width .5s ease; }
 @media (max-width:900px){ .bp-term{ display:none; } }
 @media (prefers-reduced-motion: reduce){ .bp-term .cur{ animation:none; } }
 html.pn-reduce-motion .bp-term .cur{ animation:none; }
@@ -429,9 +424,8 @@ function powerUpPrompt(title){
       status.className = 'assembly-status'; status.id = 'assemblyStatus';
       stage.appendChild(status);
       const info = document.createElement('div'); info.className = 'floor-info'; info.id = 'floorInfo'; stage.appendChild(info);
-      // Intel cards and the recon key down the right-hand side
+      // The right-hand column (the code rain and the mini terminal sit over it; teacher: no intel cards)
       const side = document.createElement('div'); side.className = 'bp-side';
-      const intel = document.createElement('div'); intel.className = 'intel'; intel.id = 'intel'; side.appendChild(intel);
       const legend = document.createElement('div'); legend.className = 'bp-legend'; legend.id = 'bpLegend'; stage.appendChild(legend);
       container.appendChild(side);
       const goBtn = document.getElementById('proceedToHackBtn'); goBtn.disabled = true;
@@ -522,7 +516,7 @@ function powerUpPrompt(title){
     }
     // Teacher (0:12): a mini terminal under the code rain while the blueprint assembles. Any key the pupil presses
     // types a few characters of code (like the HACK mode in roleplay_terminal). Just for fun: it never blocks a key
-    // (only SPACE is kept from scrolling the page) and it goes when the build is done.
+    // (only SPACE is kept from scrolling the page) and it goes when the build is done. It's back, with fresh code, for the plan.
     const bpTerm = (() => {
       const CODE = [
         "// PRIMENET uplink: rebuild the blueprint",
@@ -547,6 +541,26 @@ function powerUpPrompt(title){
         "sudo ./ghost_protocol --silent --no-logs",
         "ssh oracle@primenet -p 2357",
       ];
+      // The plan's terminal (teacher: in place of the intel cards): lights, the weak point, the HCF, recon and the route
+      const PLAN = [
+        "// PRIMENET recon: plan the way in",
+        "const floors = blueprint.load(\"{target}\");",
+        "for (const room of floors.rooms()) room.lights = room.a * room.b;",
+        "const weak = floors.sort((x, y) => x.pairs - y.pairs)[0];",
+        "function hcf(a, b) { return b ? hcf(b, a % b) : a; }",
+        "const key = floors.map(f => f.n).reduce(hcf);",
+        "if (key > 1) basement.unlock(key);",
+        "scan.sweep({ from: \"street\", to: \"roof\" });",
+        "guards.track(rooms, { live: true });",
+        "route.plan(\"fire_stairs\", weak.id);",
+        "lift.hold(0); // the lift is watched",
+        "cameras.loop(feed = 7, frames = 0x2A);",
+        "def safest(floors):",
+        "    return min(floors, key = pairs)",
+        "SELECT room FROM floors WHERE guard IS NULL;",
+        "sudo ./ghost_protocol --route --quiet",
+        "ssh fox@primenet -p 3571",
+      ];
       const esc = t => t.replace(/[&<>]/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;" })[c]);
       // Rain colours: keywords gold, strings green, comments dimmer
       function HL(t){
@@ -555,22 +569,24 @@ function powerUpPrompt(title){
           : part.replace(/\b(const|let|for|if|return|function|import|from|await|def|in|of|SELECT|FROM|WHERE|sudo|true|false|TRUE)\b/g, '<b>$1</b>')).join("");
         return body + (cm ? `<u>${esc(cm)}</u>` : "");
       }
-      let el = null, lnEl = null, on = false, done = [], src = "", pos = 0, row = 0, text = "", guard = null;
+      let el = null, lnEl = null, on = false, done = [], src = "", pos = 0, row = 0, text = "", guard = null, code = CODE;
       const target = () => (PN && PN.mission ? PN.mission().target : "TARGET");
       function draw(){ lnEl.innerHTML = done.slice(-8).map(t => `<div>${HL(t)}</div>`).join("") + `<div>${HL(text)}<span class="cur">▌</span></div>`; }
       function key(e){
         if(!on || e.ctrlKey || e.metaKey || e.altKey || e.repeat) return;
         if(e.key.length !== 1 && e.key !== "Backspace" && e.key !== "Tab" && e.key !== "Enter") return;
         if(e.key === " " && e.target === document.body && !document.querySelector('.pn-powerup')) e.preventDefault();   // no page scroll
-        if(!src){ src = CODE[row++ % CODE.length].replace("{target}", target()); pos = 0; text = ""; }
+        if(!src){ src = code[row++ % code.length].replace("{target}", target()); pos = 0; text = ""; }
         const step = 2 + Math.floor(Math.random() * 4);
         text += src.slice(pos, pos + step); pos += step;
         if(pos >= src.length){ done.push(text); text = ""; src = ""; }
         draw(); SND("key");
       }
       return {
-        start(){
+        PLAN,
+        start(lines = CODE){
           if(on) return; on = true;
+          if(lines !== code){ code = lines; done = []; src = ""; pos = 0; row = 0; text = ""; }   // a fresh screen for the plan
           if(!el){ el = document.createElement('div'); el.className = 'bp-term'; el.setAttribute('aria-hidden', 'true');
             el.innerHTML = '<div class="hd">&gt; <b>type to hack</b></div><div class="ln"></div>'; document.body.appendChild(el); lnEl = el.querySelector('.ln'); }
           draw(); requestAnimationFrame(() => el.classList.add('on'));
@@ -779,7 +795,15 @@ function powerUpPrompt(title){
       }
 
       // ---------- After assembly: lights, weak point, hidden vault, explore ----------
-      const card = (cls, html) => { const d = document.createElement('div'); d.className = cls; d.innerHTML = html; document.getElementById('intel').appendChild(d); requestAnimationFrame(() => d.classList.add('on')); return d; };
+      // Teacher: no intel cards down the side, so ORACLE says the maths. The plan waits until the line is typed out (not with
+      // the teacher's fast animations), then a moment to read it.
+      async function oracle(text, read = 1500){
+        if(!window.PNHandler) return;
+        PNHandler.say(text);
+        const plain = PNHandler.fill(text).replace(/\*/g, ''), t0 = performance.now();
+        while(speedUp() === 1 && performance.now() - t0 < 12000 && document.querySelector('.pnh-text')?.textContent !== plain) await new Promise(r => setTimeout(r, 150));
+        await wait(read);
+      }
       // ---------- Round 15: labels over the building ----------
       const stageEl = container.closest('.bp-stage') || container;
       const labelEl = document.createElement('div'); labelEl.className = 'bp-label'; labelEl.id = 'bpLabel'; labelEl.setAttribute('role', 'status'); stageEl.appendChild(labelEl);
@@ -860,7 +884,6 @@ function powerUpPrompt(title){
         }
         bpEvent('blackout');
         weakPulse = false;
-        card('i-dark', `<b>CAMERAS DARK</b>Every ceiling relay powered: the lights and cameras are off.`);
         showLabel('CAMERAS DARK', 'green');
         if(window.PNHandler) PNHandler.radio("cubesDone");
         await wait(1100);
@@ -872,7 +895,7 @@ function powerUpPrompt(title){
         // Round 15: chapter 4, the plan (no twists in this chapter)
         if(window.PNMode){ PNMode.chapter("plan"); await PNMode.chapterCard(4, "The plan"); }
         if(window.PNHandler) PNHandler.say(PNStory.LINES.plan);
-        watchStart('Lights on');
+        watchStart('Lights on'); bpTerm.start(bpTerm.PLAN);   // teacher: a typing terminal in the right-hand column while the plan plays
         // Lit windows: every room has a × b windows, so every room on a floor has exactly N lights
         say('Powering up…'); watchLabel('Lights on');
         for(const [fi, f] of order.entries()){
@@ -880,8 +903,7 @@ function powerUpPrompt(title){
           await tween(900, e => { rooms.forEach(w => w.draw(Math.round(e * w.a * w.b))); planAt((fi + e) / order.length * 0.2); }, p => p);
           SND("seal");
         }
-        card('i-win', `<b>LIGHTS ON</b>Every room has a × b ceiling lights, so every room on a floor has exactly N lights. A 4 × 6 office has 24.`);
-        await wait(1200);
+        await oracle("Lights on. Every room has *a × b* ceiling lights, so every room on a floor has exactly *N* lights. A 4 × 6 office has 24.");
 
         // Weak point: the floor with the fewest rooms (factor pairs)
         watchLabel('Finding the weak point'); planAt(0.22);
@@ -892,12 +914,10 @@ function powerUpPrompt(title){
         ring(weak.yOffset + 0.5, 0xff4f6d); SND("alarm");
         const wl = labelFor(weak.n); if(wl){ wl.classList.add('weak'); wl.insertAdjacentHTML('beforeend', `<span class="weaktag">WEAK POINT · ${fewest} factor pair${fewest === 1 ? '' : 's'}</span>`); }
         const wName = weak.label.split('—')[0].trim();
-        card('i-weak', `<b>WEAK POINT: ${wName.toUpperCase()}</b>N=${weak.n} has only ${fewest} factor pair${fewest === 1 ? '' : 's'}: the fewest rooms, so the fewest guards.`);
         if(PN) PN.updateAgent({ weakFloor: wName, weakN: weak.n });
-        if(window.PNHandler) PNHandler.say(`${wName} only has ${fewest} factor pairs, so the fewest rooms to guard. That's our way in.`);
         weakPulse = true; (function pulseWeak(t){ if(!weakPulse) return; const k = 0.5 + 0.5 * Math.abs(Math.sin(t / 300)); weak.lines.forEach(m => m.opacity = k); requestAnimationFrame(pulseWeak); })(0);
         weak.lines.forEach(m => m.transparent = true);
-        await wait(1400);
+        await oracle(`${wName} (N=${weak.n}) has only *${fewest} factor pair${fewest === 1 ? '' : 's'}*: the fewest rooms, so the fewest guards. That's our way in.`);
 
         // Hidden vault: the highest common factor of the three floors
         const nums = floorGroups.map(f => f.n), h = nums.reduce(gcd);
@@ -912,17 +932,14 @@ function powerUpPrompt(title){
           await tween(900, e => { vault.position.y = -30 + e * 20; });
           ring(-5, 0xffc94d); SND("dock");
           if(window.PNBadges && !DEMO_MODE) PNBadges.award("treasure");
-          card('i-hid', `<b>HIDDEN VAULT FOUND</b>${list} all divide by <strong>${h}</strong>. ${h} is their highest common factor: the key to the basement.`);
-          if(window.PNHandler) PNHandler.say(`Wait. Every floor divides by ${h}. There's a hidden vault in the basement.`);
-        } else {
-          card('i-hid', `<b>NO HIDDEN VAULT</b>${list} share no factor except 1, so there's no secret room this time.`);
-        }
+          await oracle(`Wait. ${list} all divide by *${h}*. ${h} is their *highest common factor*, and it's the key to a hidden vault in the basement.`, 600);
+        } else await oracle(`${list} share no factor except 1, so there's no hidden vault this time.`, 600);
         planAt(0.3);
         watchLabel('Planning the way in');
         await recon(weak);
         enableExplore();
         // The WATCH ends with the route drawn. Round 15: no twists in the plan; they happen in the heist.
-        watchEnd();
+        watchEnd(); bpTerm.stop();
         document.getElementById('floorInfo').textContent = 'Drag to turn the building. Click a floor to pull it out.';
         say(`${PN ? PN.mission().target.toUpperCase() : 'TARGET'} // READY`);
         if(window.bpReady) window.bpReady();
@@ -1034,10 +1051,9 @@ function powerUpPrompt(title){
         await tween(400, e => { sheetMat.opacity = 0.16 * (1 - e); rim.material.opacity = 0.9 * (1 - e); });
         mainGroup.remove(sheet);
         const wName = weak.label.split('—')[0].trim();
-        card('i-rec', `<b>RECON</b>A lift in the middle (guarded) and fire stairs outside the fire exit. ${guards} guard${guards === 1 ? '' : 's'}, one in each room. The CEO is on the top floor. The key is on ${wName}.`);
         const lg = document.getElementById('bpLegend');
         if(lg){ lg.innerHTML = `<span><i style="color:#6ec8ff">●</i>You</span><span><i style="color:#6ec8ff">→</i>Your route in</span><span><i style="color:#ff4f6d">●</i>Guard</span><span><i style="color:#ffc94d">CEO</i>The boss</span><span><i style="color:#ffe14d">KEY</i>The key</span><span><i style="color:#ff9f6b">⇅</i>Fire stairs</span><span><i style="color:#cfe8ff">▣</i>Lift</span>`; lg.classList.add('on'); }
-        if(window.PNHandler) PNHandler.say(`Recon's in. The key is on ${wName}: fewest rooms, fewest guards. The lift is watched, so we take the fire stairs.`);
+        if(window.PNHandler) PNHandler.say(`Recon's in: ${guards} guard${guards === 1 ? '' : 's'}, one in each room. The key is on ${wName}: fewest rooms, fewest guards. The lift is watched, so we take the fire stairs.`);
         await wait(900);
 
         // The route: from the street, up the fire stairs, in through the fire door on the weak floor, to the key
@@ -1093,8 +1109,6 @@ function powerUpPrompt(title){
         await tween(2600, e => { planAt(0.8 + e * 0.2); agent.position.copy(path.getPointAt(Math.min(1, e))); halo.position.copy(agent.position); tag.position.copy(agent.position).add(V(0, 8, 0)); });
         if(keyRoom){ SND("verified"); ring(yW + 0.3, 0xffe14d); }
         planAt(1);
-        card('i-route', viaRoof ? `<b>ROUTE IN · OVER THE ROOF</b>Dropped onto the roof, down the fire stairs to ${wName}, in through the fire door, then across to the key. Nobody watches the roof.`
-          : `<b>ROUTE IN</b>From the street to the fire stairs${weak !== ground ? `, up to ${wName}` : ''}, in through the fire door, then across to the key. The lift stays well clear.`);
         if(viaRoof && window.PNHandler) PNHandler.say("Change of approach: we're going in over the roof. Nobody watches the roof.");
         if(PN) PN.updateAgent({ route: { floor: wName, guards, viaRoof, session: PN.getAgent() && PN.getAgent().sessionId } });
         await wait(700);
@@ -1703,6 +1717,9 @@ function powerUpPrompt(title){
         <div class="q">${Q.q}</div><div class="look">Not sure? Check the building: drag it round, or click a floor to pull it out.</div><div class="opts"></div><div class="why">Answer right for a 10% intel bonus on the heist.</div>
         <button class="pn-btn primary go" type="button" hidden>Arm the protocol</button></div>`;
       document.body.appendChild(ov);
+      // Teacher: in the right-hand column beside the building, when the card fits there
+      const sr = document.querySelector('.bp-side')?.getBoundingClientRect();
+      if(sr && sr.width && innerWidth > 1050 && innerWidth - sr.left - 16 >= 420){ ov.style.left = sr.left + 'px'; ov.style.right = 'auto'; }
       SND("comms");
       if(window.PNMode) PNMode.turn("Answer ORACLE's question");
       const box = ov.querySelector('.opts'), why = ov.querySelector('.why'), go = ov.querySelector('.go');

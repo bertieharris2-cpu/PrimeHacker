@@ -96,6 +96,9 @@
   async function show(item){
     build();
     const text = item.text, who = WHO[item.who] || WHO.ORACLE;
+    // Teacher: a docked typing terminal has the bottom right, so a new message goes straight to the chip (a tap reads it)
+    const docked = () => !item.again && document.documentElement.classList.contains("pnm-docked");
+    if(docked()){ last = item; setChip(who); chip.classList.remove("hide"); SND("comms"); if(window.PNVoice) PNVoice.speak(text); return; }
     const box = document.createElement("div"); box.className = "pnh-box talking";
     box.innerHTML = `<div class="pnh-wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
       <div><div class="pnh-who" style="color:${who[2]}">${who[0]} <span>${who[1]}</span></div><div class="pnh-text"></div></div>`;
@@ -117,7 +120,7 @@
       const bold = /^\*.*\*$/.test(part);
       const t = bold ? part.slice(1, -1) : part;
       for(let i = 0; i < t.length; i++){
-        if(skip) break;
+        if(skip || docked()) break;
         el.innerHTML = html + (bold ? `<b>${esc(t.slice(0, i + 1))}</b>` : esc(t.slice(0, i + 1)));
         if(t[i] !== " " && i % 2 === 0) SND("chatter");
         await sleep(22);
@@ -129,8 +132,8 @@
     skip = true;
     const hold = Math.min(9000, 2600 + text.length * 45);
     const from = Date.now();
-    // Stay up for a read, but move on sooner when another message is waiting
-    while(!closed && Date.now() - from < hold && !(queue.length && Date.now() - from > 1800)) await sleep(100);
+    // Stay up for a read, but move on sooner when another message is waiting (or a typing terminal docks)
+    while(!closed && Date.now() - from < hold && !(queue.length && Date.now() - from > 1800) && !docked()) await sleep(100);
     if(queue.length){ box.classList.remove("on"); await sleep(260); }   // straight on to the next message
     else await tuck(box);
   }

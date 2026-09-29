@@ -102,9 +102,14 @@
   .tw-result ul{ margin:0; padding-left:20px; display:flex; flex-direction:column; gap:4px; color:var(--text-muted); font-size:16px; }
   .tw-result li b{ color:var(--text-primary); }
   .tw-result .btns{ display:flex; flex-wrap:wrap; gap:8px; justify-content:flex-end; }
+  /* result:"auto" in a mission: no card; a failure shows a short message low down, then the mission carries on */
+  .tw-result.auto{ inset:auto 16px 28px; background:none; padding:0; pointer-events:none; }
+  .tw-result.auto:empty{ display:none; }
+  .tw-result.auto .card{ width:min(460px,100%); padding:14px 18px; gap:6px; }
+  .tw-result.auto p{ margin:0; font-size:16px; color:var(--text-muted); }
   @media (prefers-reduced-motion: reduce){ .tw-tile.missed{ animation:none; } .tw-flash{ animation:none; } }`;
 
-  let level = "L1";
+  let level = "L1", resultMode = "";
   // Round 11: in a mission the twist plays inside the stage (an iframe); no lab header, and Continue hands back
   const MISSION = qs.get("mission") === "1";
   const EMBED = MISSION && window.parent !== window;
@@ -112,7 +117,9 @@
 
   // The level from ?level=, else the agent's level, else L1 (safe to call before init)
   function peekLevel(){ const a = PN && PN.getAgent(); return ["L1", "L2", "L3"].includes(qs.get("level")) ? qs.get("level") : (a && a.level) || "L1"; }
-  function init({ id, stage, title, goal, story, brief, example, eyebrow, briefTitle, context, briefStyle }){
+  // init({ result: "auto" }): in a mission the twist's own ending is the payoff, so finish() shows no result card and hands back by itself
+  function init({ id, stage, title, goal, story, brief, example, eyebrow, briefTitle, context, briefStyle, result }){
+    resultMode = result || "";
     const st = document.createElement("style"); st.textContent = css + (EMBED ? " .pnh{ display:none !important; }" : ""); document.head.appendChild(st);
     if(PN && PN.applyLoot) PN.applyLoot();   // safehouse shop: hologram tint and night lens
     level = peekLevel();
@@ -152,10 +159,19 @@
     };
   }
 
-  function finish({ ok = true, title, lines = [], note = "", effect = "", auto = 0 }){   // auto: in a mission, carry on by itself after this many ms   // effect: something the stage shows afterwards (e.g. "dark")
+  function finish({ ok = true, title, lines = [], note = "", effect = "", auto = 0, result = resultMode }){   // auto: in a mission, carry on by itself after this many ms   // effect: something the stage shows afterwards (e.g. "dark")
     if(document.querySelector(".tw-result")) return;   // one result screen only (a twist could end twice)
     hideBrief(); if(W.brief){ W.brief.chip.classList.add("hide"); W.hints.chip.classList.add("hide"); }
     const ov = document.createElement("div"); ov.className = "tw-result" + (ok ? "" : " fail");
+    if(result === "auto" && EMBED){   // no card: straight back to the mission (a failure says so briefly first)
+      ov.classList.add("auto");
+      if(!ok) ov.innerHTML = `<div class="card" role="status"><h2>${title || "ALARM TRIPPED"}</h2><p>${note || "Back to the mission…"}</p></div>`;
+      document.body.appendChild(ov);
+      if(!ok) SND("denied");
+      if(PN) PN.log("twist-done", { ok, level });
+      setTimeout(() => window.parent.postMessage({ type: "pn-twist-done", ok, effect }, "*"), auto || (ok ? 400 : 2600));
+      return;
+    }
     const next = qs.get("next");
     ov.innerHTML = `<div class="card" role="dialog" aria-modal="true" aria-labelledby="twResT"><h2 id="twResT">${title || (ok ? "TWIST CLEARED" : "ALARM TRIPPED")}</h2>
       <ul>${lines.map(l => `<li>${l}</li>`).join("")}</ul>${note ? `<p style="margin:0;color:var(--text-muted)">${note}</p>` : ""}
