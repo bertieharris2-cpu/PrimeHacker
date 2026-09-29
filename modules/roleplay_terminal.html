@@ -41,6 +41,9 @@
   .flood .st .pk{ color:#ff4fd8; } .flood .st .yl{ color:#ffe14d; } .flood .st .sy{ color:rgba(var(--accent-rgb),.9); } .flood .st .bl{ color:#6ec8ff; }
   .flood .bar{ height:8px; background:rgba(0,0,0,.5); } .flood .bar i{ display:block; height:100%; width:0; background:var(--accent); box-shadow:0 0 12px rgba(var(--accent-rgb),.7); }
   .term .mail{ display:inline-block; border:1px solid rgba(255,201,77,.55); background:rgba(40,30,5,.35); padding:8px 14px; margin:6px 0; color:#ffe9a3; }
+  .term .hk{ color:#9fffd4; } .term .hk .kw{ color:#ff79c6; } .term .hk .st{ color:#ffe14d; } .term .hk .cm{ color:rgba(235,255,248,.45); } .term .hk .fn{ color:#6ec8ff; }
+  .term .hk.live::after{ content:"▌"; color:var(--accent); animation:hkCur .8s steps(2) infinite; } @keyframes hkCur{ 50%{ opacity:0; } }
+  #hackBtn.on{ background:var(--accent); color:#03170e; }
   .term .fox{ color:#ffb35c; } .term .wren{ color:#7fd4ff; }
   @media (prefers-reduced-motion: reduce){ .flood{ transition:none; } }
 </style>
@@ -50,6 +53,7 @@
   <div class="bar">
     <div class="name">PRIMENET <span>// OPEN TERMINAL · TRAINING ROOM</span></div>
     <div class="row">
+      <button class="pn-btn small" type="button" id="hackBtn" title="Any key types real-looking code">Hacker typing</button>
       <button class="pn-btn small" type="button" id="keysBtn">Key sounds: on</button>
       <button class="pn-btn small" type="button" id="clearBtn">Clear</button>
       <a class="pn-btn small" href="../index.html" style="text-decoration:none">Exit to base</a>
@@ -59,7 +63,7 @@
     <div class="term" id="term" role="log" aria-live="polite"></div>
     <label class="prompt"><span class="p">agent@primenet:~$</span><input id="input" autocomplete="off" spellcheck="false" aria-label="Type a command"></label>
   </div>
-  <div class="tip">Free play: type anything and press Enter. Try <b>INTERCEPT</b>, <b>SCAN</b>, <b>DECRYPT</b>, <b>FOX</b>, <b>WREN</b>, <b>BREACH</b> or <b>HELP</b>. Nothing here is saved.</div>
+  <div class="tip">Free play: type anything and press Enter. Try <b>HACK</b>, <b>INTERCEPT</b>, <b>SCAN</b>, <b>DECRYPT</b>, <b>FOX</b>, <b>WREN</b>, <b>BREACH</b> or <b>HELP</b>. Nothing here is saved.</div>
 </div>
 <div class="flash" id="flash"></div>
 
@@ -150,10 +154,87 @@
     () => [`Rerouting through node ${rnd(255)}.${rnd(255)}.${rnd(255)}.${rnd(255)}…`, "Proxy chain: 4 hops.", "Signal masked."],
   ];
 
+  // ---------- Hacker typing: any key types real-looking code, a few characters at a time ----------
+  const CODE = [
+    "// PRIMENET uplink: open a secure channel",
+    "import { cipher, primes } from \"primenet/core\";",
+    "const target = await network.find(\"{target}\");",
+    "for (const port of target.ports) {",
+    "  if (isPrime(port)) channel.open(port);",
+    "}",
+    "function isPrime(n) {",
+    "  if (n < 2) return false;",
+    "  for (let d = 2; d * d <= n; d++) if (n % d === 0) return false;",
+    "  return true;",
+    "}",
+    "const key = primes.pick(2).reduce((a, b) => a * b);",
+    "console.log(\"key forged:\", key);",
+    "firewall.bypass({ mode: \"stealth\", trace: false });",
+    "// decrypt the building plans, floor by floor",
+    "plans.floors.forEach(f => f.decrypt(factorPairs(f.n)));",
+    "cameras.loop(feed = 4, frames = 0x3F);",
+    "agents.radio(\"FOX\", \"Clear to move.\");",
+    "vault.locks.map(lock => crack(lock.n));",
+    "def crack(n):",
+    "    for p in primes_up_to(n):",
+    "        if n % p == 0: return (p, n // p)",
+    "ledger.transfer(to = \"recovery_account\", amount = hidden_sum)",
+    "SELECT * FROM accounts WHERE secret = TRUE;",
+    "sudo ./ghost_protocol --silent --no-logs",
+    "ssh oracle@primenet -p 2357",
+    "evidence.upload(\"newsroom\", encrypt = true)",
+  ];
+  // Colour the code: comments first (kept apart), then strings, keywords and function names
+  const esc = t => t.replace(/[&<>]/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;" })[c]);
+  function HL(t){
+    const m = t.match(/^(.*?)(\/\/.*|#.*)?$/), code = m[1] || "", cm = m[2] || "";
+    const body = esc(code).split(/("[^"]*"?)/).map(part => part.startsWith('"') ? `<span class="st">${part}</span>`
+      : part.replace(/\b(const|let|for|if|return|function|import|from|await|def|in|of|SELECT|FROM|WHERE|sudo|true|false|TRUE)\b/g, '<span class="kw">$1</span>')
+            .replace(/\b([a-zA-Z_]+)(?=\()/g, '<span class="fn">$1</span>')).join("");
+    return body + (cm ? `<span class="cm">${esc(cm)}</span>` : "");
+  }
+  let hkRunning = false, hacking = false, hkLine = null, hkText = "", hkSrc = "", hkPos = 0, hkLines = 0;
+  function hackOn(){
+    if(hacking) return; hacking = true; document.getElementById("hackBtn").classList.add("on"); input.value = ""; input.disabled = true;
+    SND("powerup"); line("HACKER TYPING ON · type anything · ENTER runs it · ESC stops", "warn");
+    hkSrc = ""; hkPos = 0; hkLines = 0; newHkLine();
+  }
+  function hackOff(){
+    if(!hacking) return; hacking = false; document.getElementById("hackBtn").classList.remove("on");
+    if(hkLine) hkLine.classList.remove("live"); hkLine = null; input.value = ""; input.disabled = false; input.focus(); SND("powerdown");
+  }
+  function newHkLine(){
+    if(hkLine) hkLine.classList.remove("live");
+    hkSrc = PNStory.fill(CODE[hkLines++ % CODE.length]); hkPos = 0; hkText = "";   // in order, so it reads like one program
+    hkLine = line("", "hk live");
+  }
+  function hackKey(){
+    const step = 2 + rnd(4);
+    hkText += hkSrc.slice(hkPos, hkPos + step); hkPos += step;
+    hkLine.innerHTML = HL(hkText); term.scrollTop = term.scrollHeight;
+    if(keySounds) SND("typing");
+    if(hkPos >= hkSrc.length){ newHkLine(); if(Math.random() < .12) SND("data"); }
+  }
+  async function hackRun(){
+    hackOff(); hkRunning = true;
+    await type(pick(["Compiling…", "Running exploit…", "Executing payload…"]), "warn");
+    if(Math.random() < .5) await flood(); else await chatter(1200);
+    line(pick(["ACCESS GRANTED", "CHANNEL OPEN", "DECRYPTED"]), "big"); SND("success");
+    hkRunning = false; hackOn();
+  }
+  document.addEventListener("keydown", e => {
+    if(hkRunning && (e.key.length === 1 || e.key === "Enter")){ e.preventDefault(); return; }
+    if(!hacking || e.target === input) return;   // the Enter that typed HACK isn't a "run it"
+    if(e.key === "Escape"){ e.preventDefault(); hackOff(); return; }
+    if(e.key === "Enter"){ e.preventDefault(); hackRun(); return; }
+    if(e.key.length === 1 || e.key === "Backspace" || e.key === "Tab"){ e.preventDefault(); hackKey(); }
+  });
+
   const COMMANDS = {
+    async HACK(){ hackOn(); },
     async HELP(){
       line("OPEN TERMINAL COMMANDS", "warn");
-      ["INTERCEPT catch an encrypted email","SCAN      sweep the network for targets","FOX, WREN radio the agents inside","ORACLE    call the team lead","FLOOD     run a code flood","TRACE     check whether anyone is watching","DECRYPT   crack a message","BREACH    run a full vault breach (loud)","CLEAR     wipe the screen","EXIT      return to base","Anything else gets a reply. Nothing is saved."].forEach(t => line("  " + t));
+      ["HACK      hacker typing: any key types code","INTERCEPT catch an encrypted email","SCAN      sweep the network for targets","FOX, WREN radio the agents inside","ORACLE    call the team lead","FLOOD     run a code flood","TRACE     check whether anyone is watching","DECRYPT   crack a message","BREACH    run a full vault breach (loud)","CLEAR     wipe the screen","EXIT      return to base","Anything else gets a reply. Nothing is saved."].forEach(t => line("  " + t));
     },
     async SCAN(){
       await type("Initiating network sweep…");
@@ -216,7 +297,7 @@
       for(const l of lines) await type(l);
     }
     // Now and then a code flood (never twice in a row)
-    if(!["BREACH","FLOOD","CLEAR","EXIT","HELP"].includes(cmd) && ++sinceFlood >= 3 && Math.random() < .35){ sinceFlood = 0; await flood(); }
+    if(!["BREACH","FLOOD","CLEAR","EXIT","HELP","HACK"].includes(cmd) && ++sinceFlood >= 3 && Math.random() < .35){ sinceFlood = 0; await flood(); }
   }
 
   input.addEventListener("keydown", async e => {
@@ -230,6 +311,7 @@
     if(keySounds && e.key.length === 1) SND("key");
   });
   document.addEventListener("click", e => { if(!e.target.closest("button, a")) input.focus(); });
+  document.getElementById("hackBtn").addEventListener("click", e => { e.currentTarget.blur(); hacking ? hackOff() : hackOn(); });
   document.getElementById("keysBtn").addEventListener("click", e => { keySounds = !keySounds; e.currentTarget.textContent = `Key sounds: ${keySounds ? "on" : "off"}`; input.focus(); });
   document.getElementById("clearBtn").addEventListener("click", () => { term.innerHTML = ""; input.focus(); });
 
