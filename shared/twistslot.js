@@ -35,16 +35,17 @@
   // Round 14: a twist never opens in the middle of a WATCH section; it waits for the cinematic to finish
   // run(point, { intro }) : intro is an async function the page plays first (its own cinematic of what's happening,
   // e.g. the crew walking to the fuse box). With an intro there's no generic CHANGE OF PLAN card.
+  // run(point, { params }) : extra settings for the twist's URL, e.g. { next: "fusebox" } (where the crew goes next)
   async function run(point, opts = {}){
     if(window.PNMode) await PNMode.idle();
     if(!PN || !PN.twistAt || qs.get("notwist")) return null;
     const t = PN.twistAt(point) || (qs.get("twist") && PN.TWISTS.find(x => x.id === qs.get("twist") && x.point === point && (x.page || x.proto)));
     if(!t) return null;
     if(opts.intro){ try{ await opts.intro(t); }catch(e){} if(window.PNMode) await PNMode.idle(); }
-    return runNow(point, !!opts.intro);
+    return runNow(point, !!opts.intro, opts.params);
   }
   function has(point){ return !!(PN && PN.twistAt && !qs.get("notwist") && (PN.twistAt(point) || (qs.get("twist") && PN.TWISTS.find(x => x.id === qs.get("twist") && x.point === point)))); }
-  function runNow(point, introPlayed){
+  function runNow(point, introPlayed, params){
     if(!PN || !PN.twistAt || qs.get("notwist")) return Promise.resolve(null);
     let t = PN.twistAt(point);
     const force = qs.get("twist") && PN.TWISTS.find(x => x.id === qs.get("twist") && x.point === point && (x.page || x.proto));
@@ -75,7 +76,8 @@
         const f = document.createElement("iframe");
         // Round 12: the teacher can switch missions to the prototype versions (Twist Lab / teacher controls)
         const page = (t.proto && (!t.page || qs.get("proto") || (PN.twistProtos && PN.twistProtos()))) ? t.proto : t.page;
-        f.src = `${page}?level=${lv}&mission=1`; f.title = t.name;
+        const extra = Object.entries(params || {}).filter(([, v]) => v != null && v !== "").map(([k, v]) => `&${encodeURIComponent(k)}=${encodeURIComponent(v)}`).join("");
+        f.src = `${page}?level=${lv}&mission=1${extra}`; f.title = t.name;
         o.appendChild(f);
         f.addEventListener("load", () => { f.classList.add("on"); try{ f.contentWindow.focus(); }catch(e){} });
       }, STATIC ? 2600 : introPlayed ? 300 : 1600);

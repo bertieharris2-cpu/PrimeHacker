@@ -9,63 +9,93 @@
 <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Inter:wght@400;600;700;800&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../shared/primenet.css">
 <style>
-  /* Round 12 prototype, second pass: recon on the guards, in a CCTV window. One guard paces a corridor up and down,
-     another walks a loop of the whole floor; both pass the fire door. When are they there together? (The LCM.)
-     Three ways to play it, to compare: ?mode=A mark the timetables then predict on the 3D feed,
-     ?mode=B watch the feed until it cuts out then predict, ?mode=C choose from three times.
-     Round 13 (Bertie): with no ?mode, door 1 plays watch-then-predict (the feed shows what "together" means) and door 2
-     plays predict-then-watch. When the answer is right the camera pushes in on the meeting, our agent throws a beacon
-     to the far side of the floor, the guards go to look, and the agent walks in on a path that keeps clear of them.
-     Round 14 (Bertie: "the blue dot just ran straight over towards the guards"): the way in now heads for the other side
-     of the floor from the beacon, is planned once the guards are well on their way, hugs the rooms instead of crossing
-     open floor, and is drawn as a faint line of light before the agent walks it. */
-  main.tw{ width:min(1280px, 100%); }
-  .cctv{ position:relative; height:500px; padding:0; overflow:hidden; background:#020a0c; border:1px solid #2c4c55; transition:height .6s; }
-  .cctv.small{ height:300px; }
+  /* Round 12 prototype: recon on the guards, in a CCTV window. One guard paces a corridor up and down, another walks a
+     loop of the whole floor; both pass the fire door. When are they there together? (The LCM.)
+     Round 13-14: every answer plays on the feed; the guards are lured away and the agent sneaks in on a route that keeps
+     clear of them (planned once they're well on their way, hugging the rooms).
+     Round 16 (teacher): three stages at every level, numbers scaled by level (L3 adds a third guard in stages 2 and 3).
+     1: mark each guard's round on a hundred square and click where they meet. 2: the same grid, nothing to mark: work it
+     out and type it. 3: no grid, bigger numbers. Before an answer the feed only loops the first rounds (it always stops
+     short of a meeting), and after stage 1 nothing on screen names the meeting time. Each guard's card says how often
+     they pass the door; a timeline under the feed ticks every pass, and a tick pops over the door. The decoy is a purple
+     throw right across the floor. FOX and WREN's blue route heads for their next stop in the mission (?next= from the
+     heist: fuse box, deposit boxes, strongroom or key room; the vault in the Twist Lab), marked and labelled on the floor.
+     One screen at 1280 × 720 and up: the feed on the left, the guards and the grid on the right. */
+  main.tw{ width:min(1680px, 100%); height:100vh; height:100dvh; box-sizing:border-box; padding:10px 16px 46px; gap:10px; }   /* bottom: clear of FULL SCREEN (the mission's shows over the twist too) */
+  main .tw-head{ padding-bottom:8px; } main .tw-head h1{ font-size:clamp(22px,2.6vw,30px); }
+  .steps{ display:flex; flex-wrap:wrap; gap:6px; font-family:var(--font-ui); font-size:12px; letter-spacing:.16em; }
+  .steps span{ border:1px solid var(--line); padding:3px 8px; color:var(--text-faint); }
+  .steps span.on{ color:var(--warning); border-color:var(--warning); } .steps span.done{ color:var(--ok); border-color:rgba(61,220,151,.5); }
+  .play{ flex:1; min-height:0; display:grid; grid-template-columns:minmax(0,1fr) clamp(340px,31vw,480px); gap:12px; }
+  .feed{ display:flex; flex-direction:column; gap:8px; min-width:0; min-height:0; }
+  .cctv{ position:relative; flex:1; min-height:0; padding:0; overflow:hidden; background:#020a0c; border:1px solid #2c4c55; }
   .cctv > div{ z-index:2; }
   .cctv .scan{ position:absolute; inset:0; pointer-events:none; background:repeating-linear-gradient(0deg, rgba(160,240,255,.05) 0 1px, transparent 1px 3px); box-shadow:inset 0 0 120px rgba(0,0,0,.8); }
   .cctv .corner{ position:absolute; width:26px; height:26px; border:2px solid rgba(255,255,255,.7); pointer-events:none; }
   .cctv .tl{ left:10px; top:10px; border-right:0; border-bottom:0; } .cctv .tr{ right:10px; top:10px; border-left:0; border-bottom:0; }
   .cctv .bl{ left:10px; bottom:10px; border-right:0; border-top:0; } .cctv .br{ right:10px; bottom:10px; border-left:0; border-top:0; }
-  .cctv .top{ position:absolute; left:46px; top:16px; font-family:var(--font-mono); font-size:13px; letter-spacing:.12em; color:#dff8ff; pointer-events:none; }
-  .cctv .top .rec{ color:#ff4f6d; animation:recb 1s steps(2) infinite; } @keyframes recb{ 50%{ opacity:.2; } }
+  .cctv .top{ position:absolute; left:46px; top:16px; font-family:var(--font-mono); font-size:13px; letter-spacing:.12em; color:#dff8ff; pointer-events:none; text-shadow:0 0 6px #000; line-height:1.5; }
+  .cctv .top .rec{ color:#ff4f6d; animation:recb 2.4s ease-in-out infinite; } @keyframes recb{ 50%{ opacity:.35; } }   /* a slow fade, never a flash */
+  .cctv .top em{ font-style:normal; color:#ffe68a; }
   .cctv .clock{ position:absolute; right:46px; top:12px; font-family:var(--font-mono); font-size:26px; color:#ffe14d; pointer-events:none; text-shadow:0 0 10px rgba(0,0,0,.9); }
-  .cctv .legend{ position:absolute; left:46px; bottom:16px; display:flex; gap:14px; font-size:13px; color:#dff8ff; pointer-events:none; text-shadow:0 0 6px #000; }
-  .cctv .legend i{ display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:5px; vertical-align:middle; }
-  .cctv .log{ position:absolute; left:46px; top:40px; font-family:var(--font-mono); font-size:13px; color:#dff8ff; pointer-events:none; text-shadow:0 0 6px #000; line-height:1.5; }
-  .cctv .lost{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-family:var(--font-ui); letter-spacing:.3em; font-size:30px; color:#ff4f6d; background:rgba(2,8,10,.55); opacity:0; pointer-events:none; transition:opacity .4s; }
-  .cctv .lost.on{ opacity:1; }
-  /* A small readout in the corner of the feed for the way in (it never covers the floor) */
-  .cctv .tag{ position:absolute; right:46px; bottom:14px; font-family:var(--font-mono); font-size:13px; letter-spacing:.14em; color:#8feaff; padding:5px 10px; border:1px solid rgba(143,234,255,.55); background:rgba(2,10,12,.72); opacity:0; transition:opacity .4s; pointer-events:none; }
-  .cctv .tag.on{ opacity:1; } .cctv .tag.gold{ color:#ffe14d; border-color:rgba(255,225,77,.6); }
-  .task{ padding:14px 16px; display:flex; flex-direction:column; gap:12px; }
-  .rowlab{ font-family:var(--font-ui); font-size:12px; letter-spacing:.14em; color:var(--text-faint); margin-bottom:4px; display:flex; align-items:center; gap:8px; }
-  .rowlab i{ width:10px; height:10px; border-radius:50%; display:inline-block; }
-  .tl{ display:grid; grid-template-columns:repeat(var(--n), minmax(0,1fr)); gap:3px; }
-  .tl button{ font:inherit; font-family:var(--font-mono); font-size:13px; padding:7px 0; background:rgba(8,26,31,.9); border:1px solid var(--line); color:rgba(235,255,248,.8); cursor:pointer; }
-  .tl button.bad{ background:rgba(255,79,109,.3); border-color:#ff4f6d; }
-  .tl button:disabled{ cursor:default; }
-  .ans{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; font-size:18px; }
-  .ans input{ width:80px; font-size:20px; text-align:center; padding:6px; }
-  .choices{ display:flex; gap:10px; flex-wrap:wrap; }
-  .choices button{ font:inherit; font-family:var(--font-mono); font-size:22px; font-weight:700; padding:10px 22px; background:#0b1d22; color:#dff8ff; border:1px solid #2c4c55; cursor:pointer; }
-  .choices button.bad{ border-color:#ff4f6d; color:#ff8aa0; }
+  .dest{ font-family:var(--font-ui); font-weight:700; font-size:12px; letter-spacing:.16em; color:#8feaff; padding:3px 9px; border:1px solid rgba(110,200,255,.6); background:rgba(2,10,12,.72); }
+  .cctv .log{ position:absolute; left:46px; top:62px; font-family:var(--font-mono); font-size:13px; color:#dff8ff; pointer-events:none; text-shadow:0 0 6px #000; line-height:1.5; }
+  /* A small readout in the corner of the feed (it never covers the floor) */
+  .cctv .tag{ position:absolute; right:46px; bottom:14px; font-family:var(--font-mono); font-size:14px; letter-spacing:.12em; color:#8feaff; padding:5px 10px; border:1px solid rgba(143,234,255,.55); background:rgba(2,10,12,.8); opacity:0; transition:opacity .4s; pointer-events:none; }
+  .cctv .tag.on{ opacity:1; } .cctv .tag.gold{ color:#ffe14d; border-color:rgba(255,225,77,.6); } .cctv .tag.purple{ color:#d7b5ff; border-color:rgba(181,123,255,.8); }
+  /* The timeline over the feed (the BRIEF and HINTS tabs sit bottom left): a tick every time a guard reaches the door */
+  .tline{ flex:none; padding:7px 22px 6px 12px; display:flex; flex-direction:column; gap:3px; }
+  .lane, .axis{ display:grid; grid-template-columns:92px minmax(0,1fr); gap:8px; align-items:center; white-space:nowrap; }
+  .lane{ height:20px; }
+  .lane .ll{ font-family:var(--font-ui); font-weight:700; font-size:12px; letter-spacing:.12em; color:var(--c); display:flex; align-items:center; gap:6px; }
+  .lane .ll i{ width:10px; height:10px; border-radius:50%; background:var(--c); }
+  .track{ position:relative; height:100%; border-bottom:1px solid rgba(143,234,255,.25); }
+  .track b{ position:absolute; bottom:0; width:3px; height:14px; margin-left:-1px; background:var(--c); }
+  .track b.gold{ height:19px; background:#ffe14d; box-shadow:0 0 8px #ffe14d; }
+  .track b small{ position:absolute; left:6px; bottom:2px; font:400 11px/1 var(--font-mono); color:rgba(235,255,248,.8); }
+  .track b.gold small{ color:#ffe14d; font-weight:700; }
+  .track .ph{ position:absolute; top:-2px; bottom:-2px; left:0; width:2px; background:rgba(255,255,255,.7); }
+  .axis{ font-family:var(--font-mono); font-size:12px; color:var(--text-faint); } .axis > span{ font-family:var(--font-ui); letter-spacing:.14em; font-size:11px; }
+  .axis div{ display:flex; justify-content:space-between; }
+  /* The side: the guards, then the grid (stages 1 and 2) and the answer */
+  .side{ display:flex; flex-direction:column; gap:8px; padding:12px 14px; min-height:0; overflow:hidden; }
+  .gcards{ display:flex; flex-direction:column; gap:5px; }
+  .gcard{ display:flex; align-items:center; gap:10px; padding:3px 10px; border:1px solid var(--line); border-left:4px solid var(--c); font-family:var(--font-ui); font-size:15px; line-height:1.25; background:rgba(8,26,31,.6); }
+  .gcard b{ color:var(--c); } .gcard svg{ flex:none; width:24px; height:24px; }
+  .gcard.on{ border-color:var(--c); box-shadow:inset 0 0 0 1px var(--c); }
+  .ask{ margin:0; font-family:var(--font-ui); font-size:17px; line-height:1.35; color:#f6feff; } .ask b{ color:#ffe68a; }
+  .hs{ flex:1 1 auto; min-height:calc(var(--rows) * 18px); display:grid; grid-template-columns:repeat(10, minmax(0,1fr)); grid-template-rows:repeat(var(--rows), minmax(0,1fr)); gap:3px; max-height:calc(var(--rows) * 46px); }
+  .hs > *{ position:relative; display:flex; align-items:center; justify-content:center; min-width:0; min-height:0; padding:0; font:inherit; font-family:var(--font-mono); font-size:clamp(12px,2.1vh,18px); font-weight:700; color:rgba(235,255,248,.86); background:rgba(8,26,31,.9); border:1px solid var(--line); }
+  .hs button{ cursor:pointer; } .hs button:hover{ border-color:rgba(var(--accent-rgb),.8); } .hs button:focus-visible{ outline:2px solid var(--warning); outline-offset:1px; }
+  .hs.ref > *{ color:rgba(235,255,248,.78); cursor:default; }
+  .hs small{ position:absolute; right:3px; top:1px; font-size:10px; font-weight:400; letter-spacing:.04em; color:#fff; }
+  .hs .bad{ border-color:#ff8aa0 !important; } .hs .bad::after{ content:"✗"; position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(30,0,8,.82); color:#ff8aa0; font-size:1.3em; }   /* guard A is red too, so a cross */
+  .hs .gold{ background:rgba(255,201,77,.4) !important; border-color:#ffc94d !important; color:#fff3cf; box-shadow:0 0 12px rgba(255,201,77,.5); }
+  .ans{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; font-size:17px; } .ans label{ flex:1 1 100%; font-family:var(--font-ui); font-size:16px; line-height:1.3; } .ans label b{ color:#ffe68a; }
+  .ans input{ width:96px; font-size:22px; text-align:center; padding:6px; }
+  .side .tw-msg{ font-size:15px; min-height:2.6em; }
   [hidden]{ display:none !important; }
-  @media (prefers-reduced-motion: reduce){ .cctv{ transition:none; } .cctv .top .rec{ animation:none; } }
+  @media (max-width:900px){ main.tw{ height:auto; } .play{ grid-template-columns:1fr; } .cctv{ height:360px; flex:none; } }
 </style>
 </head>
 <body>
 <main class="tw">
-  <div class="tw-bar"><span>Door <b id="round">1</b> of 2</span><span id="modeLab"></span></div>
-  <section class="cctv" id="cctv"><div class="scan"></div><div class="corner tl"></div><div class="corner tr"></div><div class="corner bl"></div><div class="corner br"></div>
-    <div class="top"><span class="rec">● REC</span> CAM 04 · FIRE DOOR · <span id="floorName">WEAK FLOOR</span></div><div class="clock" id="clock">00:00</div>
-    <div class="legend" id="legend"></div><div class="log" id="log"></div><div class="tag" id="tag"></div><div class="lost" id="lost">FEED LOST</div></section>
-  <section class="pn-panel task" id="task">
-    <div id="rows"></div>
-    <div class="ans" id="ansRow" hidden><label for="ansIn" id="ansLab">They're both at the door together first at minute</label><input class="pn-input" id="ansIn" inputmode="numeric" maxlength="3"><button class="pn-btn small primary pn-go" type="button" id="ansBtn">Check on the feed</button></div>
-    <div class="choices" id="choices" hidden></div>
-  </section>
-  <div class="tw-msg" id="msg" aria-live="polite"></div>
+  <div class="tw-bar"><span class="steps"><span id="st1">1 · MARK THE ROUNDS</span><span id="st2">2 · USE THE GRID</span><span id="st3">3 · PREDICT</span></span><span class="dest" id="dest"></span></div>
+  <div class="play">
+    <div class="feed">
+      <section class="pn-panel tline" id="tline" aria-hidden="true"><div id="lanes"></div></section>
+      <section class="cctv" id="cctv" aria-label="CCTV of the fire door"><div class="scan"></div><div class="corner tl"></div><div class="corner tr"></div><div class="corner bl"></div><div class="corner br"></div>
+        <div class="top"><span class="rec">● REC</span> CAM 04 · FIRE DOOR · <span id="floorName">WEAK FLOOR</span><br><em id="feedLab"></em></div><div class="clock" id="clock">MIN 00</div>
+        <div class="log" id="log"></div><div class="tag" id="tag"></div></section>
+    </div>
+    <aside class="pn-panel side" id="side">
+      <div class="gcards" id="cards"></div>
+      <p class="ask" id="ask"></p>
+      <div class="hs" id="hs" hidden></div>
+      <div class="ans" id="ansRow" hidden><label for="ansIn" id="ansLab"></label><input class="pn-input" id="ansIn" inputmode="numeric" maxlength="3" autocomplete="off"><button class="pn-btn small primary pn-go" type="button" id="ansBtn">Play it on the feed</button></div>
+      <div class="tw-msg" id="msg" aria-live="polite"></div>
+    </aside>
+  </div>
 </main>
 
 <script src="../shared/vendor/three.min.js"></script>
@@ -80,37 +110,49 @@
 (() => {
   "use strict";
   const T = window.PNTwist, $ = id => document.getElementById(id);
-  const L = T.peekLevel();
-  const qp = new URLSearchParams(location.search).get("mode");
-  // D is the default (Bertie): door 1 watch-then-predict, door 2 predict-then-watch. A, B and C stay as they were for the Twist Lab.
-  const MODE = ["A", "B", "C"].includes(qp) ? qp : "D";
+  const L = T.peekLevel(), qs = new URLSearchParams(location.search);
   const RM = window.Primenet && Primenet.reducedMotion ? Primenet.reducedMotion() : matchMedia("(prefers-reduced-motion: reduce)").matches;   // the learner's motion setting, or the system one
   const sp = () => (window.PNTest ? PNTest.speed() : 1);
   const wait = ms => new Promise(res => setTimeout(res, ms / sp()));
-  $("modeLab").textContent = { A: "Option A · mark, then predict", B: "Option B · watch, then predict", C: "Option C · choose the time", D: "Door 1 watch first · Door 2 predict first" }[MODE];
+  // Where FOX and WREN head once they're through. The heist sends ?next= (and lift=1 when it's on another floor);
+  // the Twist Lab sends nothing, so they go for the vault, by the lift.
+  const DESTS = { fusebox: ["FUSE BOX", "the fuse box"], keyroom: ["KEY ROOM", "the key room"], deposit: ["DEPOSIT BOXES", "the deposit boxes in the basement"], strongroom: ["STRONGROOM", "the strongroom"], vault: ["THE VAULT", "the vault"] };
+  const DK = DESTS[qs.get("next")] ? qs.get("next") : "vault";
+  const LIFT = DK === "deposit" || ((DK === "strongroom" || DK === "vault") && (qs.get("lift") === "1" || !DESTS[qs.get("next")]));
+  const DEST = { name: DESTS[DK][0], to: DESTS[DK][1], sub: DK === "deposit" ? "LIFT ▸ BASEMENT" : LIFT ? "TAKE THE LIFT" : "NEXT STOP" };
   T.init({ id: "patrols3d", stage: "GETTING IN", title: "RECON: GUARD PATROLS", eyebrow: "RECON UPDATE", briefTitle: "COMMS · ORACLE",
-    goal: { A: "Mark when each guard passes the door. Then, on the camera, work out when they're both there <b>together</b>.",
-      B: "Watch the camera. When it cuts out, work out when the guards are both at the door <b>together</b>.",
-      C: "When are the guards both at the door <b>together</b> for the first time? Choose the time.",
-      D: "Door 1: watch the feed, then say when the guards are both at the door <b>together</b>. Door 2: work it out first, then watch the feed prove it." }[MODE],
-    example: "Every 4 minutes (4, 8, 12…) and every 6 minutes (6, 12…): together at minute 12, the lowest common multiple of 4 and 6.",
-    context: "More guards than we thought. We need their timings.",
+    goal: "Each guard passes the fire door on their own round. Find the next minute they're <b>at the door together</b>: then one decoy pulls them all away and FOX and WREN slip through.",
+    example: "Every 2 minutes (2, 4, 6…) and every 3 minutes (3, 6…): together at the door at minute 6, the lowest common multiple of 2 and 3.",   // a pair no stage uses, so it never gives an answer away
+    context: `More guards than we thought. Time their rounds, and FOX and WREN slip through to ${DEST.to}.`,
     story: "Recon update: more guards than we expected. We need to know where they'll be, and when, before we go in." });
   const a0 = window.Primenet && Primenet.getAgent();
   if(a0 && a0.weakFloor) $("floorName").textContent = a0.weakFloor.toUpperCase();
-  const SETS = { L1: [[3, 4], [4, 6], [2, 5], [4, 5], [3, 5]], L2: [[4, 6], [6, 8], [6, 9], [4, 10], [8, 12], [6, 10]], L3: [[4, 6, 9], [3, 4, 10], [6, 8, 9], [4, 6, 10], [5, 6, 8]] }[L];
-  const rounds = T.shuffle(SETS).slice(0, 2);
-  const COLS = [0xff4f6d, 0xffb347, 0xc77dff], CSS = ["#ff4f6d", "#ffb347", "#c77dff"], NAMES = ["A", "B", "C"];
-  let r = 0, over = false, wrong = 0;
-  const isWatch = () => MODE === "B" || (MODE === "D" && r === 0);   // this door: the feed runs first, the timetables stay hidden
+  $("dest").textContent = `FOX + WREN ▸ NEXT STOP: ${DEST.name}`;
+
+  // ----- Stages: three at every level. The grid (stages 1 and 2) never ends on an answer. -----
+  const LV = {
+    L1: { grid: 30, s: [[[3, 4], [4, 6], [3, 5], [4, 5], [2, 5]], [[4, 6], [3, 8], [6, 8], [4, 10], [6, 9], [2, 7], [4, 7]], [[5, 6], [6, 8], [4, 9], [8, 10], [5, 8], [6, 10], [8, 12]]] },
+    L2: { grid: 50, s: [[[6, 8], [4, 10], [6, 9], [6, 10], [8, 12], [4, 6]], [[9, 12], [4, 14], [10, 15], [8, 10], [12, 18], [6, 14], [6, 16]], [[8, 14], [10, 12], [12, 15], [14, 21], [15, 20], [9, 15], [12, 16], [10, 25]]] },
+    L3: { grid: 100, s: [[[8, 12], [9, 12], [10, 15], [12, 16], [12, 18], [14, 21], [8, 14], [15, 20]], [[4, 6, 9], [6, 8, 12], [4, 9, 12], [6, 9, 12], [3, 8, 12], [6, 10, 15], [5, 6, 10], [4, 6, 10]], [[6, 8, 9], [8, 10, 12], [5, 6, 8], [6, 9, 15], [8, 12, 18], [10, 12, 15], [6, 8, 10]]] },
+  }[L];
+  const lcmAll = arr => arr.reduce((a, b) => T.lcm(a, b));
+  const rounds = [];
+  LV.s.forEach(list => { const pool = list.filter(p => !rounds.some(q => q.slice().sort((x, y) => x - y).join() === p.join() || lcmAll(q) === lcmAll(p))); rounds.push(T.shuffle(T.pick(pool.length ? pool : list))); });   // a new pair and a new answer each stage
+  const COLS = [0xff4f6d, 0xffb347, 0xb8f04a], CSS = ["#ff4f6d", "#ffb347", "#b8f04a"], NAMES = ["A", "B", "C"];
+  const PURPLE = 0xb57bff, BLUE = 0x6ec8ff;   // purple is the decoy's alone
+  const STAGES = ["Stage 1 of 3: mark the rounds", "Stage 2 of 3: use the grid", "Stage 3 of 3: predict"];
+  const FEEDS = ["PLAYBACK · LAST NIGHT", "PLAYBACK · EARLIER TONIGHT", "LIVE"];
+  let st = 0, over = false;
   const alarm = T.alarm(3, () => end(false));
   function say(t, cls){ const m = $("msg"); m.textContent = t; m.className = "tw-msg" + (cls ? " " + cls : ""); }
   function tag(t, cls){ const el = $("tag"); el.textContent = t; el.className = "tag" + (t ? " on" : "") + (cls ? " " + cls : ""); }
-  const lcmAll = arr => arr.reduce((a, b) => T.lcm(a, b));
+  function ask(h){ $("ask").innerHTML = h; }
+  const P = () => rounds[st], ANS = () => lcmAll(rounds[st]);
+  const both = n => n === 3 ? "all three" : "both";
 
   // ----- 3D feed -----
   const F = PNFloor3D.create($("cctv"), {});
-  const TH = F.THREE, HP = F.PLATE / 2 - 4;
+  const TH = F.THREE;
   F.lightsOn(700);
   // Guards walk the free floor squares (never over a room). Find a door on the outside wall with a long clear run inward.
   const G = F.layout.grid, occ = Array.from({ length: G }, () => Array(G).fill(false));
@@ -122,23 +164,27 @@
   const ex = F.layout.exit;
   cands.sort((p, q) => (q.len - p.len) || (q.mid - p.mid));
   const dc = cands.find(c => ex && c.x === ex.x && c.y === ex.y && c.len >= G / 2) || cands[0] || { x: 0, y: Math.floor(G / 2), n: [1, 0], len: G };
-  const N = [-dc.n[0], -dc.n[1]];   // outward, through the door
+  const N = [-dc.n[0], -dc.n[1]], NV = new TH.Vector3(N[0], 0, N[1]), SIDE = new TH.Vector3(-N[1], 0, N[0]);   // outward through the door, and along its wall
   const W = (x, y) => F.cellToWorld(x, y);
   const D = W(dc.x, dc.y).add(new TH.Vector3(N[0] * F.cell / 2, 0, N[1] * F.cell / 2));
   const doorMark = new TH.Mesh(new TH.BoxGeometry(N[0] ? 1.4 : F.cell * 1.6, 12, N[0] ? F.cell * 1.6 : 1.4), new TH.MeshBasicMaterial({ color: 0x2fbf8a, transparent: true, opacity: 0.85 }));
   doorMark.position.set(D.x, 6, D.z); F.root.add(doorMark);
-  // The camera sits over the door looking across the floor: guard A's corridor runs straight up the picture.
-  // Round 13: lower and more oblique, so the floor fills the wide CCTV frame.
-  F.camera.position.set(N[0] * 150, 120, N[1] * 150); F.look.set(N[0] * 8, 0, N[1] * 8); F.camera.fov = 36; F.camera.updateProjectionMatrix();
-  const CAM0 = { pos: F.camera.position.clone(), look: F.look.clone() };   // the wide shot
-  const CAM1 = { pos: new TH.Vector3(D.x + N[0] * 62, 96, D.z + N[1] * 62), look: new TH.Vector3(D.x - N[0] * 34, 2, D.z - N[1] * 34) };   // pushed in: the door low in the frame, the corridor beyond it
-  const V = (x, z) => new TH.Vector3(x, 0, z);
+  // The camera sits behind the door, high, looking across the whole floor; it pulls back on a narrow feed
+  F.camera.fov = 40;
+  const CAM0 = { pos: new TH.Vector3(), look: new TH.Vector3() };
+  function frame(){ const a = F.camera.aspect || 1.6, k = Math.max(1, 1.6 / a); CAM0.pos.set(N[0] * 136 * k, 138 * k, N[1] * 136 * k).addScaledVector(SIDE, (D.x * SIDE.x + D.z * SIDE.z) * 0.45); CAM0.look.set(N[0] * 12, 0, N[1] * 12); }
+  frame(); F.camera.position.copy(CAM0.pos); F.look.copy(CAM0.look); F.camera.updateProjectionMatrix();
+  let flying = false;
+  new ResizeObserver(() => { frame(); if(!flying){ F.camera.position.copy(CAM0.pos); F.look.copy(CAM0.look); } }).observe($("cctv"));
+  const CAM1 = { pos: new TH.Vector3(D.x + N[0] * 62, 96, D.z + N[1] * 62), look: new TH.Vector3(D.x - N[0] * 34, 2, D.z - N[1] * 34) };   // pushed in: the door low in the frame
+  async function fly(to, ms){ flying = true; await F.flyTo(to, ms); flying = false; }
   const key = (x, y) => x + "," + y;
+  const DIRS = [[1, 0], [-1, 0], [0, 1], [0, -1]];
   // Shortest walk between squares on the free floor, avoiding any squares in `avoid`
   function bfs(from, to, avoid){
     const prev = new Map([[key(from.x, from.y), null]]), q = [from];
     while(q.length){ const c = q.shift(); if(c.x === to.x && c.y === to.y) break;
-      for(const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]){ const nx = c.x + dx, ny = c.y + dy, k = key(nx, ny);
+      for(const [dx, dy] of DIRS){ const nx = c.x + dx, ny = c.y + dy, k = key(nx, ny);
         if(free(nx, ny) && !prev.has(k) && !(avoid && avoid.has(k))){ prev.set(k, c); q.push({ x: nx, y: ny }); } } }
     if(!prev.has(key(to.x, to.y))) return null;
     const out = []; for(let c = to; c; c = prev.get(key(c.x, c.y))) out.unshift(c); return out;
@@ -146,43 +192,96 @@
   // Walking distance from one square to every square it can reach (avoiding `avoid`)
   function dists(from, avoid){ const d = new Map([[key(from.x, from.y), 0]]), q = [from];
     while(q.length){ const c = q.shift(), k = d.get(key(c.x, c.y));
-      for(const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]){ const nx = c.x + dx, ny = c.y + dy, kk = key(nx, ny); if(free(nx, ny) && !d.has(kk) && !(avoid && avoid.has(kk))){ d.set(kk, k + 1); q.push({ x: nx, y: ny }); } } }
+      for(const [dx, dy] of DIRS){ const nx = c.x + dx, ny = c.y + dy, kk = key(nx, ny); if(free(nx, ny) && !d.has(kk) && !(avoid && avoid.has(kk))){ d.set(kk, k + 1); q.push({ x: nx, y: ny }); } } }
     return d; }
   function farthest(from){ const d = dists(from); let best = from, bd = -1; d.forEach((v, k) => { if(v > bd){ bd = v; const [x, y] = k.split(",").map(Number); best = { x, y }; } }); return best; }
   // Every square within `rad` squares of the given squares (a box round each one)
   function around(cells, rad){ const s = new Set(); cells.forEach(c => { for(let dx = -rad; dx <= rad; dx++) for(let dy = -rad; dy <= rad; dy++) s.add(key(c.x + dx, c.y + dy)); }); return s; }
   const toPts = cells => [D.clone(), ...cells.map(c => W(c.x, c.y)), D.clone()];
-  const door = { x: dc.x, y: dc.y };
-  // A: up and down the long straight corridor from the door. B: out to the far side one way, back another.
-  // C (L3): out to the middle of the floor and back.
+  const door = { x: dc.x, y: dc.y }, dDoor = dists(door);
+  // A: up and down the long straight corridor from the door. B: out to the far side one way, back another. C: out to the middle and back.
   const aEnd = { x: dc.x + dc.n[0] * (dc.len - 1), y: dc.y + dc.n[1] * (dc.len - 1) };
   const far = farthest(door), out1 = bfs(door, far) || [door];
-  const avoid = new Set(out1.slice(1, -1).map(c => key(c.x, c.y)));
-  const back1 = bfs(far, door, avoid) || out1.slice().reverse();
-  const mid = (() => { let best = door, bd = 1e9; for(let x = 0; x < G; x++) for(let y = 0; y < G; y++) if(free(x, y)){ const d = Math.abs(x - G / 2) + Math.abs(y - G / 2); if(d < bd){ bd = d; best = { x, y }; } } return best; })();
+  const back1 = bfs(far, door, new Set(out1.slice(1, -1).map(c => key(c.x, c.y)))) || out1.slice().reverse();
+  const mid = (() => { let best = door, bd = 1e9; for(let x = 0; x < G; x++) for(let y = 0; y < G; y++) if(free(x, y) && dDoor.has(key(x, y))){ const d = Math.abs(x - G / 2) + Math.abs(y - G / 2); if(d < bd){ bd = d; best = { x, y }; } } return best; })();
   const midPath = bfs(door, mid) || [door];
   const ROUTES = [toPts([door, aEnd, door]), toPts(out1.concat(back1.slice(1))), toPts(midPath.concat(midPath.slice(0, -1).reverse()))];
-  function routeFor(i){ return { pts: ROUTES[i] }; }
-  // The way in (round 13). The beacon lands on the free square farthest from the door. The guards go to it: A the direct
-  // way, B round the other side, C behind A.
-  const beacon = far, BW = W(beacon.x, beacon.y);
-  const LURE = [out1, back1.slice().reverse(), out1];
-  const DIRS = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+
+  // ----- Where FOX and WREN are going: a marked, labelled spot on this floor -----
   const byRoom = (x, y) => DIRS.some(([dx, dy]) => { const nx = x + dx, ny = y + dy; return nx >= 0 && ny >= 0 && nx < G && ny < G && occ[nx][ny]; });   // a square right beside a room: a wall to hug
   const onEdge = (x, y) => x === 0 || y === 0 || x === G - 1 || y === G - 1;   // the outside wall of the floor
+  // The free square beside a room that's the shortest walk from the door
+  function beside(r){ let best = null, bd = 1e9;
+    for(let x = r.gx - 1; x <= r.gx + r.gw; x++) for(let y = r.gy - 1; y <= r.gy + r.gh; y++){
+      const inX = x >= r.gx && x < r.gx + r.gw, inY = y >= r.gy && y < r.gy + r.gh; if(inX === inY) continue;   // edges only, no corners
+      const d = dDoor.get(key(x, y)); if(d !== undefined && d < bd){ bd = d; best = { x, y }; } }
+    return best; }
+  // The key room is the room furthest from the fire door (as in the heist); the strongroom (or vault chamber) is a square room
+  const keyRoom = F.rooms.slice().sort((p, q) => Math.hypot(q.x - D.x, q.z - D.z) - Math.hypot(p.x - D.x, p.z - D.z))[0];
+  let dRoom = null, dCell = null, dKind = "lift";
+  if(DK === "fusebox"){   // on the fire door's own wall, a third of the way along
+    const wall = [...dDoor.keys()].map(k => k.split(",").map(Number)).filter(([x, y]) => (N[0] ? x === dc.x : y === dc.y) && Math.abs(N[0] ? y - dc.y : x - dc.x) >= 3);
+    wall.sort((p, q) => Math.abs(Math.abs(N[0] ? p[1] - dc.y : p[0] - dc.x) - G * 0.35) - Math.abs(Math.abs(N[0] ? q[1] - dc.y : q[0] - dc.x) - G * 0.35));
+    if(wall.length){ dCell = { x: wall[0][0], y: wall[0][1] }; dKind = "fuse"; }
+  } else if(DK === "keyroom" && keyRoom){ dRoom = keyRoom; }
+  else if(!LIFT){ dRoom = F.rooms.filter(r => r !== keyRoom).sort((p, q) => (q.a === q.b) - (p.a === p.b) || q.a / q.b - p.a / p.b)[0] || keyRoom; }
+  if(dRoom){ dCell = beside(dRoom); dKind = dCell ? "room" : "lift"; }
+  if(!dCell){ dCell = mid; dKind = "lift"; }   // the lift: the free square nearest the middle, as in the heist
+  const dSpot = dKind === "fuse" ? W(dCell.x, dCell.y).addScaledVector(NV, F.cell / 2) : W(dCell.x, dCell.y);
+  // The decoy lands far from the door and far from where FOX and WREN are going; the guards walk to it
+  // (in from the far corners a little: they sit under the feed's header and clock)
+  const lureCell = (() => { let best = far, bs = -1; dDoor.forEach((v, k) => { const [x, y] = k.split(",").map(Number), lat = Math.abs((N[0] ? y : x) - (G - 1) / 2);
+    const s = Math.hypot(x - door.x, y - door.y) + 1.3 * Math.hypot(x - dCell.x, y - dCell.y) - 1.2 * Math.max(0, lat - G * 0.3); if(s > bs){ bs = s; best = { x, y }; } }); return best; })();
+  const LW = W(lureCell.x, lureCell.y);
+  const lure1 = bfs(door, lureCell) || [door], lure2 = bfs(door, lureCell, new Set(lure1.slice(1, -1).map(c => key(c.x, c.y)))) || lure1;
+  const LURE = [lure1, lure2, lure1];
+
+  // Labels on the floor: always face the camera, drawn over everything
+  function label(text, sub, col, w){
+    const cv = document.createElement("canvas"), g = cv.getContext("2d"); cv.width = 512; cv.height = sub ? 170 : 112;
+    g.fillStyle = "rgba(2,12,16,.88)"; g.fillRect(0, 0, cv.width, cv.height); g.strokeStyle = col; g.lineWidth = 6; g.strokeRect(3, 3, cv.width - 6, cv.height - 6);
+    g.textAlign = "center"; g.textBaseline = "middle"; g.fillStyle = col;
+    let fs = 70; do { g.font = `700 ${fs}px 'Chakra Petch', 'Inter', sans-serif`; fs -= 4; } while(g.measureText(text).width > cv.width - 40 && fs > 20);
+    g.fillText(text, cv.width / 2, sub ? 62 : cv.height / 2 + 2);
+    if(sub){ g.font = "600 38px 'Chakra Petch', 'Inter', sans-serif"; g.fillStyle = "rgba(235,255,248,.9)"; g.fillText(sub, cv.width / 2, 128); }
+    const s = new TH.Sprite(new TH.SpriteMaterial({ map: new TH.CanvasTexture(cv), depthTest: false, transparent: true }));
+    s.scale.set(w, w * cv.height / cv.width, 1); s.renderOrder = 30; return s;
+  }
+  // A round badge (a guard's letter, or the tick when they reach the door)
+  const badges = {};
+  function badge(txt, col){
+    const k = txt + col; if(!badges[k]){ const cv = document.createElement("canvas"), g = cv.getContext("2d"); cv.width = cv.height = 96;
+      g.fillStyle = "rgba(2,12,16,.9)"; g.strokeStyle = col; g.lineWidth = 8; g.beginPath(); g.arc(48, 48, 40, 0, Math.PI * 2); g.fill(); g.stroke();
+      if(txt === "✓"){ g.strokeStyle = col; g.lineWidth = 11; g.lineCap = g.lineJoin = "round"; g.beginPath(); g.moveTo(27, 50); g.lineTo(42, 65); g.lineTo(70, 33); g.stroke(); }
+      else { g.fillStyle = col; g.font = "700 50px 'Chakra Petch', 'Inter', sans-serif"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText(txt, 48, 51); }
+      badges[k] = new TH.CanvasTexture(cv); }
+    const s = new TH.Sprite(new TH.SpriteMaterial({ map: badges[k], depthTest: false, transparent: true })); s.renderOrder = 29; return s;
+  }
+  // The destination marker: a ring and a beam on the spot, the fuse box / lift / room itself, and its name
+  const dest = (() => {
+    const g = new TH.Group(); F.root.add(g);
+    const ring = new TH.Mesh(new TH.RingGeometry(F.cell * 0.5, F.cell * 0.8, 40), new TH.MeshBasicMaterial({ color: BLUE, transparent: true, opacity: 0.4, side: TH.DoubleSide, depthWrite: false }));
+    ring.rotation.x = -Math.PI / 2; ring.position.set(dSpot.x, 0.7, dSpot.z); g.add(ring);
+    if(dKind === "fuse"){
+      const bg = new TH.BoxGeometry(N[0] ? 1.6 : F.cell * 0.9, 8, N[0] ? F.cell * 0.9 : 1.6), box = new TH.Mesh(bg, new TH.MeshBasicMaterial({ color: 0x24404a, transparent: true, opacity: 0.95 }));
+      box.add(new TH.LineSegments(new TH.EdgesGeometry(bg), new TH.LineBasicMaterial({ color: 0xffc94d }))); box.position.set(dSpot.x, 5, dSpot.z); g.add(box);
+    } else if(dKind === "lift"){
+      const bg = new TH.BoxGeometry(F.cell * 0.9, F.H * 1.2, F.cell * 0.9), box = new TH.Mesh(bg, new TH.MeshBasicMaterial({ color: 0x3a5a66, transparent: true, opacity: 0.55, depthWrite: false }));
+      box.add(new TH.LineSegments(new TH.EdgesGeometry(bg), new TH.LineBasicMaterial({ color: 0x9fdcff }))); box.position.set(dSpot.x, F.H * 0.6, dSpot.z); g.add(box);
+    } else if(dRoom){ dRoom.lineMat.color.setHex(BLUE); dRoom.mesh.material.color.setHex(0x3a7bff); dRoom.mesh.material.emissive.setHex(0x3a7bff); }
+    const top = dKind === "room" ? new TH.Vector3(dRoom.x, F.H + 2, dRoom.z).addScaledVector(NV, (N[0] ? dRoom.w : dRoom.d) / 2) : new TH.Vector3(dSpot.x, (dKind === "lift" ? F.H * 1.2 : 10) + 12, dSpot.z);
+    const beam = new TH.Mesh(new TH.CylinderGeometry(0.45, 0.45, top.y - 2, 8), new TH.MeshBasicMaterial({ color: BLUE, transparent: true, opacity: 0.35, depthWrite: false }));
+    beam.position.set(dSpot.x, (top.y - 2) / 2, dSpot.z); if(dKind !== "room") g.add(beam);
+    let lab = null;
+    const make = () => { if(lab) g.remove(lab); lab = label(DEST.name, DEST.sub, "#8feaff", dKind === "fuse" ? 32 : 40); lab.position.copy(top).add(new TH.Vector3(0, 4, 0)); lab.material.opacity = on ? 1 : 0.8; g.add(lab); };
+    let on = false; make(); if(document.fonts) document.fonts.ready.then(make);   // redrawn once the heading font has loaded
+    return { light(v){ on = v; ring.material.opacity = v ? 0.9 : 0.4; beam.material.opacity = v ? 0.6 : 0.35; if(lab) lab.material.opacity = v ? 1 : 0.8; }, spot: dSpot };
+  })();
+  const NEAR_ALL = nearMap([lureCell, ...lure1, ...lure2], 2);
   // How close every square is to the nearest of `cells` (squares in a box round each one), up to `cap` squares away
   function nearMap(cells, cap){ const m = new Map(); for(let r = 0; r <= cap; r++) around(cells, r).forEach(k => { if(!m.has(k)) m.set(k, r); }); return m; }
-  // Round 14: the destination is on the other side of the floor from the beacon. It is far from the beacon and far from
-  // the door, never within 5 squares of the beacon or of any guard's route to it (fewer on a small floor), and by a room if it can be.
-  const LURE_CELLS = [beacon].concat(...LURE.slice(0, 3));
-  const wayIn = (() => { const dB = dists(beacon), dD = dists(door), nm = nearMap(LURE_CELLS, 5);
-    for(let rad = 5; rad >= 1; rad--){ let best = null, bs = -1;
-      dD.forEach((v, k) => { const n = nm.get(k); if(n !== undefined && n < rad) return; const [x, y] = k.split(",").map(Number);
-        const s = Math.min(v, dB.get(k) || 0) + (byRoom(x, y) ? 1.5 : 0); if(s > bs){ bs = s; best = { x, y }; } });
-      if(best) return best; }
-    return door; })();
-  // The sneak route: the cheapest walk from the door to the way in. Squares within `rad` of where the guards still are or
-  // are still going (`hard`) are out. Squares just beyond that cost more; so do the corridors the guards walked down.
+  // The sneak route: the cheapest walk from the door to the destination. Squares within `rad` of where the guards still are
+  // or are still going (`hard`) are out. Squares just beyond that cost more; so do the corridors the guards walked down.
   // Squares beside a room cost half as much, so the route threads between the rooms instead of crossing open floor.
   function plan(from, to, hard, near, nearAll, rad){
     if(hard.has(key(from.x, from.y)) || hard.has(key(to.x, to.y))) return null;
@@ -201,153 +300,207 @@
     if(!done.has(key(to.x, to.y))) return null;
     const out = []; for(let c = to; c; c = prev.get(key(c.x, c.y))) out.unshift(c); return out;
   }
-  const NEAR_ALL = nearMap(LURE_CELLS, 2);
-  let guards = [], minute = 0, rate = 0, target = null, onArrive = null, lure = false, agentWalking = false;
-  const agent = F.dot(0x6ec8ff, 2.8); agent.set(D.x + N[0] * 6, D.z + N[1] * 6);
+
+  // ----- Guards, FOX and WREN, the timeline -----
+  let guards = [], minute = 0, prevM = 0, mode = "idle", rate = 0, target = 0, onArrive = null, lure = false, walking = false, ff = false, loopW = 6;
+  const fox = F.dot(BLUE, 2.6), wren = F.dot(0x9fdcff, 2.2), crew = label("FOX + WREN", null, "#8feaff", 21); F.root.add(crew);
+  const home = k => D.clone().addScaledVector(NV, 8).addScaledVector(SIDE, k * 4);
+  function resetCrew(){ const a = home(-1), b = home(1); fox.set(a.x, a.z); wren.set(b.x, b.z); }
+  resetCrew();
   function setupGuards(periods){
-    guards.forEach(g => g.dot.remove());
+    guards.forEach(g => { g.dot.remove(); F.root.remove(g.lab); });
     guards = periods.map((p, i) => {
-      const dot = F.dot(COLS[i], 2.4), path = new TH.CurvePath(), pts = routeFor(i).pts;
+      const dot = F.dot(COLS[i], 2.6), path = new TH.CurvePath(), pts = ROUTES[i], lab = badge(NAMES[i], CSS[i]);
+      [dot.mesh.material, dot.mesh.children[0].material].forEach(m => { m.transparent = true; });
       for(let j = 1; j < pts.length; j++) if(pts[j].distanceTo(pts[j - 1]) > 0.5) path.add(new TH.LineCurve3(pts[j - 1], pts[j]));
-      return { p, dot, path, i, lure: null };
+      lab.scale.set(5.5, 5.5, 1); F.root.add(lab);
+      return { p, dot, path, i, lure: null, lab };
     });
-    $("legend").innerHTML = periods.map((p, i) => `<span><i style="background:${CSS[i]}"></i>Guard ${NAMES[i]}${isWatch() ? "" : `: every ${p} min`}</span>`).join("") + `<span><i style="background:#6ec8ff;border:2px solid #fff"></i>Our agent</span>`;
+    $("lanes").innerHTML = periods.map((p, i) => `<div class="lane" style="--c:${CSS[i]}"><span class="ll"><i></i>GUARD ${NAMES[i]}</span><div class="track" data-g="${i}"><span class="ph"></span></div></div>`).join("")
+      + `<div class="axis"><span>MINUTES</span><div><span>0</span><span id="axEnd"></span></div></div>`;
     window.__pnPatrol.periods = periods.slice();
   }
-  // A guard leaves its route and walks to the beacon along `cells` (from the door), after `delay` ms
-  function setLure(g, cells, delay){
-    const pts = [D.clone(), ...cells.map(c => W(c.x, c.y))], path = new TH.CurvePath();
-    for(let j = 1; j < pts.length; j++) if(pts[j].distanceTo(pts[j - 1]) > 0.5) path.add(new TH.LineCurve3(pts[j - 1], pts[j]));
-    const l = { cells, path, t0: performance.now() + delay / sp(), ms: Math.min(3400, 200 + 230 * cells.length), k: 0, over: false };
-    l.done = new Promise(res => { l.res = res; });
-    g.lure = l;
+  function dimGuards(v){ guards.forEach(g => { g.dot.mesh.material.opacity = v ? 0.25 : 1; g.dot.mesh.children[0].material.opacity = v ? 0.15 : 0.6; g.lab.material.opacity = v ? 0.3 : 1; }); }
+  let tlW = 10;
+  function tlWindow(w){ tlW = Math.max(1, w); document.querySelectorAll(".track b").forEach(b => b.remove()); if($("axEnd")) $("axEnd").textContent = w; }
+  function tlTick(i, m, gold){
+    const tr = document.querySelector(`.track[data-g="${i}"]`); if(!tr || m > tlW) return;
+    const b = document.createElement("b"); b.style.left = (m / tlW * 100) + "%"; if(gold) b.className = "gold";
+    if(gold || tr.clientWidth * guards[i].p / tlW > 14 + 8 * String(m).length) b.innerHTML = `<small>${m}</small>`;   // numbers only where there's room
+    tr.appendChild(b);
   }
-  // The squares the guards are on or still have to walk (from the one just behind each guard to the beacon), and the beacon
-  function guardCells(){ const s = [beacon]; guards.forEach(g => { const l = g.lure; if(l) s.push(...l.cells.slice(Math.max(0, l.k - 1))); }); return s; }
-  const atDoor = g => { const k = (minute % g.p) / g.p; return k < 0.05 || k > 0.97; };
-  let last = performance.now(), lastWhole = -1, walkMin = Infinity;
-  // Debug hook for the tests: where everyone is (world units), and the closest the agent came to a guard while walking in
-  window.__pnPatrol = { cell: F.cell, grid: G, door, beacon, wayIn, lureCells: LURE_CELLS.map(c => ({ x: c.x, y: c.y })), route: [], periods: [], agent: { x: 0, z: 0 }, guards: [], walkMin: Infinity, lure: false, walking: false };
+  // A tick pops up over the door each time a guard reaches it, then fades
+  function doorTick(g){
+    const s = badge("✓", CSS[g.i]); s.scale.set(6, 6, 1);
+    s.position.copy(D).addScaledVector(SIDE, (g.i - (guards.length - 1) / 2) * 7).setY(17); F.root.add(s);
+    if(RM){ setTimeout(() => F.root.remove(s), 1100 / sp()); return; }
+    F.tween(1300, e => { s.material.opacity = 1 - e * e; s.position.y = 17 + 4 * e; }, t => t).then(() => { F.root.remove(s); s.material.dispose(); });
+  }
+  const logs = []; function addLog(t){ logs.push(t); $("log").innerHTML = logs.slice(-2).join("<br>"); }
+  // Every whole minute the clock passes: who reaches the door
+  function passes(){
+    for(let m = Math.floor(prevM) + 1; m <= Math.floor(minute + 1e-6); m++){
+      const at = guards.filter(g => m % g.p === 0); if(!at.length) continue;
+      const all = at.length === guards.length && mode === "run" && m === ANS();
+      at.forEach(g => tlTick(g.i, m, all));
+      if(ff) continue;
+      at.forEach(doorTick);
+      if(mode === "run") T.SND(all ? "lockon" : "tick");
+      if(st === 0) addLog(`${String(m).padStart(2, "0")} · ${at.length > 1 ? at.map(g => NAMES[g.i]).join(" and ") + " at the door together" : `guard ${NAMES[at[0].i]} at the door`}`);   // stage 1 only: a running log
+    }
+    prevM = minute;
+  }
+  const want = new TH.Color(), GREEN = 0x2fbf8a;
+  let last = performance.now(), walkMin = Infinity;
+  // Debug hook for the tests: the stage, where everyone is (world units), and the closest FOX or WREN came to a guard while walking in
+  window.__pnPatrol = { cell: F.cell, grid: G, door, dest: DK, lift: LIFT, destKind: dKind, destCell: dCell, lureCell, route: [], periods: [], stage: 0, rounds, agent: { x: 0, z: 0 }, guards: [], walkMin: Infinity, lure: false, walking: false };
   F.onTick(now => {
-    const dt = Math.min(0.1, (now - last) / 1000); last = now;
+    const dt = Math.max(0, Math.min(0.1, (now - last) / 1000)); last = now;   // a frame's time can be just before `last`
     const spd = sp();
-    if(target != null){ minute = Math.min(target, minute + dt * Math.max(4, target / 3) * spd); if(minute >= target){ const f = onArrive; target = null; onArrive = null; if(f) f(); } }
-    else if(!T.briefOpen()) minute += dt * rate * spd;   // the feed holds while the brief is up
-    $("clock").textContent = `00:${String(Math.floor(minute) % 60).padStart(2, "0")}${rate > 1.5 && target == null ? " ▸▸" : ""}`;   // ▸▸: the feed is in fast forward
-    if(lure){   // the guards are off their routes, walking to the beacon; the door is clear
+    if(mode === "loop" && !T.briefOpen()){ minute += dt * rate * spd; if(minute > loopW + 0.9){ minute = 0; prevM = 0; tlWindow(loopW); } }   // the recording loops: it never reaches a meeting
+    else if(mode === "run") minute = Math.min(target, minute + dt * rate * spd);
+    if(mode === "loop" || mode === "run") passes();
+    if(mode === "run" && minute >= target){ mode = "hold"; const f = onArrive; onArrive = null; if(f) f(); }
+    $("clock").textContent = `MIN ${String(Math.floor(minute + 1e-6)).padStart(2, "0")}${ff ? " ▸▸" : ""}`;
+    document.querySelectorAll(".track .ph").forEach(h => { h.style.left = Math.min(100, minute / tlW * 100) + "%"; h.hidden = minute > tlW + 0.01; });
+    if(lure){   // off their rounds, walking to the decoy: the door is clear
       guards.forEach(g => { const l = g.lure; if(!l) return; const e = Math.max(0, Math.min(1, (now - l.t0) / (l.ms / spd)));
         const pt = l.path.curves.length ? l.path.getPointAt(Math.min(0.999, e)) : null; if(pt) g.dot.set(pt.x, pt.z);
         l.k = Math.floor(e * (l.cells.length - 1)); if(e >= 1 && !l.over){ l.over = true; l.res(); } });
-      doorMark.material.color.setHex(0x2fbf8a);
+      want.setHex(GREEN);
     } else {
       guards.forEach(g => { const pt = g.path.getPointAt(Math.min(0.999, (minute % g.p) / g.p)); if(pt) g.dot.set(pt.x, pt.z); });
-      const n = guards.filter(atDoor).length;
-      doorMark.material.color.setHex(n === guards.length && n ? 0xffc94d : n ? 0xff4f6d : 0x2fbf8a);
-      // Watching first: the feed logs each pass while it's live
-      const whole = Math.floor(minute);
-      if(isWatch() && whole !== lastWhole && rate > 0){ lastWhole = whole;
-        guards.forEach(g => { if(whole > 0 && whole % g.p === 0) addLog(`${String(whole).padStart(2, "0")}:00 guard ${NAMES[g.i]} at the door`); });
-        if(MODE === "D" && whole > 0 && guards.length && guards.every(g => whole % g.p === 0)) addLog(`${String(whole).padStart(2, "0")}:00 ${guards.length === 3 ? "all three" : "both"} at the door together`);   // door 1 is the worked example
-      }
+      const n = guards.filter(g => Math.abs(minute - Math.round(minute / g.p) * g.p) < 0.3).length;
+      want.setHex(ff ? GREEN : n === guards.length && n && minute > 0.5 ? 0xffc94d : n ? 0xff4f6d : GREEN);
     }
-    const H = window.__pnPatrol; H.lure = lure; H.walking = agentWalking;
-    if(agentWalking){   // only while the agent walks in: that is what the tests measure
-      const a = agent.at(); H.agent = { x: a.x, z: a.z }; H.guards = guards.map(g => { const p = g.dot.at(); return { x: p.x, z: p.z }; });
-      guards.forEach(g => { walkMin = Math.min(walkMin, a.distanceTo(g.dot.at())); }); H.walkMin = walkMin;
+    doorMark.material.color.lerp(want, Math.min(1, dt * 10));   // eases between colours: never a flash
+    guards.forEach(g => { const p = g.dot.at(); g.lab.position.set(p.x, 8, p.z); });
+    const f = fox.at(), w = wren.at(); crew.position.set((f.x + w.x) / 2, 10, (f.z + w.z) / 2);
+    const H = window.__pnPatrol; H.lure = lure; H.walking = walking; H.minute = minute; H.mode = mode;
+    if(walking){   // only while FOX and WREN walk in: that is what the tests measure
+      H.agent = { x: f.x, z: f.z }; H.guards = guards.map(g => { const p = g.dot.at(); return { x: p.x, z: p.z }; });
+      guards.forEach(g => { walkMin = Math.min(walkMin, f.distanceTo(g.dot.at()), w.distanceTo(g.dot.at())); }); H.walkMin = walkMin;
     }
   });
-  const logs = []; function addLog(t){ logs.push(t); $("log").innerHTML = logs.slice(-4).join("<br>"); T.SND("beep"); }
-  const runTo = m => new Promise(res => { target = m; onArrive = res; });
-  const timers = [];   // the watch flow's timers, cleared when a door is solved (a SKIP can land mid-watch)
+  // The recording before an answer: minute 0 to one and a half of the longest round, over and over. The longest round
+  // is at least half the meeting time, so the loop always stops before they meet.
+  function startLoop(){
+    const p = P(); loopW = Math.floor(1.5 * Math.max(...p));
+    rate = Math.min(1.2 * Math.min(...p), Math.max(1, loopW / 6)); minute = 0; prevM = 0; ff = false; tlWindow(loopW); mode = "loop";
+  }
+  const runTo = (m, r) => new Promise(res => { target = m; rate = r; mode = "run"; onArrive = res; });
+  // A right answer plays from minute 0. Long waits fast forward (the guards fade) until the last round, so nothing whirls.
+  async function runFeed(to){
+    const p = P(), minP = Math.min(...p), S = Math.max(...p);
+    minute = 0; prevM = 0; tlWindow(to); logs.length = 0; $("log").innerHTML = "";
+    let r = Math.max(1, to / 5);
+    if(r / minP > 1.2 && to > S){ ff = true; dimGuards(true); await runTo(to - S, (to - S) / 2.2); ff = false; dimGuards(false); r = Math.min(Math.max(1, S / 3.5), 1.2 * minP); }
+    await runTo(to, r);
+  }
+  // A wrong answer jumps straight to that minute (no run through, so it can't show the meeting)
+  function jumpTo(v){ mode = "hold"; ff = false; tlWindow(loopW); minute = v; prevM = v; guards.filter(g => v % g.p === 0).forEach(doorTick); }
 
-  // ----- Rounds -----
+  // ----- Stages -----
+  let meeting = false, busy = false, marks = [], mg = 0, timer = 0;
+  const clock = c => `<svg viewBox="0 0 26 26" aria-hidden="true"><circle cx="13" cy="13" r="11" fill="none" stroke="${c}" stroke-width="2.4"/><path d="M13 6.5V13l4.5 3" fill="none" stroke="${c}" stroke-width="2.4" stroke-linecap="round"/></svg>`;
+  function pills(){ ["st1", "st2", "st3"].forEach((id, i) => { $(id).className = i < st ? "done" : i === st ? "on" : ""; }); }
+  function paint(c){ const t = +c.dataset.t, on = marks.map((s, i) => s.has(t) ? i : -1).filter(i => i >= 0);
+    c.style.background = !on.length ? "" : on.length === 1 ? CSS[on[0]] + "66" : `linear-gradient(135deg, ${on.map((i, k) => `${CSS[i]}88 ${k / on.length * 100}% ${(k + 1) / on.length * 100}%`).join(", ")})`;
+    c.style.borderColor = on.length === 1 ? CSS[on[0]] : on.length ? "#fff" : ""; c.innerHTML = t + (on.length ? `<small>${on.map(i => NAMES[i]).join("")}</small>` : ""); }
+  function grid(kind){
+    const hs = $("hs"); hs.hidden = !kind; hs.className = "hs" + (kind === "ref" ? " ref" : ""); if(!kind){ hs.innerHTML = ""; return; }
+    hs.style.setProperty("--rows", LV.grid / 10);
+    hs.innerHTML = T.range(1, LV.grid).map(t => kind === "live" ? `<button type="button" data-t="${t}" aria-label="Minute ${t}">${t}</button>` : `<span data-t="${t}">${t}</span>`).join("");
+  }
+  function markNext(i){
+    mg = i; const p = P();
+    document.querySelectorAll(".gcard").forEach((c, k) => c.classList.toggle("on", k === i));
+    if(i < p.length){ ask(`Click every minute <b>guard ${NAMES[i]}</b> reaches the door: every ${p[i]} minutes.`);
+      T.step(`Click every minute <b>guard ${NAMES[i]}</b> reaches the door on the grid (every ${p[i]} minutes: ${p[i]}, ${p[i] * 2}, ${p[i] * 3}…).`, { name: STAGES[0] }); }
+    else { ask(`Both guards left the door at minute 0. Click the <b>next</b> minute they're at the door <b>together</b>.`);
+      T.step(`Look for the first number with ${both(p.length)} guards' colours on it. That's when they're at the door together.`, { name: STAGES[0] }); }
+  }
   function deal(){
-    const periods = rounds[r], M = lcmAll(periods);
-    $("round").textContent = r + 1;
-    timers.forEach(clearTimeout); timers.length = 0;
-    setupGuards(periods); minute = 0; rate = 0.8; logs.length = 0; $("log").innerHTML = ""; $("lost").classList.remove("on"); tag("");
-    $("rows").innerHTML = ""; $("ansRow").hidden = true; $("choices").hidden = true; $("cctv").classList.remove("small");
-    const who = periods.length === 3 ? "all three" : "both";
-    if(MODE === "A"){
-      $("cctv").classList.add("small");
-      const maxT = Math.min(36, Math.max(M + 2, 18));
-      T.step(`Mark every minute <b>guard A</b> passes the door (every ${periods[0]} minutes).`, { name: `Door ${r + 1}: mark the times` });
-      $("rows").innerHTML = periods.map((p, i) => `<div class="row" data-g="${i}" ${i ? "hidden" : ""}><div class="rowlab"><i style="background:${CSS[i]}"></i>GUARD ${NAMES[i]} · EVERY ${p} MIN</div><div class="tl" style="--n:${maxT}">${T.range(1, maxT).map(t => `<button type="button" data-t="${t}">${t}</button>`).join("")}</div></div>`).join("");
-      let g = 0, need = new Set(T.range(1, maxT).filter(t => t % periods[0] === 0));
-      $("rows").onclick = e => {
-        const b = e.target.closest("button[data-t]"); if(!b || b.disabled || over) return;
-        const t = +b.dataset.t, gi = +b.closest(".row").dataset.g, p = periods[gi];
-        if(t % p === 0){ b.style.background = CSS[gi] + "55"; b.style.borderColor = CSS[gi]; b.disabled = true; need.delete(t); T.SND("tag");
-          if(!need.size){ g++; if(g < periods.length){ $("rows").querySelector(`[data-g="${g}"]`).hidden = false; need = new Set(T.range(1, maxT).filter(x => x % periods[g] === 0)); T.step(`Now <b>guard ${NAMES[g]}</b> (every ${periods[g]} minutes).`); }
-            else { // the grid goes away; the camera takes over
-              timers.push(setTimeout(() => { $("rows").innerHTML = ""; $("cctv").classList.remove("small"); askAnswer(periods); }, 600));
-            } }
-        } else { b.classList.add("bad"); setTimeout(() => b.classList.remove("bad"), 800); wrong++; alarm.hit(); say(`${t} isn't in guard ${NAMES[gi]}'s timetable: ${p} doesn't go into ${t}.`, "bad"); }
-      };
-
-    } else if(isWatch()){
-      // B: the feed cuts out after two rounds of the slowest guard. Default door 1: it runs until they have met once,
-      // so the first door is the worked example (Bertie) and door 2 is the real test. Its pace keeps the wait
-      // under about 20 seconds: a minute a second for short waits, fast forward (up to 6 minutes a second) for
-      // L3's long ones, where the LCM can be 120.
-      const watchTo = MODE === "D" ? M + 1 : Math.max(...periods) * 2 + 1;
-      if(MODE === "D") rate = Math.min(6, Math.max(1, (M + 1) / 20));
-      T.step(`Watch the feed. Note when each guard reaches the door.`, { name: `Door ${r + 1}: watch` });
-      say("The feed is live. It won't last long.");
-      const iv = setInterval(() => { if(minute >= watchTo){ clearInterval(iv); rate = 0; $("lost").classList.add("on"); T.SND("static"); timers.push(setTimeout(() => { $("lost").classList.remove("on"); minute = 0; askAnswer(periods); }, 1400 / sp())); } }, 100);
-      timers.push(iv);
-    } else {
-      askAnswer(periods);
+    const p = P();
+    meeting = false; busy = false; lure = false; walking = false; clearTimeout(timer);
+    setupGuards(p); resetCrew(); pills(); tag(""); say(""); logs.length = 0; $("log").innerHTML = "";
+    $("feedLab").textContent = FEEDS[st];
+    $("cards").innerHTML = p.map((q, i) => `<div class="gcard" style="--c:${CSS[i]}">${clock(CSS[i])}<span><b>Guard ${NAMES[i]}</b> passes the fire door every <b>${q}&nbsp;minutes</b></span></div>`).join("");
+    marks = p.map(() => new Set());
+    grid(st === 0 ? "live" : st === 1 ? "ref" : "");
+    $("ansRow").hidden = st === 0; $("ansIn").value = ""; $("ansBtn").disabled = false;
+    $("ansLab").innerHTML = `${["", "<b>Use the grid</b> (no marking).", "<b>No grid this time.</b>"][st]} Next minute they're ${both(p.length)} at the door together:`;
+    $("ask").hidden = st > 0;
+    window.__pnPatrol.stage = st + 1; window.__pnPatrol.answer = ANS();
+    if(st === 0) markNext(0);
+    else {
+      T.step((p.length === 3 ? "All three guards" : "Both guards") + " left the door at minute 0. " + (st === 1 ? `Use the grid to count up in each guard's round. The first number that's in every guard's count is when they're together.${p.length === 3 ? " Try guards A and B first, then check guard C." : ""}`
+        : `No grid: count up in the biggest round and check each number. Does every other round go into it?`), { name: STAGES[st] });
+      if(!document.querySelector(".twb-layer.open")) $("ansIn").focus({ preventScroll: true });
     }
+    startLoop();
   }
-  function askAnswer(periods){
-    if(meeting) return;
-    const M = lcmAll(periods), who = periods.length === 3 ? "all three guards" : "both guards";
-    rate = 0; minute = 0;
-    const lead = MODE === "D" && r === 1 ? "This time, work it out first. " : "";
-    T.step(`${lead}When are ${who} at the door <b>together</b> for the first time?${isWatch() ? "" : ` (${periods.map((p, i) => `${NAMES[i]} every ${p} min`).join(", ")})`}`, { name: `Door ${r + 1}: together when?` });
-    if(MODE === "C"){
-      const opts = T.shuffle([...new Set([M, periods.reduce((a, b) => a * b), periods.reduce((a, b) => a + b), M * 2, Math.max(...periods) * 2].filter(v => v !== M))]).slice(0, 2).concat(M);
-      $("choices").hidden = false; $("choices").innerHTML = T.shuffle(opts).map(v => `<button type="button" data-v="${v}">${v} min</button>`).join("");
-      $("choices").onclick = e => { const b = e.target.closest("button[data-v]"); if(b && !b.disabled) check(+b.dataset.v, b); };
-    } else { $("ansLab").textContent = `${periods.length === 3 ? "All three are" : "They're both"} at the door together first at minute`; $("ansRow").hidden = false; $("ansIn").value = ""; $("ansIn").focus(); }
-    say("Your answer plays on the camera.");
-  }
+  $("hs").addEventListener("click", e => {
+    const c = e.target.closest("button[data-t]"); if(!c || over || meeting || busy || st !== 0) return;
+    const t = +c.dataset.t, p = P();
+    if(mg >= p.length) return check(t, c);
+    if(marks[mg].has(t)) return;
+    if(t % p[mg] === 0){ marks[mg].add(t); paint(c); T.SND("tag");
+      if(T.range(1, LV.grid).filter(x => x % p[mg] === 0).every(x => marks[mg].has(x))){ say(`Guard ${NAMES[mg]}: ${[...marks[mg]].sort((a, b) => a - b).slice(0, 4).join(", ")}…`, "ok"); markNext(mg + 1); }
+    } else { c.classList.add("bad"); setTimeout(() => c.classList.remove("bad"), 800); T.SND("wrong"); say(`${t} isn't in guard ${NAMES[mg]}'s round: ${p[mg]} doesn't go into ${t}.`, "bad"); }   // stage 1 is for learning: no strike
+  });
   $("ansBtn").addEventListener("click", () => { const v = parseInt($("ansIn").value, 10); if(!Number.isInteger(v) || v < 1){ say("Type a minute.", "warn"); return; } check(v); });
   $("ansIn").addEventListener("keydown", e => { if(e.key === "Enter") $("ansBtn").click(); });
   $("ansIn").addEventListener("input", () => T.SND("typing"));
-  let checking = false;
-  // Every answer is played on the feed: the clock runs to that minute and you see who's at the door
-  async function check(v, btn){
-    if(over || checking) return; checking = true; $("ansBtn").disabled = true;
-    const periods = rounds[r], M = lcmAll(periods);
-    minute = 0; say(`Running the feed to minute ${v}…`);
-    await runTo(v);
-    if(meeting) return;   // a SKIP solved the door while the feed was running
-    if(v === M){ checking = false; $("ansBtn").disabled = false; return met(M); }
-    const at = periods.map((p, i) => `${NAMES[i]} ${v % p === 0 ? "✓" : "✗"}`).join(" · ");
-    wrong++; alarm.hit(); if(btn){ btn.classList.add("bad"); btn.disabled = true; }
-    say(periods.every(p => v % p === 0) ? `At minute ${v} they're all there, but they already met earlier. Find the first time.` : `Minute ${v}: ${at}. Not everyone's at the door.`, "bad");
-    checking = false; $("ansBtn").disabled = false;
-    if(!btn){ $("ansIn").focus(); $("ansIn").select(); }   // the next number typed replaces the wrong one
+  // Every answer is checked on the feed. Right: it plays from minute 0 to the meeting. Wrong: it jumps to that minute.
+  async function check(v, cell){
+    if(over || busy || meeting) return;
+    const p = P(), M = ANS();
+    busy = true; $("ansBtn").disabled = true; clearTimeout(timer);
+    if(v === M){ if(cell) cell.classList.add("gold"); say(`Playing the feed to minute ${v}…`); await runFeed(M); if(meeting) return; return met(); }
+    jumpTo(v); alarm.hit();
+    if(cell){ cell.classList.add("bad"); setTimeout(() => cell.classList.remove("bad"), 900); }
+    say(p.every(q => v % q === 0) ? `Minute ${v}: they're ${both(p.length)} at the door, but they were together earlier. Find the first time after 0.`
+      : `Minute ${v}: ${p.map((q, i) => `${NAMES[i]} ${v % q === 0 ? "✓" : "✗"}`).join(" · ")}. Not ${both(p.length)} at the door.`, "bad");
+    if(over) return;
+    timer = setTimeout(() => { if(over || meeting) return; startLoop(); busy = false; $("ansBtn").disabled = false; if(!cell){ $("ansIn").focus({ preventScroll: true }); $("ansIn").select(); } }, 1900 / sp());
   }
-  // A ring of light on the floor where the beacon lands. It swells three times with a ping, then breathes gently.
-  function beaconRing(){
-    const m = new TH.Mesh(new TH.RingGeometry(F.cell * 0.55, F.cell * 0.95, 48), new TH.MeshBasicMaterial({ color: 0xffe14d, transparent: true, opacity: 0.8, side: TH.DoubleSide, depthWrite: false }));
-    m.rotation.x = -Math.PI / 2; m.position.set(BW.x, 0.6, BW.z); F.root.add(m);
-    const post = new TH.Mesh(new TH.CylinderGeometry(0.7, 0.7, 16, 8), new TH.MeshBasicMaterial({ color: 0xffe14d, transparent: true, opacity: 0.6 }));
-    post.position.set(BW.x, 8, BW.z); F.root.add(post);
-    let alive = true, pulsing = true;
-    (async () => {
-      for(let i = 0; i < 3 && alive; i++){ T.SND("ping"); if(RM){ await wait(700); continue; } await F.tween(750, e => { m.scale.setScalar(0.5 + 1.7 * e); m.material.opacity = 0.85 * (1 - e); }, t => t); }
-      m.scale.setScalar(1); pulsing = false;
-    })();
-    const off = F.onTick(now => { if(alive && !pulsing) m.material.opacity = RM ? 0.6 : 0.4 + 0.2 * Math.sin(now / 320); });   // a slow breath, twice in three seconds
-    return { remove(){ alive = false; off(); F.root.remove(m); F.root.remove(post); } };
+  // The decoy: a purple throw from FOX and WREN right across the floor. It lands, rolls on, and keeps ringing.
+  async function throwDecoy(){
+    const g = new TH.Group(); F.root.add(g);
+    const from = fox.at().setY(4), rest = LW.clone().setY(1.2), dir = rest.clone().sub(D).setY(0).normalize();
+    let land = rest.clone().addScaledVector(dir, -F.cell * 2.5);   // it bounces the last few squares
+    const lc = { x: Math.round((land.x + F.PLATE / 2) / F.cell - 0.5), y: Math.round((land.z + F.PLATE / 2) / F.cell - 0.5) };
+    if(!free(lc.x, lc.y)) land = rest.clone(); land.y = 1.2;
+    const span = from.distanceTo(land), arc = new TH.QuadraticBezierCurve3(from, from.clone().lerp(land, 0.5).setY(Math.min(60, 18 + span * 0.35)), land);
+    const path = new TH.CurvePath(); path.add(arc); if(land.distanceTo(rest) > 0.5) path.add(new TH.LineCurve3(land, rest));
+    const segs = 120, tube = new TH.TubeGeometry(path, segs, 0.7, 6, false);
+    const trail = new TH.Mesh(tube, new TH.MeshBasicMaterial({ color: PURPLE, transparent: true, opacity: 0.85, depthWrite: false })); trail.renderOrder = 25; g.add(trail);
+    const ball = new TH.Mesh(new TH.SphereGeometry(1.5, 12, 12), new TH.MeshBasicMaterial({ color: PURPLE })); g.add(ball);
+    const flightLen = arc.getLength() / path.getLength();
+    const at = e => { ball.position.copy(path.getPointAt(Math.min(1, e))); tube.setDrawRange(0, Math.ceil(e * segs) * 6 * 6); };
+    if(RM){ at(1); } else await F.tween(Math.min(1700, 700 + span * 7), at, t => t < 0.75 ? (t / 0.75) * flightLen : flightLen + (1 - flightLen) * (1 - Math.pow(1 - (t - 0.75) / 0.25, 2)));   // flies, then rolls to a stop
+    at(1); T.SND("clamp");
+    const ring = new TH.Mesh(new TH.RingGeometry(F.cell * 0.6, F.cell * 1.0, 40), new TH.MeshBasicMaterial({ color: PURPLE, transparent: true, opacity: 0.8, side: TH.DoubleSide, depthWrite: false }));
+    ring.rotation.x = -Math.PI / 2; ring.position.set(rest.x, 0.8, rest.z); g.add(ring);
+    const lab = label("DECOY", null, "#d7b5ff", 20); lab.position.copy(rest).addScaledVector(NV, 7).setY(3); g.add(lab);   // just in front of it, low: clear of the feed's header
+    const off = F.onTick(now => { if(!RM) ring.material.opacity = 0.45 + 0.3 * Math.sin(now / 480); });   // a slow breath
+    T.SND("ping");
+    return { remove(){ off(); F.root.remove(g); tube.dispose(); } };
   }
-  // The agent waits until every guard is well on the way to the beacon (over half way, or there), then plans a route that
-  // stays at least three squares from wherever they are or are still going (two on a tight floor). It checks again every
-  // few frames as they walk away. If nothing opens up in time it settles for the plain shortest walk clear of the beacon.
+  // A guard leaves its round and walks to the decoy along `cells` (from the door), after `delay` ms
+  function setLure(g, cells, delay){
+    const pts = [D.clone(), ...cells.map(c => W(c.x, c.y))], path = new TH.CurvePath();
+    for(let j = 1; j < pts.length; j++) if(pts[j].distanceTo(pts[j - 1]) > 0.5) path.add(new TH.LineCurve3(pts[j - 1], pts[j]));
+    const l = { cells, path, t0: performance.now() + delay / sp(), ms: Math.min(3400, 300 + 200 * cells.length), k: 0, over: false };
+    l.done = new Promise(res => { l.res = res; }); if(!path.curves.length){ l.over = true; l.res(); }
+    g.lure = l;
+  }
+  // The squares the guards are on or still have to walk (from the one just behind each guard to the decoy), and the decoy
+  function guardCells(){ const s = [lureCell]; guards.forEach(g => { const l = g.lure; if(l) s.push(...l.cells.slice(Math.max(0, l.k - 1))); }); return s; }
+  // FOX and WREN wait until every guard is well on the way to the decoy, then take a route that stays at least three
+  // squares from wherever they are or are still going (two on a tight floor). If nothing opens up in time they settle
+  // for the plain shortest walk clear of the decoy.
   async function planRoute(){
     const t0 = performance.now();
     const ready = () => guards.every(g => g.lure && (g.lure.over || g.lure.k >= 0.6 * (g.lure.cells.length - 1)));
@@ -357,70 +510,76 @@
         const cells = guardCells();
         for(const rad of (late ? [3, 2, 1] : [3, 2])){
           const near = nearMap(cells, rad + 1), hard = new Set(); near.forEach((d, k) => { if(d <= rad) hard.add(k); });
-          const p = plan(door, wayIn, hard, near, NEAR_ALL, rad); if(p){ window.__pnPatrol.routeRad = rad; return p; }
+          const p = plan(door, dCell, hard, near, NEAR_ALL, rad); if(p){ window.__pnPatrol.routeRad = rad; return p; }
         }
-        if(late){ window.__pnPatrol.routeRad = 0; return bfs(door, wayIn, around([beacon], 1)) || [door]; }   // 0: the last resort, for the tests to flag
+        if(late){ window.__pnPatrol.routeRad = 0; return bfs(door, dCell, around([lureCell], 1)) || bfs(door, dCell) || [door]; }   // 0: the last resort, for the tests to flag
       }
       await new Promise(res => setTimeout(res, 80));
     }
   }
-  // The planned route drawn on the floor: a faint line of light with a dot on every square, lit up from the door outwards
+  // The route on the floor: a blue line of light with a dot on every square, lit from the door to the destination
   function routeLine(cells){
-    const pts = [D.clone().setY(0.5), ...cells.map(c => W(c.x, c.y).setY(0.5))], g = new TH.Group();
-    const line = new TH.Line(new TH.BufferGeometry().setFromPoints(pts), new TH.LineBasicMaterial({ color: 0x6ec8ff, transparent: true, opacity: 0 }));
-    g.add(line);
-    const dots = cells.map(c => { const p = W(c.x, c.y), m = new TH.Mesh(new TH.CircleGeometry(Math.max(0.7, F.cell * 0.17), 10), new TH.MeshBasicMaterial({ color: 0x8feaff, transparent: true, opacity: 0, depthWrite: false }));
-      m.rotation.x = -Math.PI / 2; m.position.set(p.x, 0.6, p.z); g.add(m); return m; });
+    const pts = [D.clone(), ...cells.map(c => W(c.x, c.y)), dest.spot.clone()].map(v => v.setY(0.9)), g = new TH.Group();
+    const path = new TH.CurvePath(); for(let i = 1; i < pts.length; i++) if(pts[i].distanceTo(pts[i - 1]) > 0.05) path.add(new TH.LineCurve3(pts[i - 1], pts[i]));
+    const segs = Math.max(20, cells.length * 4), tube = path.curves.length ? new TH.TubeGeometry(path, segs, 0.5, 6, false) : null;
+    if(tube){ const m = new TH.Mesh(tube, new TH.MeshBasicMaterial({ color: BLUE, transparent: true, opacity: 0.85, depthWrite: false })); m.renderOrder = 24; g.add(m); }
+    const dots = cells.map(c => { const p = W(c.x, c.y), m = new TH.Mesh(new TH.CircleGeometry(Math.max(0.8, F.cell * 0.2), 12), new TH.MeshBasicMaterial({ color: 0x8feaff, transparent: true, opacity: 0, depthWrite: false }));
+      m.rotation.x = -Math.PI / 2; m.position.set(p.x, 0.7, p.z); g.add(m); return m; });
     F.root.add(g);
-    const show = RM ? (dots.forEach(m => { m.material.opacity = 0.6; }), line.material.opacity = 0.3, Promise.resolve())
-      : F.tween(Math.min(1000, 120 + 45 * cells.length), e => { const n = e * cells.length; dots.forEach((m, i) => { m.material.opacity = 0.6 * Math.max(0, Math.min(1, n - i)); }); line.material.opacity = 0.3 * e; }, t => t);
-    return { show, remove(){ F.root.remove(g); } };
+    const draw = e => { if(tube) tube.setDrawRange(0, Math.ceil(e * segs) * 6 * 6); const n = e * cells.length; dots.forEach((m, i) => { m.material.opacity = 0.7 * Math.max(0, Math.min(1, n - i)); }); };
+    const show = RM ? (draw(1), Promise.resolve()) : F.tween(Math.min(1300, 200 + 50 * cells.length), draw, t => t).then(() => draw(1));
+    return { show, remove(){ F.root.remove(g); if(tube) tube.dispose(); } };
   }
-  // They meet at the door: the LCM, seen. The camera pushes in. Then the way in: our agent throws a beacon to the far
-  // side of the floor, the guards leave their routes to look, and the agent walks in well away from them.
-  let meeting = false;
-  async function met(M){
-    if(meeting) return; meeting = true;
-    timers.forEach(clearTimeout); timers.length = 0;
-    checking = false; target = null; onArrive = null; $("ansBtn").disabled = false;
-    $("ansRow").hidden = true; $("choices").hidden = true; $("rows").innerHTML = ""; $("cctv").classList.remove("small");
-    const periods = rounds[r];
-    minute = M; rate = 0; T.SND("lockon"); say(`${M}: ${periods.map(p => `${M} = ${p} × ${M / p}`).join(", ")}.`, "ok");
-    tag(`${periods.length === 3 ? "ALL THREE" : "BOTH"} AT THE DOOR · MINUTE ${M}`, "gold");
-    if(!RM){ T.SND("zoom"); await F.flyTo(CAM1, 900); await wait(700); await F.flyTo(CAM0, 800); } else await wait(1400);
-    // the distraction: a beacon thrown to the far side of the floor
-    T.SND("chirp");
-    const trail = await F.pulse(agent.at().setY(3), BW.clone().setY(3), 0x6ec8ff, 450);
-    const ring = beaconRing(); tag("DISTRACTION ▸ BEACON", "gold");
-    lure = true; rate = 0.6;
-    T.step("The beacon pulls the guards away. Watch our agent sneak round the rooms, well away from them.", { quiet: true, name: "The way in" });
-    guards.forEach((g, i) => setLure(g, LURE[i] || out1, 500 + i * 280));
+  // FOX leads, WREN a step behind, from outside the door along the route to the destination
+  async function walkIn(path){
+    const way = [D.clone(), ...path.map(c => W(c.x, c.y))], ms = Math.min(4200, 600 + 230 * path.length);
+    const a = fox.walk([fox.at(), ...way, dest.spot.clone()], ms);
+    await wait(420);
+    const b = wren.walk([wren.at(), ...way], ms);
+    await Promise.all([a, b]);
+  }
+  // They meet at the door: the LCM, seen. Then the decoy, the guards go to look, and FOX and WREN head for their next stop.
+  async function met(){
+    if(meeting || over) return; meeting = true; busy = false; clearTimeout(timer);
+    const p = P(), M = ANS();
+    if(st === 0){ marks = p.map(q => new Set(T.range(1, LV.grid).filter(t => t % q === 0))); document.querySelectorAll("#hs button").forEach(c => { paint(c); c.disabled = true; if(+c.dataset.t === M) c.classList.add("gold"); }); }   // a SKIP fills in the grid
+    else if(st === 1){ const c = document.querySelector(`#hs [data-t="${M}"]`); if(c) c.classList.add("gold"); }
+    $("ansRow").hidden = true; ff = false; dimGuards(false); onArrive = null; mode = "hold";
+    if(minute !== M || !document.querySelector(".track b.gold")){ tlWindow(M); for(let m = 1; m <= M; m++) guards.forEach(g => { if(m % g.p === 0) tlTick(g.i, m, m === M); }); }
+    minute = M; prevM = M; guards.forEach(doorTick);
+    T.SND("lockon"); say(`${M} = ${p.map(q => `${q} × ${M / q}`).join(" = ")}: the lowest common multiple.`, "ok");
+    tag(`${both(p.length).toUpperCase()} AT THE DOOR · MINUTE ${M}`, "gold"); logs.length = 0; $("log").innerHTML = "";
+    document.querySelectorAll(".gcard").forEach(c => c.classList.remove("on"));
+    if(!RM){ T.SND("zoom"); await fly(CAM1, 700); await wait(600); await fly(CAM0, 700); } else await wait(1300);
+    // the decoy, thrown right across the floor
+    T.step(`One decoy pulls ${both(p.length)} guards away from the door. FOX and WREN head for ${DEST.to}.`, { quiet: true, name: STAGES[st] });
+    tag("DECOY THROWN ▸ FAR SIDE", "purple"); T.SND("whoosh");
+    const decoy = await throwDecoy();
+    lure = true; guards.forEach((g, i) => setLure(g, LURE[i] || lure1, 250 + i * 260));
     const arrive = Promise.all(guards.map(g => g.lure.done));
-    await wait(900); T.SND("radio"); tag("GUARDS DIVERTED ▸ DOOR CLEAR");
-    // the way in: planned once the guards are well on their way, drawn on the floor, then walked
+    await wait(800); T.SND("radio"); tag("GUARDS DRAWN AWAY ▸ DOOR CLEAR");
     const path = await planRoute();
     window.__pnPatrol.route = path.map(c => ({ x: c.x, y: c.y }));
-    const line = routeLine(path); tag("ROUTE PLANNED ▸ ROUND THE ROOMS"); T.SND("scanline");
-    await line.show; await wait(600);
-    tag("AGENT IN"); T.SND("whoosh");
-    agentWalking = true; walkMin = Infinity;
-    await agent.walk([agent.at(), D.clone(), ...path.map(c => W(c.x, c.y))], Math.min(3600, 400 + 240 * path.length));
-    agentWalking = false;
+    const line = routeLine(path); dest.light(true); tag(`ROUTE ▸ ${DEST.name}`); T.SND("scanline");
+    await line.show; await wait(450);
+    tag(`FOX + WREN ▸ ${DEST.name}`); T.SND("whoosh");
+    walking = true; walkMin = Infinity;
+    await walkIn(path);
+    walking = false;
     await arrive;
-    T.SND("success"); tag("AGENT INSIDE");
-    await wait(1000);
-    F.root.remove(trail); ring.remove(); line.remove(); lure = false;
-    r++; meeting = false;
-    if(r < rounds.length){ agent.set(D.x + N[0] * 6, D.z + N[1] * 6); deal(); }
-    else end(true);
+    T.SND("success"); tag(st < 2 ? `ROUTE CLEAR ▸ ${DEST.name}` : `FOX AND WREN ARE THROUGH ▸ ${DEST.name}`, "gold");
+    await wait(1200);
+    if(st === rounds.length - 1){ ["st1", "st2", "st3"].forEach(id => { $(id).className = "done"; }); return end(true); }   // the last stage keeps its picture
+    decoy.remove(); line.remove(); dest.light(false); lure = false;
+    st++; deal();
   }
   function end(ok){
-    over = true;
-    if(ok) T.finish({ ok: true, title: "IN", lines: [], auto: 1800 });
-    else T.finish({ ok: false, title: "SPOTTED", lines: ["The first time they're all together is the lowest common multiple (LCM) of their times."] });
+    if(over) return; over = true; mode = "hold"; clearTimeout(timer);
+    if(ok) T.finish({ ok: true, title: "IN", lines: [`Meeting times: ${rounds.map(lcmAll).join(", ")} minutes.`, `FOX and WREN are through, heading for ${DEST.to}.`], auto: 1800 });
+    else T.finish({ ok: false, title: "SPOTTED", lines: ["The first time the guards are all at the door together is the lowest common multiple (LCM) of their rounds."] });
   }
   deal();
-  if(window.PNTest) PNTest.skip("Solve this door", () => { met(lcmAll(rounds[r])); });
+  if(window.PNTest) PNTest.skip("Solve this stage", () => { met(); });
 })();
 </script>
 </body>

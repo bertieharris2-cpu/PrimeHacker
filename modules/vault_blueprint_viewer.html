@@ -1314,7 +1314,10 @@ function powerUpPrompt(title){
             await wait(3000);
             w.end();
           };
-          moveEnd(); await PNTwistSlot.run('entry', { intro });
+          // Round 16: FOX and WREN's route in the twist heads for the next stop of this heist (lift: it's on another floor)
+          const next = hasTw('power') ? { next: 'fusebox' } : hasTw('planb') ? { next: 'deposit', lift: 1 }
+            : hasTw('strongroom') ? { next: 'strongroom', lift: D.weak === f2 ? '' : 1 } : { next: 'keyroom' };
+          moveEnd(); await PNTwistSlot.run('entry', { intro, params: next });
           bpEvent('twist:entry');
           pacing = false; guards.forEach(gd => mainGroup.remove(gd)); if(cctv) cctv.remove(); hideLabel(); push(1);
           tickAt(D.door, 'entry');

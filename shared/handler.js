@@ -68,7 +68,7 @@
     chip.innerHTML = `<span class="ic" aria-hidden="true"><i></i><i></i><i></i></span>${who[0]} <span aria-hidden="true">▸</span> <kbd>H</kbd>`;
     chip.style.color = chip.style.borderLeftColor = who[2];
     chip.setAttribute("aria-label", `Read ${who[0]}'s last message again (H)`); chip.title = `Read ${who[0]}'s last message again (H)`;
-    chip.classList.remove("none");
+    if(!window.PNTwist) chip.classList.remove("none");   // a twist page has its own comms tab (H)
   }
   // Shrink the box into the chip. With reduced motion, or when the chip can't be seen, it just fades.
   async function tuck(box){

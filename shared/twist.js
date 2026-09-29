@@ -172,7 +172,7 @@
       setTimeout(() => window.parent.postMessage({ type: "pn-twist-done", ok, effect }, "*"), auto || (ok ? 400 : 2600));
       return;
     }
-    const next = qs.get("next");
+    const next = /[\/.]/.test(qs.get("next") || "") ? qs.get("next") : "";   // a page to go on to; a bare word (patrols: ?next=fusebox) is a destination, not a link
     ov.innerHTML = `<div class="card" role="dialog" aria-modal="true" aria-labelledby="twResT"><h2 id="twResT">${title || (ok ? "TWIST CLEARED" : "ALARM TRIPPED")}</h2>
       <ul>${lines.map(l => `<li>${l}</li>`).join("")}</ul>${note ? `<p style="margin:0;color:var(--text-muted)">${note}</p>` : ""}
       <div class="btns">${MISSION ? `<button class="pn-btn small primary" type="button" data-a="cont">Continue the mission</button>`
