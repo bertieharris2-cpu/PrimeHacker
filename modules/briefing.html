@@ -121,18 +121,6 @@
         <div><div class="who">ORACLE</div><div class="sub">PRIMENET team lead // encrypted channel</div></div>
       </div>
       <div class="lines" id="lines" aria-live="polite" title="Click to show all"></div>
-      <div class="dossier" id="dossier">
-        <div><div class="k">Target</div><div class="v" id="dTarget"></div></div>
-        <div><div class="k">Operation</div><div class="v" id="dOp"></div></div>
-        <div><div class="k">Inside</div><div class="v" id="dInside">FOX and WREN</div></div>
-        <div><div class="k">Tech specialist</div><div class="v" id="dAgent"></div></div>
-      </div>
-      <div class="route" id="route">
-        <span class="st h">1 · Intercept the plans</span><span class="ar">→</span>
-        <span class="st b">2 · Decrypt 3 floors</span><span class="ar">→</span>
-        <span class="st b">3 · Plan the route</span><span class="ar">→</span>
-        <span class="st h">4 · The heist and the vault</span>
-      </div>
       <div class="actions">
         <span class="note">Press <b>Enter</b> or click to accept.</span>
         <button class="pn-btn primary pn-go" type="button" id="acceptBtn" disabled>Accept mission</button>
@@ -183,6 +171,7 @@
   // ---------- Identity scan ----------
   const pad = $("#pad"), meter = $("#meter"), fillRect = $("#fillRect"), beam = $("#beam"), readout = $("#readout");
   const READOUTS = ["Reading ridges…", "Mapping whorl…", "Matching print…", "Checking clearance…"];
+  let stage = "id";   // id, map or brief: where a full screen reload picks up
   let holding = false, progress = 0, done = false, last = performance.now(), humTick = 0;
   const HOLD_MS = PN.isTeacher() && window.PNTest && PNTest.fast ? 250 : 1700;
 
@@ -220,9 +209,10 @@
       Rank: ${r.rank} · Clearance ${agent.level} (${PN.LEVELS[agent.level].rank})`;
     if(window.PNHandler) PNHandler.say(PNStory.LINES.welcome);
     await sleep(2600);
+    stage = "map";
     await chooseTarget();
     m = PN.mission();
-    brief();
+    stage = "brief"; brief();
   }
 
   // ---------- Target map: choose the target ----------
@@ -290,8 +280,6 @@
   async function brief(){
     $("#stepId").hidden = true; $("#stepMap").hidden = true; $("#stepBrief").hidden = false;
     $("#opName").textContent = "OPERATION " + m.operation;
-    $("#dTarget").textContent = m.target; $("#dOp").textContent = m.operation;
-    $("#dAgent").textContent = `${m.codename} · ${agent.level}`;
     MODE.turn("Type to open comms");
     await MODE.typeThrough({ label: "OPENING COMMS", keys: 12 });
     SND("comms");
@@ -328,6 +316,15 @@
   }
   $("#acceptBtn").addEventListener("click", () => { SND("start"); $("#acceptBtn").disabled = true; setTimeout(go, 350); });
   document.addEventListener("keydown", e => { if(e.key === "Enter" && !$("#acceptBtn").disabled){ e.preventDefault(); $("#acceptBtn").click(); } });
+
+  // Pressing FULL SCREEN reloads this page inside the full screen frame: carry on from the same step, not the fingerprint
+  window.PNResume = () => stage === "id" ? "" : "resume=" + stage;
+  const RES = new URLSearchParams(location.search).get("resume");
+  if(RES === "map" || RES === "brief"){
+    done = true; $("#stepId").hidden = true;
+    if(RES === "map"){ stage = "map"; chooseTarget().then(() => { m = PN.mission(); stage = "brief"; brief(); }); }
+    else { stage = "brief"; brief(); }
+  }
 
   if(window.PNTest){
     PNTest.add("Pass the identity scan", () => { if(!done) verified(); });

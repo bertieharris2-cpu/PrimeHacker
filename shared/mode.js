@@ -159,9 +159,11 @@
     if(EMBED || PRACTICE) return Promise.resolve();
     build();
     const card = document.createElement("div"); card.className = "pnm-chap"; card.setAttribute("role", "status");
-    card.innerHTML = `<small>CHAPTER ${num}</small><b>${title}</b>`;
+    // Bertie: not "chapters" (not mission-like). The card just says MISSION · PART ONE; title stays for the teacher's notes
+    const part = "PART " + (["ONE","TWO","THREE","FOUR","FIVE","SIX"][num - 1] || num);
+    card.innerHTML = `<small>PRIMENET // CLASSIFIED</small><b>MISSION · ${part}</b>`;
     document.body.appendChild(card);
-    const h = watch(title, { seconds });
+    const h = watch(`Mission part ${num}`, { seconds });
     SND("scanline");
     requestAnimationFrame(() => card.classList.add("on"));
     return new Promise(r => setTimeout(() => { card.classList.remove("on"); setTimeout(() => { card.remove(); h.end(); r(); }, 350); }, seconds * 1000 / speed()));
@@ -251,6 +253,7 @@
   // ---------- A short hack where any key types gobbledegook ----------
   function typeThrough({ label = "HACKING IN", keys = 16, hint = "Type anything to hack in" } = {}){
     if(EMBED) return Promise.resolve();
+    build();   // its styles live with the WATCH strip; a page can reach its first typing before any WATCH
     return new Promise(resolve => {
       const ov = document.createElement("div"); ov.className = "pnm-type"; ov.setAttribute("role", "dialog"); ov.setAttribute("aria-label", label);
       ov.innerHTML = `<div class="box"><div class="hd"><span>${label}</span><span class="pc">0%</span></div><div class="code"></div><div class="meter"><i></i></div>

@@ -565,7 +565,9 @@
   // the top page goes full screen and shows the game in a full-window frame (named "pnshell"). Scene changes happen
   // inside the frame, so full screen never drops. The framed pages talk to the shell by postMessage only (file://).
   function toShell(){
-    const de = document.documentElement, url = location.href;
+    const de = document.documentElement;
+    // A page can say where it had got to (PNResume), so the reload inside the frame carries on from there
+    let url = location.href; try{ const r = window.PNResume && PNResume(); if(r) url = url.replace(/[?&]resume=[^&#]*/, "").replace(/(#.*)?$/, m => (url.includes("?") ? "&" : "?") + r + m); }catch(e){}
     de.requestFullscreen({ navigationUI: "hide" }).catch(() => {});
     // This copy of the page carries on inside the frame, so silence and stop it here
     try{ speechSynthesis.cancel(); speechSynthesis.speak = () => {}; }catch(e){}

@@ -414,6 +414,15 @@
 .jammer button{ min-width:0 !important; padding:5px 12px; font-weight:700; }
 .jammer button.used{ opacity:.35; }
 .jammer .charges{ color:#ffe14d; }
+.mail{ width:min(560px,100%); margin:14px auto 0; border:1px solid rgba(255,201,77,.55); background:rgba(40,30,5,.35); padding:12px 16px; text-align:left; font-size:15px; line-height:1.7; animation:mailIn .6s ease-out; }
+.mail .mh{ display:flex; justify-content:space-between; font-family:var(--font-ui); font-weight:700; letter-spacing:.14em; font-size:13px; color:#ffc94d; margin-bottom:6px; }
+.mail b{ display:inline-block; width:5.5em; color:var(--muted); font-weight:600; }
+.mail .att{ margin-top:4px; color:#ffe9a3; }
+@keyframes mailIn{ from{ opacity:0; transform:translateY(8px); } }
+@media (prefers-reduced-motion: reduce){ .mail{ animation:none; } }
+.ffHint{ font-family:var(--font-ui); font-size:14px; letter-spacing:.12em; color:var(--muted); }
+.ffHint kbd{ font:inherit; font-weight:700; color:#03170e; background:var(--accent); padding:1px 7px; }
+.scope.ff{ box-shadow:0 0 0 2px rgba(var(--accent-rgb),.6) inset; }
 .intercept{ width:min(760px,100%); display:grid; gap:10px; justify-items:center; }
 .scope{ position:relative; width:100%; height:270px; border:1px solid rgba(var(--accent-rgb),.45); background:#03110f; overflow:hidden; box-shadow:inset 0 0 40px rgba(0,0,0,.8); }
 .scope canvas{ position:absolute; inset:0; width:100%; height:100%; }
@@ -754,8 +763,13 @@ html.pn-mode-on .devPanel{ top: calc(var(--pn-mode-h, 62px) + 50px); }
     clearMain();
 
     const title = el("div", { class: "titleBig", text: "PRIME FREQUENCY SCAN" });
-    const sub = el("div", { class: "sub", text: "Their building plans are travelling to their security firm on an encrypted channel. The channel hides behind prime frequencies." });
+    const sub = el("div", { class: "sub", text: "We've spotted an encrypted email leaving the target. It's carrying their building plans. The channel hides behind prime frequencies." });
     const divider = el("div", { class: "divider" });
+    // The intercepted email (Bertie: it makes sense of what we're scanning for)
+    const tgt = PN ? PN.mission().target : "Rivercross Utilities", dom = tgt.toLowerCase().replace(/[^a-z]+/g, "");
+    const mail = el("div", { class: "mail", html: `<div class="mh"><span class="mt">▲ INTERCEPTED · ENCRYPTED EMAIL</span><span class="lk">🔒 LOCKED</span></div>
+      <div><b>From</b> facilities@${dom}.co.uk</div><div><b>To</b> plans@${dom}-security.co.uk</div><div><b>Subject</b> ▒▒▒▒▒▒ ▒▒▒▒▒</div>
+      <div class="att">📎 building_plans.enc</div>` });
 
     MODE.turn("Start the scan");
     const btn = el("button", {
@@ -772,7 +786,7 @@ html.pn-mode-on .devPanel{ top: calc(var(--pn-mode-h, 62px) + 50px); }
 
     const btnRow = el("div", { class: "btnRow" }, [btn]);
 
-    main.append(title, sub, divider, renderSegments(), btnRow);
+    main.append(title, sub, mail, divider, renderSegments(), btnRow);
   }
 
   function renderScan(){
@@ -992,7 +1006,7 @@ html.pn-mode-on .devPanel{ top: calc(var(--pn-mode-h, 62px) + 50px); }
     scope.append(bg, fg, rx, rx2);
     const feed = el("div", { class: "scopeFeed", html: "<i></i>" });
     const hud = el("div", { class: "scopeHud" });
-    main.append(el("div", { class: "intercept" }, [heading, el("div", { class: "instruction", text: "Primes are stable signals. Click their peaks before they escape. Leave the noise." }), scope, feed, hud]));
+    main.append(el("div", { class: "intercept" }, [heading, el("div", { class: "instruction", text: "Primes are stable signals. Click their peaks before they escape. Leave the noise." }), scope, feed, hud, el("div", { class: "ffHint", html: "Hold <kbd>SPACE</kbd> to fast-forward" })]));
 
     const stats = { locked: 0, missed: 0, noise: 0, left: queue.length };
     const paintHud = () => { hud.innerHTML = `Locked <b>${stats.locked}</b> · Missed <b>${stats.missed}</b> · Noise clicked <b>${stats.noise}</b> · Incoming <b>${stats.left}</b>`; feed.firstChild.style.width = ((queue.length - stats.left) / queue.length * 100) + "%"; };
@@ -1013,11 +1027,15 @@ html.pn-mode-on .devPanel{ top: calc(var(--pn-mode-h, 62px) + 50px); }
     size();
 
     const blips = []; let spawned = 0, lastSpawn = -1e9, running = true, finishing = false;
+    // Bertie: hold SPACE to fast-forward the line (e.g. once every prime is clicked). The scope runs on its own clock.
+    let vnow = performance.now(), lastReal = vnow, ff = 1;
+    const ffKey = e => { if(e.code !== "Space" || e.target.closest("input,textarea,[contenteditable]")) return; e.preventDefault(); ff = e.type === "keydown" ? 4 : 1; scope.classList.toggle("ff", ff > 1); };
+    document.addEventListener("keydown", ffKey); document.addEventListener("keyup", ffKey);
     const base = () => H * .62;
     function spawn(n){
       const b = el("button", { class: "blip", type: "button", "aria-label": `Signal ${n}` });
       b.innerHTML = `${n}<span class="tag"></span>`;
-      const blip = { n, el: b, born: performance.now(), amp: 60 + Math.random() * 70, width: 14 + Math.random() * 8, done: false, state: "live", x: W + 40, fade: 1 };
+      const blip = { n, el: b, born: vnow, amp: 60 + Math.random() * 70, width: 14 + Math.random() * 8, done: false, state: "live", x: W + 40, fade: 1 };
       b.addEventListener("click", () => hitBlip(blip));
       scope.append(b); blips.push(blip);
     }
@@ -1036,9 +1054,10 @@ html.pn-mode-on .devPanel{ top: calc(var(--pn-mode-h, 62px) + 50px); }
       blips.forEach(b => { if(b.done || b.state !== "live") return; const q = b.el.getBoundingClientRect(), cx = q.left - r.left + q.width / 2, cy = q.top - r.top + q.height / 2, d = Math.hypot(cx - px, cy - py); if(d < bestD){ bestD = d; best = b; } });
       if(best) hitBlip(best);
     });
-    const t0 = performance.now();
-    function frame(now){
+    const t0 = vnow;
+    function frame(real){
       if(!running) return;
+      vnow += Math.min(100, real - lastReal) * ff; lastReal = real; const now = vnow;
       const prog = spawned / queue.length;                 // later signals move faster
       const travel = cfg.travel * slow * (1 - .22 * prog) / sp();
       if(spawned < queue.length && now - lastSpawn > cfg.gap * slow * (1 - .2 * prog) / sp()){ spawn(queue[spawned++]); lastSpawn = now; stats.left = queue.length - spawned; paintHud(); }
@@ -1071,14 +1090,20 @@ html.pn-mode-on .devPanel{ top: calc(var(--pn-mode-h, 62px) + 50px); }
       if(spawned >= queue.length && blips.every(b => b.done) && !finishing){ finishing = true; setTimeout(finish, 600); }
       requestAnimationFrame(frame);
     }
-    function finish(){
-      running = false; interceptDone = null;
+    async function finish(){
+      if(finish.ran) return; finish.ran = true;
+      document.removeEventListener("keydown", ffKey); document.removeEventListener("keyup", ffKey); ff = 1; scope.classList.remove("ff");
+      interceptDone = null;
       interceptPerfect = stats.missed === 0 && stats.noise === 0 && stats.locked > 0;
       setConsole("INTERCEPT CLOSED", `Locked ${stats.locked} of ${half} primes.`);
-      renderComplete();
+      // Bertie: while the line goes flat, a short typing moment captures the email, then ACCESS GRANTED
+      await MODE.typeThrough({ label: "CAPTURING THE EMAIL", keys: 20, hint: "Type anything to capture it" });
+      running = false;
+      const w = MODE.watch("Access granted", { seconds: 2.4 });
+      flashAccessGranted(() => { w.end(); renderComplete(); });
     }
     // Teacher test tool: close the intercept as if every prime was locked
-    interceptDone = () => { running = false; blips.forEach(b => b.el.remove()); stats.locked = half; stats.left = 0; finish(); };
+    interceptDone = () => { blips.forEach(b => { b.done = true; b.state = "gone"; b.el.remove(); }); spawned = queue.length; stats.locked = half; stats.left = 0; finish(); };
     requestAnimationFrame(frame);
   }
 
@@ -1087,17 +1112,17 @@ html.pn-mode-on .devPanel{ top: calc(var(--pn-mode-h, 62px) + 50px); }
     SND("success");
     if(window.PNHandler) PNHandler.once("scan-done", PNStory.LINES.scanEnd, { delay: 700 });
     setStatus("STATUS: READY");
-    setConsole("FILE CAPTURED", "Building plans, encrypted.");
+    setConsole("EMAIL INTERCEPTED", "Attachment: building plans, encrypted.");
     clearMain();
 
-    const title = el("div", { class: "titleBig", text: "FILE CAPTURED: BUILDING PLANS" });
+    const title = el("div", { class: "titleBig", text: "EMAIL INTERCEPTED" });
     const segs = renderSegments();
     const decoders = decodersFor(signal);
     if(PN) PN.updateAgent({ signal, decoders });
     if(window.PNBadges){ if(signal === 100) PNBadges.award("clean-sweep"); if(interceptPerfect) PNBadges.award("interceptor"); }
     const bonus = el("div", { class: "bonusCard", html: `<div>FINAL SIGNAL STRENGTH</div><div class="big">${signal}%</div>
-      <div class="perk">${signal >= 80 ? "Strong signal: a clean copy of the file." : "Weak signal, but we got the file. A cleaner scan next time."}</div>` });
-    const sub = el("div", { class: "sub", text: "The plans are captured, but still encrypted. Next: decrypt them." });
+      <div class="perk">${signal >= 80 ? "Strong signal: a clean copy of the email." : "Weak signal, but we got the file. A cleaner scan next time."}</div>` });
+    const sub = el("div", { class: "sub", text: "Attachment: building plans. Still encrypted. Next: decrypt them." });
 
     MODE.turn("Decrypt the plans");
     const proceed = el("button", {
@@ -1108,8 +1133,7 @@ html.pn-mode-on .devPanel{ top: calc(var(--pn-mode-h, 62px) + 50px); }
         setConsole("ROUTE SET", "Next: LOCK ON TO THE TARGET.");
         if(PN) PN.log("scan-complete", { signal, bands: CONFIG.bands.map(b => `${b.start}-${b.end}`) });
         // Round 15: no twist here any more; the scan goes straight on to the target (chapter 2 opener)
-        const w = MODE.watch("Access granted. Locking on to the target", { seconds: 2.4 });
-        flashAccessGranted(() => { w.end(); window.PNGlitch ? PNGlitch.go("target_locked.html") : (location.href = "target_locked.html"); });
+        window.PNGlitch ? PNGlitch.go("target_locked.html") : (location.href = "target_locked.html");
       }
     });
 
@@ -1169,6 +1193,7 @@ html.pn-mode-on .devPanel{ top: calc(var(--pn-mode-h, 62px) + 50px); }
     const big = el("div", { class: "titleBig ok", text: "ACCESS GRANTED" });
 
     const barWrap = el("div", { class: "barWrap", role: "progressbar", "aria-valuemin": "0", "aria-valuemax": "100", "aria-valuenow": "0" });
+    barWrap.style.width = "100%";   // Bertie: the bar runs the full width of its box
     const fill = el("div", { class: "barFill" });
     const pulse = el("div", { class: "barPulse", "aria-hidden": "true" });
     barWrap.append(fill, pulse);
