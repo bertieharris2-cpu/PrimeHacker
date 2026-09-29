@@ -31,12 +31,24 @@
   .flash{ position:fixed; inset:0; pointer-events:none; z-index:20; background:rgba(255,40,40,0); }
   .flash.on{ animation:redFlash .45s ease-in-out 4; }
   @keyframes redFlash{ 50%{ background:rgba(255,40,40,.22); } }
+  /* Code flood (as in the mission): a full-screen box of fast coloured code with a bar */
+  .flood{ position:fixed; inset:0; z-index:30; display:flex; align-items:center; justify-content:center; background:rgba(3,10,12,.9); opacity:0; transition:opacity .2s; }
+  .flood.on{ opacity:1; }
+  .flood .box{ width:min(1000px,94vw); height:min(600px,76vh); display:flex; flex-direction:column; border:1px solid rgba(var(--accent-rgb),.45); background:rgba(4,14,17,.97); box-shadow:0 0 50px rgba(var(--accent-rgb),.2); }
+  .flood .hd{ display:flex; justify-content:space-between; padding:12px 18px; border-bottom:1px solid rgba(var(--accent-rgb),.25); font-family:var(--font-ui); font-weight:700; letter-spacing:.18em; color:var(--accent); }
+  .flood .hd b{ color:#ffe14d; font-family:var(--font-mono); letter-spacing:.06em; }
+  .flood .st{ flex:1; min-height:0; overflow:hidden; padding:14px 20px; font-family:var(--font-mono); font-size:18px; line-height:1.55; white-space:pre-wrap; word-break:break-all; display:flex; flex-direction:column; justify-content:flex-end; }
+  .flood .st .pk{ color:#ff4fd8; } .flood .st .yl{ color:#ffe14d; } .flood .st .sy{ color:rgba(var(--accent-rgb),.9); } .flood .st .bl{ color:#6ec8ff; }
+  .flood .bar{ height:8px; background:rgba(0,0,0,.5); } .flood .bar i{ display:block; height:100%; width:0; background:var(--accent); box-shadow:0 0 12px rgba(var(--accent-rgb),.7); }
+  .term .mail{ display:inline-block; border:1px solid rgba(255,201,77,.55); background:rgba(40,30,5,.35); padding:8px 14px; margin:6px 0; color:#ffe9a3; }
+  .term .fox{ color:#ffb35c; } .term .wren{ color:#7fd4ff; }
+  @media (prefers-reduced-motion: reduce){ .flood{ transition:none; } }
 </style>
 </head>
 <body>
 <div class="shell">
   <div class="bar">
-    <div class="name">PRIME NET <span>// OPEN TERMINAL · ROLEPLAY</span></div>
+    <div class="name">PRIMENET <span>// OPEN TERMINAL · TRAINING ROOM</span></div>
     <div class="row">
       <button class="pn-btn small" type="button" id="keysBtn">Key sounds: on</button>
       <button class="pn-btn small" type="button" id="clearBtn">Clear</button>
@@ -47,17 +59,20 @@
     <div class="term" id="term" role="log" aria-live="polite"></div>
     <label class="prompt"><span class="p">agent@primenet:~$</span><input id="input" autocomplete="off" spellcheck="false" aria-label="Type a command"></label>
   </div>
-  <div class="tip">Free play: type anything and press Enter. Try <b>SCAN</b>, <b>TRACE</b>, <b>DECRYPT</b>, <b>BREACH</b> or <b>HELP</b>. Nothing here is saved.</div>
+  <div class="tip">Free play: type anything and press Enter. Try <b>INTERCEPT</b>, <b>SCAN</b>, <b>DECRYPT</b>, <b>FOX</b>, <b>WREN</b>, <b>BREACH</b> or <b>HELP</b>. Nothing here is saved.</div>
 </div>
 <div class="flash" id="flash"></div>
 
 <script src="../shared/sound.js"></script>
+<script src="../shared/story.js"></script>
+<script src="../shared/primenet.js"></script>
+<script src="../shared/handler.js"></script>
 <script>
 (() => {
   "use strict";
   const term = document.getElementById("term"), input = document.getElementById("input");
   const SND = (n, a) => { if(window.PNSound) PNSound.play(n, a); };
-  let keySounds = true, busy = false;
+  let keySounds = true, busy = false, sinceFlood = 0;
 
   const sleep = ms => new Promise(r => setTimeout(r, ms));
   const rnd = n => Math.floor(Math.random() * n);
@@ -85,15 +100,47 @@
     }
   }
 
+  // The code flood, as in the mission. Now and then after a command, and always on BREACH.
+  async function flood(label = pick(["DECRYPTING","ROUTING","UPLINK","HANDSHAKE","BYPASSING"]), ms = 2600){
+    const o = document.createElement("div"); o.className = "flood"; o.setAttribute("aria-hidden", "true");
+    o.innerHTML = `<div class="box"><div class="hd"><span>CODE FLOOD // ${label}</span><b>0%</b></div><div class="st"></div><div class="bar"><i></i></div></div>`;
+    document.body.appendChild(o); requestAnimationFrame(() => o.classList.add("on"));
+    const st = o.querySelector(".st"), pc = o.querySelector(".hd b"), bar = o.querySelector(".bar i");
+    SND("powerup"); SND("glitch");
+    const t0 = performance.now();
+    while(performance.now() - t0 < ms){
+      const k = Math.min(1, (performance.now() - t0) / ms), d = document.createElement("div");
+      d.className = pick(["sy","sy","sy","pk","yl","bl"]);
+      d.textContent = pick([() => `${hex(8)} ${hex(8)} ${hex(8)} ${hex(8)}`, () => `>> ${pick(["uplink","cipher","relay","ghost","mirror"])}.${pick(["sync","spoof","inject","loop"])}() ${hex(6)}`, () => `primes[${pick(PRIMES)}, ${pick(PRIMES)}, ${pick(PRIMES)}] -> OK`, () => `decrypt --key ${hex(12)}`])();
+      st.appendChild(d); while(st.children.length > 40) st.firstChild.remove();
+      bar.style.width = Math.round(k * 100) + "%"; pc.textContent = Math.round(k * 100) + "%";
+      if(Math.random() < .5) SND("data");
+      await sleep(45);
+    }
+    bar.style.width = "100%"; pc.textContent = "100%"; SND("lockon");
+    await sleep(450);   // the full bar is seen before it goes
+    o.classList.remove("on"); await sleep(220); o.remove();
+  }
+  const say = (text, who) => { if(window.PNHandler) PNHandler.say(text, { who }); };
+  const radio = bank => window.PNHandler && PNHandler.radio(bank);
+  // A random line from FOX or WREN (from the heist radio banks in shared/story.js)
+  function agent(who){
+    SND("radio");
+    const all = Object.values(PNStory.RADIO).flat().filter(r => r[0] === who);
+    if(window.PNHandler) PNHandler.say(PNStory.fill(pick(all)[1]), { who, delay: 300 });
+  }
+
   // Replies to anything typed, matched loosely on keywords
   const REPLIES = [
-    { k:/bank|money|cash|vault|safe/, r:() => [`Locating vault ${hex(4)}…`, `Signature: ${pick(["Rivercross Utilities","Atlas Prime","Kronos Finance","Helix Dynamics"])} // balance hidden`, "Recommendation: crack the prime locks first."] },
+    { k:/bank|money|cash|vault|safe/, r:() => { const n = pick(Object.keys(PNStory.TARGETS)); return [`Locating vault ${hex(4)}…`, `Signature: ${n} // hidden accounts found`, PNStory.TARGETS[n].hook]; } },
     { k:/password|pass|login|pin/, r:() => ["Brute forcing credential store…", `Tried ${1000 + rnd(9000)} combinations. Hash still holding.`, "Hint: real locks here use prime numbers, not passwords."] },
     { k:/firewall|wall|shield/, r:() => ["Mapping firewall rules…", `${3 + rnd(9)} ports open. ${rnd(3)} guarded.`, "Firewall integrity: " + (60 + rnd(39)) + "%"] },
     { k:/virus|worm|malware|bug/, r:() => ["Deploying training payload (harmless)…", "Payload replicated across 0 real systems. This is a simulation.", "Sandbox: stable."] },
     { k:/who|name|identity|agent/, r:() => ["Identity check…", `Agent profile: ${pick(["NIGHTJAR","KESTREL","OSPREY","RAVEN","COBALT"])} // clearance pending`, "Trust level: provisional."] },
     { k:/prime|factor|number|math/, r:() => ["Prime noise detected in the channel…", `Candidate keys: ${Array.from({length:6}, () => pick(PRIMES)).join(" · ")}`, "Only numbers with exactly two factors can hold a PRIMENET lock."] },
-    { k:/download|steal|copy|take/, r:() => [`Downloading ledger page ${rnd(900) + 100}…`, `[${"█".repeat(12 + rnd(8))}] ${80 + rnd(20)}%`, "Transfer paused: vault still locked."] },
+    { k:/steal|rob|loot/, r:() => ["PRIMENET doesn't steal.", "We recover what was taken and send it back to the people it belongs to.", "Try RECOVER."] },
+    { k:/download|copy|take|recover/, r:() => [`Downloading ledger page ${rnd(900) + 100}…`, `[${"█".repeat(12 + rnd(8))}] ${80 + rnd(20)}%`, "Evidence copied. Routing it to the newsroom."] },
+    { k:/oracle|boss|lead/, r:() => { say(pick(["Still here, {agent}. Always on comms.", "Practise all you like. Nothing leaves this room.", "Good instincts. Keep them for the real thing."])); return ["Opening channel to ORACLE…", "Channel open."]; } },
     { k:/hello|hi|hey/, r:() => ["Connection accepted.", "Welcome to the open terminal, agent.", "Type HELP to see what this terminal can do."] },
   ];
   const GENERIC = [
@@ -106,13 +153,13 @@
   const COMMANDS = {
     async HELP(){
       line("OPEN TERMINAL COMMANDS", "warn");
-      ["SCAN      sweep the network for targets","TRACE     check whether anyone is watching","DECRYPT   crack a message","BREACH    run a full vault breach (loud)","CLEAR     wipe the screen","EXIT      return to base","Anything else gets a reply. Nothing is saved."].forEach(t => line("  " + t));
+      ["INTERCEPT catch an encrypted email","SCAN      sweep the network for targets","FOX, WREN radio the agents inside","ORACLE    call the team lead","FLOOD     run a code flood","TRACE     check whether anyone is watching","DECRYPT   crack a message","BREACH    run a full vault breach (loud)","CLEAR     wipe the screen","EXIT      return to base","Anything else gets a reply. Nothing is saved."].forEach(t => line("  " + t));
     },
     async SCAN(){
       await type("Initiating network sweep…");
-      SND("laser");
+      SND("zoom");
       await chatter(1400);
-      const targets = ["RIVERCROSS UTILITIES","NORTHWICK TRANSIT","SENTINEL FINANCE","EMBER FREIGHT","ATLAS PRIME","KRONOS FINANCE"];
+      const targets = Object.keys(PNStory.TARGETS).map(t => t.toUpperCase());
       for(let i = 0; i < 3; i++){ line(`TARGET ${i+1}: ${pick(targets)} // ACCT-${hex(6)} // security ${pick(["LOW","MEDIUM","HIGH"])}`, "warn"); SND("tag"); await sleep(250); }
     },
     async TRACE(){
@@ -135,12 +182,24 @@
       line("INTRUSION DETECTED", "big red");
       await sleep(1800); document.getElementById("flash").classList.remove("on");
       await type("Evading counter-trace…");
-      await chatter(2600);
+      await flood("BREACH", 3000);
       SND("rise");
       await type("Vault door responding…", "warn");
       await chatter(1200);
-      line("ACCESS GRANTED", "big"); SND("success");
+      line("ACCESS GRANTED", "big"); SND("success"); radio("vaultOpen");
     },
+    async INTERCEPT(){
+      await type("Listening on prime frequencies…"); SND("radio");
+      await chatter(900);
+      const n = pick(Object.keys(PNStory.TARGETS)), dom = n.toLowerCase().replace(/[^a-z]+/g, "");
+      const m = line("", "mail");
+      m.textContent = `▲ INTERCEPTED · ENCRYPTED EMAIL\nFrom     facilities@${dom}.co.uk\nTo       plans@${dom}-security.co.uk\nSubject  ▒▒▒▒▒▒ ▒▒▒▒▒\n📎 building_plans.enc  🔒`;
+      SND("lockon"); line("Type DECRYPT to crack it.", "warn");
+    },
+    async FOX(){ agent("FOX"); line("[RADIO] FOX is on the line.", "fox"); },
+    async WREN(){ agent("WREN"); line("[RADIO] WREN is on the line.", "wren"); },
+    async ORACLE(){ SND("comms"); say(pick(["You rang, {agent}?", "Quiet night. Use it to practise.", "Remember: primes have exactly two factors. It'll come up.", "FOX and WREN are on standby."])); line("[COMMS] Channel to ORACLE open.", "sys"); },
+    async FLOOD(){ await flood(); line("Flood complete. Channel clean.", "sys"); },
     async CLEAR(){ term.innerHTML = ""; },
     async EXIT(){ location.href = "../index.html"; },
   };
@@ -149,10 +208,15 @@
     const text = raw.trim(); if(!text) return;
     line("agent@primenet:~$ " + text, "me");
     const cmd = text.toUpperCase().split(/\s+/)[0];
-    if(COMMANDS[cmd]) return COMMANDS[cmd]();
-    const hit = REPLIES.find(r => r.k.test(text.toLowerCase()));
-    const lines = (hit ? hit.r : pick(GENERIC))();
-    for(const l of lines) await type(l);
+    SND("chirp");
+    if(COMMANDS[cmd]){ await COMMANDS[cmd](); }
+    else {
+      const hit = REPLIES.find(r => r.k.test(text.toLowerCase()));
+      const lines = (hit ? hit.r : pick(GENERIC))();
+      for(const l of lines) await type(l);
+    }
+    // Now and then a code flood (never twice in a row)
+    if(!["BREACH","FLOOD","CLEAR","EXIT","HELP"].includes(cmd) && ++sinceFlood >= 3 && Math.random() < .35){ sinceFlood = 0; await flood(); }
   }
 
   input.addEventListener("keydown", async e => {
@@ -170,10 +234,12 @@
   document.getElementById("clearBtn").addEventListener("click", () => { term.innerHTML = ""; input.focus(); });
 
   (async () => {
-    line("PRIME NET OPEN TERMINAL", "warn");
-    line("Roleplay mode: no maths, no mission, nothing saved.");
-    line("Type anything and press Enter. The terminal will answer like a hacker film.");
+    SND("powerup");
+    line("PRIMENET OPEN TERMINAL", "warn");
+    line("Training room: no maths, no mission, nothing saved.");
+    line("Type anything and press Enter. The terminal answers like a spy film.");
     line(" ");
+    say("Open channel, {agent}. This is the training room. Practise your tradecraft: nothing leaves this room.", "ORACLE");
     input.focus();
   })();
 })();
