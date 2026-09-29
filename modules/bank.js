@@ -33,7 +33,7 @@ const Bank = (() => {
       L2: [
         'Ember Freight',
         'Crystal Holdings',
-        'Vault Secure',
+        'Ironclad Alarms',
         'Pinnacle Corp'
       ],
       L3: [
@@ -110,6 +110,7 @@ const Bank = (() => {
     }
     // A wallet saved without any bank accounts (e.g. only a shop purchase) gets fresh ones
     if (!Array.isArray(state.accounts) || !state.accounts.length) state.accounts = seedDefaultAccounts();
+    state.accounts.forEach(a => { if (a.name === 'Vault Secure') a.name = 'Ironclad Alarms'; });   // renamed target (older saves)
     if (!Array.isArray(state.ledger)) state.ledger = [];
     if (typeof state.runEarnings !== 'number') state.runEarnings = 0;
     if (typeof state.walletBalance !== 'number') state.walletBalance = 0;

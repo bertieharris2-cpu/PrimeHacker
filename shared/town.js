@@ -9,7 +9,7 @@
   const SECURITY = { L1: "Low", L2: "Medium", L3: "High" };
   const PINS = {   // pin positions as % of the map (the same as briefing.html); each target building stands on its pin
     "Rivercross Utilities": [12, 34], "Northwick Transit": [24, 22], "Sentinel Finance": [16, 62], "Haven Council": [30, 50],
-    "Ember Freight": [44, 78], "Crystal Holdings": [55, 64], "Vault Secure": [42, 51], "Pinnacle Corp": [60, 86],
+    "Ember Freight": [44, 78], "Crystal Holdings": [55, 64], "Ironclad Alarms": [45, 51], "Pinnacle Corp": [60, 86],
     "Helix Dynamics": [72, 30], "Nexus Global": [86, 22], "Kronos Finance": [80, 50], "Atlas Prime": [92, 42],
   };
   const DISTRICTS = [
@@ -71,7 +71,7 @@
     "Haven Council": { note: "The town hall and clock tower, between the river and Haven Park.", parts: [box(258,200,28,22,16), box(258,200,8,8,22,{ y0: 16, roof: "pyramid", rh: 8 })] },
     "Ember Freight": { note: "A big warehouse on the docks, with a crane over the water.", parts: [box(378,312,40,22,14,{ roof: "saw" }), { t: "crane", x: 400, y: 297, h: 34, jib: 22 }] },
     "Crystal Holdings": { note: "A glass block of flats looking over the harbour.", parts: [box(473,256,24,18,40), box(473,256,18,12,8,{ y0: 40 })] },
-    "Vault Secure": { note: "A squat, armoured building covered in aerials.", parts: [box(361,204,22,20,16), box(361,204,16,14,3,{ y0: 16 }), mast(367,199,12,{ y0: 19, dish: true })] },
+    "Ironclad Alarms": { note: "A squat, armoured building covered in aerials.", parts: [box(387,204,22,20,16), box(387,204,16,14,3,{ y0: 16 }), mast(393,199,12,{ y0: 19, dish: true })] },
     "Pinnacle Corp": { note: "A tower with a pointed top, right by the water.", parts: [box(516,344,24,24,38,{ roof: "pyramid", rh: 20 })] },
     "Helix Dynamics": { note: "A factory with two tall chimneys.", parts: [box(619,120,36,22,22,{ roof: "saw" }), cyl(606,112,3,40,{ y0: 22 }), cyl(616,112,3,40,{ y0: 22 })] },
     "Nexus Global": { note: "A tower topped by a huge broadband mast.", parts: [box(740,88,20,20,70), box(740,88,12,12,10,{ y0: 70 }), mast(740,88,40,{ y0: 80, dish: true })] },
@@ -350,7 +350,7 @@
     "Haven Council": `<path d="M9 21V9l3-4.5L15 9v12M5 21h14"/><circle cx="12" cy="12.5" r="2.3"/><path d="M12 11.3v1.2l.9.6"/>`,
     "Ember Freight": `<circle cx="12" cy="5" r="2"/><path d="M12 7v14M8 10.5h8M4.5 13.5a7.5 7.5 0 0 0 15 0M4.5 13.5l-1.3 1.8M19.5 13.5l1.3 1.8"/>`,
     "Crystal Holdings": `<path d="M4 11.5L12 5l8 6.5V20H4Z"/><path d="M8 13.5h2.5v2.5H8ZM13.5 13.5H16v2.5h-2.5ZM10.5 20v-2.5h3V20"/>`,
-    "Vault Secure": `<rect x="5.5" y="10.5" width="13" height="10" rx="1.5"/><path d="M8.5 10.5V7.5a3.5 3.5 0 0 1 7 0v3M12 14.5v2.5"/>`,
+    "Ironclad Alarms": `<rect x="5.5" y="10.5" width="13" height="10" rx="1.5"/><path d="M8.5 10.5V7.5a3.5 3.5 0 0 1 7 0v3M12 14.5v2.5"/>`,
     "Pinnacle Corp": `<path d="M2.5 20L9.5 7.5l4 6.5 2.5-3.5L21.5 20Z"/><path d="M7.7 10.7l1.8.9 1.6-1.3"/>`,
     "Helix Dynamics": `<path d="M3 20.5V12l5 3v-3l5 3v-3l3 2V4h3.5v16.5Z"/><path d="M6 17.5h2M11 17.5h2"/>`,
     "Nexus Global": `<path d="M12 10v11M8.5 21L12 10l3.5 11M9.5 17h5"/><circle cx="12" cy="8" r="1.4"/><path d="M8.3 4.6a5 5 0 0 0 0 6.8M15.7 4.6a5 5 0 0 1 0 6.8M5.6 2.5a8.5 8.5 0 0 0 0 11M18.4 2.5a8.5 8.5 0 0 1 0 11"/>`,

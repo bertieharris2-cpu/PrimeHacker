@@ -117,7 +117,7 @@
      rebuilds and the bank Prime Hack breaks into. Names match the accounts in modules/bank.js. */
   const TARGETS = {
     L1: ["Rivercross Utilities","Northwick Transit","Sentinel Finance","Haven Council"],
-    L2: ["Ember Freight","Crystal Holdings","Vault Secure","Pinnacle Corp"],
+    L2: ["Ember Freight","Crystal Holdings","Ironclad Alarms","Pinnacle Corp"],
     L3: ["Helix Dynamics","Nexus Global","Kronos Finance","Atlas Prime"],
   };
   const OP_A = ["SILENT","GLASS","IRON","HOLLOW","NEON","MIDNIGHT","COBALT","PAPER","STATIC","VELVET"];
@@ -128,7 +128,8 @@
   // This mission's bank and operation name, with fallbacks for a game opened on its own
   function mission(){
     const a = getAgent() || {};
-    return { target: a.target || "Rivercross Utilities", operation: a.operation || "SILENT HERON", codename: a.codename || "AGENT" };
+    const t = a.target === "Vault Secure" ? "Ironclad Alarms" : a.target;   // renamed target (older saves)
+    return { target: t || "Rivercross Utilities", operation: a.operation || "SILENT HERON", codename: a.codename || "AGENT" };
   }
 
   // A stable agent number made from the codename, e.g. "AG-4821-K"
