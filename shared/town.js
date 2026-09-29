@@ -1,4 +1,5 @@
-/* PRIMENET town: ONE description of the city, shared by the 2D target map (PNTown.svg) and the 3D laser town (PNTown.segments).
+/* PRIMENET town: ONE description of the city, shared by the 2D target maps (PNTown.svg detailed, PNTown.plainSvg plain) and the 3D laser town
+   (PNTown.segments for the whole town, PNTown.near for the neighbourhood round one target).
    Change a street, the river or a building here and both follow. Map units: the map is 860 x 400, x east, y south;
    heights are in map units too. In 3D, 1 map unit = 0.1 (x → X, height → Y, y → Z, centred on the map). No THREE needed. */
 (function(){
@@ -13,7 +14,7 @@
   };
   const DISTRICTS = [
     { id: "L1", name: "Old Town", rgb: "47,191,138", c: [.55, 1, .85], poly: [[0,0],[325,0],[325,400],[0,400]], label: [16, 386] },
-    { id: "L2", name: "Harbour", rgb: "74,163,255", c: [.6, .85, 1], poly: [[325,180],[590,180],[590,400],[325,400]], label: [340, 386] },
+    { id: "L2", name: "Harbour", rgb: "74,163,255", c: [.6, .85, 1], poly: [[325,180],[590,180],[590,400],[325,400]], label: [334, 386] },
     { id: "L3", name: "Financial District", rgb: "255,201,77", c: [1, .92, .72], poly: [[325,0],[860,0],[860,400],[590,400],[590,180],[325,180]], label: [626, 386] },
   ];
   let seed = 11; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;   // same town every time
@@ -160,6 +161,29 @@
     }
   });
 
+  // ---------- Infill: more small buildings in the gaps, used only by the 3D neighbourhood (so the plain map and the detailed map stay as they are) ----------
+  const infill = [];
+  (function(){
+    let sd = 29; const r2 = () => (sd = (sd * 16807) % 2147483647) / 2147483647, q2 = (a, b) => a + r2() * (b - a);
+    const FILL = { L1: { p: 12, w: [7, 11], d: [7, 11], h: [7, 14] }, L2: { p: 16, w: [12, 19], d: [9, 12], h: [8, 12] } };
+    const all = taken.slice();
+    Object.entries(FILL).forEach(([id, L]) => {
+      for(let y = L.p / 2; y < H; y += L.p) for(let x = L.p / 2; x < W; x += L.p){
+        if(districtAt(x, y) !== id) continue;
+        const w = q2(...L.w), d = q2(...L.d), cx = x + q2(-2, 2), cy = y + q2(-2, 2), r = rectOf(cx, cy, w, d);
+        if(r.x0 < 4 || r.x1 > W - 4 || r.y0 < 4 || r.y1 > H - 4) continue;
+        if([[r.x0, r.y0], [r.x1, r.y0], [r.x0, r.y1], [r.x1, r.y1]].some(([a, b]) => districtAt(a, b) !== id)) continue;
+        if(all.some(t => rectHit(r, t, 3)) || streets.some(s => rectHit(r, streetRect(s), 2)) || parks.some(p => rectHit(r, p, 3)) || targetRects.some(t => rectHit(r, t, 5)) || docks.some(k => rectHit(r, k, 4))) continue;
+        const probe = [[cx, cy], [r.x0, r.y0], [r.x1, r.y0], [r.x0, r.y1], [r.x1, r.y1], [cx, r.y0], [cx, r.y1], [r.x0, cy], [r.x1, cy]];
+        if(probe.some(([a, b]) => riverDist(a, b) < RIVER_HW + (id === "L2" ? 6 : 3) || railDist(a, b) < 9)) continue;
+        all.push(r);
+        if(r2() < .15) continue;   // a car park
+        const parts = [box(cx, cy, w, d, q2(...L.h), { roof: id === "L2" ? (r2() < .5 ? "saw" : "pitch") : (r2() < .35 ? "pitch" : "flat"), rh: 4 })];
+        infill.push({ district: id, x: cx, y: cy, parts, ext: extent(parts) });
+      }
+    });
+  })();
+
   // ---------- 2D: the SVG map (viewBox 0 0 860 400) ----------
   const f1 = v => (Math.round(v * 10) / 10);
   const P = pts => pts.map((p, i) => (i ? "L" : "M") + f1(p[0]) + " " + f1(p[1])).join("");
@@ -211,8 +235,8 @@
   // ---------- 3D: every line of the town as {a, b, kind, grp, c, k, bid, tgt}. kind 0 = on the ground, 1 = building ----------
   const X = v => (v - W / 2) * S, Z = v => (v - H / 2) * S, Y = v => v * S;
   const toWorld = (x, y, h = 0) => [X(x), Y(h), Z(y)];
-  function partSegs(p, push){
-    const L = (a, b) => push(toWorld(a[0], a[2], a[1]), toWorld(b[0], b[2], b[1]));   // points given as [x, height, y]
+  function partSegs(p, push, tw = toWorld){   // tw(x, y, height) → [X, Y, Z]
+    const L = (a, b) => push(tw(a[0], a[2], a[1]), tw(b[0], b[2], b[1]));   // points given as [x, height, y]
     const y0 = p.y0 || 0, y1 = y0 + p.h;
     if(p.t === "box"){
       const r = rectOf(p.x, p.y, p.w, p.d), cs = [[r.x0, r.y0], [r.x1, r.y0], [r.x1, r.y1], [r.x0, r.y1]], rh = p.rh || 6;
@@ -261,6 +285,79 @@
     return out;
   }
 
+  // ---------- 2D: the plain target map (districts, river, main roads, parks, rail, docks; no buildings) ----------
+  function plainSvg(){
+    let g = `<defs><pattern id="pnt-grid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M40 0H0V40" fill="none" stroke="rgba(47,191,138,.07)"/></pattern></defs>
+      <rect x="-900" y="-600" width="${W + 1800}" height="${H + 1200}" fill="#051215"/><rect x="-900" y="-600" width="${W + 1800}" height="${H + 1200}" fill="url(#pnt-grid)"/>`;
+    DISTRICTS.forEach(d => { g += `<path d="${P(d.poly)}Z" fill="rgba(${d.rgb},.05)"/>`; });
+    g += `<path d="M325 0V400M325 180H590V400" fill="none" stroke="rgba(255,255,255,.1)" stroke-dasharray="4 6"/>`;   // district borders
+    streets.filter(s => !s.main).forEach(s => { g += `<path d="M${f1(s.x1)} ${f1(s.y1)}L${f1(s.x2)} ${f1(s.y2)}" stroke="rgba(120,200,210,.08)" stroke-width="2"/>`; });   // side streets, faint
+    streets.filter(s => s.main).forEach(s => { g += `<path d="M${f1(s.x1)} ${f1(s.y1)}L${f1(s.x2)} ${f1(s.y2)}" stroke="rgba(120,200,210,.2)" stroke-width="${s.hw * 2}"/>`; });   // main roads
+    parks.forEach(p => { g += `<rect x="${p.x0}" y="${p.y0}" width="${p.x1 - p.x0}" height="${p.y1 - p.y0}" rx="7" fill="rgba(47,191,138,.2)" stroke="rgba(47,191,138,.35)"/>`; });
+    g += `<path d="${P(river.pts)}" fill="none" stroke="#0c3550" stroke-width="${RIVER_HW * 2}" stroke-linejoin="round"/>
+      <path d="${P(river.left)}M${P(river.right).slice(1)}" fill="none" stroke="rgba(74,163,255,.35)"/>
+      <path d="${P(river.pts)}" fill="none" stroke="#12496b" stroke-width="3" stroke-dasharray="10 12"/>`;
+    streets.filter(s => s.span).forEach(s => { const [a, b] = s.span; g += `<path d="M${f1(a[0])} ${f1(a[1])}L${f1(b[0])} ${f1(b[1])}" stroke="rgba(150,215,225,.3)" stroke-width="${s.hw * 2}"/>`; });   // bridges
+    docks.forEach(k => { g += `<rect x="${f1(k.x0)}" y="${f1(k.y0)}" width="${f1(k.x1 - k.x0)}" height="${f1(k.y1 - k.y0)}" fill="#0d2a30" stroke="rgba(74,163,255,.5)"/>`; });
+    g += `<path d="${P(offset(rail.pts, -2.5))}M${P(offset(rail.pts, 2.5)).slice(1)}" fill="none" stroke="rgba(255,214,120,.4)"/>
+      <path d="${P(rail.pts)}" fill="none" stroke="rgba(255,214,120,.24)" stroke-width="9" stroke-dasharray="1.5 5"/>`;
+    return g + labelsSvg();
+  }
+  // Map symbols for the 12 targets (24 x 24, drawn in line with currentColor)
+  const ICONS = {
+    "Rivercross Utilities": `<path d="M12 3C9.5 7.5 6 10.8 6 14.6a6 6 0 0 0 12 0C18 10.8 14.5 7.5 12 3Z"/><path d="M9.3 15a2.8 2.8 0 0 0 2.4 2.6"/>`,
+    "Northwick Transit": `<rect x="6" y="3" width="12" height="14" rx="3"/><path d="M6 10h12M9 20l-2 2M15 20l2 2"/><circle cx="9" cy="14" r=".8"/><circle cx="15" cy="14" r=".8"/>`,
+    "Sentinel Finance": `<path d="M3.5 9L12 4l8.5 5Z"/><path d="M6.5 11v7M10 11v7M14 11v7M17.5 11v7M4 20.5h16"/>`,
+    "Haven Council": `<path d="M9 21V9l3-4.5L15 9v12M5 21h14"/><circle cx="12" cy="12.5" r="2.3"/><path d="M12 11.3v1.2l.9.6"/>`,
+    "Ember Freight": `<circle cx="12" cy="5" r="2"/><path d="M12 7v14M8 10.5h8M4.5 13.5a7.5 7.5 0 0 0 15 0M4.5 13.5l-1.3 1.8M19.5 13.5l1.3 1.8"/>`,
+    "Crystal Holdings": `<path d="M4 11.5L12 5l8 6.5V20H4Z"/><path d="M8 13.5h2.5v2.5H8ZM13.5 13.5H16v2.5h-2.5ZM10.5 20v-2.5h3V20"/>`,
+    "Vault Secure": `<rect x="5.5" y="10.5" width="13" height="10" rx="1.5"/><path d="M8.5 10.5V7.5a3.5 3.5 0 0 1 7 0v3M12 14.5v2.5"/>`,
+    "Pinnacle Corp": `<path d="M2.5 20L9.5 7.5l4 6.5 2.5-3.5L21.5 20Z"/><path d="M7.7 10.7l1.8.9 1.6-1.3"/>`,
+    "Helix Dynamics": `<path d="M3 20.5V12l5 3v-3l5 3v-3l3 2V4h3.5v16.5Z"/><path d="M6 17.5h2M11 17.5h2"/>`,
+    "Nexus Global": `<path d="M12 10v11M8.5 21L12 10l3.5 11M9.5 17h5"/><circle cx="12" cy="8" r="1.4"/><path d="M8.3 4.6a5 5 0 0 0 0 6.8M15.7 4.6a5 5 0 0 1 0 6.8M5.6 2.5a8.5 8.5 0 0 0 0 11M18.4 2.5a8.5 8.5 0 0 1 0 11"/>`,
+    "Kronos Finance": `<path d="M7 3h10M7 21h10M8.5 3v2.5c0 2.3 3.5 4.2 3.5 6.5s-3.5 4.2-3.5 6.5V21M15.5 3v2.5c0 2.3-3.5 4.2-3.5 6.5s3.5 4.2 3.5 6.5V21"/><path d="M10 19h4"/>`,
+    "Atlas Prime": `<path d="M9 21V6h6v15M12 6V2M4.5 21v-9H9M15 10h4.5v11M3 21h18"/><path d="M11 9h2M11 12h2M11 15h2"/>`,
+  };
+
+  // ---------- 3D: the neighbourhood round one target, centred on it, for the laser drawing ----------
+  // Map units → world: x and y times k (x → X, y → Z), heights times hv (the target's own building gets up to hvT, kept below maxTop).
+  // Segments: {a, b, kind (0 ground, 1 building), grp, c (colour), k (brightness)}. The target's own lines come back separately.
+  function near(name, o = {}){
+    const t = targets[name], e = t.ext, cx = (e.x0 + e.x1) / 2, cy = (e.y0 + e.y1) / 2;
+    const K = o.k || .25, HALF = o.half || 140, HV = o.hv || .12, HT = Math.min(o.hvTarget || .15, (o.maxTop || 16) / e.top);
+    const tw = (x, y, h = 0) => [(x - cx) * K, h * HV, (y - cy) * K], twT = (x, y, h = 0) => [(x - cx) * K, h * HT, (y - cy) * K];
+    const inside = (x, y, m = 0) => Math.abs(x - cx) <= HALF + m && Math.abs(y - cy) <= HALF + m;
+    const segs = [], add = (a, b, s) => segs.push({ a, b, ...s });
+    // A line in map units, cut into pieces no longer than step; pieces in the window are kept (dash: every other piece)
+    const cut = (pts, s, step, h = 0, dash = false) => { let n = 0;
+      for(let i = 1; i < pts.length; i++){ const p = pts[i - 1], q = pts[i], m = Math.max(1, Math.ceil(Math.hypot(q[0] - p[0], q[1] - p[1]) / step));
+        for(let j = 0; j < m; j++){ const a = [p[0] + (q[0] - p[0]) * j / m, p[1] + (q[1] - p[1]) * j / m], b = [p[0] + (q[0] - p[0]) * (j + 1) / m, p[1] + (q[1] - p[1]) * (j + 1) / m];
+          if(dash && n++ % 2) continue;
+          if(inside((a[0] + b[0]) / 2, (a[1] + b[1]) / 2)) add(tw(a[0], a[1], h), tw(b[0], b[1], h), s); } } };
+    const ST = { kind: 0, grp: "street", c: [.75, .95, 1], k: .5 };
+    streets.forEach(s => { const v = s.x1 === s.x2;
+      [-1, 1].forEach(d => cut([[s.x1 + (v ? d * s.hw : 0), s.y1 + (v ? 0 : d * s.hw)], [s.x2 + (v ? d * s.hw : 0), s.y2 + (v ? 0 : d * s.hw)]], ST, 16));
+      if(s.span) [-1, 1].forEach(d => { const [a, b] = s.span, dx = v ? d * s.hw : 0, dy = v ? 0 : d * s.hw;   // bridge railings, raised a little
+        cut([[a[0] + dx, a[1] + dy], [b[0] + dx, b[1] + dy]], { kind: 0, grp: "bridge", c: [.85, .97, 1], k: .8 }, 16, 4); }); });
+    const RV = { kind: 0, grp: "river", c: [.45, .75, 1], k: 1 };
+    cut(river.left, RV, 8); cut(river.right, RV, 8); cut(river.pts, { ...RV, k: .45 }, 5, 0, true);
+    const RL = { kind: 0, grp: "rail", c: [1, .88, .55], k: .7 };
+    cut(offset(rail.pts, -2.5), RL, 10); cut(offset(rail.pts, 2.5), RL, 10);
+    const s1 = offset(rail.pts, -4.5), s2 = offset(rail.pts, 4.5);
+    s1.forEach((p, i) => { if(i % 2 || !inside(p[0], p[1])) return; add(tw(...p), tw(...s2[i]), { ...RL, k: .4 }); });
+    parks.forEach(p => { const PK = { kind: 0, grp: "park", c: [.45, 1, .7], k: .85 };
+      cut([[p.x0, p.y0], [p.x1, p.y0], [p.x1, p.y1], [p.x0, p.y1], [p.x0, p.y0]], PK, 12);
+      p.trees.forEach(([x, y]) => { if(!inside(x, y)) return; add(tw(x, y), tw(x, y, 5), { ...PK, k: .55 }); add(tw(x - 2.2, y, 5), tw(x + 2.2, y, 5), PK); add(tw(x, y - 2.2, 5), tw(x, y + 2.2, 5), PK); }); });
+    docks.forEach(k => cut([[k.x0, k.y0], [k.x1, k.y0], [k.x1, k.y1], [k.x0, k.y1], [k.x0, k.y0]], { kind: 0, grp: "dock", c: [.6, .85, 1], k: .8 }, 12));
+    const BL = { kind: 1, grp: "building", c: [.75, .95, 1], k: .85 };
+    buildings.concat(infill).forEach(b => { if(inside(b.x, b.y)) b.parts.forEach(p => partSegs(p, (a, c) => add(a, c, BL), tw)); });
+    Object.values(targets).forEach(u => { if(u.name !== name && inside(u.x, u.y)) u.parts.forEach(p => partSegs(p, (a, c) => add(a, c, BL), tw)); });   // other targets, as buildings
+    const tgt = []; t.parts.forEach(p => partSegs(p, (a, b) => tgt.push({ a, b, kind: 1, grp: "target" }), twT));
+    // The river's water in the window, as pairs of bank points (for a faint surface)
+    const water = []; river.pts.forEach((p, i) => { if(inside(p[0], p[1], 30)) water.push([tw(...river.left[i]), tw(...river.right[i])]); });
+    return { name, segs, target: tgt, water, k: K, half: HALF, hv: HV, w: (e.x1 - e.x0) * K, d: (e.y1 - e.y0) * K, top: e.top * HT, cx, cy };
+  }
+
   window.PNTown = { W, H, S, DISTRICT, SECURITY, PINS, DISTRICTS, targets, buildings, streets, river, rail, parks, docks,
-    districtAt, toWorld, svg, labels, labelsSvg, segments };
+    districtAt, toWorld, svg, labels, labelsSvg, segments, plainSvg, ICONS, near };
 })();

@@ -9,33 +9,42 @@
 <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Inter:wght@400;600;700;800&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../shared/primenet.css">
 <style>
-  /* Map lab (teacher sandbox): the briefing's target map, drawn from shared/town.js, morphs into the same town in 3D.
-     Lasers draw it, the camera zooms onto the chosen building, TARGET LOCKED. ?target=Name jumps straight in. */
+  /* Map lab (teacher sandbox): a plain target map with a symbol for each target (drawn from shared/town.js). Lock a target and the map zooms
+     in on it and fades to dark, then four lasers draw the neighbourhood round it (river, parks, rail, docks, streets, buildings, all from the
+     same town as the map) in the style of target_locked.html, the camera zooms onto the target's own building, TARGET LOCKED.
+     ?target=Name jumps straight in. */
   body{ min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px; box-sizing:border-box; }
   .lab{ position:relative; z-index:1; width:min(980px,100%); }
   .head{ font-family:var(--font-ui); font-weight:700; letter-spacing:.24em; font-size:13px; color:var(--accent); text-transform:uppercase; margin-bottom:12px; display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; }
   .head span{ color:var(--text-faint); letter-spacing:.14em; }
   .foot{ margin:10px 2px 0; font-size:14px; color:var(--text-faint); display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; }
   .foot a{ color:var(--text-muted); }
-  .lab .head, .lab .tcard, .lab .foot, .lab .pn-panel, .pin{ transition:opacity .4s ease; }
-  .lab.locking .head, .lab.locking .tcard, .lab.locking .foot, .lab.locking .pin:not(.sel){ opacity:0; }
-  /* Target map (as in briefing.html, every pin open) */
+  .lab .head, .lab .tcard, .lab .foot, .pin{ transition:opacity .4s ease; }
+  .lab.locking .head, .lab.locking .tcard, .lab.locking .foot, .lab.locking .pin:not(.sel){ opacity:0; pointer-events:none; }
+  /* The target map: districts, river, roads, parks, rail, docks, and a symbol for each target */
   .map{ position:relative; width:100%; aspect-ratio: 860 / 400; border:1px solid var(--line-strong); background:#051215; overflow:hidden; }
   .map svg{ position:absolute; inset:0; width:100%; height:100%; }
-  .pin{ position:absolute; transform:translate(-50%,-100%); font:inherit; font-family:var(--font-ui); font-size:12px; letter-spacing:.08em; font-weight:700; padding:3px 7px; white-space:nowrap;
-        background:rgba(4,14,17,.9); color:#eafff6; border:1px solid var(--accent); cursor:pointer; box-shadow:0 0 14px rgba(var(--accent-rgb),.35); z-index:1; }
-  .pin::after{ content:""; position:absolute; left:50%; bottom:-7px; width:8px; height:8px; margin-left:-4px; border-radius:50%; background:var(--accent); animation:pinPulse 1.4s ease-out infinite; }
-  @keyframes pinPulse{ 0%{ box-shadow:0 0 0 0 rgba(var(--accent-rgb),.6); } 100%{ box-shadow:0 0 0 14px rgba(var(--accent-rgb),0); } }
-  .pin.sel{ background:var(--accent); color:#041012; z-index:2; }
-  .pin.ghost{ position:fixed; z-index:6; pointer-events:none; }
-  .pin.ghost::after{ animation:none; }
+  .pin{ --c:47,191,138; position:absolute; transform:translate(-50%,-17px); display:flex; flex-direction:column; align-items:center; gap:3px; padding:0; border:0; background:none; cursor:pointer; z-index:1; font:inherit; }
+  .pin .ic{ position:relative; width:34px; height:34px; border-radius:50%; display:grid; place-items:center; box-sizing:border-box;
+    background:rgba(4,14,17,.92); border:2px solid rgba(var(--c),.9); color:rgb(var(--c)); box-shadow:0 0 12px rgba(var(--c),.3); transition:background .2s, color .2s, box-shadow .2s; }
+  .pin .ic svg{ width:22px; height:22px; fill:none; stroke:currentColor; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; }
+  .pin .nm{ font-family:var(--font-ui); font-size:12px; font-weight:700; letter-spacing:.05em; white-space:nowrap; color:#eafff6; background:rgba(4,14,17,.82); padding:1px 6px; border:1px solid rgba(var(--c),.35); }
+  .pin:hover .ic, .pin:focus-visible .ic{ box-shadow:0 0 18px rgba(var(--c),.7); }
+  .pin:focus-visible{ outline:none; }
+  .pin:focus-visible .nm{ border-color:rgb(var(--c)); }
+  .pin.sel{ z-index:2; }
+  .pin.sel .ic{ background:rgb(var(--c)); color:#041012; }
+  .pin.sel .ic::after{ content:""; position:absolute; inset:-2px; border-radius:50%; animation:pinPulse 1.8s ease-out infinite; }
+  .pin.sel .nm{ background:rgb(var(--c)); color:#041012; }
+  @keyframes pinPulse{ 0%{ box-shadow:0 0 0 0 rgba(var(--c),.55); } 100%{ box-shadow:0 0 0 14px rgba(var(--c),0); } }
   .tcard{ display:grid; grid-template-columns:1fr auto; gap:10px 18px; align-items:center; border:1px solid var(--line); padding:12px 14px; margin-top:12px; min-height:64px; }
   .tcard .nm{ font-family:var(--font-ui); font-weight:700; font-size:20px; letter-spacing:.06em; }
   .tcard .hook{ font-size:16px; line-height:1.45; margin:4px 0 6px; max-width:62ch; }
   .tcard .meta{ font-size:14px; color:var(--text-muted); line-height:1.5; }
   .tcard .meta b{ color:var(--text-primary); }
-  /* The cinematic (styles from target_locked.html) */
-  .cine{ position:fixed; inset:0; z-index:10; font-family:var(--font-ui); }
+  /* The cinematic (as in target_locked.html) */
+  .cine{ position:fixed; inset:0; z-index:10; font-family:var(--font-ui); pointer-events:none; }
+  .cine.live{ pointer-events:auto; }
   .cine[hidden]{ display:none; }
   .cine-bg{ position:absolute; inset:0; background:radial-gradient(ellipse at 50% 55%, #0b2a33 0%, #04101a 55%, #01060a 100%); opacity:0; }
   .tl-stage{ position:absolute; inset:0; z-index:1; }
@@ -50,32 +59,34 @@
   .tl-head.on{ opacity:1; }
   .tl-head b{ color:#bff4ff; font-weight:700; }
   .tl-head em{ font-style:normal; color:#ffc94d; }
+  /* the lock-on brackets close in on the building (their size and place come from the final camera) */
   .tl-ret{ position:absolute; z-index:3; pointer-events:none; opacity:0; transform:translate(-50%,-50%);
     transition:width 1.1s cubic-bezier(.2,.8,.2,1), height 1.1s cubic-bezier(.2,.8,.2,1), opacity .3s; }
-  .tl-ret i{ position:absolute; width:30px; height:30px; border:3px solid #6fe8ff; filter:drop-shadow(0 0 6px rgba(111,232,255,.7)); }
+  .tl-ret i{ position:absolute; width:34px; height:34px; border:3px solid #6fe8ff; filter:drop-shadow(0 0 6px rgba(111,232,255,.7)); }
   .tl-ret i:nth-child(1){ left:0; top:0; border-right:0; border-bottom:0; }
   .tl-ret i:nth-child(2){ right:0; top:0; border-left:0; border-bottom:0; }
   .tl-ret i:nth-child(3){ left:0; bottom:0; border-right:0; border-top:0; }
   .tl-ret i:nth-child(4){ right:0; bottom:0; border-left:0; border-top:0; }
   .tl-ret.on{ opacity:1; }
   .tl-ret.locked i{ border-color:#ffc94d; filter:drop-shadow(0 0 10px rgba(255,201,77,.8)); }
-  .tl-stamp{ position:absolute; left:50%; top:81%; z-index:4; transform:translate(-50%,-50%) rotate(-6deg) scale(2.4); opacity:0; pointer-events:none; text-align:center;
-    border:5px solid #ffc94d; padding:14px 34px 12px; background:rgba(20,12,0,.6); box-shadow:0 0 40px rgba(255,201,77,.35), inset 0 0 30px rgba(255,201,77,.18); }
-  .tl-stamp b{ display:block; font-size:clamp(30px, 4vw, 52px); letter-spacing:.14em; white-space:nowrap; color:#ffc94d; text-shadow:0 0 24px rgba(255,201,77,.6); line-height:1; }
+  .tl-stamp{ position:absolute; left:50%; top:72%; z-index:4; transform:translate(-50%,-50%) rotate(-6deg) scale(2.4); opacity:0; pointer-events:none; text-align:center;
+    border:5px solid #ffc94d; padding:14px 34px 12px; background:rgba(20,12,0,.55); box-shadow:0 0 40px rgba(255,201,77,.35), inset 0 0 30px rgba(255,201,77,.18); }
+  .tl-stamp b{ display:block; font-size:clamp(30px, 4vw, 54px); letter-spacing:.14em; white-space:nowrap; color:#ffc94d; text-shadow:0 0 24px rgba(255,201,77,.6); line-height:1; }
   .tl-stamp span{ display:block; margin-top:10px; font-size:clamp(16px, 1.9vw, 24px); letter-spacing:.22em; color:#fff3cf; text-transform:uppercase; }
   .tl-stamp.on{ animation:tlStamp .38s cubic-bezier(.3,1.6,.5,1) forwards, tlShake .3s .38s steps(3) 1; }
   @keyframes tlStamp{ 0%{ opacity:0; transform:translate(-50%,-50%) rotate(-6deg) scale(2.4); } 100%{ opacity:1; transform:translate(-50%,-50%) rotate(-6deg) scale(1); } }
   @keyframes tlShake{ 33%{ margin-left:4px; } 66%{ margin-left:-3px; } }
   .cut{ position:absolute; inset:0; z-index:5; background:#01060a; opacity:0; pointer-events:none; transition:opacity .4s ease; }
   .bar{ position:absolute; left:50%; bottom:16px; transform:translateX(-50%); z-index:6; display:flex; gap:10px; flex-wrap:wrap; justify-content:center; }
+  .cine:not(.live) .bar{ visibility:hidden; }
   .tl-nogl{ position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); color:rgba(140,230,255,.7); font-family:var(--font-mono); letter-spacing:.2em; z-index:3; }
   .pn-powerup{ position:fixed; inset:0; z-index:9999; display:flex; align-items:center; justify-content:center; background:rgba(4,14,17,.72); font-family:var(--font-ui); }
   .pn-powerup div{ border:1px solid rgba(var(--accent-rgb),.6); background:rgba(9,32,38,.92); padding:22px 30px; text-align:center; letter-spacing:.16em; font-weight:700; color:var(--accent); }
   .pn-powerup small{ display:block; margin-top:8px; letter-spacing:.06em; font-weight:400; color:var(--text-muted); }
-  @media (max-width:700px){ .tl-head{ left:16px; font-size:12px; } .pin{ font-size:10px; padding:2px 5px; } }
-  /* Reduced motion: no pulsing pins, no sweep, the brackets and stamp just appear */
-  @media (prefers-reduced-motion: reduce){ .pin::after, .tl-scan::after{ animation:none; } .tl-ret{ transition:opacity .3s; } .tl-stamp.on{ animation:none; opacity:1; transform:translate(-50%,-50%) rotate(-6deg); } }
-  .pn-reduce-motion .pin::after, .pn-reduce-motion .tl-scan::after{ animation:none; }
+  @media (max-width:700px){ .tl-head{ left:16px; font-size:12px; } .pin .nm{ font-size:10px; } .pin .ic{ width:26px; height:26px; } .pin .ic svg{ width:17px; height:17px; } .pin{ transform:translate(-50%,-13px); } }
+  /* Reduced motion: no pulsing, no sweep, the brackets and stamp just appear */
+  @media (prefers-reduced-motion: reduce){ .pin.sel .ic::after, .tl-scan::after{ animation:none; } .tl-ret{ transition:opacity .3s; } .tl-stamp.on{ animation:none; opacity:1; transform:translate(-50%,-50%) rotate(-6deg); } }
+  .pn-reduce-motion .pin.sel .ic::after, .pn-reduce-motion .tl-scan::after{ animation:none; }
   .pn-reduce-motion .tl-ret{ transition:opacity .3s; }
   .pn-reduce-motion .tl-stamp.on{ animation:none; opacity:1; transform:translate(-50%,-50%) rotate(-6deg); }
 </style>
@@ -85,7 +96,7 @@
   <div class="head">MAP LAB // TARGET MAP → TOWN <span>TEACHER SANDBOX · EVERY TARGET OPEN</span></div>
   <div class="pn-panel" style="padding:18px 20px">
     <div class="map" id="map"><svg viewBox="0 0 860 400" aria-hidden="true" id="mapSvg"></svg></div>
-    <div class="tcard" id="tcard"><div class="meta">Pick any target on the map, then press <b>Lock target</b> to watch the map turn into the 3D town.</div></div>
+    <div class="tcard" id="tcard"><div class="meta">Pick any target on the map, then press <b>Lock target</b> to watch the lasers draw the streets round it.</div></div>
   </div>
   <div class="foot"><a href="../index.html">Back to teacher tools</a><span>Tip: add <b>?target=Atlas Prime</b> to the address to jump straight to a target.</span></div>
 </main>
@@ -95,7 +106,6 @@
   <div class="tl-stage" id="stage" aria-hidden="true"></div>
   <div class="tl-scan" id="scan"></div><div class="tl-vig" id="vig"></div>
   <div class="tl-head" id="head"></div>
-  <div class="pin sel ghost" id="ghost" aria-hidden="true"></div>
   <div class="tl-ret" id="ret"><i></i><i></i><i></i><i></i></div>
   <div class="tl-stamp" id="stamp" role="status" aria-live="polite"><b>TARGET LOCKED</b><span id="stampName"></span></div>
   <div class="cut" id="cut"></div>
@@ -123,62 +133,67 @@
   if(Q.get("motion") === "reduced") document.documentElement.classList.add("pn-reduce-motion");   // for trying the reduced motion version
   const reduced = () => !!(PN && PN.reducedMotion ? PN.reducedMotion() : document.documentElement.classList.contains("pn-reduce-motion"));
   const NAMES = Object.values(PN.TARGETS).flat();
-  const lab = $("#lab"), card = $("#tcard"), cine = $("#cine"), ghost = $("#ghost"), ret = $("#ret"), stamp = $("#stamp"), cut = $("#cut");
+  const DRGB = Object.fromEntries(T.DISTRICTS.map(d => [d.id, d.rgb]));
+  const lab = $("#lab"), card = $("#tcard"), cine = $("#cine"), ret = $("#ret"), stamp = $("#stamp"), cut = $("#cut"), svgEl = $("#mapSvg");
   let cur = null, runId = 0;
 
-  // ---------- The 2D map, drawn from PNTown ----------
-  $("#mapSvg").innerHTML = T.svg() + `<rect id="selRing" fill="none" stroke="#7dffc4" stroke-width="1.6" visibility="hidden"/>` + T.labelsSvg();
+  // ---------- The 2D map, drawn from PNTown, with a symbol for each target ----------
+  svgEl.innerHTML = T.plainSvg();
   const pins = {};
+  let vb = [0, 0, T.W, T.H];   // the map's view box (it changes as the map zooms in)
   NAMES.forEach(name => {
-    const t = T.targets[name], [x, y] = T.PINS[name];
-    const b = document.createElement("button"); b.type = "button"; b.className = "pin"; b.textContent = name;
-    b.style.left = x + "%"; b.style.top = y + "%";
+    const t = T.targets[name];
+    const b = document.createElement("button"); b.type = "button"; b.className = "pin"; b.style.setProperty("--c", DRGB[t.level]);
+    b.innerHTML = `<span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true">${T.ICONS[name]}</svg></span><span class="nm">${name}</span>`;
     b.setAttribute("aria-label", `${name}, ${T.DISTRICT[t.level]}, security ${T.SECURITY[t.level]}`);
     b.addEventListener("click", () => { select(name); SND("tag"); $("#lockTarget").focus(); });
     $("#map").appendChild(b); pins[name] = b;
   });
+  function setView(v){
+    vb = v; svgEl.setAttribute("viewBox", v.map(n => Math.round(n * 100) / 100).join(" "));
+    NAMES.forEach(name => { const t = T.targets[name]; pins[name].style.left = (t.x - v[0]) / v[2] * 100 + "%"; pins[name].style.top = (t.y - v[1]) / v[3] * 100 + "%"; });
+  }
+  setView(vb);
   function select(name){
-    cur = name; const t = T.targets[name], e = t.ext, r = $("#selRing");
+    cur = name; const t = T.targets[name];
     Object.values(pins).forEach(p => p.classList.toggle("sel", p === pins[name]));
-    r.setAttribute("x", e.x0 - 4); r.setAttribute("y", e.y0 - 4); r.setAttribute("width", e.x1 - e.x0 + 8); r.setAttribute("height", e.y1 - e.y0 + 8); r.setAttribute("visibility", "visible");
     card.innerHTML = `<div><div class="nm">${name}</div><div class="hook">${PNStory.TARGETS[name].hook}</div>
       <div class="meta">${T.DISTRICT[t.level]} · security <b>${T.SECURITY[t.level]}</b> · ${t.note}</div></div>
       <button class="pn-btn primary pn-go" type="button" id="lockTarget">Lock target</button>`;
     $("#lockTarget").addEventListener("click", () => play(name));
   }
 
-  // ---------- The 3D town (the scene and lasers from target_locked.html) ----------
-  const CYAN = 0x6fe8ff, S = T.S, FOV = 40, TAN = Math.tan(FOV / 2 * Math.PI / 180);
-  let renderer = null, sc, cam, world, G = null, city = [], target = null, plane = null, ribbon = null, rings = [], lasers = [];
-  let tiltK = 0, mapP = 0, zoomK = 0, tint = 0, bgOp = 0, townOp = 1, camTop = null, zDone = -1;
-  const SEGS = T.segments();
+  // ---------- The 3D scene: target_locked.html's camera, lasers and tracer, drawing the neighbourhood round the target ----------
+  const CYAN = 0x6fe8ff, FOV = 38;
+  let renderer = null, sc, cam, world, G = null, city = [], target = null, water = null, rings = [], lasers = [], NB = null;
+  let mapP = 0, zoomK = 0, tint = 0, bgOp = 0, townOp = 1, zDone = -1;
   (function scene(){
     if(!window.THREE) return;
     try{ renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true }); }catch(e){ renderer = null; return; }
     renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1)); renderer.setClearColor(0x000000, 0);
     $("#stage").appendChild(renderer.domElement);
-    sc = new THREE.Scene(); cam = new THREE.PerspectiveCamera(FOV, 1, 0.1, 600);
+    sc = new THREE.Scene(); cam = new THREE.PerspectiveCamera(FOV, 1, 0.1, 300);
     world = new THREE.Group(); sc.add(world);
-    // The lasers: beams from six emitters up high, each with a glowing tip
+    // The lasers: beams from four emitters up high, each with a glowing tip
     const dot = (() => { const c = document.createElement("canvas"); c.width = c.height = 64; const x = c.getContext("2d"), gr = x.createRadialGradient(32, 32, 0, 32, 32, 32);
       gr.addColorStop(0, "rgba(255,255,255,1)"); gr.addColorStop(.25, "rgba(160,240,255,.8)"); gr.addColorStop(1, "rgba(111,232,255,0)"); x.fillStyle = gr; x.fillRect(0, 0, 64, 64); return new THREE.CanvasTexture(c); })();
-    const EMIT = [[-30, 24, -28], [0, 26, -30], [30, 24, -28], [-30, 24, 26], [0, 26, 28], [30, 24, 26]];
+    const EMIT = [[22, 20, -22], [-22, 20, -22], [22, 20, 18], [-22, 20, 18]];
     lasers = EMIT.map(e => {
       const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute([...e, ...e], 3));
       const beam = new THREE.Line(g, new THREE.LineBasicMaterial({ color: 0xbff4ff, transparent: true, opacity: .85, blending: THREE.AdditiveBlending, depthWrite: false })); beam.frustumCulled = false; world.add(beam);
-      const tip = new THREE.Sprite(new THREE.SpriteMaterial({ map: dot, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false })); tip.scale.setScalar(2.6); world.add(tip);
+      const tip = new THREE.Sprite(new THREE.SpriteMaterial({ map: dot, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false })); tip.scale.setScalar(2.8); world.add(tip);
       const src = new THREE.Sprite(tip.material); src.position.set(...e); src.scale.setScalar(1.6); world.add(src);
       return { beam, tip, src };
     });
     function size(){ const w = window.innerWidth, h = window.innerHeight; renderer.setSize(w, h, false); cam.aspect = w / h; cam.updateProjectionMatrix(); }
-    size(); window.addEventListener("resize", () => { size(); if(ret.classList.contains("on")) placeRet(ret.classList.contains("close")); });
+    size(); window.addEventListener("resize", () => { size(); if(ret.classList.contains("on")) placeRet(true); });
     requestAnimationFrame(frame);
   })();
   if(!renderer){ const d = document.createElement("div"); d.className = "tl-nogl"; d.textContent = "3D VIEW OFFLINE"; $("#stage").appendChild(d); }
 
   // A set of segments that a laser draws in order; the last one grows to meet the laser's tip
   function tracer(list, colFn, parent){
-    const n = list.length, src = new Float32Array(n * 6), col = new Float32Array(n * 8);   // colour is RGBA: fading uses alpha
+    const n = list.length, src = new Float32Array(n * 6), col = new Float32Array(n * 8);   // colour is RGBA: fading uses alpha, or faded lines turn black
     list.forEach((s, i) => { src.set(s.a, i * 6); src.set(s.b, i * 6 + 3); const c = colFn(s); col.set([...c, ...c], i * 8); });
     const g = new THREE.BufferGeometry(), pos = new THREE.BufferAttribute(src.slice(), 3), ca = new THREE.BufferAttribute(col.slice(), 4);
     g.setAttribute("position", pos); g.setAttribute("color", ca); g.setDrawRange(0, 0);
@@ -194,131 +209,92 @@
       return p >= 1 ? null : tip.set(a[k * 6 + 3], a[k * 6 + 4], a[k * 6 + 5]);
     } };
   }
-  // The 2D map as a picture, laid flat in 3D exactly where the map was: the morph starts from it
-  function mapTexture(){
-    return new Promise(res => {
-      const TW = 2150, TH = 1000, svg = $("#mapSvg").cloneNode(true);
-      svg.querySelectorAll(".pnt-label").forEach(e => e.remove());
-      svg.setAttribute("xmlns", "http://www.w3.org/2000/svg"); svg.setAttribute("width", TW); svg.setAttribute("height", TH);
-      const img = new Image();
-      img.onload = () => {
-        const c = document.createElement("canvas"); c.width = TW; c.height = TH; const x = c.getContext("2d"), k = TW / T.W;
-        x.drawImage(img, 0, 0, TW, TH);
-        T.labels().forEach(l => { x.font = `500 ${13 * k}px "Chakra Petch", sans-serif`; try{ x.letterSpacing = 3 * k + "px"; }catch(e){} x.fillStyle = `rgba(${l.rgb},.6)`; x.fillText(l.text, l.x * k, l.y * k); });
-        const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = renderer.capabilities.getMaxAnisotropy(); res(t);
-      };
-      img.onerror = () => res(null);
-      img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(new XMLSerializer().serializeToString(svg));
-    });
-  }
   function flowTex(){   // soft streaks for the river's slow current
     const c = document.createElement("canvas"); c.width = 64; c.height = 256; const x = c.getContext("2d");
     for(let i = 0; i < 14; i++){ const u = 6 + Math.random() * 52, v = Math.random() * 256, l = 20 + Math.random() * 50, g = x.createLinearGradient(0, v, 0, v + l);
       g.addColorStop(0, "rgba(110,190,255,0)"); g.addColorStop(.5, "rgba(110,190,255,.55)"); g.addColorStop(1, "rgba(110,190,255,0)"); x.fillStyle = g; x.fillRect(u, v, 2, l); }
     const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; return t;
   }
-  // Build the town for this target: the chosen building is drawn last and turns gold
-  function build(name, tex){
+  const fade = (x, z) => Math.max(.12, Math.min(1, 1 - (Math.hypot(x, z) - 16) / 24));   // dimmer towards the edge of the map
+  // Build the neighbourhood for this target: streets, river, rail, parks and docks first, then buildings, each laser from the middle outwards
+  function build(name){
     if(G){ world.remove(G); G.traverse(o => { if(o.geometry) o.geometry.dispose(); if(o.material){ if(o.material.map) o.material.map.dispose(); o.material.dispose(); } }); }
     G = new THREE.Group(); world.add(G);
-    const tg = T.targets[name];
-    if(tex){ plane = new THREE.Mesh(new THREE.PlaneGeometry(T.W * S, T.H * S), new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false }));
-      plane.rotation.x = -Math.PI / 2; plane.position.y = -.02; plane.renderOrder = -1; G.add(plane); } else plane = null;
-    // The river: a faint ribbon of water with a slow current (the lasers trace its banks)
-    const L = T.river.left, R = T.river.right, pos = [], uv = [], idx = [];
-    let len = 0; L.forEach((p, i) => { if(i) len += Math.hypot(T.river.pts[i][0] - T.river.pts[i - 1][0], T.river.pts[i][1] - T.river.pts[i - 1][1]);
-      pos.push(...T.toWorld(p[0], p[1], .1), ...T.toWorld(R[i][0], R[i][1], .1)); uv.push(0, len / 60, 1, len / 60);
+    NB = T.near(name);
+    // The river's water: a faint ribbon with a slow current, fading towards the edge (the lasers trace its banks)
+    const pos = [], uv = [], cl = [], idx = []; let len = 0;
+    NB.water.forEach(([l, r], i) => { if(i){ const [pl] = NB.water[i - 1]; len += Math.hypot(l[0] - pl[0], l[2] - pl[2]); }
+      pos.push(l[0], .03, l[2], r[0], .03, r[2]); uv.push(0, len / 20, 1, len / 20);
+      cl.push(1, 1, 1, fade(l[0], l[2]), 1, 1, 1, fade(r[0], r[2]));
       if(i) idx.push(i * 2 - 2, i * 2 - 1, i * 2, i * 2 - 1, i * 2 + 1, i * 2); });
-    const rg = new THREE.BufferGeometry(); rg.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); rg.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2)); rg.setIndex(idx);
-    ribbon = new THREE.Mesh(rg, new THREE.MeshBasicMaterial({ map: flowTex(), color: 0x6fb8ff, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide })); G.add(ribbon);
-    // Six lasers share the town: each takes a sixth of the map, ground lines first, then buildings, from its middle outwards
-    const streams = [[], [], [], [], [], []];
-    SEGS.forEach(s => {
-      if(s.tgt === name) return;
-      const mx = (s.a[0] + s.b[0]) / 2, mz = (s.a[2] + s.b[2]) / 2, col = mx < -14.3 ? 0 : mx < 14.3 ? 1 : 2, row = mz < 0 ? 0 : 1;
-      const ax = s.kind ? T.toWorld(s.cx, s.cy)[0] : mx, az = s.kind ? T.toWorld(s.cx, s.cy)[2] : mz;
-      streams[row * 3 + col].push({ ...s, d: Math.hypot(ax - (col - 1) * 28.7, az - (row ? 10 : -10)) });
-    });
-    streams.forEach(l => l.sort((p, q) => p.kind - q.kind || p.d - q.d));
-    city = streams.map(l => tracer(l, s => [...s.c, s.k], G));
-    target = tracer(SEGS.filter(s => s.tgt === name), () => [1, 1, 1, 1], G);
+    const rg = new THREE.BufferGeometry(); rg.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); rg.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2)); rg.setAttribute("color", new THREE.Float32BufferAttribute(cl, 4)); rg.setIndex(idx);
+    water = new THREE.Mesh(rg, new THREE.MeshBasicMaterial({ map: flowTex(), color: 0x6fb8ff, vertexColors: true, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide })); G.add(water);
+    // The town, split between four lasers by quarter
+    const streams = [[], [], [], []], quad = (x, z) => (x >= 0 ? 0 : 1) + (z >= 0 ? 0 : 2);
+    NB.segs.forEach(s => { const mx = (s.a[0] + s.b[0]) / 2, mz = (s.a[2] + s.b[2]) / 2; streams[quad(mx, mz)].push({ ...s, d: Math.hypot(mx, mz), f: fade(mx, mz) }); });
+    streams.forEach(l => l.sort((p, q) => p.kind - q.kind || p.d - q.d));   // ground first, from the middle outwards
+    city = streams.map(l => tracer(l, s => [...s.c, s.k * s.f], G));
+    // The target's own building: the lasers finish on it, gold once it's locked
+    target = tracer(NB.target, () => [.75, .95, 1, 1], G);
     // Ground rings round the target (they fade in as the camera arrives)
-    const e = tg.ext, [cx, , cz] = T.toWorld((e.x0 + e.x1) / 2, (e.y0 + e.y1) / 2), r0 = Math.hypot(e.x1 - e.x0, e.y1 - e.y0) * S * .62 + .6;
-    rings = [0, .5, 1.3].map((dr, k) => {
-      const c = new THREE.BufferGeometry().setFromPoints(Array.from({ length: 97 }, (_, i) => { const a = i / 96 * Math.PI * 2; return new THREE.Vector3(Math.cos(a) * (r0 + dr), 0, Math.sin(a) * (r0 + dr)); }));
-      const l = new THREE.Line(c, new THREE.LineBasicMaterial({ color: CYAN, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false })); l.position.set(cx, .05, cz); G.add(l);
+    const r0 = Math.hypot(NB.w, NB.d) * .64;
+    rings = [1, 1.17, 1.39].map((m, k) => {
+      const c = new THREE.BufferGeometry().setFromPoints(Array.from({ length: 97 }, (_, i) => { const a = i / 96 * Math.PI * 2; return new THREE.Vector3(Math.cos(a) * r0 * m, 0, Math.sin(a) * r0 * m); }));
+      const l = new THREE.Line(c, new THREE.LineBasicMaterial({ color: CYAN, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false })); G.add(l);
       return [l, k === 0 ? .55 : .25];
     });
     zDone = -1;
   }
 
-  // ---------- Cameras: flat over the 2D map, the whole town at an angle, the target close up ----------
-  const V = (x, y, z) => new THREE.Vector3(x, y, z);
-  function alignTop(){   // straight down, scaled so the town lies exactly over the 2D map on screen
-    const r = $("#mapSvg").getBoundingClientRect(), s = Math.min(r.width / (T.W * S), r.height / (T.H * S)), w = innerWidth, h = innerHeight;
-    const wx = (w / 2 - (r.left + r.width / 2)) / s, wz = (h / 2 - (r.top + r.height / 2)) / s, hc = h / (s * 2 * TAN);
-    return { pos: V(wx, hc, wz + .002), look: V(wx, 0, wz) };
+  // ---------- Cameras: target_locked's view from high over the town, then down to the building (framed to its size) ----------
+  const V = (x, y, z) => new THREE.Vector3(x, y, z), TAN2 = 2 * Math.tan(FOV / 2 * Math.PI / 180), EL = Math.atan2(2.1, 15.5);
+  const C0 = V(0, 46, 32), L0 = V(0, 0, 2);
+  function targetView(){
+    const a = innerWidth / innerHeight, dist = Math.max(NB.top / (.4 * TAN2), Math.hypot(NB.w, NB.d) * .8 / (.34 * TAN2 * a), 12), look = V(0, NB.top * .52, 0);
+    return { pos: look.clone().add(V(0, Math.sin(EL) * dist, Math.cos(EL) * dist)), look };
   }
-  const orbit = (look, dist, el, az) => look.clone().add(V(Math.sin(az) * Math.cos(el) * dist, Math.sin(el) * dist, Math.cos(az) * Math.cos(el) * dist));
-  function overview(k){   // k: how far the lasers have got (a slow push in and turn while they draw)
-    const a = innerWidth / innerHeight, el = 50 * Math.PI / 180, look = V(0, 1.5, 1.5);
-    const dist = Math.max(52 / (TAN * a), 27 / TAN) * (1 - .04 * k);
-    return { pos: orbit(look, dist, el, .1 * k), look };
-  }
-  const AZ1 = .38;
-  function targetView(name, az){
-    const e = T.targets[name].ext, [cx, , cz] = T.toWorld((e.x0 + e.x1) / 2, (e.y0 + e.y1) / 2), bw = (e.x1 - e.x0) * S, bd = (e.y1 - e.y0) * S, bh = e.top * S;
-    const el = 22 * Math.PI / 180, a = innerWidth / innerHeight;
-    const dist = Math.max((bh * Math.cos(el) + Math.max(bw, bd) * Math.sin(el)) / (2 * TAN * .4), Math.hypot(bw, bd) / (2 * TAN * a * .36), 7);
-    const look = V(cx, bh * .5 - .15 * 2 * TAN * dist, cz);   // the building sits a little above the middle, clear of the stamp
-    return { pos: orbit(look, dist, el, az), look, cx, cz, bw, bd, bh, e };
-  }
-  function project(v){ const p = v.clone().project(cam); return [(p.x + 1) / 2 * innerWidth, (1 - p.y) / 2 * innerHeight]; }
+  const WROT = .3, wrot = () => reduced() ? WROT : WROT + t * .025;   // the town turns slowly, as in target_locked
   // The brackets frame the building as the final camera will see it
   function placeRet(close){
-    const tv = targetView(cur, reduced() ? .25 : AZ1), c = cam.clone(); c.position.copy(tv.pos); c.lookAt(tv.look); c.updateMatrixWorld(); c.updateProjectionMatrix();
-    let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
-    for(const x of [tv.e.x0, tv.e.x1]) for(const y of [tv.e.y0, tv.e.y1]) for(const h of [0, tv.e.top]){
-      const p = V(...T.toWorld(x, y, h)).project(c), sx = (p.x + 1) / 2 * innerWidth, sy = (1 - p.y) / 2 * innerHeight;
-      x0 = Math.min(x0, sx); x1 = Math.max(x1, sx); y0 = Math.min(y0, sy); y1 = Math.max(y1, sy); }
-    const w = x1 - x0 + 40, h = y1 - y0 + 40, k = close ? 1 : 1.9;
+    const tv = targetView(), c = cam.clone(); c.position.copy(tv.pos); c.lookAt(tv.look); c.updateMatrixWorld(); c.updateProjectionMatrix();
+    world.updateMatrixWorld();
+    let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9; const v = V(0, 0, 0);
+    NB.target.forEach(s => [s.a, s.b].forEach(p => { v.set(...p).applyMatrix4(world.matrixWorld).project(c);
+      const sx = (v.x + 1) / 2 * innerWidth, sy = (1 - v.y) / 2 * innerHeight; x0 = Math.min(x0, sx); x1 = Math.max(x1, sx); y0 = Math.min(y0, sy); y1 = Math.max(y1, sy); }));
+    const w = Math.max(220, x1 - x0 + 70), h = Math.max(220, y1 - y0 + 70), k = close ? 1 : 1.5;
     Object.assign(ret.style, { left: (x0 + x1) / 2 + "px", top: (y0 + y1) / 2 + "px", width: w * k + "px", height: h * k + "px" });
   }
 
   // ---------- Every frame ----------
   const ease = k => k < .5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
   const clamp = v => Math.max(0, Math.min(1, v));
-  const gold = new THREE.Color(0xffc94d), cyan = new THREE.Color(CYAN), P0 = V(0, 0, 0), L0 = V(0, 0, 0);
+  const gold = new THREE.Color(0xffc94d), cyan = new THREE.Color(CYAN), look = V(0, 0, 0);
   let last = performance.now(), t = 0;
   function frame(now){ requestAnimationFrame(frame); tick(now); }
   function tick(now){
     const dt = Math.min(.1, (now - last) / 1000), rm = reduced(); last = now; t += dt;
-    if(cine.hidden || !G || !camTop) return;
-    const ov = overview(rm ? 0 : mapP);
-    if(zoomK > 0){ const z = ease(zoomK), tv = targetView(cur, rm ? .25 : .1 + (AZ1 - .1) * z); P0.lerpVectors(ov.pos, tv.pos, z); L0.lerpVectors(ov.look, tv.look, z); }
-    else { const k = ease(tiltK); P0.lerpVectors(camTop.pos, ov.pos, k); L0.lerpVectors(camTop.look, ov.look, k); }
-    cam.position.copy(P0); cam.lookAt(L0);
-    // Lasers draw the town, then all six finish on the target
-    const tips = city.map(c => c.set(mapP / .8)), tt = target.set((mapP - .74) / .26);
+    $("#cineBg").style.opacity = $("#scan").style.opacity = $("#vig").style.opacity = bgOp;
+    if(cine.hidden || !G) return;
+    // Camera: from high over the town down to the building
+    const z = ease(zoomK), tv = targetView();
+    cam.position.lerpVectors(C0, tv.pos, z); look.lerpVectors(L0, tv.look, z); cam.lookAt(look);
+    world.rotation.y = wrot();
+    // Lasers draw the town, then all four finish on the target
+    const tips = city.map(c => c.set(mapP / .8)), tt = target.set((mapP - .72) / .28);
     const lk = mapP > 0 && mapP < 1 && !rm ? 1 : 0;
     lasers.forEach((L, i) => {
       const p = tips[i] || tt, on = lk && p; L.beam.visible = L.tip.visible = !!on; L.src.visible = !!lk;
       if(on){ const a = L.beam.geometry.attributes.position; a.setXYZ(1, p.x, p.y, p.z); a.needsUpdate = true; L.tip.position.copy(p); }
     });
-    // As the camera zooms in, the rest of the town fades back; the ground lines stay faintly
+    // The rest of the town fades back as the camera zooms in; the ground lines stay faintly
     if(zoomK !== zDone){ zDone = zoomK;
-      city.forEach(c => { c.list.forEach((s, i) => { const v = c.col[i * 8 + 3] * (s.kind ? .06 + .94 * Math.pow(1 - zoomK, 2) : 1 - .6 * zoomK); c.ca.array[i * 8 + 3] = c.ca.array[i * 8 + 7] = v; }); c.ca.needsUpdate = true; });
+      city.forEach(c => { c.list.forEach((s, i) => { const v = c.col[i * 8 + 3] * (s.kind ? Math.pow(1 - zoomK, 2) : 1 - .7 * zoomK); c.ca.array[i * 8 + 3] = c.ca.array[i * 8 + 7] = v; }); c.ca.needsUpdate = true; });
     }
     city.forEach(c => { c.mat.opacity = townOp; });
-    if(plane) plane.material.opacity = (1 - .78 * ease(clamp(mapP * 1.4))) * (1 - .6 * zoomK);   // the flat map fades back as the 3D lines take over
-    ribbon.material.opacity = .5 * clamp(mapP * 4) * townOp * (1 - .5 * zoomK);
-    if(!rm) ribbon.material.map.offset.y -= dt * .12;
+    water.material.opacity = .45 * clamp(mapP * 3) * townOp * (1 - .6 * zoomK);
+    if(!rm) water.material.map.offset.y -= dt * .1;
     target.mat.color.copy(cyan).lerp(gold, tint * .9);
-    rings.forEach(([l, op]) => { l.material.opacity = op * zoomK; l.material.color.copy(cyan).lerp(gold, tint * .6); if(!rm) l.rotation.y = -t * .15; });
-    // The chosen pin rides along on its building until the lasers take over
-    const e = T.targets[cur], [gx, gy] = project(V(...T.toWorld(e.x, e.y)));
-    ghost.style.left = gx + "px"; ghost.style.top = gy + "px"; ghost.style.opacity = rm ? (tiltK ? 0 : 1) : 1 - clamp((mapP - .1) / .3);
-    $("#cineBg").style.opacity = $("#scan").style.opacity = $("#vig").style.opacity = bgOp;
+    rings.forEach(([l, op]) => { l.material.opacity = op * zoomK; l.material.color.copy(cyan).lerp(gold, tint * .55); if(!rm) l.rotation.y = -t * .15; });
     renderer.render(sc, cam);
   }
 
@@ -329,55 +305,62 @@
   }
   const stat = s => { const e = $("#stat"); if(e) e.textContent = s; };
   const fadeCut = (on, ms) => { cut.style.transitionDuration = ms + "ms"; cut.style.opacity = on ? 1 : 0; return sleep(ms); };
+  // The 2D map zooms in on the target: the view box closes in on the area round it
+  const ZOOM = 2.3;
+  function zoomMap(ms, id){
+    const tg = T.targets[cur], w = T.W / ZOOM, h = T.H / ZOOM, to = [tg.x - w / 2, tg.y - h / 2, w, h];
+    return tween(ms, k => { const e = ease(k); setView([0, 0, T.W, T.H].map((v, i) => v + (to[i] - v) * e)); }, id);
+  }
   function reset(){
-    tiltK = mapP = zoomK = tint = bgOp = 0; townOp = 1; camTop = null;
-    ret.className = "tl-ret"; stamp.className = "tl-stamp"; cut.style.transitionDuration = "0ms"; cut.style.opacity = 0; $("#head").classList.remove("on");
+    mapP = zoomK = tint = bgOp = t = 0; townOp = 1; setView([0, 0, T.W, T.H]);   // t = 0: the town's slow turn starts from the same angle every time
+    ret.className = "tl-ret"; stamp.className = "tl-stamp"; cut.style.transitionDuration = "0ms"; cut.style.opacity = 0; $("#head").classList.remove("on"); cine.classList.remove("live");
+    $("#cineBg").style.opacity = $("#scan").style.opacity = $("#vig").style.opacity = 0;
   }
   async function play(name){
     if(!renderer){ select(name); return; }
     const id = ++runId, alive = () => id === runId, rm = reduced();
     reset(); cine.hidden = true; lab.classList.remove("locking");
-    select(name);
-    const tex = await mapTexture(); if(!alive()) return;
-    build(name, tex);
+    select(name); build(name);
     const tg = T.targets[name];
-    $("#head").innerHTML = `PRIMENET // MAP LAB<br>TARGET <b>${name.toUpperCase()}</b><br>${T.DISTRICT[tg.level].toUpperCase()} · SECURITY ${T.SECURITY[tg.level].toUpperCase()}<br><em id="stat">MAP LOCKED IN</em>`;
-    $("#stampName").textContent = name; ghost.textContent = name;
+    $("#head").innerHTML = `PRIMENET // TARGET ACQUISITION<br>${T.DISTRICT[tg.level].toUpperCase()} · SECURITY <b>${T.SECURITY[tg.level].toUpperCase()}</b><br>SIGNAL TRACED TO <b>${name.toUpperCase()}</b><br><em id="stat">MAPPING THE TOWN</em>`;
+    $("#stampName").textContent = name;
     SND("lock"); lab.classList.add("locking");
-    await sleep(rm ? 250 : 450); if(!alive()) return;
-    camTop = alignTop(); cine.hidden = false; $("#head").classList.add("on"); tick(performance.now());   // place the ghost pin before the first paint
     if(rm){
       // Reduced motion: fades and cuts, no lasers, no camera moves
       await sleep(400); if(!alive()) return;
-      await fadeCut(1, 400); if(!alive()) return;
-      tiltK = 1; bgOp = 1; mapP = 1; townOp = 0; stat("TOWN MAPPED");
+      cine.hidden = false; cine.classList.add("live");
+      await fadeCut(1, 500); if(!alive()) return;
+      bgOp = 1; mapP = 1; townOp = 0; $("#head").classList.add("on"); tick(performance.now());
       await fadeCut(0, 500); if(!alive()) return;
       await tween(1400, k => { townOp = k; }, id); if(!alive()) return;
       await sleep(1600); if(!alive()) return;
       stat("TARGET BUILDING FOUND"); SND("chirp");
       await sleep(500); await fadeCut(1, 400); if(!alive()) return;
-      zoomK = 1; placeRet(true); ret.classList.add("on", "close");
+      zoomK = 1; tick(performance.now()); placeRet(true); ret.classList.add("on");
       await fadeCut(0, 400); if(!alive()) return;
       await sleep(300); if(!alive()) return;
     } else {
-      // 1. The flat map tilts into perspective
-      SND("whoosh");
-      tween(1800, k => { tiltK = k; bgOp = k; }, id);
-      await sleep(1200); if(!alive()) return;
-      // 2. Lasers trace the town: streets, river, rail and parks, then every building
-      stat("BUILDING THE TOWN"); SND("laser");
-      [1100, 2200, 3300].forEach(ms => setTimeout(() => { if(alive() && mapP < 1) SND("laser"); }, ms));
-      await tween(4600, k => { mapP = k; }, id); if(!alive()) return;
-      stat("TARGET BUILDING FOUND"); SND("chirp");
-      await sleep(300); if(!alive()) return;
-      // 3. Zoom onto the chosen building, the brackets closing in
+      // 1. The map zooms in on the area round the target, then fades to dark
       SND("zoom");
-      setTimeout(() => { if(!alive()) return; placeRet(false); ret.classList.add("on"); requestAnimationFrame(() => requestAnimationFrame(() => { if(alive()){ ret.classList.add("close"); placeRet(true); } })); }, 900);
-      await tween(2000, k => { zoomK = k; }, id); if(!alive()) return;
-      await sleep(150); if(!alive()) return;
+      const zm = zoomMap(1150, id);
+      await sleep(700); if(!alive()) return;
+      cine.hidden = false;
+      await tween(800, k => { bgOp = k; }, id); await zm; if(!alive()) return;
+      cine.classList.add("live"); $("#head").classList.add("on");
+      await sleep(250); if(!alive()) return;
+      // 2. Lasers trace the neighbourhood: streets, river, rail, parks and docks, then the buildings, then the target
+      SND("laser"); [1300, 2600, 3900].forEach(ms => setTimeout(() => { if(alive() && mapP < 1) SND("laser"); }, ms));
+      await tween(5200, k => { mapP = k; }, id); if(!alive()) return;
+      stat("TARGET BUILDING FOUND"); SND("chirp");
+      await sleep(250); if(!alive()) return;
+      // 3. Zoom in on the target's building, brackets closing in
+      SND("zoom");
+      setTimeout(() => { if(!alive()) return; placeRet(false); ret.classList.add("on"); requestAnimationFrame(() => requestAnimationFrame(() => { if(alive()) placeRet(true); })); }, 700);
+      await tween(1900, k => { zoomK = k; }, id); if(!alive()) return;
+      await sleep(100); if(!alive()) return;
     }
     // 4. TARGET LOCKED
-    ret.classList.add("on", "close", "locked"); tint = 1;
+    placeRet(true); ret.classList.add("on", "locked"); tint = 1;
     stamp.classList.add("on"); SND("lockon"); stat("TARGET LOCKED");
     $("#replay").focus();
   }
