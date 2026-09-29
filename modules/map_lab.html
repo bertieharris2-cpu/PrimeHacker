@@ -23,7 +23,7 @@
   .lab.locking .head, .lab.locking .tcard, .lab.locking .foot, .lab.locking .pin:not(.sel){ opacity:0; pointer-events:none; }
   /* The target map: districts, river, roads, parks, rail, docks, and a symbol for each target */
   .map{ position:relative; width:100%; aspect-ratio: 860 / 400; border:1px solid var(--line-strong); background:#051215; overflow:hidden; }
-  .map svg{ position:absolute; inset:0; width:100%; height:100%; }
+  .map > svg{ position:absolute; inset:0; width:100%; height:100%; }
   .pin{ --c:47,191,138; position:absolute; transform:translate(-50%,-17px); display:flex; flex-direction:column; align-items:center; gap:3px; padding:0; border:0; background:none; cursor:pointer; z-index:1; font:inherit; }
   .pin .ic{ position:relative; width:34px; height:34px; border-radius:50%; display:grid; place-items:center; box-sizing:border-box;
     background:rgba(4,14,17,.92); border:2px solid rgba(var(--c),.9); color:rgb(var(--c)); box-shadow:0 0 12px rgba(var(--c),.3); transition:background .2s, color .2s, box-shadow .2s; }
@@ -144,10 +144,12 @@
   NAMES.forEach(name => {
     const t = T.targets[name];
     const b = document.createElement("button"); b.type = "button"; b.className = "pin"; b.style.setProperty("--c", DRGB[t.level]);
-    b.innerHTML = `<span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true">${T.ICONS[name]}</svg></span><span class="nm">${name}</span>`;
+    b.innerHTML = `<span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><g>${T.ICONS[name]}</g></svg></span><span class="nm">${name}</span>`;
     b.setAttribute("aria-label", `${name}, ${T.DISTRICT[t.level]}, security ${T.SECURITY[t.level]}`);
     b.addEventListener("click", () => { select(name); SND("tag"); $("#lockTarget").focus(); });
     $("#map").appendChild(b); pins[name] = b;
+    // Centre the symbol in its circle: shift it so the middle of its drawn box sits at the middle of the 24 x 24 view box
+    const g = b.querySelector(".ic g"); try{ const bb = g.getBBox(); if(bb.width) g.setAttribute("transform", `translate(${(12 - bb.x - bb.width / 2).toFixed(2)} ${(12 - bb.y - bb.height / 2).toFixed(2)})`); }catch(e){}
   });
   function setView(v){
     vb = v; svgEl.setAttribute("viewBox", v.map(n => Math.round(n * 100) / 100).join(" "));
