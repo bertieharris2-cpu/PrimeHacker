@@ -423,7 +423,21 @@
 .ffHint{ font-family:var(--font-ui); font-size:14px; letter-spacing:.12em; color:var(--muted); }
 .ffHint kbd{ font:inherit; font-weight:700; color:#03170e; background:var(--accent); padding:1px 7px; }
 .scope.ff{ box-shadow:0 0 0 2px rgba(var(--accent-rgb),.6) inset; }
-.intercept{ width:min(760px,100%); display:grid; gap:10px; justify-items:center; }
+.intercept{ width:min(760px,100%); display:grid; gap:8px; justify-items:center; margin-top:-6px; }
+.spk{ font:inherit; font-size:.72em; font-weight:700; margin-left:8px; padding:1px 6px; border:1px solid currentColor; opacity:.8; }
+/* Thin hack terminal under the scope: type to lock on (start) and to capture the email (end) */
+.ttSlot{ align-self:stretch; justify-self:stretch; width:100%; min-height:92px; display:grid; grid-template-columns:100%; align-content:start; justify-items:center; }   /* fixed space, so nothing jumps */
+.thinTerm{ justify-self:stretch; width:100%; box-sizing:border-box; display:grid; grid-template-columns:auto minmax(0,1fr) auto; align-items:center; gap:12px; border:1px solid rgba(var(--accent-rgb),.5); background:rgba(2,12,12,.85); padding:6px 12px; font-family:var(--font-mono); font-size:15px; }
+.thinTerm .lab{ font-family:var(--font-ui); font-weight:700; letter-spacing:.14em; color:var(--accent); font-size:13px; white-space:nowrap; }
+.thinTerm .code{ color:#9fffd4; white-space:nowrap; overflow:hidden; text-overflow:clip; direction:rtl; text-align:left; }
+.thinTerm .code span{ direction:ltr; unicode-bidi:bidi-override; }
+.thinTerm .code::after{ content:"▌"; color:var(--accent); animation:ttCur .8s steps(2) infinite; } @keyframes ttCur{ 50%{ opacity:0; } }
+.thinTerm .pc{ color:#ffe14d; min-width:3.5em; text-align:right; }
+.thinTerm .bar{ grid-column:1 / -1; height:4px; background:rgba(255,255,255,.08); } .thinTerm .bar i{ display:block; height:100%; width:0; background:var(--accent); box-shadow:0 0 10px rgba(var(--accent-rgb),.7); transition:width .12s linear; }
+.thinTerm .hint{ grid-column:1 / -1; font-family:var(--font-ui); font-size:14px; letter-spacing:.08em; color:var(--muted); text-align:center; }
+.thinTerm .hint kbd{ font:inherit; font-weight:700; color:#03170e; background:var(--accent); padding:0 6px; }
+.thinTerm.done{ border-color:#ffe14d; } .thinTerm.done .hint{ color:#ffe14d; }
+@media (prefers-reduced-motion: reduce){ .thinTerm .code::after{ animation:none; } }
 .scope{ position:relative; width:100%; height:270px; border:1px solid rgba(var(--accent-rgb),.45); background:#03110f; overflow:hidden; box-shadow:inset 0 0 40px rgba(0,0,0,.8); }
 .scope canvas{ position:absolute; inset:0; width:100%; height:100%; }
 .blip{ position:absolute; top:0; left:0; min-width:0 !important; padding:6px 10px !important; font-family:var(--font-mono) !important; font-size:1.15rem; font-weight:700; color:#d9fff0; background:rgba(3,20,16,.8) !important; border:1px solid rgba(var(--accent-rgb),.7) !important; box-shadow:0 0 14px rgba(var(--accent-rgb),.35); will-change:transform; }
@@ -576,6 +590,11 @@ html.pn-mode-on .devPanel{ top: calc(var(--pn-mode-h, 62px) + 50px); }
   const MODE = window.PNMode || { turn(){}, watch(){ return { end(){}, progress(){} }; } };
   let verifyBtnEl = null;
   const syncVerify = () => { if(verifyBtnEl) verifyBtnEl.disabled = selected.size === 0; };
+  // Bertie: SPACE presses VERIFY SIGNALS while tagging a band
+  document.addEventListener("keydown", e => {
+    if(e.code !== "Space" || state !== State.SCAN || !verifyBtnEl || !verifyBtnEl.isConnected || e.target.closest("input,textarea,[contenteditable]")) return;
+    e.preventDefault(); if(!verifyBtnEl.disabled && !e.repeat) verifyBtnEl.click();
+  });
 
   // ====== CONFIG (edit safely, no spaghetti) ======
   const CONFIG = {
@@ -827,7 +846,7 @@ html.pn-mode-on .devPanel{ top: calc(var(--pn-mode-h, 62px) + 50px); }
 
     const verifyBtn = el("button", {
       class: "pn-go",
-      text: "VERIFY SIGNALS",
+      html: "VERIFY SIGNALS <kbd class=\"spk\">SPACE</kbd>",
       onClick: () => verifyBand(b)
     });
     verifyBtnEl = verifyBtn; syncVerify();   // grey until at least one signal is tagged
@@ -982,6 +1001,36 @@ html.pn-mode-on .devPanel{ top: calc(var(--pn-mode-h, 62px) + 50px); }
     L3: { from: 50, to: 150, count: 18, travel: 4400, gap: 720 },
   };
   let interceptDone = null, interceptPerfect = false;
+  // A thin typing terminal (any key types code) placed under the scope. Resolves when the bar is full.
+  function thinTerm(host, { label, keys = 18, hint, doneText }){
+    return new Promise(resolve => {
+      const t = el("div", { class: "thinTerm", role: "group", "aria-label": label, html: `<span class="lab">${label}</span><span class="code"><span></span></span><span class="pc">0%</span><div class="bar"><i></i></div><div class="hint">${hint}: <kbd>any key</kbd> or tap</div>` });
+      host.appendChild(t);
+      const code = t.querySelector(".code span"), pc = t.querySelector(".pc"), bar = t.querySelector(".bar i");
+      const src = () => pick(["lock --freq 16.45MHz --carrier primes", "handshake(0x" + hex4() + ") OK", "tune(rx04, gain=38dB)", "filter.noise(prime_only=true)", "sync.carrier() -> STABLE", "decrypt --stream mail.enc"]);
+      let n = 0, line = src(), pos = 0, text = "";
+      MODE.turn(label.charAt(0) + label.slice(1).toLowerCase());
+      const key = e => {
+        if(e.type === "keydown" && (e.key.length !== 1 && e.key !== "Enter" && e.key !== "Backspace")) return;
+        if(e.type === "pointerdown" && e.target.closest("button,a,.blip")) return;
+        if(e.cancelable) e.preventDefault();
+        n++; SND("key");
+        const step = 3 + Math.floor(Math.random() * 4); text += line.slice(pos, pos + step); pos += step;
+        if(pos >= line.length){ text += "  "; line = src(); pos = 0; }
+        code.textContent = text.slice(-120);
+        const k = Math.min(1, n / keys); bar.style.width = Math.round(k * 100) + "%"; pc.textContent = Math.round(k * 100) + "%";
+        if(k >= 1){
+          document.removeEventListener("keydown", key, true); document.removeEventListener("pointerdown", key, true);
+          t.classList.add("done"); t.querySelector(".hint").textContent = doneText; SND("lockon");
+          setTimeout(() => resolve(t), 650);   // the full bar is seen first
+        }
+      };
+      document.addEventListener("keydown", key, true); document.addEventListener("pointerdown", key, true);
+      thinTerm.finish = () => { while(n < keys) key({ type: "keydown", key: "a" }); };   // teacher tools
+    });
+  }
+  const pick = a => a[Math.floor(Math.random() * a.length)];
+  const hex4 = () => Math.floor(Math.random() * 65536).toString(16).toUpperCase().padStart(4, "0");
   function renderIntercept(){
     state = State.INTERCEPT;
     const cfg = INTERCEPT[LEVEL_ID] || INTERCEPT.L1;
@@ -989,9 +1038,7 @@ html.pn-mode-on .devPanel{ top: calc(var(--pn-mode-h, 62px) + 50px); }
     const sp = () => (window.PNTest ? PNTest.speed() : 1);
     setStatus("LIVE INTERCEPT");
     setConsole("Live traffic detected.", "Click the prime peaks before they leave the scope.");
-    MODE.turn("Grab the prime peaks");
     clearMain();
-    if(window.PNHandler) PNHandler.once("scan-intercept", PNStory.LINES.scanPeaks, { delay: 200 });
 
     const pool = []; for(let n = cfg.from; n <= cfg.to; n++) pool.push(n);
     const pr = pool.filter(isPrime).sort(() => Math.random() - .5), co = pool.filter(n => !isPrime(n)).sort(() => Math.random() - .5);
@@ -1006,7 +1053,7 @@ html.pn-mode-on .devPanel{ top: calc(var(--pn-mode-h, 62px) + 50px); }
     scope.append(bg, fg, rx, rx2);
     const feed = el("div", { class: "scopeFeed", html: "<i></i>" });
     const hud = el("div", { class: "scopeHud" });
-    main.append(el("div", { class: "intercept" }, [heading, el("div", { class: "instruction", text: "Primes are stable signals. Click their peaks before they escape. Leave the noise." }), scope, feed, hud, el("div", { class: "ffHint", html: "Hold <kbd>SPACE</kbd> to fast-forward" })]));
+    main.append(el("div", { class: "intercept" }, [heading, el("div", { class: "instruction", text: "Primes are stable signals. Click their peaks before they escape. Leave the noise." }), scope, feed, hud, el("div", { class: "ttSlot" }, [el("div", { class: "ffHint", html: "Hold <kbd>SPACE</kbd> to fast-forward" })])]));
 
     const stats = { locked: 0, missed: 0, noise: 0, left: queue.length };
     const paintHud = () => { hud.innerHTML = `Locked <b>${stats.locked}</b> · Missed <b>${stats.missed}</b> · Noise clicked <b>${stats.noise}</b> · Incoming <b>${stats.left}</b>`; feed.firstChild.style.width = ((queue.length - stats.left) / queue.length * 100) + "%"; };
@@ -1027,6 +1074,8 @@ html.pn-mode-on .devPanel{ top: calc(var(--pn-mode-h, 62px) + 50px); }
     size();
 
     const blips = []; let spawned = 0, lastSpawn = -1e9, running = true, finishing = false;
+    // Bertie: the wave starts chaotic; a short hack under the scope locks on, the wave settles, then the numbers come
+    let chaos = 1, locked = false;
     // Bertie: hold SPACE to fast-forward the line (e.g. once every prime is clicked). The scope runs on its own clock.
     let vnow = performance.now(), lastReal = vnow, ff = 1;
     const ffKey = e => { if(e.code !== "Space" || e.target.closest("input,textarea,[contenteditable]")) return; e.preventDefault(); ff = e.type === "keydown" ? 4 : 1; scope.classList.toggle("ff", ff > 1); };
@@ -1060,7 +1109,8 @@ html.pn-mode-on .devPanel{ top: calc(var(--pn-mode-h, 62px) + 50px); }
       vnow += Math.min(100, real - lastReal) * ff; lastReal = real; const now = vnow;
       const prog = spawned / queue.length;                 // later signals move faster
       const travel = cfg.travel * slow * (1 - .22 * prog) / sp();
-      if(spawned < queue.length && now - lastSpawn > cfg.gap * slow * (1 - .2 * prog) / sp()){ spawn(queue[spawned++]); lastSpawn = now; stats.left = queue.length - spawned; paintHud(); }
+      if(locked) chaos = Math.max(0, chaos - .012);
+      if(locked && chaos < .15 && spawned < queue.length && now - lastSpawn > cfg.gap * slow * (1 - .2 * prog) / sp()){ spawn(queue[spawned++]); lastSpawn = now; stats.left = queue.length - spawned; paintHud(); }
       blips.forEach(b => { if(b.state === "live") b.x = W + 40 - ((now - b.born) / travel) * (W + 100); });
 
       // Phosphor persistence: fade the last frame instead of clearing it
@@ -1068,6 +1118,7 @@ html.pn-mode-on .devPanel{ top: calc(var(--pn-mode-h, 62px) + 50px); }
       const t = (now - t0) / 1000;
       const yAt = x => {
         let y = base() + Math.sin(x / 23 + t * 9) * 3 + Math.sin(x / 7 + t * 23) * 1.5 + (Math.random() - .5) * 2.2;
+        if(chaos > 0) y += chaos * (Math.sin(x / 11 + t * 17) * 34 + Math.sin(x / 3.3 - t * 41) * 14 + (Math.random() - .5) * 46);
         blips.forEach(b => { if(b.state === "live" || b.fade > 0){ const d = (x - b.x) / b.width; y -= b.amp * (b.state === "live" ? 1 : b.fade) * Math.exp(-d * d) * (1 + .06 * Math.sin(t * 30 + b.n)); } });
         return y;
       };
@@ -1097,14 +1148,25 @@ html.pn-mode-on .devPanel{ top: calc(var(--pn-mode-h, 62px) + 50px); }
       interceptPerfect = stats.missed === 0 && stats.noise === 0 && stats.locked > 0;
       setConsole("INTERCEPT CLOSED", `Locked ${stats.locked} of ${half} primes.`);
       // Bertie: while the line goes flat, a short typing moment captures the email, then ACCESS GRANTED
-      await MODE.typeThrough({ label: "CAPTURING THE EMAIL", keys: 20, hint: "Type anything to capture it" });
+      box.querySelectorAll(".ffHint").forEach(n => n.remove());
+      await thinTerm(box, { label: "CAPTURING THE EMAIL", keys: 20, hint: "Type anything to capture it", doneText: "EMAIL CAPTURED" });
       running = false;
       const w = MODE.watch("Access granted", { seconds: 2.4 });
       flashAccessGranted(() => { w.end(); renderComplete(); });
     }
     // Teacher test tool: close the intercept as if every prime was locked
-    interceptDone = () => { blips.forEach(b => { b.done = true; b.state = "gone"; b.el.remove(); }); spawned = queue.length; stats.locked = half; stats.left = 0; finish(); };
+    interceptDone = () => { if(!locked && thinTerm.finish) thinTerm.finish(); locked = true; chaos = 0; blips.forEach(b => { b.done = true; b.state = "gone"; b.el.remove(); }); spawned = queue.length; stats.locked = half; stats.left = 0; finish(); };
     requestAnimationFrame(frame);
+    // The chaotic channel: a thin hack under the scope locks on, then the wave settles and the peaks start
+    const box = main.querySelector(".ttSlot"), ffh = box.querySelector(".ffHint"); if(ffh) ffh.hidden = true;
+    setConsole("Channel found. Signal unstable.", "Type to lock on.");
+    thinTerm(box, { label: "LOCK ON", keys: 16, hint: "Type anything to lock on to the channel", doneText: "CHANNEL LOCKED · SIGNAL STABLE" }).then(t => {
+      if(locked) return;
+      locked = true; SND("verified"); setConsole("Channel locked.", "Click the prime peaks before they leave the scope.");
+      setTimeout(() => { t.remove(); if(ffh) ffh.hidden = false; }, 900);
+      MODE.turn("Grab the prime peaks");
+      if(window.PNHandler) PNHandler.once("scan-intercept", PNStory.LINES.scanPeaks, { delay: 200 });
+    });
   }
 
   function renderComplete(){

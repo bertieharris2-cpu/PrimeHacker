@@ -280,8 +280,6 @@
   async function brief(){
     $("#stepId").hidden = true; $("#stepMap").hidden = true; $("#stepBrief").hidden = false;
     $("#opName").textContent = "OPERATION " + m.operation;
-    MODE.turn("Type to open comms");
-    await MODE.typeThrough({ label: "OPENING COMMS", keys: 12 });
     SND("comms");
     const lines = LINES();
     // How long the typing takes: 24ms a letter, a short pause after each line, then the cards
