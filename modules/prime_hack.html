@@ -11,7 +11,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Inter:wght@400;600;700&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>FINANCIAL SYSTEMS INTERFACE</title>
+<title>PRIMENET // THE VAULT</title>
 <style>
   
 :root{
@@ -1327,7 +1327,53 @@ body::before{
 }
 button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [class*="Title"]{ font-family: var(--font-ui); }
 :root{ --text-size: 17px; --mono-size: 18px; }
-.fsiTitleMain{ color: var(--danger) !important; }
+
+/* ===== Round 18 (Bertie): the vault in the style of the rest of the game ===== */
+.vaultTop{ position:relative; z-index:1; display:flex; justify-content:space-between; align-items:center; padding:4px 2px 6px; }
+.vaultBrand{ font-family:var(--font-ui); font-weight:700; letter-spacing:.24em; font-size:13px; color:var(--accent); }
+.vaultStatus{ display:flex; align-items:center; gap:8px; font-family:var(--font-ui); font-size:13px; letter-spacing:.14em; color:rgba(235,255,248,.5); }
+.vdot{ width:8px; height:8px; border-radius:50%; background:var(--accent); box-shadow:0 0 10px var(--accent); animation:vdot 1.6s ease-in-out infinite; }
+@keyframes vdot{ 50%{ opacity:.35; } }
+.vaultTitle{ position:relative; z-index:1; margin:0 0 12px; font-family:var(--font-ui); font-weight:700; font-size:clamp(20px,2.4vw,26px); letter-spacing:.12em; text-transform:uppercase; color:#eafcff; }
+/* the terminal: a framed panel with corner brackets, like the scan's stage */
+.terminalWindow{ position:relative; background:rgba(6,18,22,.78) !important; border:1px solid rgba(17,90,110,.6) !important; box-shadow:none !important; }
+.terminalWindow::before, .terminalWindow::after{ content:""; position:absolute; width:22px; height:22px; border:2px solid var(--accent); pointer-events:none; }
+.terminalWindow::before{ top:-2px; left:-2px; border-right:0; border-bottom:0; }
+.terminalWindow::after{ bottom:-2px; right:-2px; border-left:0; border-top:0; }
+.prompt{ color:var(--accent) !important; }
+/* the bottom bar: a quiet status strip; no wallet or earnings while fees are parked */
+.hudBar{ background:linear-gradient(0deg, rgba(3,12,14,.92), rgba(3,12,14,.6)) !important; border-top:1px solid rgba(var(--accent-rgb),.22) !important; box-shadow:none !important; backdrop-filter:none !important; padding:8px 170px 8px 18px !important; }
+.hudPill{ background:transparent !important; border:0 !important; border-left:2px solid rgba(var(--accent-rgb),.45) !important; border-radius:0 !important; padding:2px 10px !important; font-size:12px !important; letter-spacing:.16em !important; text-transform:uppercase; color:rgba(235,255,248,.5) !important; }
+.hudPill strong{ color:#eafcff !important; font-family:var(--font-mono); letter-spacing:.04em; }
+.hudPill:has(#hudWalletLabel), .hudPill:has(#hudRunEarningsLabel), .hudPill:has(#hudDiffLabel){ display:none !important; }
+/* the buffer charge: the same terminal look as the docked typing terminal elsewhere */
+.bufferBox{ position:relative; background:rgba(3,16,23,.96) !important; border:1px solid #2fbf8a !important; border-radius:0 !important; box-shadow:0 18px 60px rgba(0,0,0,.7), 0 0 34px rgba(47,191,138,.22) !important; padding:40px 20px 16px !important; }
+.bufferBox::before{ content:"PRIMENET // CHARGING THE BREACH"; position:absolute; left:20px; top:12px; font-family:var(--font-ui); font-weight:700; font-size:13px; letter-spacing:.2em; color:#2fbf8a; }
+.bufCode{ background:rgba(0,0,0,.35) !important; border:0 !important; border-left:2px solid rgba(47,191,138,.4) !important; }
+.bufferRow{ font-family:var(--font-ui); letter-spacing:.14em !important; font-size:16px !important; }
+.meter{ border-radius:0 !important; border-color:rgba(47,191,138,.4) !important; background:transparent !important; }
+.bufferBox .seg{ border-color:rgba(47,191,138,.45); background:rgba(0,0,0,.4); }
+.bufferBox .seg.on{ background:#2fbf8a; box-shadow:0 0 10px rgba(47,191,138,.7); }
+/* the breach channel: framed like the other panels, calmer colours, a proper loading bar */
+.codeFloodOverlay{ background:rgba(2,8,10,.86) !important; }
+.codeFloodBox{ position:relative; background:rgba(3,16,23,.97) !important; border:1px solid rgba(17,90,110,.8) !important; box-shadow:0 20px 80px rgba(0,0,0,.8), 0 0 40px rgba(47,191,138,.14) !important; }
+.codeFloodBox::before, .codeFloodBox::after{ content:""; position:absolute; width:22px; height:22px; border:2px solid var(--accent); pointer-events:none; z-index:2; }
+.codeFloodBox::before{ top:-2px; left:-2px; border-right:0; border-bottom:0; }
+.codeFloodBox::after{ bottom:-2px; right:-2px; border-left:0; border-top:0; }
+.codeFloodHeader{ font-weight:700 !important; font-size:13px !important; letter-spacing:.24em !important; border-bottom-color:rgba(17,90,110,.6) !important; }
+.codeFloodStream{ font-size:17px !important; line-height:1.55 !important; }
+.codeFloodStream .warn{ color:#ffe68a !important; }
+.codeFloodBarWrap{ height:14px !important; margin:10px 20px 16px; border:1px solid #2fbf8a !important; background:transparent !important; }
+.codeFloodBarFill{ background:#2fbf8a !important; box-shadow:0 0 14px #2fbf8a !important; }
+.miniFloodOverlay{ background:rgba(2,8,10,.8) !important; }
+.miniFloodBox{ position:relative; background:rgba(3,16,23,.97) !important; border:1px solid rgba(17,90,110,.8) !important; border-radius:0 !important; box-shadow:0 20px 80px rgba(0,0,0,.8), 0 0 40px rgba(47,191,138,.14) !important; padding:14px 18px 18px !important; }
+.miniFloodBox::before, .miniFloodBox::after{ content:""; position:absolute; width:22px; height:22px; border:2px solid var(--accent); pointer-events:none; }
+.miniFloodBox::before{ top:-2px; left:-2px; border-right:0; border-bottom:0; } .miniFloodBox::after{ bottom:-2px; right:-2px; border-left:0; border-top:0; }
+.miniFloodTitle{ font-family:var(--font-ui); font-weight:700; font-size:13px !important; letter-spacing:.24em !important; color:var(--accent) !important; text-transform:uppercase; }
+.miniFloodTitle::before{ content:"PRIMENET // "; }
+.miniFloodStream{ border:0 !important; border-left:2px solid rgba(47,191,138,.4) !important; border-radius:0 !important; background:rgba(0,0,0,.35) !important; }
+.miniFloodBarWrap{ height:14px !important; border-radius:0 !important; border:1px solid #2fbf8a !important; background:transparent !important; }
+.miniFloodBarFill{ background:#2fbf8a !important; box-shadow:0 0 14px #2fbf8a; }
 </style>
 </head>
 <body>
@@ -1335,12 +1381,12 @@ button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [clas
   <div class="wrap">
 
     <!-- ===== Header ===== -->
-    <div class="header fsiHeader">
-      <div class="fsiTitle">
-        <div class="fsiTitleMain">FINANCIAL SYSTEMS INTERFACE</div>
-        <div class="fsiTitleSub">RESTRICTED ACCESS</div>
-      </div>
+    <!-- Bertie: in the style of the rest of the game (the scan and the blueprint), not the old red "financial systems" header -->
+    <div class="vaultTop">
+      <span class="vaultBrand">PRIMENET // THE VAULT</span>
+      <span class="vaultStatus"><i class="vdot"></i>BREACH CHANNEL OPEN</span>
     </div>
+    <h1 class="vaultTitle" id="vaultTitle">The vault</h1>
 
     <!-- ===== Control bar ===== -->
     <div class="controlBar">
@@ -1380,7 +1426,7 @@ button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [clas
           <div class="hintStrip" id="hintStrip" aria-live="polite" hidden><span class="hintTag">HINT</span><span id="hintText"></span></div>
 
           <div class="promptRow">
-            <div class="prompt">student@lifehouse:~$</div>
+            <div class="prompt" id="promptLabel">agent@primenet:~$</div>
             <div style="flex:1">
               <div class="live"><span id="liveText"></span><span class="cursor"></span></div>
               <input class="hiddenInput" id="hiddenInput" autocomplete="off" autocapitalize="off" spellcheck="false"/>
@@ -1401,7 +1447,7 @@ button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [clas
     <span class="hudPill">Wallet: <strong id="hudWalletLabel">£0</strong></span>
     <span class="hudPill">In Run: <strong id="hudRunEarningsLabel">£0</strong></span>
     <span class="hudPill">Difficulty: <strong id="hudDiffLabel">L1</strong></span>
-    <span class="hudPill">Run: <strong id="hudRunLabel">1/4</strong></span>
+    <span class="hudPill">Lock: <strong id="hudRunLabel">1/4</strong></span>
     <span class="hudPill">Target: <strong id="hudTargetLabel">N=?</strong> <span style="font-size:10px; opacity:0.7;" id="hudAccountLabel"></span></span>
   </div>
 
@@ -1452,6 +1498,10 @@ button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [clas
    ========================= */
 
 const PN = window.Primenet;
+// The pupil's own prompt and the target's name in the title (Bertie: in keeping with the rest of the game)
+const PROMPT = `${((PN && PN.getAgent && PN.getAgent()) ? PN.getAgent().codename : "agent").toLowerCase().replace(/[^a-z0-9_-]+/g, "")}@primenet:~$`;
+{ const pl = document.getElementById("promptLabel"); if(pl) pl.textContent = PROMPT;
+  const vt = document.getElementById("vaultTitle"); if(vt && PN && PN.mission) vt.textContent = `${PN.mission().target}: the vault`; }
 const TEACHER = !!(PN && PN.isTeacher());   // level buttons and test controls are teacher-only
 // Round 14: teacher practice. ?practice=1 plays two locks and ends on a plain card: no finale, no money, no record.
 // ?p=P&q=Q (both prime) makes every lock that pair; ?tier=T gives random pairs from that rung of the ladder.
@@ -1894,7 +1944,7 @@ async function codeFlood(title="BREACH CHANNEL", seconds=6){
     [`TARGET: ${esc(bank)} // ACCT-${hex(6)} // security ${pickOne(["HIGH","MAXIMUM","PARANOID"])}`, "warn"],
     [`⚠ Counter-trace found. Bouncing signal…`, "hot"],
     [`Trace lost. Close call.`, "sys"],
-    [`[LEDGER] ${hex(8)} :: transfer --to wallet://${esc(agent.toLowerCase())} --amount ALL`, "warn"],
+    [`[LEDGER] ${hex(8)} :: recover --to primenet://recovery --agent ${esc(agent.toLowerCase())} --amount ALL`, "warn"],
     [`Vault door responding…`, "warn"],
     // The student's own locks land last, so they're on screen when the firewall drops
     ...locks.map((c, i) => [`[VAULT] bolt_${i + 1} :: unlock(<span class="pk">${c.p}</span>, <span class="pk">${c.q}</span>)  = <span class="yl">${c.p * c.q}</span>  ✓ primes verified`, "sys"]),
@@ -1904,7 +1954,7 @@ async function codeFlood(title="BREACH CHANNEL", seconds=6){
   return new Promise(resolve => {
     const overlay = document.createElement("div"); overlay.className = "codeFloodOverlay";
     overlay.innerHTML = `<div class="codeFloodBox">
-      <div class="codeFloodHeader"><div>PRIME NET <span>// ${esc(title)}</span></div><div class="pct">0%</div></div>
+      <div class="codeFloodHeader"><div>PRIMENET <span>// ${esc(title)}</span></div><div class="pct">0%</div></div>
       <div class="codeFloodStream"></div>
       <div class="codeFloodBarWrap"><div class="codeFloodBarFill"></div></div></div>`;
     document.body.append(overlay);
@@ -3335,8 +3385,8 @@ hiddenInput.addEventListener("keydown", async (e)=>{
     const raw = hiddenInput.value;
     hiddenInput.value="";
     liveText.textContent="";
-    if(/^\s*\d+\s+\d+\s*$/.test(raw)) addRich(["student@lifehouse:~$ ", [raw.trim().split(/\s+/).join(" "), "pink"]], "sys");
-    else addLine(`student@lifehouse:~$ ${raw}`, "sys");
+    if(/^\s*\d+\s+\d+\s*$/.test(raw)) addRich([PROMPT + " ", [raw.trim().split(/\s+/).join(" "), "pink"]], "sys");
+    else addLine(`${PROMPT} ${raw}`, "sys");
     if(MODE==="math") await handleMath(raw);
     else await handleRoleplay(raw);
     return;
@@ -3404,7 +3454,7 @@ boot();
 
 // Teacher test tools (only while unlocked)
 if(window.PNTest){
-  const submit = async t => { addRich(["student@lifehouse:~$ ", [t, "pink"]], "sys"); await handleMath(t); };
+  const submit = async t => { addRich([PROMPT + " ", [t, "pink"]], "sys"); await handleMath(t); };
   const inFinale = () => Run.index >= Run.locksPerRun;
   PNTest.add("Solve this lock", async () => {
     if(inFinale()){ submit(`${Run.p} ${Run.q}`); return "Final lock: the finale is starting."; }
