@@ -10,40 +10,81 @@
 <link rel="stylesheet" href="../shared/primenet.css">
 <style>
   /* Round 12 prototype: the ceiling relays on the student's own floor in 3D. Each cube sends electricity
-     through the ceiling to a room; with every relay powered, the floor (and the blueprint) goes dark.
-     Round 14 (Bertie): the floor is large on the left and the relay is built on the right, by dragging.
-     ?mode=A (default) stacks square layers on a pallet; ?mode=B sorts cube crates off a conveyor belt. */
-  main.tw{ width:min(1500px,100%); }
-  .layout{ display:grid; grid-template-columns:minmax(0,1.3fr) minmax(400px,1fr); gap:16px; align-items:start; }
-  .left, .side{ display:flex; flex-direction:column; gap:10px; min-width:0; }
-  .stage3d{ position:relative; height:clamp(440px, calc(100vh - 300px), 640px); padding:0; overflow:hidden; background:radial-gradient(ellipse at 50% 40%, rgba(20,60,70,.35), rgba(2,8,10,.9)); }
-  .stage3d .hud{ position:absolute; left:12px; top:10px; font-family:var(--font-ui); font-size:12px; letter-spacing:.18em; color:#ffe14d; pointer-events:none; text-shadow:0 0 8px rgba(0,0,0,.8); }
-  .stage3d .hud b{ font-size:18px; }
-  .stage3d .cam{ position:absolute; right:12px; top:10px; font-family:var(--font-ui); font-size:11px; letter-spacing:.2em; color:rgba(160,240,255,.7); pointer-events:none; }
-  .stage3d .cam i{ font-style:normal; color:#ff6b8a; }
-  /* A line of light sweeps down the viewer when a relay powers (once, slowly: nothing flashes) */
-  .stage3d .scan{ position:absolute; left:0; right:0; top:0; height:3px; background:linear-gradient(90deg, transparent, #bff7ff 30%, #bff7ff 70%, transparent); box-shadow:0 0 16px #8feaff; opacity:0; pointer-events:none; }
-  .stage3d .scan.go{ animation:scanDown .8s linear 1; }
-  @keyframes scanDown{ 0%{ top:0; opacity:.9; } 100%{ top:100%; opacity:0; } }
-  .stage3d .blackout{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-family:var(--font-ui); font-weight:700; letter-spacing:.3em; font-size:clamp(22px,4vw,40px); color:#ff4f6d; text-shadow:0 0 24px rgba(255,60,90,.8); opacity:0; pointer-events:none; transition:opacity .6s; }
-  .stage3d .blackout.on{ opacity:1; }
-  .log{ display:flex; flex-wrap:wrap; gap:6px; font-size:14px; color:var(--text-muted); min-height:1.6em; align-items:center; }
-  .log .lab{ margin-right:4px; }
-  .log span.r{ border:1px solid rgba(255,201,77,.35); padding:3px 9px; background:rgba(255,201,77,.06); } .log b{ color:#fff3cf; }
-  .table{ font-size:14px; color:var(--text-muted); border-top:1px solid var(--line); padding-top:8px; }
+     through the ceiling to a room. ?mode=A (default) stacks square layers on a pallet; ?mode=B sorts cube crates off a conveyor belt.
+     Round 16 (teacher feedback): everything fits on screen with no scrolling (1280 x 720 and up). The build area is the main
+     panel on the left, the ceiling view the side panel. Each relay's cube comes from its wires: n wires in means n × n × n
+     blocks. Stage 2 is a corridor of numbered floor tiles in perspective: the cube numbers in order light a path to the fuse
+     box. The ending is the fuse box being wired by lasers; the blackout itself now plays on the heist's blueprint. */
+  main.tw{ width:min(1500px,100%); height:100vh; padding:10px 16px 12px; gap:10px; }
+  main.tw > .tw-head{ padding-bottom:8px; }
+  main.tw .tw-head h1{ font-size:26px; line-height:1.15; }
+  .layout{ flex:1; min-height:0; display:grid; grid-template-columns:minmax(0,1.62fr) minmax(300px,1fr); gap:14px; }
+  .work, .side{ display:flex; flex-direction:column; gap:8px; min-width:0; min-height:0; }
+  .work > .pn-panel{ flex:1; min-height:0; }
   [hidden]{ display:none !important; }
   .steps{ display:flex; gap:6px; font-family:var(--font-ui); font-size:12px; letter-spacing:.16em; }
   .steps span{ border:1px solid var(--line); padding:3px 8px; color:var(--text-faint); }
   .steps span.on{ color:var(--warning); border-color:var(--warning); }
   .steps span.done{ color:var(--ok); border-color:rgba(61,220,151,.5); }
   .lab{ font-family:var(--font-ui); font-size:12px; letter-spacing:.16em; color:var(--text-faint); }
-  .need{ font-family:var(--font-ui); font-size:19px; } .need b{ color:var(--accent); font-size:28px; }
-  .count{ font-family:var(--font-mono); font-size:22px; min-height:1.5em; } .count b{ color:var(--warning); } .count small{ font-size:14px; color:var(--text-faint); }
+  .row{ display:flex; gap:8px; flex-wrap:wrap; }
+  .answer{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; font-size:17px; }
+  .answer input{ width:80px; font-size:20px; text-align:center; padding:6px; }
   /* Cube notation, the same everywhere: 3³ with the small 3 bright so it stands out (Bertie, round 15) */
   .cu{ font-family:var(--font-ui); font-weight:700; color:var(--warning); white-space:nowrap; }
   .cu sup{ font-size:.72em; line-height:0; color:#ffe14d; text-shadow:0 0 12px rgba(255,225,77,.9); }
-  /* The reveal: when the stack locks, the finished cube lifts off the pallet, turns once in the middle of the panel and is named */
-  .reveal{ position:absolute; inset:0; z-index:3; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; padding:16px; border-radius:inherit; background:radial-gradient(ellipse at 50% 42%, rgba(18,54,64,.985), rgba(3,10,13,.99)); opacity:0; transition:opacity .4s; }
+  /* The side panel: the relay log and the ceiling of the target floor in 3D */
+  .stage3d{ position:relative; flex:1; min-height:0; padding:0; overflow:hidden; background:radial-gradient(ellipse at 50% 40%, rgba(20,60,70,.35), rgba(2,8,10,.9)); }
+  .stage3d .hud{ position:absolute; left:12px; top:10px; font-family:var(--font-ui); font-size:12px; line-height:1.7; letter-spacing:.18em; color:#ffe14d; pointer-events:none; text-shadow:0 0 8px rgba(0,0,0,.8); }
+  .stage3d .hud b{ font-size:16px; }
+  .stage3d .cam{ position:absolute; left:12px; bottom:10px; font-family:var(--font-ui); font-size:11px; letter-spacing:.2em; color:rgba(160,240,255,.7); pointer-events:none; }
+  .stage3d .cam i{ font-style:normal; color:#ff6b8a; }
+  /* A line of light sweeps down the viewer when a relay powers (once, slowly: nothing flashes) */
+  .stage3d .scan{ position:absolute; left:0; right:0; top:0; height:3px; background:linear-gradient(90deg, transparent, #bff7ff 30%, #bff7ff 70%, transparent); box-shadow:0 0 16px #8feaff; opacity:0; pointer-events:none; }
+  .stage3d .scan.go{ animation:scanDown .8s linear 1; }
+  @keyframes scanDown{ 0%{ top:0; opacity:.9; } 100%{ top:100%; opacity:0; } }
+  .log{ display:flex; flex-wrap:wrap; gap:6px; font-size:14px; color:var(--text-muted); min-height:30px; max-height:62px; overflow:hidden; align-items:center; }
+  .log .lab{ margin-right:4px; }
+  .log span.r{ border:1px solid rgba(255,201,77,.35); padding:3px 9px; background:rgba(255,201,77,.06); } .log b{ color:#fff3cf; }
+  /* The build panel: the relay and its wires on top, the tools and the pallet below. The tools keep to the top left and the
+     pallet to the right, so the BRIEF and HINTS tabs (bottom left of the screen) never cover a button or a cell. */
+  .pallet{ padding:12px 14px; display:flex; flex-direction:column; gap:8px; }
+  .relay{ display:flex; gap:16px; align-items:center; padding-bottom:8px; border-bottom:1px solid var(--line); }
+  .wires{ flex:0 0 auto; width:230px; height:84px; overflow:visible; }
+  .wires .w{ fill:none; stroke-linecap:round; opacity:.5; }
+  .wires .w.on{ opacity:1; filter:drop-shadow(0 0 4px currentColor); }
+  .wires .w.draw{ stroke-dasharray:1; stroke-dashoffset:1; animation:wireIn .7s ease-out forwards; }
+  @keyframes wireIn{ to{ stroke-dashoffset:0; } }
+  .wires .box{ fill:#0f2a31; stroke:#ffc94d; stroke-width:1.5; transition:fill .4s; } .wires .box.on{ fill:rgba(255,201,77,.35); }
+  .wires .bolt{ fill:rgba(255,201,77,.75); } .wires .pin{ fill:#ffe7a8; }
+  .wires .t{ font:700 10px var(--font-ui); letter-spacing:.16em; fill:#ffe7a8; text-anchor:middle; }
+  .wires .hid{ fill:#0b1d22; stroke:#3b6470; stroke-dasharray:5 4; } .wires .q{ font:700 30px var(--font-ui); fill:rgba(235,255,248,.6); text-anchor:middle; dominant-baseline:central; }
+  .need{ display:flex; flex-direction:column; gap:4px; min-width:0; }
+  .need p{ margin:0; font-family:var(--font-ui); font-size:21px; line-height:1.35; }
+  .need p b{ color:#fff3cf; } .need p .cu{ font-size:1.15em; } .need .nw{ white-space:nowrap; }
+  .bench{ position:relative; flex:1; min-height:0; display:flex; gap:14px; }
+  .palWrap{ position:relative; flex:1; min-width:0; min-height:0; }
+  .pal{ position:absolute; inset:0; width:100%; height:100%; touch-action:none; user-select:none; }
+  .pal .cell{ fill:rgba(var(--accent-rgb),.07); stroke:rgba(var(--accent-rgb),.38); stroke-width:1; cursor:crosshair; }
+  .pal .cell.sel{ fill:rgba(255,201,77,.45); stroke:#ffc94d; }
+  .pal.bad .cell.sel{ fill:rgba(255,107,107,.4); stroke:#ff6b6b; }
+  .pal.taken .cell{ cursor:default; }
+  .slab polygon{ stroke:#ffe7a8; stroke-width:1; } .slab line{ stroke:#ffe7a8; stroke-width:.7; opacity:.8; }
+  .pal .slab{ pointer-events:none; } .pal .slab.top{ pointer-events:auto; cursor:grab; } .pal.l3 .slab.top{ pointer-events:none; }
+  .pal.locked .slab polygon{ stroke:#ffffff; filter:drop-shadow(0 0 6px rgba(255,225,120,.9)); }
+  .pal .plab{ font:700 13px var(--font-ui); letter-spacing:.16em; fill:rgba(235,255,248,.6); }
+  .tools{ flex:0 0 214px; display:flex; flex-direction:column; gap:10px; min-height:0; overflow:hidden; }
+  .tools .col{ display:flex; flex-direction:column; gap:6px; }
+  .tools .pn-btn{ width:100%; }
+  .tools .answer{ flex-direction:column; align-items:stretch; } .tools .answer .row{ flex-wrap:nowrap; } .tools .answer input{ flex:0 0 80px; }
+  .count{ font-family:var(--font-mono); font-size:20px; line-height:1.35; min-height:1.4em; } .count b{ color:var(--warning); } .count small{ display:block; font-size:14px; color:var(--text-faint); }
+  .tray{ cursor:grab; touch-action:none; user-select:none; display:inline-block; padding:4px 6px; border:1px dashed rgba(255,201,77,.45); }
+  .tray svg{ display:block; }
+  #trayWrap{ position:absolute; left:0; top:0; z-index:1; width:190px; display:flex; flex-direction:column; gap:4px; align-items:flex-start; }   /* the empty corner above the pallet */
+  .ghost{ position:fixed; z-index:9000; pointer-events:none; transform:translate(-50%,-60%); filter:drop-shadow(0 0 10px rgba(255,201,77,.7)); opacity:.9; }
+  .ghost.over{ opacity:1; }
+  /* The reveal: when the stack locks, the finished cube lifts off the pallet, turns once in the middle of the bench and is named */
+  .reveal{ position:absolute; inset:0; z-index:3; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; padding:16px; background:radial-gradient(ellipse at 50% 42%, rgba(18,54,64,.985), rgba(3,10,13,.99)); opacity:0; transition:opacity .4s; }
   .reveal.on{ opacity:1; }
   .rv-cube{ width:min(62%, 250px); height:auto; filter:drop-shadow(0 0 16px rgba(255,201,77,.5)); transition:transform .65s cubic-bezier(.2,.9,.3,1); }
   .rv-cube polygon{ stroke:#ffe7a8; stroke-width:1.2; stroke-linejoin:round; } .rv-cube line{ stroke:#ffe7a8; stroke-width:.8; opacity:.8; }
@@ -52,29 +93,9 @@
   .rv-eq .pw{ opacity:0; transform:scale(.6); transition:opacity .3s, transform .45s cubic-bezier(.2,1.2,.3,1); }
   .rv-eq .cu{ font-size:1.55em; }
   .reveal.named .rv-eq .pw{ opacity:1; transform:none; }
-  .row{ display:flex; gap:8px; flex-wrap:wrap; }
-  .answer{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; font-size:17px; }
-  .answer input{ width:80px; font-size:20px; text-align:center; padding:6px; }
-  /* Mode A: the pallet. An isometric grid to draw a square layer on, and the stack that grows on it. */
-  .pallet{ padding:14px; display:flex; flex-direction:column; gap:10px; }
-  .pal{ display:block; width:100%; height:auto; touch-action:none; user-select:none; }
-  .pal .cell{ fill:rgba(var(--accent-rgb),.07); stroke:rgba(var(--accent-rgb),.38); stroke-width:1; cursor:crosshair; }
-  .pal .cell.sel{ fill:rgba(255,201,77,.45); stroke:#ffc94d; }
-  .pal.bad .cell.sel{ fill:rgba(255,107,107,.4); stroke:#ff6b6b; }
-  .pal.taken .cell{ cursor:default; }
-  .slab polygon{ stroke:#ffe7a8; stroke-width:1; } .slab line{ stroke:#ffe7a8; stroke-width:.7; opacity:.8; }
-  .pal .slab{ pointer-events:none; } .pal .slab.top{ pointer-events:auto; cursor:grab; } .pal.l3 .slab.top{ pointer-events:none; }
-  .pal.locked .slab polygon{ stroke:#ffffff; filter:drop-shadow(0 0 6px rgba(255,225,120,.9)); }
-  .pal .plab{ font:700 12px var(--font-ui); letter-spacing:.18em; fill:rgba(235,255,248,.45); }
-  .trayRow{ display:flex; gap:14px; align-items:center; flex-wrap:wrap; min-height:54px; }
-  .tray{ cursor:grab; touch-action:none; user-select:none; display:inline-block; padding:4px 6px; border:1px dashed rgba(255,201,77,.45); }
-  .tray svg{ display:block; }
-  #trayWrap{ display:flex; flex-direction:column; gap:4px; }
-  .ghost{ position:fixed; z-index:9000; pointer-events:none; transform:translate(-50%,-60%); filter:drop-shadow(0 0 10px rgba(255,201,77,.7)); opacity:.9; }
-  .ghost.over{ opacity:1; }
   /* Mode B: the conveyor belt into the transformer bay */
   .belt{ padding:14px; display:flex; flex-direction:column; gap:12px; }
-  .belt svg{ display:block; width:100%; height:auto; }
+  .belt svg{ display:block; flex:1; min-height:0; width:100%; }
   .belt .band{ fill:#0b1d22; stroke:#2c4c55; }
   .belt .dash{ stroke:#2fbf8a; stroke-width:3; stroke-dasharray:16 14; opacity:.55; }
   .belt .bay{ fill:rgba(255,179,71,.14); stroke:#ffb347; stroke-dasharray:5 4; }
@@ -90,45 +111,103 @@
   .chips{ display:flex; gap:8px; flex-wrap:wrap; }
   .chips button{ font-family:var(--font-mono); font-size:26px; padding:8px 18px; } .chips sup{ font-size:.6em; }
   .chips button.bad{ border-color:var(--danger); color:var(--danger); }
-  .board{ padding:16px; }
-  .spot .tw-grid{ grid-template-columns:repeat(4, minmax(0,1fr)); }
-  @media (max-width:1240px){ .stage3d .cam{ top:30px; } }   /* a narrow stage: the camera label drops under the HUD line instead of over it */
-  @media (max-width:980px){ .layout{ grid-template-columns:1fr; } .stage3d{ height:420px; } .stage3d .cam{ top:10px; } }
-  /* Two columns: the controls are on the right, so ORACLE's panel docks bottom left, over the floor view, never over a button */
-  @media (min-width:981px){ body .pnh{ right:auto; left:18px; } }
-  @media (prefers-reduced-motion: reduce){ .stage3d .scan.go{ animation:none; } }
+  /* Stage 2: the relay corridor. A camera down the corridor to the fuse box; numbered floor tiles in perspective. */
+  .corridor{ padding:12px 14px; display:flex; flex-direction:column; gap:8px; }
+  .ctop{ display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:8px 16px; }
+  .trail{ display:flex; flex-wrap:wrap; align-items:center; gap:6px; font-family:var(--font-mono); font-size:20px; }
+  .trail i{ font-style:normal; color:var(--text-faint); }
+  .trail .s{ padding:1px 10px; border:1px solid rgba(255,201,77,.55); background:rgba(255,201,77,.14); color:#fff3cf; }
+  .trail .s.f{ font-family:var(--font-ui); font-size:14px; letter-spacing:.16em; }
+  .trail .q{ padding:1px 10px; border:1px dashed rgba(143,234,255,.75); color:#8feaff; }
+  .typeIt{ display:flex; gap:8px; align-items:center; font-size:16px; color:var(--text-muted); }
+  .typeIt input{ width:96px; font-size:20px; text-align:center; padding:6px; }
+  .table{ position:absolute; left:0; top:0; z-index:1; font-size:15px; line-height:1.45; color:#e8fbff; background:rgba(2,10,12,.88); border:1px solid rgba(143,234,255,.45); padding:6px 12px; }
+  .hallWrap{ position:relative; flex:1; min-height:0; }
+  #hall{ position:absolute; inset:0; width:100%; height:100%; }
+  #hall .wall{ fill:#07181d; } #hall .far{ fill:#0a2127; stroke:#1d4a55; }
+  #hall .rk{ stroke:rgba(90,170,190,.22); stroke-width:1; } #hall .led{ opacity:.7; }
+  #hall .floor{ fill:#051317; stroke:rgba(143,234,255,.25); }
+  #hall .fuse .fb{ fill:#24404a; stroke:#ffc94d; stroke-width:2; transition:fill .5s; } #hall .fuse .fz{ fill:#ff4f6d; transition:fill .5s; }
+  #hall .fuse text{ font:700 12px var(--font-ui); letter-spacing:.2em; fill:#ffc94d; text-anchor:middle; }
+  #hall .fuse.on .fb{ fill:rgba(255,201,77,.5); filter:drop-shadow(0 0 10px rgba(255,201,77,.9)); } #hall .fuse.on .fz{ fill:#fff3cf; } #hall .fuse.on text{ fill:#1a1405; }
+  #hall .tile{ outline:none; }
+  #hall .tile polygon{ fill:rgba(143,234,255,.05); stroke:rgba(143,234,255,.3); stroke-width:1.2; transition:fill .3s, stroke .3s; }
+  #hall .tile text{ font-family:var(--font-mono); font-weight:700; fill:rgba(235,255,248,.5); text-anchor:middle; dominant-baseline:central; pointer-events:none; }
+  #hall .tile.next{ cursor:pointer; } #hall .tile.next polygon{ fill:rgba(143,234,255,.14); stroke:#8feaff; stroke-width:2; } #hall .tile.next text{ fill:#ffffff; }
+  #hall .tile.next:hover polygon{ fill:rgba(143,234,255,.32); }
+  #hall .tile:focus-visible polygon{ stroke:#ffe14d; stroke-width:3; fill:rgba(143,234,255,.32); }
+  #hall .tile.lit polygon{ fill:rgba(255,201,77,.62); stroke:#fff3cf; stroke-width:2; filter:drop-shadow(0 0 8px rgba(255,201,77,.8)); } #hall .tile.lit text{ fill:#1a1405; }
+  #hall .tile.bad polygon{ fill:rgba(255,79,109,.2); stroke:#ff6b8a; } #hall .tile.bad text{ fill:#ff8aa0; text-decoration:line-through; }
+  #hall .tile.missed polygon{ stroke:#f2c14e; stroke-width:2.5; stroke-dasharray:6 4; }
+  #hall .route{ fill:none; stroke:#ffe14d; stroke-width:3; stroke-linejoin:round; stroke-dasharray:10 6; opacity:.85; }
+  #hall .crew circle{ stroke:#021014; stroke-width:2; } #hall .crew .sh{ fill:rgba(0,0,0,.5); }
+  #hall .crew text{ font:700 11px var(--font-ui); letter-spacing:.1em; fill:#eafff6; transition:opacity .4s; } #hall .crew.go text{ opacity:0; }
+  /* The intro: the fuse box's inner cover swings open onto the relays (about a second). Over the brief, under ORACLE. */
+  .fbIntro{ position:fixed; inset:0; z-index:8650; perspective:1800px; pointer-events:none; }
+  .fbIntro .plate{ position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:22px; transform-origin:0 50%;
+    background:repeating-linear-gradient(90deg, rgba(255,255,255,.025) 0 2px, transparent 2px 7px), linear-gradient(160deg, #2b4a55, #173039 55%, #22404a);
+    border:4px solid #ffc94d; box-shadow:inset 0 0 0 10px rgba(0,0,0,.25), inset 0 0 90px rgba(0,0,0,.6); transition:transform .8s cubic-bezier(.55,0,.35,1), opacity .8s ease-in; }
+  .fbIntro .plate::before{ content:""; position:absolute; left:16px; top:14%; bottom:14%; width:10px; background:linear-gradient(#8aa0a6 0 16%, transparent 16% 84%, #8aa0a6 84%); }
+  .fbIntro .plate::after{ content:""; position:absolute; right:34px; top:calc(50% - 50px); width:14px; height:100px; background:#8aa0a6; box-shadow:inset 0 0 0 2px #56686e; }
+  .fbIntro.open .plate{ transform:rotateY(-100deg); opacity:0; }
+  .fbIntro b{ font-family:var(--font-ui); font-size:clamp(26px,4vw,46px); letter-spacing:.34em; color:#ffc94d; text-shadow:0 0 18px rgba(255,201,77,.4); }
+  .fbIntro small{ font-family:var(--font-ui); font-size:14px; letter-spacing:.3em; color:rgba(235,255,248,.7); }
+  .fbIntro .fuses{ display:flex; gap:28px; } .fbIntro .fuses i{ width:40px; height:130px; background:linear-gradient(#ff6b82, #d8324e); border:2px solid #ffd0d8; }
+  /* The finale: the fuse box, its wiring drawn in by lasers */
+  .finale{ position:fixed; inset:0; z-index:60; background:radial-gradient(ellipse at 50% 45%, #0d2c34, #020809 75%); opacity:0; transition:opacity .35s; }
+  .finale.on{ opacity:1; }
+  .finale canvas{ position:absolute; inset:0; width:100%; height:100%; display:block; }
+  .finale .fdim{ position:absolute; inset:0; background:#020809; opacity:0; pointer-events:none; }
+  .finale .fcap{ position:absolute; left:28px; top:22px; font-family:var(--font-ui); font-size:14px; letter-spacing:.22em; color:#ffe14d; text-shadow:0 0 8px #000; }
+  .finale .fcap span{ color:#8feaff; }
+  .finale .fdone{ position:absolute; left:50%; top:64px; transform:translateX(-50%); white-space:nowrap; padding:10px 24px; background:rgba(2,10,12,.86); border:1px solid rgba(255,201,77,.55);
+    font-family:var(--font-ui); font-weight:700; font-size:clamp(20px,2.4vw,30px); letter-spacing:.22em; color:#fff3cf; text-shadow:0 0 14px rgba(255,201,77,.5); opacity:0; transition:opacity .5s; }   /* high up, clear of ORACLE (bottom right) */
+  .finale .fdone.on{ opacity:1; }
+  @media (max-width:980px){ main.tw{ height:auto; } .layout{ grid-template-columns:1fr; } .work > .pn-panel{ min-height:560px; } .stage3d{ flex:0 0 360px; } }
+  @media (prefers-reduced-motion: reduce){ .stage3d .scan.go{ animation:none; } .fbIntro.open .plate{ transform:none; } }
+  html.pn-reduce-motion .fbIntro.open .plate{ transform:none; }
 </style>
 </head>
 <body>
 <main class="tw">
-  <div class="tw-bar"><span class="steps"><span id="st1" class="on">1 · CUBE RELAYS</span><span id="st2">2 · RELAY BOARD</span></span><span>Relays powered: <b id="count">0</b> of <b id="total">0</b></span></div>
+  <div class="tw-bar"><span class="steps"><span id="st1" class="on">1 · STACK THE RELAYS</span><span id="st2">2 · RELAY CORRIDOR</span></span><span>Relays powered: <b id="count">0</b> of <b id="total">0</b></span></div>
   <div class="layout">
-    <div class="left">
-      <section class="pn-panel stage3d" id="stage"><div class="hud">CEILING OF <span id="floorName">THE TARGET FLOOR</span> · TRANSFORMER LOAD <b id="hudN">0</b> / <b id="hudT">0</b> ROOMS</div><div class="cam"><i>●</i> CAM 1 · CEILING</div><div class="scan" id="scan"></div><div class="blackout" id="blackout">BLACKOUT</div></section>
-      <div class="log" id="log"><span class="lab">RELAY LOG</span></div>
-      <div class="table" id="table" hidden></div>
-    </div>
-    <div class="side">
-      <div class="tw-msg" id="msg" aria-live="polite"></div>
-      <section class="pn-panel pallet" id="pallet" hidden>
-        <div class="need" id="needLine"></div>
-        <div class="answer" id="rootRow" hidden><label for="rootIn">Blocks along each side</label><input class="pn-input" id="rootIn" inputmode="numeric" maxlength="2"><button class="pn-btn small primary" type="button" id="rootBtn">Check</button><button class="pn-btn small" type="button" id="noCube">It can't be a cube</button></div>
-        <svg class="pal" id="pal" aria-label="The pallet"></svg>
-        <div class="trayRow"><div id="trayWrap" hidden><span class="lab">SPARE LAYER · DRAG IT ONTO THE STACK</span><div class="tray" id="tray"></div></div><div class="count" id="countLine"></div></div>
-        <div class="row" id="buildRow"><button class="pn-btn small" type="button" id="addBtn" disabled>Add a layer</button><button class="pn-btn small" type="button" id="unstackBtn" disabled>Take one off</button><button class="pn-btn small" type="button" id="clearBtn" disabled>Clear the pallet</button><button class="pn-btn small primary" type="button" id="lockBtn">Power the relay</button></div>
+    <div class="work">
+      <section class="pn-panel pallet" id="pallet" hidden aria-label="Build the relay">
+        <div class="relay"><svg class="wires" id="wires" viewBox="0 0 230 84" aria-hidden="true"></svg><div class="need"><span class="lab" id="relayLab"></span><p id="needLine"></p></div></div>
+        <div class="slot"><div class="tw-msg" id="msg" aria-live="polite"></div></div>
+        <div class="bench" id="bench">
+          <div class="tools">
+            <div class="count" id="countLine"></div>
+            <div class="answer" id="rootRow" hidden><label for="rootIn">How many wires?</label><span class="row"><input class="pn-input" id="rootIn" inputmode="numeric" maxlength="2"><button class="pn-btn small primary" type="button" id="rootBtn">Check</button></span><button class="pn-btn small" type="button" id="noCube">It can't be a cube</button></div>
+            <div class="col" id="buildRow"><button class="pn-btn small" type="button" id="addBtn" disabled>Add a layer</button><button class="pn-btn small" type="button" id="unstackBtn" disabled>Take one off</button><button class="pn-btn small" type="button" id="clearBtn" disabled>Clear the pallet</button><button class="pn-btn small primary" type="button" id="lockBtn">Power the relay</button></div>
+          </div>
+          <div class="palWrap"><svg class="pal" id="pal" aria-label="The pallet"></svg><div id="trayWrap" hidden><span class="lab">SPARE LAYER · DRAG IT ONTO THE STACK</span><div class="tray" id="tray"></div></div></div>
+        </div>
       </section>
       <section class="pn-panel belt" id="beltPanel" hidden>
-        <svg id="beltSvg" viewBox="0 0 560 262" aria-label="The conveyor belt"></svg>
+        <div class="slot"></div>
         <div class="decide">
           <div class="big" id="crateLine">Waiting for the first crate.</div>
           <div class="row"><button class="pn-btn primary" type="button" id="loadBtn" disabled>Load it: a cube number</button><button class="pn-btn" type="button" id="rejBtn" disabled>Reject: not a cube</button></div>
           <div id="rootQ" hidden><div class="lab" id="rootQLab"></div><div class="chips" id="chips"></div><div class="answer" id="rootRowB" hidden><label for="rootInB">Blocks along each side</label><input class="pn-input" id="rootInB" inputmode="numeric" maxlength="2"><button class="pn-btn small primary" type="button" id="rootBtnB">Check</button></div></div>
         </div>
+        <svg id="beltSvg" viewBox="0 0 560 262" aria-label="The conveyor belt"></svg>
       </section>
-      <section class="pn-panel board spot" id="spot" hidden><div class="tw-grid" id="grid"></div></section>
+      <section class="pn-panel corridor" id="spot" hidden aria-label="The relay corridor">
+        <div class="ctop"><div class="trail" id="trail"></div><div class="typeIt"><label for="stepIn">Type it:</label><input class="pn-input" id="stepIn" inputmode="numeric" maxlength="4" autocomplete="off"><button class="pn-btn small primary" type="button" id="stepBtn">Step</button></div></div>
+        <div class="slot"></div>
+        <div class="hallWrap"><svg id="hall" viewBox="0 0 600 500" aria-label="The relay corridor"></svg><div class="table" id="table" hidden></div></div>
+      </section>
     </div>
+    <aside class="side">
+      <div class="log" id="log"><span class="lab">RELAY LOG</span></div>
+      <section class="pn-panel stage3d" id="stage" aria-label="The ceiling of the target floor"><div class="hud">CEILING · <span id="floorName">THE TARGET FLOOR</span><br>ROOMS WIRED <b id="hudN">0</b> / <b id="hudT">0</b></div><div class="cam"><i>●</i> CAM 1 · CEILING</div><div class="scan" id="scan"></div></section>
+    </aside>
   </div>
 </main>
+<div class="fbIntro" id="fbIntro" aria-hidden="true"><div class="plate"><b>FUSE BOX</b><span class="fuses"><i></i><i></i><i></i></span><small>CEILING RELAYS</small></div></div>
+<div class="finale" id="finale" hidden aria-hidden="true"><canvas id="fbCanvas"></canvas><div class="fdim" id="fbDim"></div><div class="fcap">FUSE BOX · RELAY PANEL · <span id="fbStat"></span></div><div class="fdone" id="fbDone"></div></div>
 
 <script src="../shared/vendor/three.min.js"></script>
 <script src="../shared/sound.js"></script>
@@ -150,34 +229,41 @@
   // Runs when the brief first folds away. (The brief zooms open by itself a moment after load, so "is it open now?" is no guide.)
   const afterBrief = fn => window.addEventListener("pn-brief", function f(e){ if(e.detail.open) return; window.removeEventListener("pn-brief", f); fn(); });
   const GOALS = {
-    A: { L1: "Build each relay as a <b>cube</b>: drag a <b>square layer</b> on the pallet, then stack layers until the count matches.",
-         L2: "Build each relay as a <b>cube</b>: drag a <b>square layer</b> on the pallet, then stack layers until the count matches.",
-         L3: "Give each relay's <b>cube root</b>: how many blocks along each side. Or say it can't be a cube." },
+    A: { L1: "Each relay has wires coming in. <b>n wires in</b> means a cube of <b>n × n × n</b> blocks: draw one <b>square layer</b> on the pallet, then stack one layer for each wire.",
+         L2: "Each relay has wires coming in. <b>n wires in</b> means a cube of <b>n × n × n</b> blocks: draw one <b>square layer</b> on the pallet, then stack one layer for each wire.",
+         L3: "Each relay needs a number of blocks. How many <b>wires</b> come in? That's the <b>cube root</b>: the blocks along each side. Or say it can't be a cube." },
     B: { L1: "Only <b>cube-number</b> crates go into the transformer. Load the cubes, reject the rest, and say which cube each one is.",
          L2: "Only <b>cube-number</b> crates go into the transformer. Load the cubes, reject the rest, and say which cube each one is.",
          L3: "Only <b>cube-number</b> crates go into the transformer. Load the cubes, reject the rest, and give each one's <b>cube root</b>." },
   };
-  const GOAL2 = "Tap every <b>cube number</b> on the relay board. Each one powers another room.";
-  T.init({ id: "cubes3d", stage: "BLUEPRINT", title: "CEILING RELAYS", goal: GOALS[MODE][L],
-    context: "Every light on this floor runs back to one transformer.",
-    example: "<b>27 = 3³</b>, a cube number: 3 blocks along each side and 3 layers, 3 × 3 × 3 = 27. The small ³ means three of that number multiplied together.",
-    story: `This is the target floor of ${T.target()}. Every room's lights and cameras run back to one transformer. Wire each room in with a cube-number relay, then overload it: the whole floor blacks out.` });
+  T.init({ id: "cubes3d", stage: "BLUEPRINT", title: "CEILING RELAYS", goal: GOALS[MODE][L], result: "auto",
+    context: "This fuse box runs every light on the floor. Each relay is a cube: <b>n wires in</b> needs <b>n × n × n</b> blocks.",
+    example: "<b>3 wires in: 3 × 3 × 3 = 27 = 3³</b>. A 3 × 3 layer for each of the 3 wires. The small ³ means three of that number multiplied together.",
+    story: `We're at the fuse box for ${T.targets()} target floor. Build each ceiling relay as a cube, then light the path to the fuse. Then their lights are ours.` });
   $("st1").textContent = MODE === "B" ? "1 · LOAD THE CRATES" : "1 · STACK THE RELAYS";
 
-  // ----- The 3D floor: the student's own weak floor -----
+  // ----- The intro: the fuse box's inner cover swings open onto the relays. Waits for the page to load (in a mission the
+  // frame fades in on load), then takes about a second; with reduced motion it just goes. -----
+  (() => {
+    let gone = false;
+    const go = () => { if(gone) return; gone = true; setTimeout(() => { $("fbIntro").classList.add("open"); if(!REDUCE) T.SND("clamp"); setTimeout(() => $("fbIntro").remove(), 900); }, REDUCE ? 50 : 300); };
+    if(document.readyState === "complete") go(); else window.addEventListener("load", go);
+    setTimeout(go, 2500);   // never left closed by a slow font
+  })();
+
+  // ----- The 3D ceiling (side panel): the student's own weak floor -----
   const F = PNFloor3D.create($("stage"), {});
   const TH = F.THREE;
   const a0 = window.Primenet && Primenet.getAgent();
   $("floorName").textContent = (a0 && a0.weakFloor ? a0.weakFloor : "FLOOR N=" + F.n).toUpperCase();
-  // Camera: HOME frames the floor and the transformer; the page opens on a fly-in from FAR once the brief folds away
+  // Camera: HOME frames the floor and the transformer; the view opens on a fly-in from FAR once the brief folds away
   const HOME = { pos: new TH.Vector3(-4, 150, 166), look: new TH.Vector3(-14, 0, 4) };
   const FAR = { pos: new TH.Vector3(-90, 300, 360), look: new TH.Vector3(-14, 0, 4) };
   F.look.copy(HOME.look);
   F.lightsOn(1000);
   F.setSpin(0.0005);
-  afterBrief(() => { if(!REDUCE){ T.SND("whoosh"); F.flyTo(HOME, 1800).then(() => { if(!camBusy && !over) atHome = true; }); } });
-  // Round 12 feedback: wiring. One transformer outside the wall; a cable from it to each room's lights runs
-  // along the ceiling in straight lines. Each cube number wires a room in; with every room on it, it overloads.
+  afterBrief(() => { if(!REDUCE){ T.SND("whoosh"); F.flyTo(HOME, 1800).then(() => { if(!camBusy && !finishing) atHome = true; }); } });
+  // Wiring: one transformer outside the wall; a cable from it to each room's lights runs along the ceiling in straight lines
   const CY = F.H + 1.6, TX = -F.PLATE / 2 - 10;
   const tr = new TH.Mesh(new TH.BoxGeometry(9, 14, 9), new TH.MeshStandardMaterial({ color: 0xffb347, emissive: 0x663300, emissiveIntensity: 0.6 })); tr.position.set(TX, 7, 0); F.root.add(tr);
   const trTop = new TH.Mesh(new TH.CylinderGeometry(1.2, 1.2, 4, 10), new TH.MeshBasicMaterial({ color: 0xdddddd })); trTop.position.set(TX, 16, 0); F.root.add(trTop);
@@ -192,7 +278,7 @@
   $("hudT").textContent = cables.length;
   // Cameras: red lights on the floor corners (a slow blink, well under 1 Hz)
   const cams = [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([sx, sz]) => { const m = new TH.Mesh(new TH.SphereGeometry(1.8, 10, 10), new TH.MeshBasicMaterial({ color: 0xff3355 })); m.position.set(sx * (F.PLATE / 2 - 3), F.H - 2, sz * (F.PLATE / 2 - 3)); F.root.add(m); return m; });
-  F.onTick(now => cams.forEach((c, i) => { if(!c.userData.off) c.material.color.setHex(Math.sin(now / 320 + i) > 0 ? 0xff3355 : 0x661122); }));
+  F.onTick(now => cams.forEach((c, i) => c.material.color.setHex(Math.sin(now / 320 + i) > 0 ? 0xff3355 : 0x661122)));
   // Round 15 (Bertie): the floor must never be cut off at the sides of its panel. HOME keeps its direction, but its
   // distance is worked out from the floor's bounds: the plate, every room and the transformer. The floor spins slowly,
   // so the bounds are taken as a drum round the spin axis (the widest sweep at any angle), and the camera backs off
@@ -212,7 +298,7 @@
       let d = MIN;
       samples.forEach(q => {
         const rel = q.clone().sub(HOME.look), along = rel.dot(dir), v = rel.dot(up), x = Math.abs(rel.dot(right));
-        d = Math.max(d, x / (tanH * 0.92) + along, (v > 0 ? v / (tanV * 0.80) : -v / (tanV * 0.92)) + along);   // extra room at the top, under the HUD line
+        d = Math.max(d, x / (tanH * 0.92) + along, (v > 0 ? v / (tanV * 0.72) : -v / (tanV * 0.92)) + along);   // extra room at the top, under the HUD lines
       });
       HOME.pos.copy(HOME.look).addScaledVector(dir, d);
       if(atHome) F.camera.position.copy(HOME.pos);
@@ -227,15 +313,16 @@
   const cu = a => `<span class="cu">${a}<sup>3</sup></span>`;   // 3³, styled the same everywhere
   const STEP1 = { L1: () => [8, 27, 64], L2: () => T.shuffle([27, 64, 125]), L3: () => T.shuffle([...T.shuffle([216, 343, 512, 729, 1000]).slice(0, 3), T.pick([100, 200, 300, 400, 500])]) };
   const s1 = STEP1[L]();
-  const BOARD = { L1: { max: 70, size: 16 }, L2: { max: 130, size: 20 }, L3: { max: 1000, size: 24 } }[L];
-  const s2all = T.range(1, 10).map(k => k ** 3).filter(c => c <= BOARD.max && !(L === "L3" && c < 8));
-  const s2 = L === "L3" ? T.shuffle(s2all).slice(0, 6) : s2all;
+  // Stage 2: the corridor's cube numbers, in order, one per row (L1 1 to 64, L2 1 to 125, L3 six in a row from 27, 64 or 125)
+  const PATH = { L1: [1, 4], L2: [1, 5], L3: (k => [k, k + 5])(T.pick([3, 4, 5])) }[L];
+  const s2 = T.range(PATH[0], PATH[1]).map(k => k ** 3);
   const RELAYS = [...s1.filter(T.isCube), ...s2];
   $("total").textContent = RELAYS.length;
 
-  let found = 0, over = false, camBusy = false;
+  let found = 0, over = false, camBusy = false, finishing = false;
   const alarm = T.alarm(3, () => end(false));
   function say(t, cls){ const m = $("msg"); m.textContent = t; m.className = "tw-msg" + (cls ? " " + cls : ""); }
+  const slot = id => { const s = $(id).querySelector(".slot"); if(s) s.appendChild($("msg")); };   // the feedback line sits in whichever panel is showing
   const between = n => { let a = 1; while((a + 1) ** 3 <= n) a++; return `${a} × ${a} × ${a} = ${a ** 3} and ${a + 1} × ${a + 1} × ${a + 1} = ${(a + 1) ** 3}`; };
   const world = v => F.root.localToWorld(v.clone());
   function scanline(){ const s = $("scan"); s.classList.remove("go"); void s.offsetWidth; s.classList.add("go"); T.SND("scanline"); }
@@ -244,8 +331,8 @@
   async function light(n){
     const c = cables[found % cables.length], room = c.room;
     found++; $("count").textContent = found;
-    const r = cubeRoot(n);
-    if(!$("log").querySelector(`[data-n="${n}"]`)) $("log").insertAdjacentHTML("beforeend", `<span class="r" data-n="${n}"><b>${n} = ${r}³</b> · ${room.name.toLowerCase()}</span>`);
+    const r = cubeRoot(n), last = found === RELAYS.length;
+    if(!$("log").querySelector(`[data-n="${n}"]`)) $("log").querySelector(".lab").insertAdjacentHTML("afterend", `<span class="r" data-n="${n}"><b>${n} = ${r}³</b> · ${room.name.toLowerCase()}</span>`);   // newest first
     T.SND("correct", found);
     const cine = !REDUCE && !camBusy && !over;
     if(cine){
@@ -260,34 +347,7 @@
     room.lights.draw(room.a * room.b, "rgba(255,240,120,1)");
     $("hudN").textContent = cables.filter(q => q.wired).length;
     scanline(); T.SND("chirp");
-    const last = found === RELAYS.length;
-    if(cine){ await wait(500); if(!last){ await F.flyTo(HOME, 1000); atHome = !over; } camBusy = false; }
-    if(last) blackout();
-  }
-  // Overload: the camera swings round to the transformer, which swells white-hot and throws sparks; then room by
-  // room the floor goes black. A slow swell and a one-by-one shutdown: nothing flashes.
-  async function blackout(){
-    T.hideBrief();   // the blackout is the payoff, so nothing sits over it
-    await wait(400);
-    T.say("Everything's on the one transformer. Overload it.");
-    T.SND("alarm");
-    atHome = false;
-    if(!REDUCE) F.flyTo({ pos: new TH.Vector3(-80, 84, 140), look: new TH.Vector3(-24, 8, 0) }, 1500);
-    tr.material.emissive.setHex(0xffffff);
-    await F.tween(1400, e => { tr.material.emissiveIntensity = 0.4 + e * 1.8; F.rooms.forEach(r => r.lights.draw(r.a * r.b, `rgba(255,${Math.round(240 - 90 * e)},${Math.round(120 - 110 * e)},1)`)); });
-    T.SND("static");
-    const sparks = Array.from({ length: 14 }, () => { const m = new TH.Mesh(new TH.SphereGeometry(0.7, 6, 6), new TH.MeshBasicMaterial({ color: 0xfff3a0 })); m.position.set(TX, 16, 0); F.root.add(m); return { m, v: new TH.Vector3((Math.random() - .5) * 30, 10 + Math.random() * 20, (Math.random() - .5) * 30) }; });
-    F.tween(900, e => sparks.forEach(q => { q.m.position.set(TX + q.v.x * e, 16 + q.v.y * e - 30 * e * e, q.v.z * e); })).then(() => sparks.forEach(q => F.root.remove(q.m)));
-    await wait(300);
-    T.SND("powerdown");
-    for(const c of cables){ c.room.lights.draw(0); c.line.material = new TH.LineBasicMaterial({ color: 0x222222 }); c.plug.material.color.setHex(0x222222); T.SND("tick"); await wait(150); }
-    cams.forEach(c => { c.userData.off = true; c.material.color.setHex(0x222222); });
-    tr.material.emissive.setHex(0x000000); tr.material.color.setHex(0x333333);
-    await F.dark(700);
-    $("blackout").classList.add("on");
-    $("stage").querySelector(".cam").innerHTML = "<i>●</i> CAM 1 · NO SIGNAL";
-    await wait(1000);
-    end(true);
+    if(cine){ await wait(500); if(!last){ await F.flyTo(HOME, 1000); atHome = !finishing; } camBusy = false; }
   }
   // Instructions live in the HINTS window (opens only on request). A new step updates it and pings its tab.
   const seen = new Set();
@@ -302,20 +362,35 @@
     if(i1 === s1.length) return setTimeout(() => { if(!over) step2(); }, 1000 / sp());
     M.reset(); M.ask();
   }
-  // ===== Mode A: stack the relay. Drag a square layer on the pallet grid, then drag the spare layer onto the
-  // stack until the count matches. When it does, the cube locks and the spark runs to the room. =====
+  // ===== Mode A: stack the relay. The relay's wires say how big its cube is: n wires in, n × n × n blocks. Drag a square
+  // layer on the pallet, then stack one layer for each wire (each new layer plugs the next wire in) until the count matches.
+  // When it does, the cube locks and the spark runs to the room. =====
   function modeA(){
     $("pallet").hidden = false;
     const L3 = L === "L3";
     if(L3){ $("rootRow").hidden = false; $("buildRow").hidden = true; $("pal").classList.add("l3"); }
-    const G = L3 ? 10 : 6, MAXL = L3 ? 10 : 6, W = 560, Hh = 420, C30 = 0.866;
-    const u = Math.min((W - 30) / (G * 2 * C30), (Hh - 28) / (G + MAXL)), cx = W / 2, cy = MAXL * u + 10;
+    const G = L3 ? 10 : 6, MAXL = L3 ? 10 : 6, Hh = 420, C30 = 0.866;
+    const u = (Hh - 28) / (G + MAXL), W = Math.ceil(G * 2 * C30 * u + 30), cx = W / 2, cy = MAXL * u + 10;   // the view hugs the pallet, so it can be as big as possible
     const P = (x, y, z) => [cx + (x - z) * C30 * u, cy + (x + z) * 0.5 * u - y * u];
     const pts = arr => arr.map(p => P(...p).map(v => v.toFixed(1)).join(",")).join(" ");
     const svg = $("pal"); svg.setAttribute("viewBox", `0 0 ${W} ${Hh}`);
     let cellsHTML = "";
     for(let z = 0; z < G; z++) for(let x = 0; x < G; x++) cellsHTML += `<polygon class="cell" data-r="${z}" data-c="${x}" points="${pts([[x, 0, z], [x + 1, 0, z], [x + 1, 0, z + 1], [x, 0, z + 1]])}"/>`;
-    svg.innerHTML = `<g id="cells">${cellsHTML}</g><g id="stack"></g><text class="plab" x="${W / 2}" y="${Hh - 6}" text-anchor="middle">PALLET · ${G} × ${G}</text>`;
+    svg.innerHTML = `<g id="cells">${cellsHTML}</g><g id="stack"></g><text class="plab" id="plab" x="${W / 2}" y="${Hh - 4}" text-anchor="middle"></text>`;
+    // The relay and its wires: n coloured wires from the ceiling into the relay's pins. Unlit until a layer plugs each one in.
+    const WCOL = ["#ff6b6b", "#4aa3ff", "#7dffc4", "#ffe14d", "#ffb35c", "#c792ff", "#8feaff", "#ff8ad8", "#b8f06a", "#f4f4f4"];
+    function drawWires(n, hidden){
+      const BX = 160, BY = 8, BH = 70, f = v => v.toFixed(1);
+      let g = "";
+      if(hidden) g = `<rect class="hid" x="4" y="14" width="118" height="56"/><text class="q" x="63" y="42">?</text><path class="w" d="M122 42 L${BX} 42" stroke="#8aa0a6" stroke-width="7"/>`;   // L3: the wires are hidden in the ceiling
+      else for(let k = 0; k < n; k++){
+        const y0 = 4 + 76 * (k + .5) / n, y1 = BY + 6 + (BH - 12) * (k + .5) / n, sw = Math.max(2.5, Math.min(6, 30 / n));
+        g += `<path class="w draw" style="color:${WCOL[k % 10]};animation-delay:${k * 90}ms" stroke="currentColor" stroke-width="${f(sw)}" pathLength="1" d="M0 ${f(y0)} C70 ${f(y0)} 80 ${f(y1)} ${BX - 8} ${f(y1)} L${BX} ${f(y1)}"/><rect class="pin" x="${BX - 5}" y="${f(y1 - 2)}" width="6" height="4"/>`;
+      }
+      g += `<rect class="box" id="wbox" x="${BX}" y="${BY}" width="64" height="${BH}" rx="3"/><path class="bolt" d="M${BX + 36} ${BY + 8} L${BX + 22} ${BY + 36} L${BX + 31} ${BY + 36} L${BX + 26} ${BY + 56} L${BX + 43} ${BY + 28} L${BX + 34} ${BY + 28} Z"/><text class="t" x="${BX + 32}" y="${BY + BH - 5}">RELAY</text>`;
+      $("wires").innerHTML = g;
+    }
+    const litWires = k => $("wires").querySelectorAll(".w").forEach((w, i) => w.classList.toggle("on", i < k));
     // One square layer of a × a blocks: corner (ox, oz), bottom at height y0. Top, right and left faces, block lines on each.
     function slabSVG(P2, a, ox, oz, y0, cls){
       const y1 = y0 + 1;
@@ -333,6 +408,7 @@
       const P3 = (x, y, z) => [w / 2 + (x - z) * C30 * tu, tu + 5 + (x + z) * 0.5 * tu - y * tu];
       return `<svg viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" aria-hidden="true">${slabSVG(P3, base, 0, 0, 0)}</svg>`;
     }
+    const trayScale = () => Math.min(1, 80 / (base + 1) / 15, 186 / (2 * C30 * base) / 15);   // the spare layer fits its column
     function paint(drop){
       const st = $("stack"); let g = "";
       for(let k = 0; k < layers; k++) g += slabSVG(P, base, ox, oz, k, k === layers - 1 ? "top" : "");
@@ -342,7 +418,9 @@
       const n = base * base * layers, cube = base === layers;
       $("countLine").innerHTML = !base ? (L3 ? "No cube yet." : "No layer yet.") : `${base} × ${base} × ${layers} = <b>${n}</b>${cube ? ` = ${cu(base)}` : ` <small>${layers} layer${layers === 1 ? "" : "s"} of ${base * base} · not a cube yet</small>`}`;
       $("unstackBtn").disabled = layers < 1 || locked; $("clearBtn").disabled = !base || locked; $("addBtn").disabled = !base || layers >= MAXL || locked;
-      $("trayWrap").hidden = !base || L3 || locked; if(base && !L3) $("tray").innerHTML = traySVG();
+      $("trayWrap").hidden = !base || L3 || locked; if(base && !L3) $("tray").innerHTML = traySVG(trayScale());
+      $("plab").textContent = base || L3 ? `PALLET · ${G} × ${G}` : "DRAG TO DRAW A SQUARE LAYER";
+      if(!L3 && !locked) litWires(layers);   // each layer plugs in one wire
     }
     // Too many blocks: the square they chose can't make this relay, so they clear the pallet and choose again
     function checkOver(){
@@ -387,8 +465,8 @@
       if(L3){ setRoot(h); return; }
       base = h; layers = 1; ox = c0; oz = r0; paint(true); T.SND("chirp");
       if(checkOver()) return;
-      say(`One layer of ${h} × ${h} = ${h * h} blocks.`);
-      brief("stack", `Now <b>stack</b> layers: drag the spare layer onto the stack until it has <b>${want()}</b> blocks.`);
+      say(`One layer of ${h} × ${h} = ${h * h} blocks. That plugs in wire 1.`);
+      brief("stack", `Now stack: <b>one layer for each wire</b>. Press <b>Add a layer</b> (or drag the spare layer onto the stack) until there are <b>${cubeRoot(want())}</b> layers.`);
     });
     svg.addEventListener("pointercancel", () => { anchor = cur = null; clearSel(); killGhost(); paint(); });
     // ----- Dragging layers: a ghost slab follows the pointer. From the tray onto the pallet adds a layer;
@@ -421,7 +499,7 @@
     $("addBtn").addEventListener("click", addLayer);
     $("unstackBtn").addEventListener("click", removeLayer);
     $("clearBtn").addEventListener("click", clearPallet);
-    // ----- The reveal (Bertie, round 15): the finished cube lifts off the pallet to the middle of the panel, turns
+    // ----- The reveal (Bertie, round 15): the finished cube lifts off the pallet to the middle of the bench, turns
     // once so its three equal sides can be seen, and is named: 3 × 3 × 3 = 27 = 3³. -----
     const RV = 260;
     // The cube of side a, turned by yaw about its middle, in the pallet's isometric style. Yaw 0 matches the pallet view.
@@ -452,7 +530,7 @@
       const old = $("reveal"); if(old) old.remove();
       const ov = document.createElement("div"); ov.className = "reveal"; ov.id = "reveal";
       ov.innerHTML = `<svg class="rv-cube" viewBox="0 0 ${RV} ${RV}" aria-hidden="true"></svg><div class="rv-eq"><span>${a} × ${a} × ${a} = <b>${n}</b></span><span class="pw">= ${cu(a)}</span></div>`;
-      $("pallet").appendChild(ov);
+      $("bench").appendChild(ov);
       const cube = ov.firstElementChild, draw = yaw => { cube.innerHTML = cubeSVG(a, yaw); };
       draw(0);
       if(!REDUCE){   // start exactly over the stack on the pallet, then glide to the middle
@@ -466,26 +544,28 @@
       ov.classList.add("named"); T.SND("blip");
       await wait(700);
     }
-    // The cube is right: it locks, lifts off and is named, then the spark runs the cable to the room
+    // The cube is right: every wire lights, it locks, lifts off and is named, then the spark runs the cable to the room
     async function lock(){
       locked = true; svg.classList.add("locked"); paint(); T.SND("lockon");
-      const w = want();
-      $("countLine").innerHTML = `${base} × ${base} × ${base} = <b>${w}</b> = ${cu(base)} · LOCKED`;
+      const w = want(), r = base;
+      if(L3) drawWires(r, false);   // the hidden wires come into view
+      litWires(r); $("wbox").classList.add("on");
+      $("countLine").innerHTML = `${r} × ${r} × ${r} = <b>${w}</b> = ${cu(r)} · LOCKED`;
       await wait(500);
-      await reveal(base, w);
-      light(w); say(`${base}³ = ${base} × ${base} × ${base} = ${w}. A cube: that room is wired in.`, "ok");
+      await reveal(r, w);
+      light(w); say(`${r} wires in: ${r} × ${r} × ${r} = ${w} = ${r}³. That room is wired in.`, "ok");
       await wait(1100);
       nextRelay();
     }
     $("lockBtn").addEventListener("click", () => {
       if(over || locked) return;
-      if(!base){ say("No layer yet. Drag a square on the pallet first.", "warn"); T.showHints(); return; }
+      if(!base){ say("No layer yet. Drag across the pallet to draw a square first.", "warn"); T.showHints(); return; }
       const n = base * base * layers, w = want();
       if(n === w && base === layers) return lock();
       if(n === w){ say(`${n} blocks, but ${base} along each side and ${layers} layers isn't a cube. Make them match.`, "warn"); T.SND("untag"); return; }
       say(`${base} × ${base} × ${layers} = ${n}. The relay needs ${w}.`, "bad"); alarm.hit();
     });
-    // ----- L3: the cube root. A square dragged on the pallet (or a typed side) previews the whole cube. -----
+    // ----- L3: the cube root. A square dragged on the pallet (or a typed number of wires) previews the whole cube. -----
     function setRoot(v){
       if(!(v >= 1 && v <= G)) return;
       $("rootIn").value = v; base = v; layers = v; ox = oz = Math.floor((G - v) / 2); paint(); T.SND("plot");
@@ -495,22 +575,26 @@
     $("rootBtn").addEventListener("click", () => {
       if(over || locked) return;
       const n = want(), v = parseInt($("rootIn").value, 10);
-      if(!Number.isInteger(v)){ say("No side length yet.", "warn"); T.showHints(); return; }   // stuck: the brief comes back to explain
+      if(!Number.isInteger(v)){ say("No number of wires yet.", "warn"); T.showHints(); return; }   // stuck: the hints come back to explain
       if(v ** 3 === n){ setRoot(v); return lock(); }
-      say(T.isCube(n) ? `${v} × ${v} × ${v} = ${v ** 3}, not ${n}.` : `${v} × ${v} × ${v} = ${v ** 3}. In fact ${n} isn't a cube: ${between(n)}.`, "bad"); alarm.hit();
+      say(T.isCube(n) ? `${v} wires would need ${v} × ${v} × ${v} = ${v ** 3} blocks, not ${n}.` : `${v} × ${v} × ${v} = ${v ** 3}. In fact ${n} isn't a cube: ${between(n)}.`, "bad"); alarm.hit();
     });
     $("noCube").addEventListener("click", () => {
       if(over || locked) return;
       const n = want();
-      if(T.isCube(n)){ const r = cubeRoot(n); say(`It can: ${r} × ${r} × ${r} = ${n}.`, "bad"); alarm.hit(); return; }
-      T.SND("correct", i1); say(`Right: ${between(n)}, so ${n} is a dummy relay.`, "ok"); $("log").insertAdjacentHTML("beforeend", `<span class="r">${n}: dummy, not a cube</span>`);
+      if(T.isCube(n)){ const r = cubeRoot(n); say(`It can: ${r} × ${r} × ${r} = ${n}. That's ${r} wires.`, "bad"); alarm.hit(); return; }
+      T.SND("correct", i1); say(`Right: ${between(n)}, so no number of wires makes ${n}. It's a dummy relay.`, "ok"); $("log").querySelector(".lab").insertAdjacentHTML("afterend", `<span class="r">${n}: dummy, not a cube</span>`);
       nextRelay();
     });
     function ask(){
-      const n = want();
-      $("needLine").innerHTML = `Relay ${L3 ? "has" : "needs"} <b>${n}</b> blocks`;
-      if(L3) brief("root", `Relay has <b>${n}</b> blocks: how many along each side? Drag a square on the pallet or type it, or press <b>It can't be a cube</b>.`);
-      else brief("draw", `Relay needs <b>${n}</b> blocks. Drag on the pallet to draw one <b>square layer</b>.`);
+      const n = want(), r = cubeRoot(n), k = i1 + 1;
+      $("relayLab").textContent = `RELAY ${k} OF ${s1.length} · ` + (L3 ? "WIRES HIDDEN IN THE CEILING" : `${r} WIRES IN`);
+      drawWires(r, L3);
+      $("needLine").innerHTML = L3 ? `Relay ${k} needs <b>${n}</b> blocks. How many wires come in?`
+        : L === "L2" ? `Relay ${k} has <b>${r} wires</b> coming in: it needs ${cu(r)} blocks (${r} cubed).`
+        : `Relay ${k} has <b>${r} wires</b> coming in: it needs <b class="nw">${r} × ${r} × ${r}</b> blocks (${r} cubed).`;
+      if(L3) brief("root", `Relay needs <b>${n}</b> blocks. The number of wires is the blocks along each side: ? × ? × ? = ${n}. Type it and press <b>Check</b>, or drag a square on the pallet to try a size. If no number works, press <b>It can't be a cube</b>.`);
+      else brief("draw", `<b>${r} wires</b> in, so the relay is ${r} × ${r} × ${r}. Drag across the pallet to draw one <b>${r} × ${r} square layer</b>.`);
     }
     function reset(){ locked = false; svg.classList.remove("locked"); base = 0; layers = 0; anchor = cur = null; clearSel(); killGhost(); $("rootIn").value = ""; const ov = $("reveal"); if(ov) ov.remove(); paint(); }
     function skip(){
@@ -528,7 +612,7 @@
   // may be loaded; the rest are rejected. A loaded crate has to be named (which cube it is) before it goes in.
   // The belt holds at the gate until the child decides: gentle pressure, no penalty for thinking. =====
   function modeB(){
-    $("beltPanel").hidden = false;
+    $("beltPanel").hidden = false; slot("beltPanel");
     const L3 = L === "L3";
     const W = 560, GX = 132, GAP = 156, BY = 188, S = 72, D = 22;
     const DECOYS = { L1: [6, 9, 12, 16, 18, 20, 30, 36], L2: [26, 36, 49, 63, 100, 121, 124, 126], L3: [215, 217, 342, 344, 400, 513, 728, 730, 900, 999] }[L];
@@ -576,7 +660,7 @@
       const c = front(); if(!c || pending || over) return;
       const cube = T.isCube(c.n), r = cubeRoot(c.n);
       if(load && cube){ pending = c; c.state = "asked"; T.SND("tag"); askRoot(c); return; }
-      if(!load && !cube){ T.SND("correct", right++); say(`Right: ${c.n} isn't a cube. It sits between ${between(c.n)}.`, "ok"); $("log").insertAdjacentHTML("beforeend", `<span class="r">${c.n}: rejected, not a cube</span>`); return eject(c); }
+      if(!load && !cube){ T.SND("correct", right++); say(`Right: ${c.n} isn't a cube. It sits between ${between(c.n)}.`, "ok"); $("log").querySelector(".lab").insertAdjacentHTML("afterend", `<span class="r">${c.n}: rejected, not a cube</span>`); return eject(c); }
       if(load && !cube){ alarm.hit(); say(`${c.n} isn't a cube: it sits between ${between(c.n)}.${T.isSquare(c.n) ? ` It's a square (${Math.sqrt(c.n)} × ${Math.sqrt(c.n)}), not a cube.` : ""}`, "bad"); return eject(c); }
       alarm.hit(); say(`${c.n} is a cube: ${r} × ${r} × ${r} = ${c.n}. Load it.`, "bad");   // a rejected cube stays on the belt
     }
@@ -626,46 +710,275 @@
     return { ask, reset(){}, skip };
   }
 
-  // Stage 2: the relay board
-  const tile = n => $("grid").querySelector(`[data-n="${n}"]`);
-  let s2found = 0;
-  function step2(){
-    ["pallet", "beltPanel"].forEach(id => $(id).hidden = true); $("spot").hidden = false;
-    $("st1").className = "done"; $("st2").className = "on";
-    T.setGoal(GOAL2, { name: "Stage 2: the relay board" });
-    const pool = new Set();
-    s2.forEach(c => { if(c > 2){ pool.add(c - 1); pool.add(c + 1); } });
-    [4, 9, 16, 25, 32, 36, 49, 81, 100, 121, 128, 144, 169, 196, 12, 18, 24, 30, 45, 54, 60, 72, 90, 96, 108, 120, 150, 180, 200, 256, 300, 400, 500, 600, 800, 900].forEach(n => pool.add(n));
-    const decoys = T.shuffle([...pool].filter(n => n <= BOARD.max && !T.isCube(n))).slice(0, BOARD.size - s2.length);
-    $("grid").innerHTML = T.shuffle([...s2, ...decoys]).map(n => `<button type="button" class="tw-tile" data-n="${n}">${n}</button>`).join("");
-    $("grid").addEventListener("click", e => { const b = e.target.closest(".tw-tile"); if(b) tap(+b.dataset.n); });
-    T.say("Those rooms are wired. The rest of the relays are on this board: find every cube number.");
-    T.SND("powerup");   // the last relay's feedback line stays until the first tap on the board
+  // ===== Stage 2: the relay corridor. A camera looks down the corridor to the fuse box: rows of numbered floor tiles in
+  // perspective. Each row has one cube number and they go up in order, so stepping on them lights a path from FOX and WREN
+  // to the fuse box. Only the row in front of them can be stepped on. =====
+  const CX = 300, FN = 250, HY = -150, K = 600, ZF = 2, ZL = 0.9, COLS = 4;
+  const hx = (X, z) => CX + FN * X / z, hy = (z, h = 0) => HY + (K - FN * h) / z;   // screen x and y of a point X across (-1 to 1), z deep and h up
+  const f1 = v => v.toFixed(1), pt = (X, z, h) => f1(hx(X, z)) + "," + f1(hy(z, h));
+  let tiles = [], row = 0, crewAt = null;
+  const tileEl = i => $("hall").querySelector(`.tile[data-i="${i}"]`);
+  // Decoys for the row whose cube is r³: the usual slips (r², 3 × r, a layer short or over) and its neighbours
+  function decoys(r){
+    const c = r ** 3, pool = [...new Set([r * r, 3 * r, r * r * (r - 1), r * r * (r + 1), c - 1, c + 1])].filter(v => v > 1 && !T.isCube(v));
+    return [...T.shuffle(pool), ...T.shuffle([2, 3, 4, 5, 6, 9].filter(v => !pool.includes(v)))].slice(0, COLS - 1);
   }
-  function tap(n){
-    if(over || found === RELAYS.length) return;   // the blackout is running: the board is done
-    const b = tile(n); if(b.disabled) return;
-    if(T.isCube(n)){
-      const r = cubeRoot(n); b.classList.add("gold"); b.innerHTML = `${n}<small>${r}³</small>`; b.disabled = true;
-      light(n); s2found++; say(`${n} = ${r}³ = ${r} × ${r} × ${r}. Another room wired in.`, "ok");
-      return;   // the last one triggers the blackout, which ends the twist
+  const why = (n, r) => n === r * r ? `${n} = ${r} × ${r}: that's ${r} squared. The cube is ${r} × ${r} × ${r}.`
+    : n === 3 * r ? `${n} = 3 × ${r}. Cubing isn't times 3: it's ${r} × ${r} × ${r}.`
+    : n === r * r * (r - 1) ? `${n} = ${r} × ${r} × ${r - 1}: one layer short of a cube.`
+    : n === r * r * (r + 1) ? `${n} = ${r} × ${r} × ${r + 1}: one layer too many for a cube.`
+    : `${n} isn't a cube: ${between(n)}.`;
+  function buildHall(){
+    const R = s2.length, zs = T.range(0, R).map(k => 1 + (ZF - 1) * k / R);
+    let g = "";
+    // The walls: server racks, their shelves running away to the vanishing point, with a few steady status lights
+    [-1, 1].forEach(sd => {
+      const xe = sd < 0 ? 0 : 600;
+      g += `<polygon class="wall" points="${xe},0 ${f1(hx(sd, ZF))},0 ${pt(sd, ZF)} ${pt(sd, ZL)} ${xe},${f1(hy(ZL))}"/>`;
+      for(let z = 1; z <= ZF + 1e-6; z += 0.25) g += `<line class="rk" x1="${f1(hx(sd, z))}" y1="${f1(hy(z))}" x2="${f1(hx(sd, z))}" y2="0"/>`;
+      [0.55, 1.1, 1.65, 2.2].forEach(h => { g += `<line class="rk" x1="${f1(hx(sd, ZL))}" y1="${f1(hy(ZL, h))}" x2="${f1(hx(sd, ZF))}" y2="${f1(hy(ZF, h))}"/>`; });
+      for(let k = 0; k < 22; k++){ const z = 1 + Math.random() * (ZF - 1), h = 0.2 + Math.random() * 1.9; g += `<circle class="led" cx="${f1(hx(sd, z))}" cy="${f1(hy(z, h))}" r="${f1(2.6 / z)}" fill="${T.pick(["#5dffa8", "#8feaff", "#ffc94d"])}"/>`; }
+    });
+    // The far wall and the fuse box on it
+    g += `<rect class="far" x="${f1(hx(-1, ZF))}" y="-2" width="${f1(hx(1, ZF) - hx(-1, ZF))}" height="${f1(hy(ZF) + 2)}"/>`;
+    const fx = hx(-.42, ZF), fw = hx(.42, ZF) - fx, fy = hy(ZF, 1.08), fh = hy(ZF, .22) - fy;
+    g += `<g class="fuse" id="fuse"><rect class="fb" x="${f1(fx)}" y="${f1(fy)}" width="${f1(fw)}" height="${f1(fh)}"/><text x="${CX}" y="${f1(fy + 17)}">FUSE BOX</text>`
+      + [-1, 0, 1].map(k => `<rect class="fz" x="${f1(CX + k * 22 - 6)}" y="${f1(fy + 32)}" width="12" height="${f1(fh - 44)}"/>`).join("") + `</g>`;
+    // The floor, the landing where FOX and WREN wait, then the rows of tiles
+    g += `<polygon class="floor" points="${pt(-1, ZL)} ${pt(1, ZL)} ${pt(1, ZF)} ${pt(-1, ZF)}"/><polyline class="route" id="route" points=""/>`;   // the route runs under the tiles, so it never covers a number
+    tiles = [];
+    s2.forEach((c, k) => {
+      const z0 = zs[k], z1 = zs[k + 1], dz = z1 - z0, za = z0 + dz * .06, zb = z1 - dz * .06, zc = z0 + dz * .6, zf = z0 + dz * .24, rh = hy(z0) - hy(z1);
+      T.shuffle([c, ...decoys(cubeRoot(c))]).forEach((n, j) => {
+        const X0 = -1 + 2 * j / COLS + .035, X1 = -1 + 2 * (j + 1) / COLS - .035, Xm = (X0 + X1) / 2, xc = hx(Xm, zc), yc = hy(zc);
+        const fs = Math.max(15, Math.min(36, rh * .5, (hx(X1, zc) - hx(X0, zc)) * .3)), i = tiles.length;
+        tiles.push({ n, row: k, xc: hx(Xm, zf), yc: hy(zf), z: zf });   // where FOX and WREN stand: the near part of the tile
+        g += `<g class="tile" data-i="${i}" role="button" tabindex="-1" aria-label="Tile ${n}"><polygon points="${pt(X0, za)} ${pt(X1, za)} ${pt(X1, zb)} ${pt(X0, zb)}"/><text x="${f1(xc)}" y="${f1(yc)}" font-size="${f1(fs)}">${n}</text></g>`;
+      });
+    });
+    g += `<g class="crew" id="crew"><ellipse class="sh" cx="0" cy="7" rx="23" ry="6"/><circle cx="-9" cy="0" r="7" fill="#ffb35c"/><circle cx="9" cy="0" r="7" fill="#7fd4ff"/><text x="-12" y="-12" text-anchor="end">FOX</text><text x="12" y="-12">WREN</text></g>`;
+    $("hall").innerHTML = g;
+    crewAt = { x: CX, y: hy((ZL + 1) / 2), s: 2 / (ZL + 1) };
+    placeCrew(crewAt); route();
+  }
+  const placeCrew = p => $("crew").setAttribute("transform", `translate(${f1(p.x)} ${f1(p.y)}) scale(${p.s.toFixed(3)})`);
+  function moveCrew(to){
+    const from = { ...crewAt }; crewAt = to;
+    if(REDUCE){ placeCrew(to); return Promise.resolve(); }
+    return F.tween(420, e => placeCrew({ x: from.x + (to.x - from.x) * e, y: from.y + (to.y - from.y) * e, s: from.s + (to.s - from.s) * e }));
+  }
+  // The laser route: from the landing through every lit tile (and on to the fuse box at the end)
+  function route(extra){
+    const p = [[CX, hy((ZL + 1) / 2)], ...tiles.filter((t, i) => tileEl(i).classList.contains("lit")).sort((a, b) => a.row - b.row).map(t => [t.xc, t.yc]), ...(extra ? [extra] : [])];
+    $("route").setAttribute("points", p.map(q => q.map(f1).join(",")).join(" "));
+  }
+  function markNext(){
+    tiles.forEach((t, i) => { const el = tileEl(i), nx = t.row === row && !el.classList.contains("bad"); el.classList.toggle("next", nx); el.setAttribute("tabindex", nx ? "0" : "-1"); });
+  }
+  function trail(){
+    const bits = s2.slice(0, row).map(n => `<span class="s">${n}</span>`);
+    bits.push(row < s2.length ? `<span class="q" aria-label="next">?</span>` : `<span class="s f">FUSE BOX</span>`);
+    $("trail").innerHTML = `<span class="lab">PATH</span>` + bits.join("<i>→</i>");
+  }
+  function step2(){
+    ["pallet", "beltPanel"].forEach(id => $(id).hidden = true); $("spot").hidden = false; slot("spot"); say("");
+    $("st1").className = "done"; $("st2").className = "on";
+    const first = s2[0] === 1 ? "1, 8, 27" : `${s2[0]}, ${s2[1]}, ${s2[2]}`;
+    T.setGoal(`Light a path to the fuse box: in each row, step on the <b>cube number</b>. They go up in order: ${first} and so on. Click the tile, or type its number and press Enter.`, {
+      name: "Stage 2: the relay corridor", example: `${s2.slice(0, 3).map(n => `<b>${n} = ${cubeRoot(n)}³</b>`).join(", ")}: the next is ${cubeRoot(s2[3])} × ${cubeRoot(s2[3])} × ${cubeRoot(s2[3])} = ${s2[3]}.`,
+      context: `The last relays are under this corridor floor. Step on the <b>cube numbers in order</b> to light a path to the fuse box.` });
+    buildHall(); markNext(); trail();
+    T.say("Those rooms are wired. The last relays are under the corridor: step on the cube numbers, in order, to reach the fuse box.");
+    T.SND("powerup");
+  }
+  function stepOn(i){
+    const t = tiles[i], el = t && tileEl(i);
+    if(over || finishing || !t || el.classList.contains("lit") || el.classList.contains("bad") || t.row < row) return;
+    if(t.row > row){ say("One row at a time: the next tile is in the row just in front of FOX and WREN.", "warn"); T.SND("untag"); return; }
+    const c = s2[row], r = cubeRoot(c);
+    if(t.n === c){
+      el.classList.add("lit"); el.setAttribute("aria-label", `Tile ${t.n}, lit`);
+      const kbd = document.activeElement === el;
+      row++; markNext(); trail(); route();
+      const last = row === s2.length;
+      say(`${c} = ${r} × ${r} × ${r} = ${r}³.${last ? " The path reaches the fuse box." : " On to the next row."}`, "ok");
+      $("crew").classList.add("go"); moveCrew({ x: t.xc, y: t.yc, s: .9 / t.z });
+      light(c);
+      if(last) reachFuse();
+      else if(kbd){ const nx = $("hall").querySelector(".tile.next"); if(nx) nx.focus(); }
+      return;
     }
-    b.classList.add("bad"); b.disabled = true;
-    say(`${n} isn't a cube: ${between(n)}.${T.isSquare(n) ? ` It's a square (${Math.sqrt(n)} × ${Math.sqrt(n)}), not a cube.` : ""}`, "bad");
-    if(alarm.hit() === 2){ $("table").hidden = false; $("table").innerHTML = "CUBE TABLE: " + T.range(1, 10).map(k => `${k}³ = ${k ** 3}`).join(" · "); T.say("I've sent you the cube table."); }
+    el.classList.add("bad"); el.classList.remove("next"); el.setAttribute("tabindex", "-1"); el.setAttribute("aria-label", `Tile ${t.n}, not a cube`);
+    say(why(t.n, r), "bad");
+    if(alarm.hit() === 2 && !over){ $("table").hidden = false; $("table").innerHTML = `<span class="lab">CUBE TABLE</span><br>` + T.range(1, 10).map(k => `${k}³ = ${k ** 3}`).join("<br>"); T.say("I've sent you the cube table."); }
+  }
+  // Typing: the number of a tile in the next row steps on it (digits typed anywhere land in the box)
+  function typed(){
+    const inp = $("stepIn"), v = parseInt(inp.value, 10); inp.value = "";
+    if($("spot").hidden || over || finishing) return;
+    if(!Number.isInteger(v)){ say("Type the number on a tile in the next row, then press Enter.", "warn"); return; }
+    const i = tiles.findIndex(t => t.row === row && t.n === v);
+    if(i >= 0 && tileEl(i).classList.contains("bad")){ say(`${v} is already ruled out. Try another tile in that row.`, "warn"); T.SND("untag"); return; }
+    if(i >= 0) return stepOn(i);
+    say(tiles.some(t => t.row > row && t.n === v) ? `${v} is further along. One row at a time: the row just in front of FOX and WREN.` : `There's no ${v} tile in the next row.`, "warn"); T.SND("untag");
+  }
+  $("hall").addEventListener("click", e => { const el = e.target.closest(".tile"); if(el) stepOn(+el.dataset.i); });
+  $("hall").addEventListener("keydown", e => { const el = e.target.closest && e.target.closest(".tile"); if(el && (e.key === "Enter" || e.key === " ")){ e.preventDefault(); stepOn(+el.dataset.i); } });
+  $("stepBtn").addEventListener("click", typed);
+  $("stepIn").addEventListener("keydown", e => { if(e.key === "Enter"){ e.preventDefault(); typed(); } });
+  document.addEventListener("keydown", e => {
+    if($("spot").hidden || over || finishing || T.briefOpen() || e.ctrlKey || e.metaKey || e.altKey) return;
+    const tg = e.target; if(tg && (tg.tagName === "INPUT" || tg.tagName === "TEXTAREA")) return;
+    if(/^[0-9]$/.test(e.key)) $("stepIn").focus();   // the digit carries on into the box
+  });
+  // The path reaches the far end: FOX and WREN walk up to the fuse box, which lights, then the fuse box itself
+  async function reachFuse(){
+    finishing = true;
+    await wait(450);
+    const fp = { x: CX, y: hy(ZF) - 4, s: 1 / ZF };
+    route([fp.x, fp.y]);
+    await moveCrew(fp);
+    $("fuse").classList.add("on"); T.SND("lockon");
+    await wait(900);
+    finale();
+  }
+
+  // ===== The finale: the fuse box itself. Four lasers draw its wiring (breakers, the relays just built, terminals, and the
+  // cables out to the building), the camera easing back as it fills in, then pulling right out. Nothing flashes: the lines
+  // grow and the colours swell once. The blackout plays on the heist's blueprint afterwards (effect: "dark"). =====
+  async function finale(){
+    T.hideBrief(); document.querySelectorAll(".twb-chip").forEach(c => c.classList.add("hide"));
+    T.say("That's every relay. Watch the fuse box wire itself up.");
+    const ov = $("finale"); ov.hidden = false; ov.getBoundingClientRect(); ov.classList.add("on");
+    let R3 = null;
+    try{ R3 = new TH.WebGLRenderer({ canvas: $("fbCanvas"), antialias: true, alpha: true }); if(!R3.getContext()) throw 0; }catch(e){ R3 = null; }
+    if(!R3){ await wait(900); return end(true); }   // no WebGL: straight on
+    R3.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+    const S = new TH.Scene(), cam = new TH.PerspectiveCamera(40, 1, 0.5, 3000), look = new TH.Vector3(), V = (x, y, z) => new TH.Vector3(x, y, z);
+    const size = () => { R3.setSize(innerWidth, innerHeight, false); cam.aspect = innerWidth / innerHeight; cam.updateProjectionMatrix(); };
+    size(); window.addEventListener("resize", size);
+    const G = new TH.Group(); S.add(G);
+    const part = (w, h, d, x, y, z, col, edge, op = 1, parent = G) => {
+      const geo = new TH.BoxGeometry(w, h, d), m = new TH.Mesh(geo, new TH.MeshBasicMaterial({ color: col, transparent: op < 1, opacity: op }));
+      if(edge !== undefined) m.add(new TH.LineSegments(new TH.EdgesGeometry(geo), new TH.LineBasicMaterial({ color: edge })));
+      m.position.set(x, y, z); parent.add(m); return m;
+    };
+    // The cabinet: back plate with a faint grid, walls with the heist's gold edges, the door swung wide open
+    part(66, 46, 1, 0, 0, -.5, 0x08181c, 0x1c4450);
+    const grid = new TH.GridHelper(46, 23, 0x1a4652, 0x0e2830); grid.scale.x = 64 / 46; grid.rotation.x = Math.PI / 2; grid.position.z = .05; G.add(grid);
+    [[68, 1.6, 0, 23.8], [68, 1.6, 0, -23.8], [1.6, 49, -33.8, 0], [1.6, 49, 33.8, 0]].forEach(([w, h, x, y]) => part(w, h, 7, x, y, 3, 0x24404a, 0xffc94d));
+    const hinge = new TH.Group(); hinge.position.set(-34.6, 0, 6.5); hinge.rotation.y = -2.5; G.add(hinge);
+    part(68, 49, .6, 34, 0, 0, 0x1a323b, 0xffe14d, .8, hinge);
+    // Rails, the main breaker and bus bar, a row of breakers, the relays (the cubes just built), the terminals and the ducts
+    [15, 4, -10, -16.5].forEach(y => part(58, 1, .8, 0, y, .5, 0x4a5e64));
+    part(8, 8, 4, -25, 15.5, 2, 0x1d3a42, 0x8feaff); part(1.8, 3, 1.4, -25, 16.5, 4.6, 0xff4f6d);
+    part(46, 1.4, .8, 5, 19.3, 2.6, 0xd08a3a);
+    const BX = T.range(0, 13).map(i => -26 + i * 4);
+    BX.forEach(x => { part(3, 6, 3.4, x, 4, 1.7, 0x1d3a42, 0x8feaff); part(.7, 1.2, .8, x, 5, 3.8, 0xffc94d); part(.45, .45, .45, x, 2.2, 3.6, 0x5dffa8); });
+    const gridTex = n => { const c = document.createElement("canvas"); c.width = c.height = 128; const x = c.getContext("2d"); x.fillStyle = "rgba(255,201,77,.78)"; x.fillRect(0, 0, 128, 128); x.strokeStyle = "rgba(255,240,190,.95)"; x.lineWidth = 4; x.strokeRect(2, 2, 124, 124); x.lineWidth = 2; for(let k = 1; k < n; k++){ const v = k * 128 / n; x.beginPath(); x.moveTo(v, 0); x.lineTo(v, 128); x.moveTo(0, v); x.lineTo(128, v); x.stroke(); } return new TH.CanvasTexture(c); };
+    const roots = RELAYS.map(cubeRoot); let sz = roots.map(n => 1.5 + .55 * n), gap = 1.4, tot = sz.reduce((a, b) => a + b, 0) + gap * (sz.length - 1);
+    const kk = Math.min(1, 52 / tot); sz = sz.map(s => s * kk); gap *= kk; tot *= kk;
+    let rx = -tot / 2;
+    const RX = roots.map((n, i) => {
+      const s = sz[i], x = rx + s / 2; rx += s + gap;
+      const m = new TH.Mesh(new TH.BoxGeometry(s, s, s), new TH.MeshBasicMaterial({ map: gridTex(n), transparent: true, color: 0xc4c4c4 }));
+      m.position.set(x, -9.5 + s / 2, .3 + s / 2); G.add(m);
+      return { x, s, top: -9.5 + s, bot: -9.5, m };
+    });
+    const TXs = T.range(0, 27).map(i => -27 + i * 2);
+    TXs.forEach((x, i) => part(1.5, 3, 2, x, -16.5, 1, i % 5 === 4 ? 0x9ccf3a : i % 2 ? 0x4aa3ff : 0x8aa0a6));
+    const DA = 9.5, DB = -1.5, DC = -12.8, DD = -20.5;
+    [DA, DB, DC, DD].forEach(y => part(58, 2.2, 1.6, 0, y, .8, 0x10262c, 0x2c6e7a, .9));
+    [-30.5, 30.5].forEach(x => part(2.6, 41, 1.6, x, -1, .8, 0x10262c, 0x2c6e7a, .9));
+    // The wiring: every wire a run of straight segments along the ducts, in lanes so the bundles show
+    const PAL = [[.44, .91, 1], [1, .79, .3], [1, .35, .43], [.36, 1, .66], [.87, .97, 1], [.29, .64, 1]];
+    const Z = k => 2.2 + (k % 6) * .12, lane = (k, n = 9) => ((k % n) - (n - 1) / 2) * .22;
+    const wires = [], add = (pts, c, s) => wires.push({ pts, c: PAL[c % PAL.length], s });
+    BX.forEach((x, i) => add(x < -19 ? [V(x, 11.5, 3.1), V(x, 7.1, 3.1)] : [V(x, 18.6, 3.1), V(x, 7.1, 3.1)], 1, x < 0 ? 0 : 1));   // bus bar to breakers
+    BX.forEach((x, i) => { const r = RX[i % RX.length], z = Z(i), y = DB + lane(i), xr = r.x + lane(i, 5) * r.s * .8; add([V(x, 1, z), V(x, y, z), V(xr, y, z), V(xr, r.top, z)], [0, 5, 4][i % 3], x < 0 ? 0 : 1); });   // breakers to relays
+    for(let i = 0; i < 12; i++){ const x = BX[(i * 5) % BX.length], y = DA + lane(i), tx = -27.5 + (i % 4) * 1.6, z = Z(i + 3); add([V(x, 7.1, z), V(x, y, z), V(tx, y, z), V(tx, 11.5, z)], [2, 1, 4][i % 3], 0); }   // cross links to the main breaker
+    RX.forEach((r, j) => [-1, 0, 1].forEach(k => {   // relays down to terminals
+      const x0 = r.x + k * r.s * .3, i = j * 3 + k + 1, t = TXs[Math.max(0, Math.min(TXs.length - 1, Math.round((x0 + 27) / 2) + ((j * 7 + k * 3) % 9) - 4))], z = Z(i), y = DC + lane(i);
+      add([V(x0, r.bot, z), V(x0, y, z), V(t, y, z), V(t, -15, z)], [1, 0, 3][k + 1], x0 < 0 ? 2 : 3);
+    }));
+    TXs.forEach((x, i) => { const sd = x < 0 ? -1 : 1, z = Z(i), y = DD + lane(i), sx = sd * (30.5 + lane(i, 7) * 2.4), top = 40 + (i % 4) * 2; add([V(x, -18, z), V(x, y, z), V(sx, y, z), V(sx, top, z)], [0, 4, 2, 3, 5][i % 5], sd < 0 ? 2 : 3); });   // out to the building
+    for(let k = 0; k < 4; k++) add([V(-27.5 + k * 1.3, 42, 3), V(-27.5 + k * 1.3, 19.5, 3)], [2, 5, 1, 3][k], 0);   // the supply in
+    const streams = [[], [], [], []];
+    wires.forEach(w => { for(let k = 1; k < w.pts.length; k++) streams[w.s].push({ a: w.pts[k - 1], b: w.pts[k], c: w.c }); });
+    // A tracer draws its segments in order at an even speed; the last one grows to the laser's tip (as the town map's lasers do)
+    function tracer(list, k = 1, off = V(0, 0, 0)){
+      const n = list.length, src = new Float32Array(n * 6), col = new Float32Array(n * 6), cum = [0];
+      list.forEach((s, i) => { src.set([s.a.x + off.x, s.a.y + off.y, s.a.z + off.z, s.b.x + off.x, s.b.y + off.y, s.b.z + off.z], i * 6); col.set([...s.c, ...s.c].map(v => v * k), i * 6); cum.push(cum[i] + s.a.distanceTo(s.b)); });
+      const geo = new TH.BufferGeometry(), pos = new TH.BufferAttribute(src.slice(), 3);
+      geo.setAttribute("position", pos); geo.setAttribute("color", new TH.BufferAttribute(col, 3)); geo.setDrawRange(0, 0);
+      const mat = new TH.LineBasicMaterial({ vertexColors: true, transparent: true, blending: TH.AdditiveBlending, depthWrite: false });
+      const obj = new TH.LineSegments(geo, mat); obj.frustumCulled = false; G.add(obj);
+      let cur = -1; const tip = V(0, 0, 0), total = cum[n];
+      return { mat, set(p){
+        if(p <= 0 || !n){ geo.setDrawRange(0, 0); return null; }
+        const f = Math.min(1, p) * total; let i = Math.max(0, cur); while(i < n - 1 && cum[i + 1] <= f) i++;
+        const fr = p >= 1 ? 1 : Math.min(1, (f - cum[i]) / Math.max(1e-6, cum[i + 1] - cum[i])), a = pos.array;
+        for(let q = Math.max(0, cur); q < i; q++) for(let j = 3; j < 6; j++) a[q * 6 + j] = src[q * 6 + j];
+        for(let j = 0; j < 3; j++) a[i * 6 + 3 + j] = src[i * 6 + j] + (src[i * 6 + 3 + j] - src[i * 6 + j]) * fr;
+        cur = i; pos.needsUpdate = true; geo.setDrawRange(0, (i + 1) * 2);
+        return p >= 1 ? null : tip.set(a[i * 6 + 3], a[i * 6 + 4], a[i * 6 + 5]);
+      } };
+    }
+    const lines = streams.map(l => tracer(l)), halo = streams.map(l => tracer(l, .45, V(.07, -.07, .03)));   // the halo copy thickens each wire
+    // The lasers: beams from four emitters out in front, each with a glowing tip
+    const dot = (() => { const c = document.createElement("canvas"); c.width = c.height = 64; const x = c.getContext("2d"), gr = x.createRadialGradient(32, 32, 0, 32, 32, 32);
+      gr.addColorStop(0, "rgba(255,255,255,1)"); gr.addColorStop(.25, "rgba(160,240,255,.8)"); gr.addColorStop(1, "rgba(111,232,255,0)"); x.fillStyle = gr; x.fillRect(0, 0, 64, 64); return new TH.CanvasTexture(c); })();
+    const lasers = [[-46, 30, 34], [46, 30, 34], [-46, -30, 34], [46, -30, 34]].map(e => {
+      const geo = new TH.BufferGeometry(); geo.setAttribute("position", new TH.Float32BufferAttribute([...e, ...e], 3));
+      const beam = new TH.Line(geo, new TH.LineBasicMaterial({ color: 0xbff4ff, transparent: true, opacity: .7, blending: TH.AdditiveBlending, depthWrite: false })); beam.frustumCulled = false; G.add(beam);
+      const tip = new TH.Sprite(new TH.SpriteMaterial({ map: dot, transparent: true, blending: TH.AdditiveBlending, depthWrite: false })); tip.scale.setScalar(2.6); G.add(tip);
+      beam.visible = tip.visible = false; return { beam, tip };
+    });
+    // Camera: close on the relays, easing back to the whole cabinet as it's wired, then pulling right out
+    const tanV = Math.tan(20 * Math.PI / 180), D = Math.max(27 / tanV, 38 / (tanV * cam.aspect)) + 6;
+    const C0 = V(6, -3, 22), L0 = V(0, -5.5, 0), C1 = V(-7, 3, D), L1 = V(0, 0, 0), C2 = V(0, 8, D * 3.2), L2 = V(0, 2, 0);
+    const ease = t => t < .5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+    const DRAW = REDUCE ? 900 : 3600, HOLD = REDUCE ? 1100 : 900, OUT = REDUCE ? 500 : 1300;
+    T.SND("scan"); setTimeout(() => T.SND("trickle"), 300 / sp());
+    let held = false, out = false;
+    await new Promise(res => {
+      const t0 = performance.now();
+      (function frame(now){
+        const t = (now - t0) * sp(), p = Math.min(1, t / DRAW);
+        const tips = lines.map(l => l.set(REDUCE ? 1 : p)); halo.forEach(l => l.set(REDUCE ? 1 : p));
+        if(REDUCE) lines.concat(halo).forEach(l => { l.mat.opacity = p; });
+        lasers.forEach((z, i) => { const q = tips[i], on = !!q && !REDUCE; z.beam.visible = z.tip.visible = on; if(on){ const a = z.beam.geometry.attributes.position; a.setXYZ(1, q.x, q.y, q.z); a.needsUpdate = true; z.tip.position.copy(q); } });
+        $("fbStat").textContent = p < 1 ? `WIRING ${Math.floor(p * wires.length)} OF ${wires.length} CIRCUITS` : `${wires.length} CIRCUITS LIVE`;
+        if(REDUCE){ cam.position.copy(C1); look.copy(L1); }
+        else if(t < DRAW + HOLD){ const e = ease(p); cam.position.lerpVectors(C0, C1, e); look.lerpVectors(L0, L1, e); }
+        if(t >= DRAW && !held){ held = true; T.SND("powerup"); $("fbDone").innerHTML = `ALL ${RELAYS.length} RELAYS WIRED`; $("fbDone").classList.add("on"); }
+        if(held){ const e = Math.min(1, (t - DRAW) / HOLD); RX.forEach(r => r.m.material.color.setScalar(.77 + .23 * e)); }   // one slow swell as the current flows
+        if(t >= DRAW + HOLD){
+          const e = ease(Math.min(1, (t - DRAW - HOLD) / OUT));
+          if(!out){ out = true; T.SND("whooshDown"); $("fbDone").classList.remove("on"); }
+          if(!REDUCE){ cam.position.lerpVectors(C1, C2, e); look.lerpVectors(L1, L2, e); }
+          $("fbDim").style.opacity = (e * .5).toFixed(3);
+        }
+        cam.lookAt(look); R3.render(S, cam);
+        if(t >= DRAW + HOLD + OUT) return res();
+        requestAnimationFrame(frame);
+      })(t0);
+    });
+    window.removeEventListener("resize", size);
+    end(true);
   }
   function end(ok){
     if(over) return;
     over = true;
-    if(!ok) s2.forEach(n => { const b = tile(n); if(b && !b.disabled) b.classList.add("missed"); });
-    T.finish({ ok, title: ok ? "BLACKOUT" : "RELAY ALARM", effect: ok ? "dark" : "", auto: ok ? 2500 : 0,
-      lines: [`Relays powered: <b>${found}</b> of ${RELAYS.length}`, `Cube numbers: <b>${[...new Set(RELAYS)].sort((a, b) => a - b).map(n => `${n} = ${cubeRoot(n)}³`).join(", ")}</b>`, "A cube number is a number times itself, times itself again: 4³ = 4 × 4 × 4 = 64."] });
-    T.say(ok ? "Whole floor's dark. Their cameras can't see a thing." : "Too many wrong relays. The lights stay on.");
+    if(!ok && !$("spot").hidden) tiles.forEach((t, i) => { if(t.row >= row && t.n === s2[t.row]) tileEl(i).classList.add("missed"); });
+    T.finish({ ok, title: ok ? "RELAYS WIRED" : "RELAY ALARM", effect: ok ? "dark" : "",
+      lines: [`Relays powered: <b>${found}</b> of ${RELAYS.length}`, `Cube numbers: <b>${[...new Set(RELAYS)].sort((a, b) => a - b).map(n => `${n} = ${cubeRoot(n)}³`).join(", ")}</b>`, "A cube number is a number times itself, times itself again: 4³ = 4 × 4 × 4 = 64. So 4 wires in means 64 blocks."] });
+    T.say(ok ? "Every relay's wired. Now we can cut their lights." : "Too many wrong relays. The lights stay on.");
   }
   M = MODE === "B" ? modeB() : modeA();
   M.ask();
   if(window.PNTest) PNTest.skip("Solve this step", () => {
-    if(!$("spot").hidden){ s2.forEach(n => { if(!tile(n).disabled) tap(n); }); return; }
+    if(!$("spot").hidden){ while(!over && !finishing && row < s2.length) stepOn(tiles.findIndex(t => t.row === row && t.n === s2[row])); return; }
     M.skip();
   });
 })();

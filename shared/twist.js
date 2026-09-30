@@ -1,6 +1,7 @@
 /* PRIMENET twists: the rotating bank-heist tasks. Each twist is its own page so it can be tested
    away from the mission (open modules/twist_lab.html). This file gives every twist the same frame:
-   a header with the level switch, an alarm meter, ORACLE, number helpers and the result screen.
+   a header with the level switch, an alarm meter, ORACLE, number helpers and the result screen (Twist Lab only: in a mission
+   the twist hands back to the stage by itself, see finish()).
    PNTwist.init({ id, stage, title, goal, story }) then PNTwist.level(), .alarm(max, onTrip), .finish({...}).
    Instructions: the goal opens as a hologram brief; PNTwist.step(html) shows each new step there (H hides/shows it).
    Anything timed should wait while PNTwist.briefOpen() is true (a "pn-brief" event fires on window when it opens or closes).
@@ -110,16 +111,17 @@
   @media (prefers-reduced-motion: reduce){ .tw-tile.missed{ animation:none; } .tw-flash{ animation:none; } }`;
 
   let level = "L1", resultMode = "";
-  // Round 11: in a mission the twist plays inside the stage (an iframe); no lab header, and Continue hands back
+  // Round 11: in a mission the twist plays inside the stage (an iframe); no lab header, and the twist hands back by itself
   const MISSION = qs.get("mission") === "1";
   const EMBED = MISSION && window.parent !== window;
   const SND = (n, a) => { if(window.PNSound) PNSound.play(n, a); };
 
   // The level from ?level=, else the agent's level, else L1 (safe to call before init)
   function peekLevel(){ const a = PN && PN.getAgent(); return ["L1", "L2", "L3"].includes(qs.get("level")) ? qs.get("level") : (a && a.level) || "L1"; }
-  // init({ result: "auto" }): in a mission the twist's own ending is the payoff, so finish() shows no result card and hands back by itself
-  function init({ id, stage, title, goal, story, brief, example, eyebrow, briefTitle, context, briefStyle, result }){
-    resultMode = result || "";
+  // Teacher: "make all twists carry straight on". In a mission every twist is result:"auto": the twist's own ending is the payoff,
+  // so finish() shows no result card and hands back by itself. The Twist Lab keeps the card (Play again). init({ result: "card" }) opts out.
+  function init({ id, stage, title, goal, story, brief, example, briefTitle, context, briefStyle, result }){
+    resultMode = result || (MISSION ? "auto" : "");
     const st = document.createElement("style"); st.textContent = css + (EMBED ? " .pnh{ display:none !important; }" : ""); document.head.appendChild(st);
     if(PN && PN.applyLoot) PN.applyLoot();   // safehouse shop: hologram tint and night lens
     level = peekLevel();
@@ -127,7 +129,7 @@
     const head = document.createElement("header"); head.className = "tw-head";
     const lv = ["L1", "L2", "L3"].map(l => { const u = new URL(location.href); u.searchParams.set("level", l); return `<a href="${u.pathname.split("/").pop()}${u.search}" aria-current="${l === level}">${l}</a>`; }).join("");
     head.innerHTML = MISSION
-      ? `<div class="l"><span class="eb">${eyebrow || "CHANGE OF PLAN"} · ${level}</span><h1>${title}</h1></div>`
+      ? `<div class="l"><h1>${title}</h1></div>`   // teacher: no CHANGE OF PLAN · L1 line over the title in a mission (the lab keeps its line)
       : qs.get("warmup") === "1" ? `<div class="l"><span class="eb">WARM-UP · OPTIONAL</span><h1>${title}</h1></div><div class="r"><a class="pn-btn small" href="../index.html" style="text-decoration:none">Main menu</a></div>`
       : `<div class="l"><span class="eb">TWIST LAB · ${stage}</span><h1>${title}</h1></div>
       <div class="r"><nav class="tw-lv" aria-label="Level">${lv}</nav><button class="pn-btn small" type="button" id="twNew">New round</button><a class="pn-btn small" href="twist_lab.html" style="text-decoration:none">Twist Lab</a></div>`;
@@ -159,7 +161,8 @@
     };
   }
 
-  function finish({ ok = true, title, lines = [], note = "", effect = "", auto = 0, result = resultMode }){   // auto: in a mission, carry on by itself after this many ms   // effect: something the stage shows afterwards (e.g. "dark")
+  // auto: in a mission, hand back after this many ms (the twist's last picture stays up that long)   // effect: something the stage shows afterwards (e.g. "dark")
+  function finish({ ok = true, title, lines = [], note = "", effect = "", auto = 0, result = resultMode }){
     if(document.querySelector(".tw-result")) return;   // one result screen only (a twist could end twice)
     hideBrief(); if(W.brief){ W.brief.chip.classList.add("hide"); W.hints.chip.classList.add("hide"); }
     const ov = document.createElement("div"); ov.className = "tw-result" + (ok ? "" : " fail");

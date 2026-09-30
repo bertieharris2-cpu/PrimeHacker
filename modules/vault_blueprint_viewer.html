@@ -269,6 +269,8 @@ body{ padding:12px 16px !important; overflow-y:auto; }
 .bp-label.red{ color:#ffd6de; border-color:#ff4f6d; box-shadow:0 0 26px rgba(255,79,109,.45); }
 .bp-label.blue{ color:#dfe9ff; border-color:#3a7bff; box-shadow:0 0 26px rgba(58,123,255,.5); }
 .bp-label.gold{ color:#fff1c4; border-color:#ffc94d; box-shadow:0 0 26px rgba(255,201,77,.4); }
+.bp-dark{ position:absolute; inset:0; pointer-events:none; opacity:0; transition:opacity 2.4s ease; background:radial-gradient(ellipse at 50% 48%, rgba(0,4,8,0) 35%, rgba(0,4,8,.72) 100%); }   /* the blackout: the stage's edges darken */
+.bp-dark.on{ opacity:1; }
 .bp-label.green{ color:#d9ffec; border-color:#2fbf8a; box-shadow:0 0 26px rgba(47,191,138,.45); }
 .bp-cctv{ position:absolute; inset:14px; z-index:5; pointer-events:none; font-family:var(--font-mono); font-size:15px; letter-spacing:.12em; color:#eafcff;
   background:repeating-linear-gradient(0deg, rgba(200,255,240,.05) 0 1px, transparent 1px 4px); animation:cctvSnap .18s steps(2) 1; }
@@ -369,6 +371,7 @@ function powerUpPrompt(title){
     // Load completed levels from localStorage
     let completed = JSON.parse(localStorage.getItem('blueprintProgress') || '[]');
     
+    const QUIZ_ON = false;   // the floor quiz after the plan (parked, see floorQuiz)
     // Sample numbers are a teacher preview only. Students always see the floors they built.
     const DEMO_MODE = completed.length < 3 && !!(PN && PN.isTeacher());
     if(DEMO_MODE){
@@ -451,7 +454,7 @@ function powerUpPrompt(title){
       // Proceed button handler
       if(window.PNTest){
         PNTest.add("Continue to Prime Hack", () => { window.location.href = "prime_hack.html"; });
-        PNTest.add("Show the floor quiz", () => { floorQuiz(floors, () => {}); });
+        if(QUIZ_ON) PNTest.add("Show the floor quiz", () => { floorQuiz(floors, () => {}); });
       }
       const goHack = async () => {
         localStorage.removeItem('blueprintProgress');   // the next mission starts with no floors
@@ -465,17 +468,19 @@ function powerUpPrompt(title){
       // One quick question about the building before the hack: a right answer earns an intel bonus
       // Feedback: ORACLE's question comes up by itself once the route is planned; answering it opens the
       // protocol typing straight away. The button is only used when the quiz has already been done.
+      // Teacher: the quiz is parked (QUIZ_ON). The protocol opens by itself once the route is planned (the button is the teacher preview's).
       window.bpReady = () => {
         const a = PN && PN.getAgent(), btn = document.getElementById('proceedToHackBtn'), ct = document.getElementById('completionText');
-        if(DEMO_MODE || (a && a.quizDone)){ btn.disabled = false; if(ct) ct.textContent = 'Route planned. Ready to start the hack?'; if(window.PNMode) PNMode.turn('Press the green button to start the hack'); return; }
+        if(!QUIZ_ON && a && a.intelBonus) PN.updateAgent({ intelBonus: 0 });   // no quiz, no intel bonus (clears one left from before)
+        if(DEMO_MODE || (QUIZ_ON && a && a.quizDone)){ btn.disabled = false; if(ct) ct.textContent = 'Route planned. Ready to start the hack?'; if(window.PNMode) PNMode.turn('Press the green button to start the hack'); return; }
         btn.hidden = true;
-        if(ct) ct.textContent = "Answer ORACLE's question to start the hack protocol.";
-        setTimeout(() => floorQuiz(floors, () => armProtocol(floors, afterProtocol)), 1200 / (window.PNTest ? PNTest.speed() : 1));
+        if(ct) ct.textContent = QUIZ_ON ? "Answer ORACLE's question to start the hack protocol." : 'Route planned. Send the access kit to FOX and WREN.';
+        setTimeout(() => QUIZ_ON ? floorQuiz(floors, () => armProtocol(floors, afterProtocol)) : armProtocol(floors, afterProtocol), 1200 / (window.PNTest ? PNTest.speed() : 1));
       };
       document.getElementById('proceedToHackBtn').addEventListener('click', () => {
         const a = PN && PN.getAgent();
         document.getElementById('proceedToHackBtn').disabled = true;
-        if(DEMO_MODE || (a && a.quizDone)) return armProtocol(floors, afterProtocol);
+        if(!QUIZ_ON || DEMO_MODE || (a && a.quizDone)) return armProtocol(floors, afterProtocol);
         floorQuiz(floors, () => armProtocol(floors, afterProtocol));
       });
     }
@@ -621,7 +626,7 @@ function powerUpPrompt(title){
       const camLook = CAM_WIDE.look.clone();
       camera.position.copy(CAM_WIDE.pos); camera.lookAt(camLook);
 
-      scene.add(new THREE.AmbientLight(0xaaffee, 0.45));
+      const amb = new THREE.AmbientLight(0xaaffee, 0.45); scene.add(amb);
       const dir = new THREE.DirectionalLight(0xaaffee, 0.6);
       dir.position.set(0.5, 1, 0.2);
       scene.add(dir);
@@ -695,7 +700,7 @@ function powerUpPrompt(title){
         if(shell.visible) gridReferences.forEach(grid => {
           grid.material.opacity = (Math.max(0, 1 - Math.abs(grid.position.y - scanY) / 12) * 0.8 + 0.05) * grid.userData.fade;
         });
-        if(beacon.visible) beacon.material.opacity = beacon.scale.x = beacon.scale.y = beacon.scale.z = 0.8 + 0.4 * Math.abs(Math.sin((now - t0) / 350));
+        if(beacon.visible){ const k = 0.8 + 0.4 * Math.abs(Math.sin((now - t0) / 350)); beacon.scale.setScalar(k); beacon.material.opacity = k * (beacon.userData.k ?? 1); }   // userData.k: the blackout dims it
         // Round 15: in the heist the camera follows the crew (never with reduced motion)
         if(follow.on && follow.target){
           camLook.lerp(follow.target, 0.07);
@@ -866,27 +871,44 @@ function powerUpPrompt(title){
       }
 
       // ---------- The blackout: the floors go dark one at a time (after the fuse box in the heist) ----------
+      // Teacher: the relays twist has no blackout of its own now; it plays here, on the whole building, as soon as the twist closes.
+      // No flicker: top floor first, each floor's ceiling lights go out in a quick ripple while its glass and edges fade down,
+      // the scene light drops and the roof beacon goes out. The stage's edges darken and stay dark for the rest of the heist.
+      const darkEl = document.createElement('div'); darkEl.className = 'bp-dark'; container.after(darkEl);
       async function blackout(){
-        const wd = shortWatch('Cameras going dark');
-        say('Cameras going dark…');
-        SND("rise");
-        for(const [i, f] of order.slice().reverse().entries()){
+        const wd = shortWatch('Lights out', 5);
+        weakPulse = false;   // the weak floor's pulse would light its edges up again
+        say('Power cut…'); SND("powerdown");
+        darkEl.classList.add('on');
+        const down = order.slice().reverse(), a0 = amb.intensity, d0 = dir.intensity, b0 = beacon.userData.k ?? 1;
+        beacon.material.transparent = true; beacon.material.needsUpdate = true;   // so it can fade (not set when the build was skipped)
+        for(const [i, f] of down.entries()){
           const ws = f.boxes.map(b => b.userData.win);
-          for(let k = 0; k < 3; k++){ ws.forEach(w => w.draw(k % 2 ? w.a * w.b : Math.round(w.a * w.b * 0.3))); await wait(90); }
-          await tween(420, e => ws.forEach(w => w.draw(Math.round((1 - e) * w.a * w.b))));
-          // the whole floor goes black: edges and room glass dim right down
-          f.lines.forEach(m => { m.transparent = true; m.opacity = 0.18; m.needsUpdate = true; });
-          f.boxes.forEach(b => { b.material.emissiveIntensity = 0.02; b.material.opacity = 0.06; b.material.needsUpdate = true; });
-          if(f.plate && f.plate.material){ f.plate.material.opacity = 0.15; f.plate.material.needsUpdate = true; }
-          SND("clamp"); ring(f.yOffset + 0.5, 0x333333);
-          wd.progress((i + 1) / order.length);   // the last floor going dark fills the bar
-          await wait(380);
+          const glass = f.boxes.map(b => [b.material.emissiveIntensity, b.material.opacity]);
+          f.lines.forEach(m => { m.transparent = true; m.needsUpdate = true; });
+          const edge = f.lines.map(m => m.opacity);
+          const doors = f.boxes.flatMap(b => b.children.filter(c => c.isMesh && !c.material.map));   // the amber doorways
+          doors.forEach(c => { c.material.transparent = true; });
+          const door0 = doors.map(c => c.material.opacity), plate0 = f.plate ? f.plate.material.opacity : 0;
+          await tween(750, e => {
+            ws.forEach(w => w.draw(Math.round((1 - e) * w.a * w.b)));
+            f.boxes.forEach((b, j) => { b.material.emissiveIntensity = glass[j][0] + (0.02 - glass[j][0]) * e; b.material.opacity = glass[j][1] + (0.06 - glass[j][1]) * e; });
+            f.lines.forEach((m, j) => { m.opacity = edge[j] + (0.18 - edge[j]) * e; });
+            doors.forEach((c, j) => { c.material.opacity = door0[j] + (0.25 - door0[j]) * e; });
+            if(f.plate) f.plate.material.opacity = plate0 + (0.15 - plate0) * e;
+            const k = (i + e) / down.length;   // the last floor going dark fills the bar
+            amb.intensity = a0 + (0.15 - a0) * k; dir.intensity = d0 + (0.2 - d0) * k;
+            if(i === 0) beacon.userData.k = b0 * (1 - e);
+            wd.progress(k);
+          }, p => p);
+          SND("clamp"); ring(f.yOffset + 0.5, 0x2a3a40);
+          await wait(300);
         }
+        beacon.visible = false;
         bpEvent('blackout');
-        weakPulse = false;
         showLabel('CAMERAS DARK', 'green');
         if(window.PNHandler) PNHandler.radio("cubesDone");
-        await wait(1100);
+        await wait(1400);
         hideLabel(); wd.end();
       }
 
@@ -1287,9 +1309,12 @@ function powerUpPrompt(title){
         const nIn = D.onX ? V3(-D.sx, 0, 0) : V3(0, 0, -D.sz), along = D.onX ? V3(0, 0, 1) : V3(1, 0, 0);
         const alongPos = D.onX ? D.door.z : D.door.x, alongExt = D.onX ? maxExtentZ : maxExtentX;
         const off = Math.min(16, alongExt * 0.45) * (alongPos > 0 ? -1 : 1);
-        const fusePt = D.door.clone().addScaledVector(along, off).addScaledVector(nIn, 6);
         const lift = y => V3(D.S.x, y, D.S.z);
         const f2 = floorGroups[1], y2 = f2.yOffset + 1.2;
+        // The strongroom (step 4): floor 2's square room, or its most nearly square one (not the key room)
+        const cand = f2.rooms.map((r, i) => ({ r, i })).filter(o => o.r !== D.keyRoom);
+        const pickS = (cand.find(o => o.r.a === o.r.b) || cand.sort((a, b) => a.r.b / a.r.a - b.r.b / b.r.a)[0]) || { r: f2.rooms[0], i: 0 };
+        const sRoom = pickS.r;
         let here = D.pts[0].clone();
 
         // 1. The way in: the fire door (guard patrols)
@@ -1325,31 +1350,86 @@ function powerUpPrompt(title){
           await wait(500);
         }
 
-        // 2. The fuse box on the weak floor's wall (ceiling relays, then the blackout)
+        // 2. The fuse box (ceiling relays, then the blackout). Teacher: a short scene first. FOX and WREN slip into the server room
+        // (the room on this floor nearest the fire door), cross to the fuse box on its wall and the panel swings open; then the twist.
+        let dark = false, exitPts = [];
         if(hasTw('power')){
-          await move('Moving to the fuse box', "Door's clear. Heading for the fuse box.", [here, fusePt]);
+          const W = D.weak, yF = D.yW;
+          const cands = W.rooms.map((r, i) => ({ r, i })).filter(o => o.r !== D.keyRoom);
+          const gap = r => Math.hypot(Math.max(0, Math.abs(D.door.x - r.x) - r.w / 2), Math.max(0, Math.abs(D.door.z - r.z) - r.d / 2));
+          const pool = cands.filter(o => !(W === f2 && o.r === sRoom));   // not the strongroom, which comes later
+          const srv = (pool.length ? pool : cands).sort((x, y) => gap(x.r) - gap(y.r))[0] || null;
+          // Where they go in (the room's door, or the side facing the fire door) and the wall the fuse box is on (facing the camera)
+          let fuseWall, inward, fw = null, Ein = null, Eout = null;
+          if(srv){
+            const r = srv.r, hw = r.w / 2, hd = r.d / 2;
+            let E, out;
+            if(r.door && r.cell){
+              const at = len => -len / 2 + (r.door.at + 0.5) * r.cell;
+              if(r.door.side === 'n'){ E = V3(r.x + at(r.w), yF, r.z - hd); out = V3(0, 0, -1); }
+              else { const sd = r.door.side === 'w' ? -1 : 1; E = V3(r.x + sd * hw, yF, r.z + at(r.d)); out = V3(sd, 0, 0); }
+            } else {
+              const dx = here.x - r.x, dz = here.z - r.z;
+              if(Math.abs(dx) / hw >= Math.abs(dz) / hd){ out = V3(Math.sign(dx) || 1, 0, 0); E = V3(r.x + out.x * hw, yF, Math.max(r.z - hd + 2, Math.min(r.z + hd - 2, here.z))); }
+              else { out = V3(0, 0, Math.sign(dz) || 1); E = V3(Math.max(r.x - hw + 2, Math.min(r.x + hw - 2, here.x)), yF, r.z + out.z * hd); }
+            }
+            Ein = E.clone().addScaledVector(out, -2.5); Eout = E.clone().addScaledVector(out, 3);
+            // The fuse box wall: a long wall facing the camera (not the door's), the box at the point on it nearest the door
+            const toCam = (follow.on ? follow.dir.clone() : camera.position.clone().sub(camLook)).setY(0).normalize();
+            const walls = [[0, 1], [0, -1], [1, 0], [-1, 0]].map(([nx, nz]) => ({ n: V3(nx, 0, nz), a: V3(Math.abs(nz), 0, Math.abs(nx)), len: nx ? r.d : r.w, c: V3(r.x - nx * hw, yF, r.z - nz * hd) }))
+              .filter(w => w.n.dot(out) > -0.5);
+            const score = w => w.n.dot(toCam) + (w.len >= 14 ? 0.8 : 0);
+            fw = walls.sort((x, y) => score(y) - score(x))[0];
+            const m = Math.min(fw.len / 2, 13), u = Math.max(-fw.len / 2 + m, Math.min(fw.len / 2 - m, Ein.clone().sub(fw.c).dot(fw.a)));
+            inward = fw.n; fuseWall = fw.c.clone().addScaledVector(fw.a, u);
+          } else { inward = nIn.clone(); fuseWall = D.door.clone().addScaledVector(along, off); }   // no spare room: the outside wall
+          // They stand beside the box (the door's side if there's room), so the crew's glow and tag don't hide it
+          const side = V3(inward.z, 0, -inward.x);
+          if(srv && Ein.clone().sub(fuseWall).dot(side) < 0) side.negate();
+          let sOff = 0;
+          if(fw){ const room = sg => fw.len / 2 - fuseWall.clone().sub(fw.c).dot(side.clone().multiplyScalar(sg)) - 2;
+            if(room(1) < 8 && room(-1) > room(1)) side.negate(); sOff = Math.max(0, Math.min(10, room(1))); }
+          const fusePt = fuseWall.clone().addScaledVector(inward, srv ? 5 : 6).addScaledVector(side, sOff); fusePt.y = yF;
+          const corner = Eout && (D.onX ? V3(Eout.x, yF, here.z) : V3(here.x, yF, Eout.z));
+          await move(srv ? 'Moving to the server room' : 'Moving to the fuse box', srv ? "Door's clear. The fuse box is in the server room." : "Door's clear. Heading for the fuse box.", srv ? [here, corner, Eout] : [here, fusePt]);
           here = fusePt.clone();
+          if(srv) exitPts = [Ein, Eout];
+          // The server room: tinted blue with its name over it (its guard has stepped out)
+          const sMeshS = srv ? W.boxes[srv.i] : null, sLine = sMeshS && sMeshS.children.find(c => c.isLineSegments)?.material;
+          const BLUE = new THREE.Color(0x6ec8ff), EDGE = new THREE.Color(0xbfefff);
+          const t0 = sMeshS && { c: sMeshS.material.color.clone(), em: sMeshS.material.emissive.clone(), ei: sMeshS.material.emissiveIntensity, op: sMeshS.material.opacity, l: sLine ? sLine.color.clone() : null };
+          const tint = e => { if(!sMeshS) return; const m = sMeshS.material; m.color.copy(t0.c).lerp(BLUE, e); m.emissive.copy(t0.em).lerp(BLUE, e);
+            m.emissiveIntensity = t0.ei + (0.5 - t0.ei) * e; m.opacity = t0.op + (0.3 - t0.op) * e; if(sLine) sLine.color.copy(t0.l).lerp(EDGE, e); };
+          const srvTag = srv ? badge('SERVER ROOM', '#6ec8ff', 170) : null;
+          if(srvTag){ srvTag.position.set(srv.r.x, W.yOffset + boxHeight + 5, srv.r.z); W.group.add(srvTag); }
+          const guard = srv && (D.perFloor.get(W) || []).find(o => o.userData && o.userData.dot && Math.abs(o.position.x - srv.r.x) < 0.01 && Math.abs(o.position.z - srv.r.z) < 0.01);
           const intro = async () => {
-            const w = introWatch('Fuse box', 4);
+            const w = introWatch(srv ? 'Server room' : 'Fuse box', 5);
             const box = new THREE.Group(); box.name = 'fuseBox';
-            box.position.copy(D.door).addScaledVector(along, off).addScaledVector(nIn, 1.2); box.position.y = D.yW + 6;
-            box.rotation.y = Math.atan2(nIn.x, nIn.z);
+            box.position.copy(fuseWall).addScaledVector(inward, 1.6); box.position.y = yF + 6.5;
+            box.rotation.y = Math.atan2(inward.x, inward.z); box.scale.setScalar(1.7);
             const bodyG = new THREE.BoxGeometry(5, 6.5, 1.8);
-            const body = new THREE.Mesh(bodyG, new THREE.MeshBasicMaterial({ color: 0x24404a, transparent: true, opacity: 0.95 }));
+            const body = new THREE.Mesh(bodyG, new THREE.MeshBasicMaterial({ color: 0x2f5f6c, transparent: true, opacity: 0.95 }));
             body.add(new THREE.LineSegments(new THREE.EdgesGeometry(bodyG), new THREE.LineBasicMaterial({ color: 0xffc94d })));
             box.add(body);
             const hinge = new THREE.Group(); hinge.position.set(-2.5, 0, 1); box.add(hinge);
             const panelG = new THREE.BoxGeometry(5, 6.5, 0.3);
-            const panel = new THREE.Mesh(panelG, new THREE.MeshBasicMaterial({ color: 0x3b6470 }));
+            const panel = new THREE.Mesh(panelG, new THREE.MeshBasicMaterial({ color: 0x4a8a9a }));
             panel.add(new THREE.LineSegments(new THREE.EdgesGeometry(panelG), new THREE.LineBasicMaterial({ color: 0xffe14d })));
             panel.position.set(2.5, 0, 0.15); hinge.add(panel);
             // Fuses inside, seen when the panel swings open
             for(let k = 0; k < 3; k++){ const fu = new THREE.Mesh(new THREE.BoxGeometry(0.9, 3.2, 0.4), new THREE.MeshBasicMaterial({ color: 0xff4f6d })); fu.position.set(-1.4 + k * 1.4, 0, 0.8); box.add(fu); }
             mainGroup.add(box);
-            SND("zoom"); push(0.6);
-            showLabel('FUSE BOX', 'gold');
+            SND("tag"); push(0.5);
+            showLabel(srv ? 'SERVER ROOM' : 'FUSE BOX', srv ? 'blue' : 'gold'); bpEvent('server-room');
             if(window.PNHandler) PNHandler.radio("cubes");
-            await wait(1100);
+            await Promise.all([fadeIn([box, ...(srvTag ? [srvTag] : [])], 450), tween(450, tint),
+              guard ? tween(450, e => guard.material.opacity = 1 - e).then(() => { guard.visible = false; }) : null]);
+            await wait(300);
+            // FOX and WREN slip in through the door and cross to the fuse box
+            if(srv){ const pts = [Eout, Ein, fusePt], len = Eout.distanceTo(Ein) + Ein.distanceTo(fusePt); await walk(pts, Math.max(20, Math.min(45, 1600 / Math.max(1, len)))); }
+            showLabel('FUSE BOX', 'gold'); bpEvent('fuse-open');
+            tween(300, e => { D.tag.material.opacity = 1 - 0.85 * e; });   // their tag dims so the box can be seen
             SND("clamp");
             await tween(reduced() ? 1 : 520, e => { hinge.rotation.y = -1.9 * e; }, easeOutBack);
             // Sparks
@@ -1357,27 +1437,38 @@ function powerUpPrompt(title){
             const sparks = [];
             for(let i = 0; i < 18; i++){
               const s = new THREE.Mesh(new THREE.SphereGeometry(0.35, 6, 6), new THREE.MeshBasicMaterial({ color: i % 3 ? 0xffe14d : 0xffffff, transparent: true, depthTest: false }));
-              s.position.copy(box.position).addScaledVector(nIn, 1.8); s.renderOrder = 23;
-              s.userData.v = nIn.clone().multiplyScalar(4 + Math.random() * 6).add(along.clone().multiplyScalar((Math.random() - 0.5) * 12)).add(V3(0, Math.random() * 8, 0));
+              s.position.copy(box.position).addScaledVector(inward, 3); s.renderOrder = 23;
+              s.userData.v = inward.clone().multiplyScalar(4 + Math.random() * 6).add(side.clone().multiplyScalar((Math.random() - 0.5) * 12)).add(V3(0, Math.random() * 8, 0));
               mainGroup.add(s); sparks.push(s);
             }
             const p0 = sparks.map(s => s.position.clone());
             await tween(900, e => sparks.forEach((s, i) => { s.position.copy(p0[i]).addScaledVector(s.userData.v, e * 1.2); s.position.y -= 9 * e * e; s.material.opacity = 1 - e; }), p => p);
             sparks.forEach(s => mainGroup.remove(s));
-            await wait(1400);
+            await wait(500);
             w.end();
           };
           moveEnd(); const r = await PNTwistSlot.run('power', { intro });
           bpEvent('twist:power');
           hideLabel(); push(1);
-          if(r && r.effect === 'dark') await blackout();
+          tween(400, e => { D.tag.material.opacity = 0.15 + 0.85 * e; });
+          if(srvTag) tween(400, e => { srvTag.material.opacity = 1 - e; }).then(() => W.group.remove(srvTag));
+          if(sMeshS) tween(400, e => tint(1 - e));
+          // Teacher: the blackout happens here, on the whole building, straight after the twist. A cleared relays twist is a
+          // blackout with or without its "dark" effect. The camera eases back to show every floor, then back to the crew.
+          dark = !!(r && (r.effect === 'dark' || r.ok));
+          if(dark){
+            if(base){ follow.target = V3(0, 28, 0); follow.want = base * 1.3; }
+            await wait(base ? 700 : 450);   // the camera eases out; the server room's tint has gone
+            await blackout();
+            if(base){ follow.target = D.agent.position; push(1); }
+          }
           tickAt(fusePt, 'power');
           await wait(500);
         }
 
         // 3. The key room. With Plan B, the key card is in a deposit box in the basement.
-        const keyLine = hasTw('power') ? 'Lights out. Heading for the key room.' : "Door's clear. Heading for the key room.";
-        const toKey = [here, ...(inside.length > 1 ? inside.slice(1) : [D.door])];
+        const keyLine = dark ? 'Lights out. Heading for the key room.' : hasTw('power') ? 'Heading for the key room.' : "Door's clear. Heading for the key room.";
+        const toKey = [here, ...exitPts, ...(inside.length > 1 ? inside.slice(1) : [D.door])];
         await move('Moving to the key room', keyLine, toKey, !hasTw('planb'));
         here = keyPt.clone();
         if(hasTw('planb')){
@@ -1420,9 +1511,7 @@ function powerUpPrompt(title){
         }
 
         // 4. The strongroom on the vault floor (floor 2)
-        const cand = f2.rooms.map((r, i) => ({ r, i })).filter(o => o.r !== D.keyRoom);
-        const pickS = (cand.find(o => o.r.a === o.r.b) || cand.sort((a, b) => a.r.b / a.r.a - b.r.b / b.r.a)[0]) || { r: f2.rooms[0], i: 0 };
-        const sRoom = pickS.r, sMesh = f2.boxes[pickS.i], sPt = V3(sRoom.x, y2, sRoom.z);
+        const sMesh = f2.boxes[pickS.i], sPt = V3(sRoom.x, y2, sRoom.z);
         const toStrong = D.weak === f2 ? [here, sPt] : [here, lift(D.yW), lift(y2), sPt];
         const hasS = hasTw('strongroom');
         await move('Moving to the strongroom', 'Heading for the strongroom.', toStrong, !hasS);
@@ -1693,7 +1782,10 @@ function powerUpPrompt(title){
 
     // ---------- Floor quiz ----------
     // One question about the building. A right answer earns a 10% intel bonus on the heist.
+    // Parked (teacher: "it feels a bit random and doesn't fit the flow"): QUIZ_ON = true brings it back. While it's off
+    // nothing sets intelBonus, so prime_hack adds no intel bonus, and the "analyst" badge can't be earned.
     function floorQuiz(floors, onDone){
+      if(!QUIZ_ON){ onDone(); return; }
       const F = [floors[2], floors[1], floors[0]].map(f => ({ ...f, name: f.label.split('—')[0].trim(), rooms: getFactorPairs(f.n).length }));
       const opt = f => `${f.name} (N=${f.n})`;
       const qs = [];

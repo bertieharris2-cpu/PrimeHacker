@@ -1,7 +1,7 @@
 /* PRIMENET twist slots (round 11): the rotating twists woven into the bank mission.
    Each stage calls PNTwistSlot.run(point) where its twist would fit. If the mission's plan has a twist
    for that point, it plays in a full-screen frame over the stage ("change of plan"), and the promise
-   resolves when the student presses Continue. Otherwise it resolves straight away.
+   resolves when the twist hands back (by itself, no result card: { id, ok, effect }). Otherwise it resolves straight away.
    Testing: ?twist=<id> on a stage's URL forces that twist at its point; ?notwist=1 turns twists off there. */
 (function(){
   "use strict";
