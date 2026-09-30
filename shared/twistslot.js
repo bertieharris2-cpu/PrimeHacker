@@ -10,7 +10,7 @@
   // Round 15: ORACLE's line as each twist starts, in the heist story
   const INTRO = {
     corrupt:    "Part of the file arrived damaged. Rebuild it so FOX and WREN aren't planning around a hole.",
-    patrols:    "Guards on the door. Watch their timings and we slip past.",
+    patrols:    "Two guards on the fire door floor. Find when they're both at the blind spot and we slip past.",
     cubes:      "Fuse box. Wire the relays and we black out their cameras.",
     walls:      "Change of plan. The key card is in a deposit box in the basement.",
     strongroom: "Strongroom ahead. The floor is pressure plated. Find the safe way across.",
@@ -54,8 +54,9 @@
     if(!styled){ const st = document.createElement("style"); st.textContent = css; document.head.appendChild(st); styled = true; }
     const lv = (PN.getAgent() && PN.getAgent().level) || "L1";
     const o = document.createElement("div"); o.className = "pnts"; o.setAttribute("role", "dialog"); o.setAttribute("aria-label", t.name);
-    // Some twists aren't a change of plan: the guards are recon (more guards than we expected)
-    const CARD = { patrols: ["RECON UPDATE", "MORE GUARDS THAN EXPECTED"] }[t.id] || ["CHANGE OF PLAN", t.name.toUpperCase()];
+    // Some twists aren't a change of plan: the guards are recon (Round 17: in the plan, with last night's CCTV; the heist
+    // plays its GO moment at the fire door: run('entry', { params: { phase: "recon" | "go" } }))
+    const CARD = { patrols: ["RECON", "LAST NIGHT'S CCTV"] }[t.id] || ["CHANGE OF PLAN", t.name.toUpperCase()];
     o.innerHTML = introPlayed ? "" : `<div class="pnts-card"><b>${CARD[0]}</b><span>${CARD[1]}</span></div>`;
     // Round 12: the corrupted blueprint arrives as crackling interference over the stage first
     const STATIC = t.id === "corrupt" && !introPlayed;

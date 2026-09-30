@@ -962,9 +962,36 @@ function powerUpPrompt(title){
         enableExplore();
         // The WATCH ends with the route drawn. Round 15: no twists in the plan; they happen in the heist.
         watchEnd(); bpTerm.stop();
+        await patrolRecon(weak);   // Round 17: except the guard patrols recon, which is part of the plan
         document.getElementById('floorInfo').textContent = 'Drag to turn the building. Click a floor to pull it out.';
         say(`${PN ? PN.mission().target.toUpperCase() : 'TARGET'} // READY`);
         if(window.bpReady) window.bpReady();
+      }
+
+      // ---------- Round 17 (teacher): the guard patrols recon is part of the plan ----------
+      // Straight after the route is drawn: last night's CCTV of the weak floor (twist_patrols3d.html?phase=recon). When are
+      // both guards at the blind spot, out of sight of the fire door? The answer (the LCM) is the sneak time; the heist
+      // plays it at the fire door (?phase=go). The mission's plan still has it once, as the 'entry' twist.
+      let sneak = null;   // { m, a, b }: go at minute m (guard A every a minutes, guard B every b)
+      async function patrolRecon(weak){
+        if(!window.PNTwistSlot || !PNTwistSlot.has('entry')) return;
+        const wName = weak.label.split('—')[0].trim();
+        const intro = async () => {
+          const w = shortWatch("Recon: last night's CCTV", 3);
+          spinning = false; SND("radio");
+          showLabel(`RECON · GUARDS ON ${wName}`, 'red');
+          if(window.PNHandler) PNHandler.say(`One more thing for the plan. Two guards patrol ${wName}, where our fire door is. Here's last night's CCTV: work out when FOX and WREN can sneak past.`);
+          await wait(3200);
+          w.end();
+        };
+        const r = await PNTwistSlot.run('entry', { intro, params: { phase: 'recon' } });
+        bpEvent('twist:entry-recon'); hideLabel();
+        const m = /^sneak:(\d+):(\d+):(\d+)$/.exec((r && r.effect) || '');
+        if(!m){ spinning = true; return; }
+        sneak = window.bpSneak = { m: +m[1], a: +m[2], b: +m[3] };
+        SND("verified"); showLabel(`THE PLAN · SNEAK IN AT MINUTE ${sneak.m}`, 'green');
+        await oracle(`Plan set: FOX and WREN go through the fire door at minute *${sneak.m}*, when both guards are at the blind spot.`, 1200);
+        hideLabel(); spinning = true;
       }
 
       // ---------- Recon: a scan sweeps up the building and shows the stairs, the people and the key;
@@ -1321,30 +1348,22 @@ function powerUpPrompt(title){
         await move('Moving to the door', 'Moving to the door.', toDoor, !hasTw('entry'));
         here = D.door.clone();
         if(hasTw('entry')){
-          let guards = [], cctv = null, pacing = true;
+          // Round 17: no maths at the door. The recon was in the plan; this is the payoff: the blind spot camera, the
+          // planned minute, and the pupil calls GO GO GO (twist_patrols3d.html?phase=go)
           const intro = async () => {
-            const w = introWatch('Guards on the door', 4);
+            const w = introWatch('At the fire door', 3);
             push(0.8);
-            guards = [0, 1].map(k => { const gd = guardDot(); gd.scale.set(5.5, 5.5, 1); gd.name = 'guard'; mainGroup.add(gd); return gd; });
-            const gp = (k, t) => D.door.clone().addScaledVector(nIn, 7 + k * 5).addScaledVector(along, Math.sin(t / 700 + k * Math.PI) * 9);
-            guards.forEach((gd, k) => gd.position.copy(gp(k, 0)));
-            fadeIn(guards); SND("alarm");
-            (function pace(t){ if(!pacing) return; if(!reduced()) guards.forEach((gd, k) => gd.position.copy(gp(k, t))); requestAnimationFrame(pace); })(0);
-            await wait(600);
-            cctv = document.createElement('div'); cctv.className = 'bp-cctv';
-            cctv.innerHTML = `<i></i><i></i><i></i><i></i><span class="rec"><b>●</b> REC</span><span class="cam">CAM 04 · FIRE DOOR</span><span class="ts">${new Date().toLocaleTimeString('en-GB')}</span>`;
-            stageEl.appendChild(cctv); SND("tag");
-            showLabel('GUARDS ON THE DOOR', 'red');
-            if(window.PNHandler) PNHandler.radio("patrols");
-            await wait(3000);
+            showLabel(sneak ? `FIRE DOOR · THE PLAN: MINUTE ${sneak.m}` : 'FIRE DOOR', 'blue');
+            if(window.PNHandler) PNHandler.say(sneak ? `At the fire door. The plan says minute ${sneak.m}. Watch the blind spot and call it, {codename}.` : 'At the fire door. Watch the blind spot and call it, {codename}.', { who: 'FOX' });
+            await wait(2600);
             w.end();
           };
           // Round 16: FOX and WREN's route in the twist heads for the next stop of this heist (lift: it's on another floor)
           const next = hasTw('power') ? { next: 'fusebox' } : hasTw('planb') ? { next: 'deposit', lift: 1 }
             : hasTw('strongroom') ? { next: 'strongroom', lift: D.weak === f2 ? '' : 1 } : { next: 'keyroom' };
-          moveEnd(); await PNTwistSlot.run('entry', { intro, params: next });
+          moveEnd(); await PNTwistSlot.run('entry', { intro, params: { ...next, phase: 'go', a: sneak ? sneak.a : '', b: sneak ? sneak.b : '' } });
           bpEvent('twist:entry');
-          pacing = false; guards.forEach(gd => mainGroup.remove(gd)); if(cctv) cctv.remove(); hideLabel(); push(1);
+          hideLabel(); push(1);
           tickAt(D.door, 'entry');
           if(window.PNHandler) PNHandler.radio("patrolsDone");
           await wait(500);

@@ -9,23 +9,16 @@
 <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Inter:wght@400;600;700;800&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../shared/primenet.css">
 <style>
-  /* Round 12 prototype: recon on the guards, in a CCTV window. One guard paces a corridor up and down, another walks a
-     loop of the whole floor; both pass the fire door. When are they there together? (The LCM.)
-     Round 13-14: every answer plays on the feed; the guards are lured away and the agent sneaks in on a route that keeps
-     clear of them (planned once they're well on their way, hugging the rooms).
-     Round 16 (teacher): three stages at every level, numbers scaled by level (L3 adds a third guard in stages 2 and 3).
-     1: mark each guard's round on a hundred square and click where they meet. 2: the same grid, nothing to mark: work it
-     out and type it. 3: no grid, bigger numbers. Before an answer the feed only loops the first rounds (it always stops
-     short of a meeting), and after stage 1 nothing on screen names the meeting time. Each guard's card says how often
-     they pass the door; a timeline under the feed ticks every pass, and a tick pops over the door. The decoy is a purple
-     throw right across the floor. FOX and WREN's blue route heads for their next stop in the mission (?next= from the
-     heist: fuse box, deposit boxes, strongroom or key room; the vault in the Twist Lab), marked and labelled on the floor.
-     One screen at 1280 × 720 and up: the feed on the left, the guards and the grid on the right. */
+  /* Round 17 (teacher: "this is the part that feels quite messy"): one scaffolded work-through of the LCM.
+     Two guards walk DIFFERENT routes round the floor; both routes pass the blind spot, a corridor behind a room where
+     nobody can see the fire door. When they're both there, FOX and WREN can sneak through.
+     Steps (right-hand panel): 1 mark guard A's minutes, 2 mark guard B's, 3 click the first minute marked by both,
+     4 watch last night's CCTV to check, 5 at the fire door: watch the blind spot camera and call GO GO GO.
+     ?phase=recon: steps 1 to 4 (the plan, straight after the blueprint); it hands back "sneak:M:a:b".
+     ?phase=go&a=&b=: step 5 only (the heist, at the fire door). No phase (Twist Lab): all five.
+     One screen at 1280 × 720 and up: the feed on the left, the guards and the steps on the right. */
   main.tw{ width:min(1680px, 100%); height:100vh; height:100dvh; box-sizing:border-box; padding:10px 16px 46px; gap:10px; }   /* bottom: clear of FULL SCREEN (the mission's shows over the twist too) */
   main .tw-head{ padding-bottom:8px; } main .tw-head h1{ font-size:clamp(22px,2.6vw,30px); }
-  .steps{ display:flex; flex-wrap:wrap; gap:6px; font-family:var(--font-ui); font-size:12px; letter-spacing:.16em; }
-  .steps span{ border:1px solid var(--line); padding:3px 8px; color:var(--text-faint); }
-  .steps span.on{ color:var(--warning); border-color:var(--warning); } .steps span.done{ color:var(--ok); border-color:rgba(61,220,151,.5); }
   .play{ flex:1; min-height:0; display:grid; grid-template-columns:minmax(0,1fr) clamp(340px,31vw,480px); gap:12px; }
   .feed{ display:flex; flex-direction:column; gap:8px; min-width:0; min-height:0; }
   .cctv{ position:relative; flex:1; min-height:0; padding:0; overflow:hidden; background:#020a0c; border:1px solid #2c4c55; }
@@ -40,10 +33,25 @@
   .cctv .clock{ position:absolute; right:46px; top:12px; font-family:var(--font-mono); font-size:26px; color:#ffe14d; pointer-events:none; text-shadow:0 0 10px rgba(0,0,0,.9); }
   .dest{ font-family:var(--font-ui); font-weight:700; font-size:12px; letter-spacing:.16em; color:#8feaff; padding:3px 9px; border:1px solid rgba(110,200,255,.6); background:rgba(2,10,12,.72); }
   .cctv .log{ position:absolute; left:46px; top:62px; font-family:var(--font-mono); font-size:13px; color:#dff8ff; pointer-events:none; text-shadow:0 0 6px #000; line-height:1.5; }
+  /* The radio at the fire door: FOX, ORACLE and you */
+  .radio{ display:flex; flex-direction:column; gap:3px; font-family:var(--font-mono); font-size:15px; line-height:1.35; color:#8feaff; }
+  .radio:empty{ display:none; } .radio .r{ color:#7dffc4; font-weight:700; }
   /* A small readout in the corner of the feed (it never covers the floor) */
   .cctv .tag{ position:absolute; right:46px; bottom:14px; font-family:var(--font-mono); font-size:14px; letter-spacing:.12em; color:#8feaff; padding:5px 10px; border:1px solid rgba(143,234,255,.55); background:rgba(2,10,12,.8); opacity:0; transition:opacity .4s; pointer-events:none; }
-  .cctv .tag.on{ opacity:1; } .cctv .tag.gold{ color:#ffe14d; border-color:rgba(255,225,77,.6); } .cctv .tag.purple{ color:#d7b5ff; border-color:rgba(181,123,255,.8); }
-  /* The timeline over the feed (the BRIEF and HINTS tabs sit bottom left): a tick every time a guard reaches the door */
+  .cctv .tag.on{ opacity:1; } .cctv .tag.gold{ color:#ffe14d; border-color:rgba(255,225,77,.6); } .cctv .tag.green{ color:#7dffc4; border-color:rgba(125,255,196,.7); }
+  /* The mini CCTV window at the fire door: the blind spot camera */
+  .cctv .inset{ position:absolute; right:18px; bottom:52px; width:clamp(200px, 34%, 380px); aspect-ratio:16/10; background:#01080a; border:2px solid rgba(235,255,248,.8); box-shadow:0 0 0 1px #000, 0 10px 30px rgba(0,0,0,.75); overflow:hidden; opacity:0; transition:opacity .5s; pointer-events:none; }
+  .cctv .inset.on{ opacity:1; }
+  .cctv .inset canvas{ position:absolute; inset:0; width:100%; height:100%; display:block; }
+  .cctv .inset::after{ content:""; position:absolute; inset:0; background:repeating-linear-gradient(0deg, rgba(160,240,255,.06) 0 1px, transparent 1px 3px); pointer-events:none; }
+  .cctv .inset .il{ position:absolute; left:8px; top:6px; right:8px; z-index:1; display:flex; justify-content:space-between; gap:8px; font:700 12px/1.3 var(--font-mono); letter-spacing:.1em; color:#dff8ff; text-shadow:0 0 4px #000, 0 0 4px #000; }
+  .cctv .inset .il span:first-child::before{ content:"● "; color:#ff4f6d; }
+  .cctv .inset .st{ position:absolute; left:8px; bottom:6px; z-index:1; font:700 13px/1.3 var(--font-mono); letter-spacing:.1em; color:#ffe68a; text-shadow:0 0 4px #000, 0 0 4px #000; }
+  .cctv .inset .st.both{ color:#7dffc4; }
+  /* GO GO GO over the feed: fades up and holds, no flashing */
+  .cctv .gogo{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; pointer-events:none; font-family:var(--font-ui); font-weight:700; font-size:clamp(44px,7vw,100px); letter-spacing:.16em; color:#7dffc4; text-shadow:0 0 30px rgba(47,191,138,.85), 0 0 4px #000; opacity:0; transform:scale(.92); transition:opacity .35s, transform .6s; }
+  .cctv .gogo.on{ opacity:1; transform:none; }
+  /* The timeline over the feed: a tick every time a guard reaches the blind spot */
   .tline{ flex:none; padding:7px 22px 6px 12px; display:flex; flex-direction:column; gap:3px; }
   .lane, .axis{ display:grid; grid-template-columns:92px minmax(0,1fr); gap:8px; align-items:center; white-space:nowrap; }
   .lane{ height:20px; }
@@ -57,22 +65,31 @@
   .track .ph{ position:absolute; top:-2px; bottom:-2px; left:0; width:2px; background:rgba(255,255,255,.7); }
   .axis{ font-family:var(--font-mono); font-size:12px; color:var(--text-faint); } .axis > span{ font-family:var(--font-ui); letter-spacing:.14em; font-size:11px; }
   .axis div{ display:flex; justify-content:space-between; }
-  /* The side: the guards, then the grid (stages 1 and 2) and the answer */
+  /* The side: the guards, the steps, the grid and the button */
   .side{ display:flex; flex-direction:column; gap:8px; padding:12px 14px; min-height:0; overflow:hidden; }
   .gcards{ display:flex; flex-direction:column; gap:5px; }
   .gcard{ display:flex; align-items:center; gap:10px; padding:3px 10px; border:1px solid var(--line); border-left:4px solid var(--c); font-family:var(--font-ui); font-size:15px; line-height:1.25; background:rgba(8,26,31,.6); }
   .gcard b{ color:var(--c); } .gcard svg{ flex:none; width:24px; height:24px; }
   .gcard.on{ border-color:var(--c); box-shadow:inset 0 0 0 1px var(--c); }
-  .ask{ margin:0; font-family:var(--font-ui); font-size:17px; line-height:1.35; color:#f6feff; } .ask b{ color:#ffe68a; }
+  .plan{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:3px; }
+  .plan li{ display:grid; grid-template-columns:22px minmax(0,1fr); gap:9px; align-items:start; padding:2px 8px; border-left:3px solid transparent; font-family:var(--font-ui); font-size:14px; line-height:1.3; color:var(--text-muted); }
+  .plan li i{ font-style:normal; font-weight:700; font-size:12px; line-height:18px; height:20px; text-align:center; border:1px solid currentColor; }
+  .plan li.done{ color:#7dffc4; } .plan li.done i{ background:rgba(61,220,151,.15); }
+  .plan li.on{ padding:7px 8px; border-left-color:var(--warning); background:rgba(255,230,138,.07); font-size:17px; line-height:1.35; color:#f6feff; }
+  .plan li.on i{ color:var(--warning); margin-top:2px; } .plan li.on b{ color:#ffe68a; }
   .hs{ flex:1 1 auto; min-height:calc(var(--rows) * 18px); display:grid; grid-template-columns:repeat(10, minmax(0,1fr)); grid-template-rows:repeat(var(--rows), minmax(0,1fr)); gap:3px; max-height:calc(var(--rows) * 46px); }
   .hs > *{ position:relative; display:flex; align-items:center; justify-content:center; min-width:0; min-height:0; padding:0; font:inherit; font-family:var(--font-mono); font-size:clamp(12px,2.1vh,18px); font-weight:700; color:rgba(235,255,248,.86); background:rgba(8,26,31,.9); border:1px solid var(--line); }
-  .hs button{ cursor:pointer; } .hs button:hover{ border-color:rgba(var(--accent-rgb),.8); } .hs button:focus-visible{ outline:2px solid var(--warning); outline-offset:1px; }
-  .hs.ref > *{ color:rgba(235,255,248,.78); cursor:default; }
+  .hs button{ cursor:pointer; } .hs button:hover:not(:disabled){ border-color:rgba(var(--accent-rgb),.8); } .hs button:focus-visible{ outline:2px solid var(--warning); outline-offset:1px; }
+  .hs button:disabled{ cursor:default; }
   .hs small{ position:absolute; right:3px; top:1px; font-size:10px; font-weight:400; letter-spacing:.04em; color:#fff; }
   .hs .bad{ border-color:#ff8aa0 !important; } .hs .bad::after{ content:"✗"; position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(30,0,8,.82); color:#ff8aa0; font-size:1.3em; }   /* guard A is red too, so a cross */
   .hs .gold{ background:rgba(255,201,77,.4) !important; border-color:#ffc94d !important; color:#fff3cf; box-shadow:0 0 12px rgba(255,201,77,.5); }
-  .ans{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; font-size:17px; } .ans label{ flex:1 1 100%; font-family:var(--font-ui); font-size:16px; line-height:1.3; } .ans label b{ color:#ffe68a; }
-  .ans input{ width:96px; font-size:22px; text-align:center; padding:6px; }
+  .act{ display:flex; } .act .pn-btn{ flex:1; font-size:17px; padding:10px 14px; }
+  .act .go{ font-size:26px; letter-spacing:.2em; padding:14px; background:#7dffc4; border-color:#7dffc4; color:#032018; animation:goGlow 2.4s ease-in-out infinite; }
+  .act .go.wait{ background:rgba(125,255,196,.14); color:#bff8e0; animation:none; }
+  @keyframes goGlow{ 50%{ box-shadow:0 0 28px rgba(125,255,196,.75); } }   /* a slow glow, never a flash */
+  html.pn-reduce-motion .act .go, html.pn-reduce-motion .cctv .top .rec{ animation:none; }
+  @media (prefers-reduced-motion: reduce){ .act .go, .cctv .top .rec{ animation:none; } .cctv .gogo{ transition:opacity .35s; transform:none; } }
   .side .tw-msg{ font-size:15px; min-height:2.6em; }
   [hidden]{ display:none !important; }
   @media (max-width:900px){ main.tw{ height:auto; } .play{ grid-template-columns:1fr; } .cctv{ height:360px; flex:none; } }
@@ -80,20 +97,23 @@
 </head>
 <body>
 <main class="tw">
-  <div class="tw-bar"><span class="steps"><span id="st1">1 · MARK THE ROUNDS</span><span id="st2">2 · USE THE GRID</span><span id="st3">3 · PREDICT</span></span><span class="dest" id="dest"></span></div>
+  <div class="tw-bar"><span class="dest" id="dest"></span></div>
   <div class="play">
     <div class="feed">
       <section class="pn-panel tline" id="tline" aria-hidden="true"><div id="lanes"></div></section>
-      <section class="cctv" id="cctv" aria-label="CCTV of the fire door"><div class="scan"></div><div class="corner tl"></div><div class="corner tr"></div><div class="corner bl"></div><div class="corner br"></div>
-        <div class="top"><span class="rec">● REC</span> CAM 04 · FIRE DOOR · <span id="floorName">WEAK FLOOR</span><br><em id="feedLab"></em></div><div class="clock" id="clock">MIN 00</div>
-        <div class="log" id="log"></div><div class="tag" id="tag"></div></section>
+      <section class="cctv" id="cctv" aria-label="CCTV of the floor"><div class="scan"></div><div class="corner tl"></div><div class="corner tr"></div><div class="corner bl"></div><div class="corner br"></div>
+        <div class="top"><span class="rec">● REC</span> CAM 04 · <span id="floorName">WEAK FLOOR</span><br><em id="feedLab"></em></div><div class="clock" id="clock">MIN 00</div>
+        <div class="log" id="log"></div><div class="tag" id="tag"></div>
+        <div class="inset" id="inset" aria-hidden="true"><div class="il"><span>CAM 07 · BLIND SPOT</span><span>LIVE</span></div><div class="st" id="insetSt"></div></div>
+        <div class="gogo" id="gogo" aria-hidden="true">GO GO GO</div></section>
     </div>
     <aside class="pn-panel side" id="side">
       <div class="gcards" id="cards"></div>
-      <p class="ask" id="ask"></p>
+      <ol class="plan" id="plan" aria-live="polite"></ol>
       <div class="hs" id="hs" hidden></div>
-      <div class="ans" id="ansRow" hidden><label for="ansIn" id="ansLab"></label><input class="pn-input" id="ansIn" inputmode="numeric" maxlength="3" autocomplete="off"><button class="pn-btn small primary pn-go" type="button" id="ansBtn">Play it on the feed</button></div>
+      <div class="act" id="act" hidden><button class="pn-btn primary pn-go" type="button" id="actBtn"></button></div>
       <div class="tw-msg" id="msg" aria-live="polite"></div>
+      <div class="radio" id="radio" aria-live="polite"></div>
     </aside>
   </div>
 </main>
@@ -114,41 +134,28 @@
   const RM = window.Primenet && Primenet.reducedMotion ? Primenet.reducedMotion() : matchMedia("(prefers-reduced-motion: reduce)").matches;   // the learner's motion setting, or the system one
   const sp = () => (window.PNTest ? PNTest.speed() : 1);
   const wait = ms => new Promise(res => setTimeout(res, ms / sp()));
+  const PHASE = ["recon", "go"].includes(qs.get("phase")) ? qs.get("phase") : "all";   // recon: the plan; go: the fire door in the heist; all: the Twist Lab
   // Where FOX and WREN head once they're through. The heist sends ?next= (and lift=1 when it's on another floor);
   // the Twist Lab sends nothing, so they go for the vault, by the lift.
   const DESTS = { fusebox: ["FUSE BOX", "the fuse box"], keyroom: ["KEY ROOM", "the key room"], deposit: ["DEPOSIT BOXES", "the deposit boxes in the basement"], strongroom: ["STRONGROOM", "the strongroom"], vault: ["THE VAULT", "the vault"] };
   const DK = DESTS[qs.get("next")] ? qs.get("next") : "vault";
   const LIFT = DK === "deposit" || ((DK === "strongroom" || DK === "vault") && (qs.get("lift") === "1" || !DESTS[qs.get("next")]));
   const DEST = { name: DESTS[DK][0], to: DESTS[DK][1], sub: DK === "deposit" ? "LIFT ▸ BASEMENT" : LIFT ? "TAKE THE LIFT" : "NEXT STOP" };
-  T.init({ id: "patrols3d", stage: "GETTING IN", title: "RECON: GUARD PATROLS", eyebrow: "RECON UPDATE", briefTitle: "COMMS · ORACLE",
-    goal: "Each guard passes the fire door on their own round. Find the next minute they're <b>at the door together</b>: then one decoy pulls them all away and FOX and WREN slip through.",
-    example: "Every 2 minutes (2, 4, 6…) and every 3 minutes (3, 6…): together at the door at minute 6, the lowest common multiple of 2 and 3.",   // a pair no stage uses, so it never gives an answer away
-    context: `More guards than we thought. Time their rounds, and FOX and WREN slip through to ${DEST.to}.`,
-    story: "Recon update: more guards than we expected. We need to know where they'll be, and when, before we go in." });
-  const a0 = window.Primenet && Primenet.getAgent();
-  if(a0 && a0.weakFloor) $("floorName").textContent = a0.weakFloor.toUpperCase();
-  $("dest").textContent = `FOX + WREN ▸ NEXT STOP: ${DEST.name}`;
 
-  // ----- Stages: three at every level. The grid (stages 1 and 2) never ends on an answer. -----
+  // ----- The two rounds: numbers scale with the level. The grid always runs past the answer. -----
   const LV = {
-    L1: { grid: 30, s: [[[3, 4], [4, 6], [3, 5], [4, 5], [2, 5]], [[4, 6], [3, 8], [6, 8], [4, 10], [6, 9], [2, 7], [4, 7]], [[5, 6], [6, 8], [4, 9], [8, 10], [5, 8], [6, 10], [8, 12]]] },
-    L2: { grid: 50, s: [[[6, 8], [4, 10], [6, 9], [6, 10], [8, 12], [4, 6]], [[9, 12], [4, 14], [10, 15], [8, 10], [12, 18], [6, 14], [6, 16]], [[8, 14], [10, 12], [12, 15], [14, 21], [15, 20], [9, 15], [12, 16], [10, 25]]] },
-    L3: { grid: 100, s: [[[8, 12], [9, 12], [10, 15], [12, 16], [12, 18], [14, 21], [8, 14], [15, 20]], [[4, 6, 9], [6, 8, 12], [4, 9, 12], [6, 9, 12], [3, 8, 12], [6, 10, 15], [5, 6, 10], [4, 6, 10]], [[6, 8, 9], [8, 10, 12], [5, 6, 8], [6, 9, 15], [8, 12, 18], [10, 12, 15], [6, 8, 10]]] },
+    L1: { grid: 30, s: [[3, 4], [4, 5], [3, 5], [4, 6], [2, 5]] },
+    L2: { grid: 50, s: [[6, 8], [6, 9], [4, 10], [6, 10], [8, 12], [4, 14], [6, 14]] },
+    L3: { grid: 60, s: [[9, 12], [10, 15], [12, 16], [12, 18], [14, 21], [9, 15], [10, 25], [8, 20]] },
   }[L];
-  const lcmAll = arr => arr.reduce((a, b) => T.lcm(a, b));
-  const rounds = [];
-  LV.s.forEach(list => { const pool = list.filter(p => !rounds.some(q => q.slice().sort((x, y) => x - y).join() === p.join() || lcmAll(q) === lcmAll(p))); rounds.push(T.shuffle(T.pick(pool.length ? pool : list))); });   // a new pair and a new answer each stage
-  const COLS = [0xff4f6d, 0xffb347, 0xb8f04a], CSS = ["#ff4f6d", "#ffb347", "#b8f04a"], NAMES = ["A", "B", "C"];
-  const PURPLE = 0xb57bff, BLUE = 0x6ec8ff;   // purple is the decoy's alone
-  const STAGES = ["Stage 1 of 3: mark the rounds", "Stage 2 of 3: use the grid", "Stage 3 of 3: predict"];
-  const FEEDS = ["PLAYBACK · LAST NIGHT", "PLAYBACK · EARLIER TONIGHT", "LIVE"];
-  let st = 0, over = false;
-  const alarm = T.alarm(3, () => end(false));
-  function say(t, cls){ const m = $("msg"); m.textContent = t; m.className = "tw-msg" + (cls ? " " + cls : ""); }
-  function tag(t, cls){ const el = $("tag"); el.textContent = t; el.className = "tag" + (t ? " on" : "") + (cls ? " " + cls : ""); }
-  function ask(h){ $("ask").innerHTML = h; }
-  const P = () => rounds[st], ANS = () => lcmAll(rounds[st]);
-  const both = n => n === 3 ? "all three" : "both";
+  const qa = parseInt(qs.get("a"), 10), qb = parseInt(qs.get("b"), 10);   // the heist passes the plan's rounds on
+  const P = (qa > 0 && qb > 0 && qa !== qb ? [qa, qb] : T.pick(LV.s).slice()).sort((x, y) => x - y), M = T.lcm(P[0], P[1]);
+  const COLS = [0xff4f6d, 0xffb347], CSS = ["#ff4f6d", "#ffb347"], NAMES = ["A", "B"], BLUE = 0x6ec8ff, GOLD = 0xffc94d, GREEN = 0x2fbf8a;
+  const seq = p => `${p}, ${p * 2}, ${p * 3}…`;
+
+  const a0 = window.Primenet && Primenet.getAgent();
+  const floorName = a0 && a0.weakFloor ? a0.weakFloor.toUpperCase() : "WEAK FLOOR";
+  $("floorName").textContent = floorName;
 
   // ----- 3D feed -----
   const F = PNFloor3D.create($("cctv"), {});
@@ -167,18 +174,19 @@
   const N = [-dc.n[0], -dc.n[1]], NV = new TH.Vector3(N[0], 0, N[1]), SIDE = new TH.Vector3(-N[1], 0, N[0]);   // outward through the door, and along its wall
   const W = (x, y) => F.cellToWorld(x, y);
   const D = W(dc.x, dc.y).add(new TH.Vector3(N[0] * F.cell / 2, 0, N[1] * F.cell / 2));
-  const doorMark = new TH.Mesh(new TH.BoxGeometry(N[0] ? 1.4 : F.cell * 1.6, 12, N[0] ? F.cell * 1.6 : 1.4), new TH.MeshBasicMaterial({ color: 0x2fbf8a, transparent: true, opacity: 0.85 }));
+  const doorMark = new TH.Mesh(new TH.BoxGeometry(N[0] ? 1.4 : F.cell * 1.6, 12, N[0] ? F.cell * 1.6 : 1.4), new TH.MeshBasicMaterial({ color: GREEN, transparent: true, opacity: 0.85 }));
   doorMark.position.set(D.x, 6, D.z); F.root.add(doorMark);
   // The camera sits behind the door, high, looking across the whole floor; it pulls back on a narrow feed
   F.camera.fov = 40;
   const CAM0 = { pos: new TH.Vector3(), look: new TH.Vector3() };
   function frame(){ const a = F.camera.aspect || 1.6, k = Math.max(1, 1.6 / a); CAM0.pos.set(N[0] * 136 * k, 138 * k, N[1] * 136 * k).addScaledVector(SIDE, (D.x * SIDE.x + D.z * SIDE.z) * 0.45); CAM0.look.set(N[0] * 12, 0, N[1] * 12); }
-  frame(); F.camera.position.copy(CAM0.pos); F.look.copy(CAM0.look); F.camera.updateProjectionMatrix();
-  let flying = false;
-  new ResizeObserver(() => { frame(); if(!flying){ F.camera.position.copy(CAM0.pos); F.look.copy(CAM0.look); } }).observe($("cctv"));
-  const CAM1 = { pos: new TH.Vector3(D.x + N[0] * 62, 96, D.z + N[1] * 62), look: new TH.Vector3(D.x - N[0] * 34, 2, D.z - N[1] * 34) };   // pushed in: the door low in the frame
-  async function fly(to, ms){ flying = true; await F.flyTo(to, ms); flying = false; }
-  const key = (x, y) => x + "," + y;
+  frame();
+  const CAMG = { pos: new TH.Vector3(D.x + N[0] * 78, 88, D.z + N[1] * 78), look: new TH.Vector3(D.x - N[0] * 34, 0, D.z - N[1] * 34) };   // at the fire door, with FOX and WREN
+  let camAt = PHASE === "go" ? CAMG : CAM0, flying = false;
+  F.camera.position.copy(camAt.pos); F.look.copy(camAt.look); F.camera.updateProjectionMatrix();
+  new ResizeObserver(() => { frame(); if(!flying){ F.camera.position.copy(camAt.pos); F.look.copy(camAt.look); } }).observe($("cctv"));
+  async function fly(to, ms){ camAt = to; if(RM){ F.camera.position.copy(to.pos); F.look.copy(to.look); return; } flying = true; await F.flyTo(to, ms); flying = false; }
+  const key = (x, y) => x + "," + y, kk = c => key(c.x, c.y);
   const DIRS = [[1, 0], [-1, 0], [0, 1], [0, -1]];
   // Shortest walk between squares on the free floor, avoiding any squares in `avoid`
   function bfs(from, to, avoid){
@@ -189,23 +197,15 @@
     if(!prev.has(key(to.x, to.y))) return null;
     const out = []; for(let c = to; c; c = prev.get(key(c.x, c.y))) out.unshift(c); return out;
   }
-  // Walking distance from one square to every square it can reach (avoiding `avoid`)
-  function dists(from, avoid){ const d = new Map([[key(from.x, from.y), 0]]), q = [from];
+  // Walking distance from one square to every square it can reach
+  function dists(from){ const d = new Map([[key(from.x, from.y), 0]]), q = [from];
     while(q.length){ const c = q.shift(), k = d.get(key(c.x, c.y));
-      for(const [dx, dy] of DIRS){ const nx = c.x + dx, ny = c.y + dy, kk = key(nx, ny); if(free(nx, ny) && !d.has(kk) && !(avoid && avoid.has(kk))){ d.set(kk, k + 1); q.push({ x: nx, y: ny }); } } }
+      for(const [dx, dy] of DIRS){ const nx = c.x + dx, ny = c.y + dy, kk2 = key(nx, ny); if(free(nx, ny) && !d.has(kk2)){ d.set(kk2, k + 1); q.push({ x: nx, y: ny }); } } }
     return d; }
-  function farthest(from){ const d = dists(from); let best = from, bd = -1; d.forEach((v, k) => { if(v > bd){ bd = v; const [x, y] = k.split(",").map(Number); best = { x, y }; } }); return best; }
   // Every square within `rad` squares of the given squares (a box round each one)
   function around(cells, rad){ const s = new Set(); cells.forEach(c => { for(let dx = -rad; dx <= rad; dx++) for(let dy = -rad; dy <= rad; dy++) s.add(key(c.x + dx, c.y + dy)); }); return s; }
-  const toPts = cells => [D.clone(), ...cells.map(c => W(c.x, c.y)), D.clone()];
   const door = { x: dc.x, y: dc.y }, dDoor = dists(door);
-  // A: up and down the long straight corridor from the door. B: out to the far side one way, back another. C: out to the middle and back.
-  const aEnd = { x: dc.x + dc.n[0] * (dc.len - 1), y: dc.y + dc.n[1] * (dc.len - 1) };
-  const far = farthest(door), out1 = bfs(door, far) || [door];
-  const back1 = bfs(far, door, new Set(out1.slice(1, -1).map(c => key(c.x, c.y)))) || out1.slice().reverse();
   const mid = (() => { let best = door, bd = 1e9; for(let x = 0; x < G; x++) for(let y = 0; y < G; y++) if(free(x, y) && dDoor.has(key(x, y))){ const d = Math.abs(x - G / 2) + Math.abs(y - G / 2); if(d < bd){ bd = d; best = { x, y }; } } return best; })();
-  const midPath = bfs(door, mid) || [door];
-  const ROUTES = [toPts([door, aEnd, door]), toPts(out1.concat(back1.slice(1))), toPts(midPath.concat(midPath.slice(0, -1).reverse()))];
 
   // ----- Where FOX and WREN are going: a marked, labelled spot on this floor -----
   const byRoom = (x, y) => DIRS.some(([dx, dy]) => { const nx = x + dx, ny = y + dy; return nx >= 0 && ny >= 0 && nx < G && ny < G && occ[nx][ny]; });   // a square right beside a room: a wall to hug
@@ -228,13 +228,44 @@
   if(dRoom){ dCell = beside(dRoom); dKind = dCell ? "room" : "lift"; }
   if(!dCell){ dCell = mid; dKind = "lift"; }   // the lift: the free square nearest the middle, as in the heist
   const dSpot = dKind === "fuse" ? W(dCell.x, dCell.y).addScaledVector(NV, F.cell / 2) : W(dCell.x, dCell.y);
-  // The decoy lands far from the door and far from where FOX and WREN are going; the guards walk to it
-  // (in from the far corners a little: they sit under the feed's header and clock)
-  const lureCell = (() => { let best = far, bs = -1; dDoor.forEach((v, k) => { const [x, y] = k.split(",").map(Number), lat = Math.abs((N[0] ? y : x) - (G - 1) / 2);
-    const s = Math.hypot(x - door.x, y - door.y) + 1.3 * Math.hypot(x - dCell.x, y - dCell.y) - 1.2 * Math.max(0, lat - G * 0.3); if(s > bs){ bs = s; best = { x, y }; } }); return best; })();
-  const LW = W(lureCell.x, lureCell.y);
-  const lure1 = bfs(door, lureCell) || [door], lure2 = bfs(door, lureCell, new Set(lure1.slice(1, -1).map(c => key(c.x, c.y)))) || lure1;
-  const LURE = [lure1, lure2, lure1];
+
+  // ----- The blind spot: far from the door, with a room between it and the door (so it's out of sight), -----
+  // clear of where FOX and WREN are going, and in from the far corners (they sit under the feed's header and clock)
+  const roomAt = (x, y) => F.rooms.find(r => x >= r.gx && x < r.gx + r.gw && y >= r.gy && y < r.gy + r.gh);
+  function blocker(c){ const x0 = dc.x + .5, y0 = dc.y + .5, x1 = c.x + .5, y1 = c.y + .5, n = Math.ceil(Math.hypot(x1 - x0, y1 - y0) * 4);
+    for(let i = 1; i < n; i++){ const x = Math.floor(x0 + (x1 - x0) * i / n), y = Math.floor(y0 + (y1 - y0) * i / n); if(occ[x] && occ[x][y]) return roomAt(x, y) || true; }
+    return null; }
+  const nFree = (x, y) => DIRS.filter(([dx, dy]) => free(x + dx, y + dy)).length;
+  const pc = F.camera.clone(); pc.position.copy(CAM0.pos); pc.lookAt(CAM0.look); pc.updateProjectionMatrix(); pc.updateMatrixWorld();
+  // (its label under the header or clock, at the edge, or down by the BRIEF and HINTS tabs)
+  const offScreen = (x, y) => { const v = W(x, y).setY(15).project(pc); return Math.max(0, v.y - 0.45) * 5 + Math.max(0, Math.abs(v.x) - 0.7) * 3 + (v.x < -0.45 && v.y < -0.2 ? 1 : 0); };
+  let spot = mid, spotRoom = null;
+  { let bs = -1e9; dDoor.forEach((v, k) => { const [x, y] = k.split(",").map(Number), b = blocker({ x, y }), depth = Math.abs(N[0] ? x - dc.x : y - dc.y), lat = Math.abs((N[0] ? y : x) - (G - 1) / 2);
+      const s = 2 * depth - 0.4 * lat + 0.6 * Math.hypot(x - dCell.x, y - dCell.y) - G * offScreen(x, y) + (b ? G * 0.8 : 0) - (nFree(x, y) >= 2 ? 0 : G);
+      if(s > bs){ bs = s; spot = { x, y }; spotRoom = b && b !== true ? b : null; } }); }
+  const SW = W(spot.x, spot.y);
+  const behind = spotRoom ? spotRoom.name.toLowerCase() : "";
+  const spotName = behind ? `the blind spot behind the ${behind}` : "the blind spot";
+  // ----- Two different routes, each a loop from the blind spot and back. A's round is shorter, so its loop is too
+  // (the loop lengths are matched to the rounds as well as this floor allows); B keeps off A's corridors where it can.
+  const dS = dists(spot);
+  function loopVia(w, avoid){ const out = bfs(spot, w, avoid) || bfs(spot, w); if(!out) return null;
+    const used = new Set(out.slice(1, -1).map(kk)); if(avoid) avoid.forEach(k => used.add(k)); used.delete(kk(w)); used.delete(kk(spot));
+    const back = bfs(w, spot, used) || bfs(w, spot, new Set(out.slice(1, -1).map(kk))) || out.slice().reverse();
+    return out.concat(back.slice(1)); }
+  const LOOPS = (() => {
+    const all = [...dS.entries()].filter(([, d]) => d >= 3).map(([k]) => { const [x, y] = k.split(",").map(Number); return { x, y }; });
+    if(!all.length) return [[spot, spot], [spot, spot]];
+    const pick = n => { const st = Math.max(1, Math.ceil(all.length / n)); return all.filter((_, i) => i % st === 0); };
+    const want = Math.log(P[0] / P[1]), nearS = around([spot], 1);
+    let best = null, bs = -1e9;
+    pick(14).forEach(wa => { const A = loopVia(wa); if(!A) return; const aSet = new Set(A.map(kk)), avoid = new Set([...aSet].filter(k => !nearS.has(k)));
+      pick(36).forEach(wb => { if(wb.x === wa.x && wb.y === wa.y) return; const B = loopVia(wb, avoid); if(!B) return;
+        const overlap = B.filter(c => aSet.has(kk(c)) && !nearS.has(kk(c))).length / B.length;
+        const s = 2 * Math.hypot(wa.x - wb.x, wa.y - wb.y) / G - 3 * overlap - 2.5 * Math.abs(Math.log(A.length / B.length) - want) - (A.length < 7) - (B.length < 7);
+        if(s > bs){ bs = s; best = [A, B]; } }); });
+    return best || [[spot, spot], [spot, spot]];
+  })();
 
   // Labels on the floor: always face the camera, drawn over everything
   function label(text, sub, col, w){
@@ -243,11 +274,11 @@
     g.textAlign = "center"; g.textBaseline = "middle"; g.fillStyle = col;
     let fs = 70; do { g.font = `700 ${fs}px 'Chakra Petch', 'Inter', sans-serif`; fs -= 4; } while(g.measureText(text).width > cv.width - 40 && fs > 20);
     g.fillText(text, cv.width / 2, sub ? 62 : cv.height / 2 + 2);
-    if(sub){ g.font = "600 38px 'Chakra Petch', 'Inter', sans-serif"; g.fillStyle = "rgba(235,255,248,.9)"; g.fillText(sub, cv.width / 2, 128); }
+    if(sub){ fs = 38; do { g.font = `600 ${fs}px 'Chakra Petch', 'Inter', sans-serif`; fs -= 2; } while(g.measureText(sub).width > cv.width - 30 && fs > 18); g.fillStyle = "rgba(235,255,248,.9)"; g.fillText(sub, cv.width / 2, 128); }
     const s = new TH.Sprite(new TH.SpriteMaterial({ map: new TH.CanvasTexture(cv), depthTest: false, transparent: true }));
     s.scale.set(w, w * cv.height / cv.width, 1); s.renderOrder = 30; return s;
   }
-  // A round badge (a guard's letter, or the tick when they reach the door)
+  // A round badge (a guard's letter, or the tick when they reach the blind spot)
   const badges = {};
   function badge(txt, col){
     const k = txt + col; if(!badges[k]){ const cv = document.createElement("canvas"), g = cv.getContext("2d"); cv.width = cv.height = 96;
@@ -257,9 +288,11 @@
       badges[k] = new TH.CanvasTexture(cv); }
     const s = new TH.Sprite(new TH.SpriteMaterial({ map: badges[k], depthTest: false, transparent: true })); s.renderOrder = 29; return s;
   }
-  // The destination marker: a ring and a beam on the spot, the fuse box / lift / room itself, and its name
+  // Redrawn once the heading font has loaded
+  function relabel(make){ make(); if(document.fonts) document.fonts.ready.then(make); }
+  // The destination marker: a ring and a beam on the spot, the fuse box / lift / room itself, and its name (not in the plan)
   const dest = (() => {
-    const g = new TH.Group(); F.root.add(g);
+    const g = new TH.Group(); F.root.add(g); g.visible = false;   // shown with the route, once GO is called
     const ring = new TH.Mesh(new TH.RingGeometry(F.cell * 0.5, F.cell * 0.8, 40), new TH.MeshBasicMaterial({ color: BLUE, transparent: true, opacity: 0.4, side: TH.DoubleSide, depthWrite: false }));
     ring.rotation.x = -Math.PI / 2; ring.position.set(dSpot.x, 0.7, dSpot.z); g.add(ring);
     if(dKind === "fuse"){
@@ -268,26 +301,30 @@
     } else if(dKind === "lift"){
       const bg = new TH.BoxGeometry(F.cell * 0.9, F.H * 1.2, F.cell * 0.9), box = new TH.Mesh(bg, new TH.MeshBasicMaterial({ color: 0x3a5a66, transparent: true, opacity: 0.55, depthWrite: false }));
       box.add(new TH.LineSegments(new TH.EdgesGeometry(bg), new TH.LineBasicMaterial({ color: 0x9fdcff }))); box.position.set(dSpot.x, F.H * 0.6, dSpot.z); g.add(box);
-    } else if(dRoom){ dRoom.lineMat.color.setHex(BLUE); dRoom.mesh.material.color.setHex(0x3a7bff); dRoom.mesh.material.emissive.setHex(0x3a7bff); }
+    }
     const top = dKind === "room" ? new TH.Vector3(dRoom.x, F.H + 2, dRoom.z).addScaledVector(NV, (N[0] ? dRoom.w : dRoom.d) / 2) : new TH.Vector3(dSpot.x, (dKind === "lift" ? F.H * 1.2 : 10) + 12, dSpot.z);
     const beam = new TH.Mesh(new TH.CylinderGeometry(0.45, 0.45, top.y - 2, 8), new TH.MeshBasicMaterial({ color: BLUE, transparent: true, opacity: 0.35, depthWrite: false }));
     beam.position.set(dSpot.x, (top.y - 2) / 2, dSpot.z); if(dKind !== "room") g.add(beam);
-    let lab = null;
-    const make = () => { if(lab) g.remove(lab); lab = label(DEST.name, DEST.sub, "#8feaff", dKind === "fuse" ? 32 : 40); lab.position.copy(top).add(new TH.Vector3(0, 4, 0)); lab.material.opacity = on ? 1 : 0.8; g.add(lab); };
-    let on = false; make(); if(document.fonts) document.fonts.ready.then(make);   // redrawn once the heading font has loaded
-    return { light(v){ on = v; ring.material.opacity = v ? 0.9 : 0.4; beam.material.opacity = v ? 0.6 : 0.35; if(lab) lab.material.opacity = v ? 1 : 0.8; }, spot: dSpot };
+    let lab = null, on = false;
+    relabel(() => { if(lab) g.remove(lab); lab = label(DEST.name, DEST.sub, "#8feaff", dKind === "fuse" ? 32 : 40); lab.position.copy(top).add(new TH.Vector3(0, 4, 0)); lab.material.opacity = on ? 1 : 0.8; g.add(lab); });
+    return { show(){ g.visible = true; if(dRoom){ dRoom.lineMat.color.setHex(BLUE); dRoom.mesh.material.color.setHex(0x3a7bff); dRoom.mesh.material.emissive.setHex(0x3a7bff); } }, light(v){ on = v; ring.material.opacity = v ? 0.9 : 0.4; beam.material.opacity = v ? 0.6 : 0.35; if(lab) lab.material.opacity = v ? 1 : 0.8; }, spot: dSpot };
   })();
-  const NEAR_ALL = nearMap([lureCell, ...lure1, ...lure2], 2);
-  // How close every square is to the nearest of `cells` (squares in a box round each one), up to `cap` squares away
+  // The blind spot: a ring on the floor that takes a guard's colour when they're there, gold when both are, and its name
+  const spotRing = new TH.Mesh(new TH.RingGeometry(F.cell * 0.55, F.cell * 0.95, 40), new TH.MeshBasicMaterial({ color: 0xdff8ff, transparent: true, opacity: 0.55, side: TH.DoubleSide, depthWrite: false }));
+  spotRing.rotation.x = -Math.PI / 2; spotRing.position.set(SW.x, 0.8, SW.z); F.root.add(spotRing);
+  let spotLab = null;
+  relabel(() => { if(spotLab) F.root.remove(spotLab); spotLab = label("BLIND SPOT", behind ? `BEHIND THE ${behind.toUpperCase()}` : "OUT OF SIGHT OF THE DOOR", "#ffe68a", 30); spotLab.position.set(SW.x, 15, SW.z); F.root.add(spotLab); });
+  let doorLab = null;
+  relabel(() => { if(doorLab) F.root.remove(doorLab); doorLab = label("FIRE DOOR", null, "#7dffc4", 17); doorLab.position.copy(D).addScaledVector(SIDE, (D.x * SIDE.x + D.z * SIDE.z) > 0 ? -22 : 22).setY(4); F.root.add(doorLab); });
+  // How close every square is to the nearest of `cells`, up to `cap` squares away
   function nearMap(cells, cap){ const m = new Map(); for(let r = 0; r <= cap; r++) around(cells, r).forEach(k => { if(!m.has(k)) m.set(k, r); }); return m; }
-  // The sneak route: the cheapest walk from the door to the destination. Squares within `rad` of where the guards still are
-  // or are still going (`hard`) are out. Squares just beyond that cost more; so do the corridors the guards walked down.
-  // Squares beside a room cost half as much, so the route threads between the rooms instead of crossing open floor.
-  function plan(from, to, hard, near, nearAll, rad){
+  // The sneak route: the cheapest walk from the door to the destination. Squares within `rad` of the blind spot (where
+  // the guards are) are out; squares just beyond cost more. Squares beside a room cost half as much, so the route
+  // threads between the rooms instead of crossing open floor.
+  function plan(from, to, hard, near, rad){
     if(hard.has(key(from.x, from.y)) || hard.has(key(to.x, to.y))) return null;
     const stepCost = (x, y) => { const k = key(x, y); let c = byRoom(x, y) ? 0.5 : onEdge(x, y) ? 0.75 : 1;
       const d = near.get(k); if(d !== undefined && d <= rad + 1) c += 3;
-      const d2 = nearAll.get(k); if(d2 !== undefined && d2 <= 2) c += 1.5;
       return c; };
     const best = new Map([[key(from.x, from.y), 0]]), prev = new Map(), open = [from], done = new Set();
     while(open.length){
@@ -300,222 +337,256 @@
     if(!done.has(key(to.x, to.y))) return null;
     const out = []; for(let c = to; c; c = prev.get(key(c.x, c.y))) out.unshift(c); return out;
   }
+  function sneakRoute(){
+    for(const rad of [3, 2, 1]){ const near = nearMap([spot], rad + 1), hard = new Set(); near.forEach((d, k) => { if(d <= rad) hard.add(k); });
+      const p = plan(door, dCell, hard, near, rad); if(p){ window.__pnPatrol.routeRad = rad; return p; } }
+    window.__pnPatrol.routeRad = 0; return bfs(door, dCell) || [door];   // 0: the last resort, for the tests to flag
+  }
 
   // ----- Guards, FOX and WREN, the timeline -----
-  let guards = [], minute = 0, prevM = 0, mode = "idle", rate = 0, target = 0, onArrive = null, lure = false, walking = false, ff = false, loopW = 6;
+  let minute = 0, prevM = 0, mode = "idle", rate = 0, target = 0, onArrive = null, walking = false, ff = false, loopW = 6, live = false;
   const fox = F.dot(BLUE, 2.6), wren = F.dot(0x9fdcff, 2.2), crew = label("FOX + WREN", null, "#8feaff", 21); F.root.add(crew);
   const home = k => D.clone().addScaledVector(NV, 8).addScaledVector(SIDE, k * 4);
-  function resetCrew(){ const a = home(-1), b = home(1); fox.set(a.x, a.z); wren.set(b.x, b.z); }
-  resetCrew();
-  function setupGuards(periods){
-    guards.forEach(g => { g.dot.remove(); F.root.remove(g.lab); });
-    guards = periods.map((p, i) => {
-      const dot = F.dot(COLS[i], 2.6), path = new TH.CurvePath(), pts = ROUTES[i], lab = badge(NAMES[i], CSS[i]);
-      [dot.mesh.material, dot.mesh.children[0].material].forEach(m => { m.transparent = true; });
-      for(let j = 1; j < pts.length; j++) if(pts[j].distanceTo(pts[j - 1]) > 0.5) path.add(new TH.LineCurve3(pts[j - 1], pts[j]));
-      lab.scale.set(5.5, 5.5, 1); F.root.add(lab);
-      return { p, dot, path, i, lure: null, lab };
-    });
-    $("lanes").innerHTML = periods.map((p, i) => `<div class="lane" style="--c:${CSS[i]}"><span class="ll"><i></i>GUARD ${NAMES[i]}</span><div class="track" data-g="${i}"><span class="ph"></span></div></div>`).join("")
-      + `<div class="axis"><span>MINUTES</span><div><span>0</span><span id="axEnd"></span></div></div>`;
-    window.__pnPatrol.periods = periods.slice();
-  }
+  { const a = home(-1), b = home(1); fox.set(a.x, a.z); wren.set(b.x, b.z); }
+  const crewOn = v => [fox.mesh, wren.mesh, crew].forEach(o => { o.visible = v; });
+  crewOn(PHASE === "go");   // they aren't on last night's recording
+  // Each guard: a dot with a letter, their own route drawn faintly on the floor in their colour
+  const guards = P.map((p, i) => {
+    const dot = F.dot(COLS[i], 2.6), path = new TH.CurvePath(), off = SIDE.clone().multiplyScalar((i ? 1 : -1) * F.cell * 0.18), lab = badge(NAMES[i], CSS[i]);
+    const pts = LOOPS[i].map(c => W(c.x, c.y).add(off));
+    for(let j = 1; j < pts.length; j++) if(pts[j].distanceTo(pts[j - 1]) > 0.5) path.add(new TH.LineCurve3(pts[j - 1], pts[j]));
+    if(path.curves.length){ const tube = new TH.TubeGeometry(path, Math.max(24, pts.length * 3), 0.32, 5, true);
+      const m = new TH.Mesh(tube, new TH.MeshBasicMaterial({ color: COLS[i], transparent: true, opacity: 0.45, depthWrite: false })); m.position.y = 0.4; m.renderOrder = 6; F.root.add(m); }   // drawn after the floor plate, which would cover it
+    [dot.mesh.material, dot.mesh.children[0].material].forEach(m => { m.transparent = true; });
+    lab.scale.set(5.5, 5.5, 1); F.root.add(lab);
+    return { p, dot, path, i, lab, off };
+  });
+  $("lanes").innerHTML = P.map((p, i) => `<div class="lane" style="--c:${CSS[i]}"><span class="ll"><i></i>GUARD ${NAMES[i]}</span><div class="track" data-g="${i}"><span class="ph"></span></div></div>`).join("")
+    + `<div class="axis"><span>MINUTES</span><div><span id="axStart">0</span><span id="axEnd"></span></div></div>`;
   function dimGuards(v){ guards.forEach(g => { g.dot.mesh.material.opacity = v ? 0.25 : 1; g.dot.mesh.children[0].material.opacity = v ? 0.15 : 0.6; g.lab.material.opacity = v ? 0.3 : 1; }); }
-  let tlW = 10;
-  function tlWindow(w){ tlW = Math.max(1, w); document.querySelectorAll(".track b").forEach(b => b.remove()); if($("axEnd")) $("axEnd").textContent = w; }
+  let tlA = 0, tlW = 10;
+  function tlWindow(w, from = 0){ tlA = from; tlW = Math.max(from + 1, w); document.querySelectorAll(".track b").forEach(b => b.remove()); if($("axEnd")){ $("axEnd").textContent = tlW; $("axStart").textContent = from; } }
+  const tlX = m => (m - tlA) / (tlW - tlA);
   function tlTick(i, m, gold){
-    const tr = document.querySelector(`.track[data-g="${i}"]`); if(!tr || m > tlW) return;
-    const b = document.createElement("b"); b.style.left = (m / tlW * 100) + "%"; if(gold) b.className = "gold";
-    if(gold || tr.clientWidth * guards[i].p / tlW > 14 + 8 * String(m).length) b.innerHTML = `<small>${m}</small>`;   // numbers only where there's room
+    const tr = document.querySelector(`.track[data-g="${i}"]`); if(!tr || m > tlW || m < tlA) return;
+    const b = document.createElement("b"); b.style.left = (tlX(m) * 100) + "%"; if(gold) b.className = "gold";
+    if(gold || tr.clientWidth * guards[i].p / (tlW - tlA) > 14 + 8 * String(m).length) b.innerHTML = `<small>${m}</small>`;   // numbers only where there's room
     tr.appendChild(b);
   }
-  // A tick pops up over the door each time a guard reaches it, then fades
-  function doorTick(g){
+  // A tick pops up over the blind spot each time a guard reaches it, then fades
+  function spotTick(g){
     const s = badge("✓", CSS[g.i]); s.scale.set(6, 6, 1);
-    s.position.copy(D).addScaledVector(SIDE, (g.i - (guards.length - 1) / 2) * 7).setY(17); F.root.add(s);
+    s.position.copy(SW).addScaledVector(SIDE, (g.i - 0.5) * 7).setY(8); F.root.add(s);
     if(RM){ setTimeout(() => F.root.remove(s), 1100 / sp()); return; }
-    F.tween(1300, e => { s.material.opacity = 1 - e * e; s.position.y = 17 + 4 * e; }, t => t).then(() => { F.root.remove(s); s.material.dispose(); });
+    F.tween(1300, e => { s.material.opacity = 1 - e * e; s.position.y = 8 + 4 * e; }, t => t).then(() => { F.root.remove(s); s.material.dispose(); });
   }
-  const logs = []; function addLog(t){ logs.push(t); $("log").innerHTML = logs.slice(-2).join("<br>"); }
-  // Every whole minute the clock passes: who reaches the door
+  const logs = []; function addLog(t){ logs.push(t); $("log").innerHTML = logs.slice(-3).join("<br>"); }
+  function radio(t, cls){ const d = document.createElement("div"); d.textContent = t; if(cls) d.className = cls; const r = $("radio"); r.appendChild(d); while(r.children.length > 3) r.firstChild.remove(); T.SND("radio"); }   // the last three: clear of the mission's ORACLE box
+  function clearLog(){ logs.length = 0; $("log").innerHTML = ""; }
+  // Every whole minute the clock passes: who reaches the blind spot
   function passes(){
     for(let m = Math.floor(prevM) + 1; m <= Math.floor(minute + 1e-6); m++){
       const at = guards.filter(g => m % g.p === 0); if(!at.length) continue;
-      const all = at.length === guards.length && mode === "run" && m === ANS();
+      const all = at.length === 2 && m === M && mode === "run";
       at.forEach(g => tlTick(g.i, m, all));
       if(ff) continue;
-      at.forEach(doorTick);
+      at.forEach(spotTick);
       if(mode === "run") T.SND(all ? "lockon" : "tick");
-      if(st === 0) addLog(`${String(m).padStart(2, "0")} · ${at.length > 1 ? at.map(g => NAMES[g.i]).join(" and ") + " at the door together" : `guard ${NAMES[at[0].i]} at the door`}`);   // stage 1 only: a running log
+      if(!live) addLog(`${String(m).padStart(2, "0")} · ${at.length > 1 ? "A and B at the blind spot together" : `guard ${NAMES[at[0].i]} at the blind spot`}`);
     }
     prevM = minute;
   }
-  const want = new TH.Color(), GREEN = 0x2fbf8a;
+  const atSpot = g => Math.abs(minute - Math.round(minute / g.p) * g.p) < 0.3;
+  const want = new TH.Color(), wantD = new TH.Color();
   let last = performance.now(), walkMin = Infinity;
-  // Debug hook for the tests: the stage, where everyone is (world units), and the closest FOX or WREN came to a guard while walking in
-  window.__pnPatrol = { cell: F.cell, grid: G, door, dest: DK, lift: LIFT, destKind: dKind, destCell: dCell, lureCell, route: [], periods: [], stage: 0, rounds, agent: { x: 0, z: 0 }, guards: [], walkMin: Infinity, lure: false, walking: false };
+  // The blind spot camera (the mini CCTV window at the fire door): a second renderer, made when it's first needed
+  let IR = null; const ICAM = new TH.PerspectiveCamera(46, 1.6, 1, 2000);   // high over the blind spot, looking down
+  { const toDoor = D.clone().sub(SW).setY(0).normalize(); ICAM.position.copy(SW).addScaledVector(toDoor, Math.max(12, F.cell * 2)).addScaledVector(SIDE, F.cell * 0.6).setY(52); ICAM.lookAt(SW.x, 1, SW.z); }
+  function insetOn(){
+    if(!IR){ IR = new TH.WebGLRenderer({ alpha: true, antialias: true }); IR.setPixelRatio(Math.min(2, window.devicePixelRatio || 1)); $("inset").prepend(IR.domElement); }
+    $("inset").classList.add("on");
+  }
+  // Debug hook for the tests: the step, where everyone is (world units), and the closest FOX or WREN came to a guard while walking in
+  window.__pnPatrol = { phase: PHASE, cell: F.cell, grid: G, door, spot, spotRoom: behind, loops: LOOPS.map(l => l.length), dest: DK, lift: LIFT, destKind: dKind, destCell: dCell, route: [], periods: P.slice(), answer: M, step: 0, agent: { x: 0, z: 0 }, guards: [], walkMin: Infinity, walking: false };
   F.onTick(now => {
     const dt = Math.max(0, Math.min(0.1, (now - last) / 1000)); last = now;   // a frame's time can be just before `last`
-    const spd = sp();
-    if(mode === "loop" && !T.briefOpen()){ minute += dt * rate * spd; if(minute > loopW + 0.9){ minute = 0; prevM = 0; tlWindow(loopW); } }   // the recording loops: it never reaches a meeting
-    else if(mode === "run") minute = Math.min(target, minute + dt * rate * spd);
+    const spd = sp(), paused = T.briefOpen();
+    if(mode === "loop" && !paused){ minute += dt * rate * spd; if(minute > loopW + 0.9){ minute = 0; prevM = 0; tlWindow(loopW); clearLog(); } }   // the recording loops: it never reaches a meeting
+    else if(mode === "run" && !paused) minute = Math.min(target, minute + dt * rate * spd);
     if(mode === "loop" || mode === "run") passes();
     if(mode === "run" && minute >= target){ mode = "hold"; const f = onArrive; onArrive = null; if(f) f(); }
     $("clock").textContent = `MIN ${String(Math.floor(minute + 1e-6)).padStart(2, "0")}${ff ? " ▸▸" : ""}`;
-    document.querySelectorAll(".track .ph").forEach(h => { h.style.left = Math.min(100, minute / tlW * 100) + "%"; h.hidden = minute > tlW + 0.01; });
-    if(lure){   // off their rounds, walking to the decoy: the door is clear
-      guards.forEach(g => { const l = g.lure; if(!l) return; const e = Math.max(0, Math.min(1, (now - l.t0) / (l.ms / spd)));
-        const pt = l.path.curves.length ? l.path.getPointAt(Math.min(0.999, e)) : null; if(pt) g.dot.set(pt.x, pt.z);
-        l.k = Math.floor(e * (l.cells.length - 1)); if(e >= 1 && !l.over){ l.over = true; l.res(); } });
-      want.setHex(GREEN);
-    } else {
-      guards.forEach(g => { const pt = g.path.getPointAt(Math.min(0.999, (minute % g.p) / g.p)); if(pt) g.dot.set(pt.x, pt.z); });
-      const n = guards.filter(g => Math.abs(minute - Math.round(minute / g.p) * g.p) < 0.3).length;
-      want.setHex(ff ? GREEN : n === guards.length && n && minute > 0.5 ? 0xffc94d : n ? 0xff4f6d : GREEN);
-    }
-    doorMark.material.color.lerp(want, Math.min(1, dt * 10));   // eases between colours: never a flash
+    document.querySelectorAll(".track .ph").forEach(h => { h.style.left = Math.max(0, Math.min(100, tlX(minute) * 100)) + "%"; h.hidden = minute > tlW + 0.01; });
+    guards.forEach(g => { const pt = g.path.curves.length ? g.path.getPointAt(Math.min(0.999, (minute % g.p) / g.p)) : SW.clone().add(g.off); if(pt) g.dot.set(pt.x, pt.z); });
+    const here = guards.filter(atSpot), both = here.length === 2 && minute > 0.5;
+    want.setHex(ff ? 0x5a7a80 : both ? GOLD : here.length === 1 ? COLS[here[0].i] : 0xdff8ff);
+    spotRing.material.color.lerp(want, Math.min(1, dt * 10));   // eases between colours: never a flash
+    spotRing.material.opacity += ((both ? 0.95 : here.length ? 0.8 : 0.55) - spotRing.material.opacity) * Math.min(1, dt * 8);
+    wantD.setHex(both || walking || mode === "done" ? GREEN : 0xff8a5c); doorMark.material.color.lerp(wantD, Math.min(1, dt * 8));   // the door: watched (orange) or clear (green)
     guards.forEach(g => { const p = g.dot.at(); g.lab.position.set(p.x, 8, p.z); });
     const f = fox.at(), w = wren.at(); crew.position.set((f.x + w.x) / 2, 10, (f.z + w.z) / 2);
-    const H = window.__pnPatrol; H.lure = lure; H.walking = walking; H.minute = minute; H.mode = mode;
+    if($("inset").classList.contains("on") && IR){
+      const el = $("inset"), iw = el.clientWidth, ih = el.clientHeight;
+      if(iw && (IR.__w !== iw || IR.__h !== ih)){ IR.__w = iw; IR.__h = ih; IR.setSize(iw, ih, false); ICAM.aspect = iw / ih; ICAM.updateProjectionMatrix(); }
+      const sv = spotLab ? spotLab.visible : true; if(spotLab) spotLab.visible = false; IR.render(F.scene, ICAM); if(spotLab) spotLab.visible = sv;   // the big label would fill the small window
+      const st = $("insetSt"), txt = both ? "A + B HERE · DOOR CLEAR" : here.length ? `GUARD ${NAMES[here[0].i]} HERE` : "WAITING…";
+      if(st.textContent !== txt){ st.textContent = txt; st.className = "st" + (both ? " both" : ""); }
+    }
+    const H = window.__pnPatrol; H.walking = walking; H.minute = minute; H.mode = mode; H.both = both;
     if(walking){   // only while FOX and WREN walk in: that is what the tests measure
       H.agent = { x: f.x, z: f.z }; H.guards = guards.map(g => { const p = g.dot.at(); return { x: p.x, z: p.z }; });
       guards.forEach(g => { walkMin = Math.min(walkMin, f.distanceTo(g.dot.at()), w.distanceTo(g.dot.at())); }); H.walkMin = walkMin;
     }
   });
-  // The recording before an answer: minute 0 to one and a half of the longest round, over and over. The longest round
-  // is at least half the meeting time, so the loop always stops before they meet.
-  function startLoop(){
-    const p = P(); loopW = Math.floor(1.5 * Math.max(...p));
-    rate = Math.min(1.2 * Math.min(...p), Math.max(1, loopW / 6)); minute = 0; prevM = 0; ff = false; tlWindow(loopW); mode = "loop";
-  }
+  // The recording before an answer: minute 0 to one and a half of the longer round, over and over. The rounds never
+  // divide each other, so they next meet at twice the longer round or later: the loop always stops before they meet.
+  function startLoop(){ loopW = Math.floor(1.5 * P[1]); rate = Math.min(1.2 * P[0], Math.max(1, loopW / 6)); minute = 0; prevM = 0; ff = false; tlWindow(loopW); mode = "loop"; }
   const runTo = (m, r) => new Promise(res => { target = m; rate = r; mode = "run"; onArrive = res; });
-  // A right answer plays from minute 0. Long waits fast forward (the guards fade) until the last round, so nothing whirls.
-  async function runFeed(to){
-    const p = P(), minP = Math.min(...p), S = Math.max(...p);
-    minute = 0; prevM = 0; tlWindow(to); logs.length = 0; $("log").innerHTML = "";
-    let r = Math.max(1, to / 5);
-    if(r / minP > 1.2 && to > S){ ff = true; dimGuards(true); await runTo(to - S, (to - S) / 2.2); ff = false; dimGuards(false); r = Math.min(Math.max(1, S / 3.5), 1.2 * minP); }
-    await runTo(to, r);
+  // Played from minute 0 to the meeting. Long waits fast forward (the guards fade) until the last round, so nothing whirls.
+  async function runFeed(){
+    minute = 0; prevM = 0; tlWindow(M); clearLog();
+    let r = Math.max(1, M / 5);
+    if(r / P[0] > 1.2 && M > P[1]){ ff = true; dimGuards(true); await runTo(M - P[1], (M - P[1]) / 2.2); if(checked) return; ff = false; dimGuards(false); r = Math.min(Math.max(1, P[1] / 3.5), 1.2 * P[0]); }
+    await runTo(M, r);
   }
   // A wrong answer jumps straight to that minute (no run through, so it can't show the meeting)
-  function jumpTo(v){ mode = "hold"; ff = false; tlWindow(loopW); minute = v; prevM = v; guards.filter(g => v % g.p === 0).forEach(doorTick); }
+  function jumpTo(v){ mode = "hold"; ff = false; tlWindow(loopW); minute = v; prevM = v; guards.filter(g => v % g.p === 0).forEach(spotTick); }
 
-  // ----- Stages -----
-  let meeting = false, busy = false, marks = [], mg = 0, timer = 0;
+  // ----- The steps -----
+  T.init({ id: "patrols3d", stage: "GETTING IN", title: PHASE === "go" ? "THE FIRE DOOR" : "RECON: GUARD PATROLS", eyebrow: "RECON", briefTitle: "COMMS · ORACLE",
+    briefStyle: PHASE === "go" ? "comms" : undefined,
+    goal: PHASE === "go" ? `Watch the blind spot camera. When <b>both guards</b> are at the blind spot (minute ${M}), press <b>GO GO GO</b>.`
+      : "Two guards walk <b>different routes</b>. Both routes pass the <b>blind spot</b>, a corridor behind a room where nobody can see the fire door. Find the first minute they're <b>both at the blind spot</b>: that's when FOX and WREN sneak through.",
+    example: PHASE === "go" ? "" : "Every 2 minutes (2, 4, 6…) and every 3 minutes (3, 6…): both there at minute 6, the lowest common multiple of 2 and 3.",   // a pair no level uses, so it never gives an answer away
+    context: PHASE === "go" ? `FOX and WREN are at the fire door. The plan: go at minute ${M}, when both guards are at the blind spot. Watch the camera and call it.`
+      : PHASE === "recon" ? "Last night's CCTV of the floor we're going in on. Two guards, two routes. When are they both at the blind spot, out of sight of the fire door? That's when FOX and WREN sneak in."
+      : `Two guards, two routes. Work out when they're both at the blind spot, out of sight of the fire door, then call GO: FOX and WREN slip through to ${DEST.to}.`,
+    story: PHASE === "go" ? "" : "Recon: two guards patrol this floor. You're tech support: watch the CCTV and work out when FOX and WREN can sneak past." });
+  $("dest").textContent = PHASE === "recon" ? "THE PLAN ▸ WHEN CAN FOX + WREN SNEAK IN?" : `FOX + WREN ▸ NEXT STOP: ${DEST.name}`;
+  const alarm = PHASE === "go" ? null : T.alarm(3, () => end(false));
+  function say(t, cls){ const m = $("msg"); m.textContent = t; m.className = "tw-msg" + (cls ? " " + cls : ""); }
+  function tag(t, cls){ const el = $("tag"); el.textContent = t; el.className = "tag" + (t ? " on" : "") + (cls ? " " + cls : ""); }
   const clock = c => `<svg viewBox="0 0 26 26" aria-hidden="true"><circle cx="13" cy="13" r="11" fill="none" stroke="${c}" stroke-width="2.4"/><path d="M13 6.5V13l4.5 3" fill="none" stroke="${c}" stroke-width="2.4" stroke-linecap="round"/></svg>`;
-  function pills(){ ["st1", "st2", "st3"].forEach((id, i) => { $(id).className = i < st ? "done" : i === st ? "on" : ""; }); }
+  $("cards").innerHTML = P.map((q, i) => `<div class="gcard" style="--c:${CSS[i]}">${clock(CSS[i])}<span><b>Guard ${NAMES[i]}</b> passes the blind spot every <b>${q}&nbsp;minutes</b></span></div>`).join("");
+  let step = PHASE === "go" ? 4 : 0, over = false, busy = false, timer = 0, checked = false, going = false;
+  const marks = [new Set(), new Set()];
+  // Each step: what to do now, its name before it's reached, and what it found once it's done
+  const STEPS = [
+    [`Guard A passes the blind spot every <b>${P[0]} minutes</b>. Mark those minutes on the grid.`, "Mark guard A's minutes", `Guard A: ${seq(P[0])}`],
+    [`Guard B passes the blind spot every <b>${P[1]} minutes</b>. Mark those minutes too.`, "Mark guard B's minutes", `Guard B: ${seq(P[1])}`],
+    ["When are they <b>both</b> at the blind spot? Click the first minute marked by both.", "Find when they're both there", `Both at the blind spot at minute ${M}`],
+    [`Watch last night's CCTV to check: are both guards at the blind spot at minute <b>${M}</b>?`, "Check on last night's CCTV", `Checked on the CCTV: the plan is minute ${M}`],
+    [`FOX and WREN are at the fire door. When <b>both guards</b> reach the blind spot, call it: <b>GO GO GO</b>.`, PHASE === "recon" ? "In the heist: call GO at the fire door" : "Call GO at the fire door", "FOX and WREN are through"],
+  ];
+  const HINTS = [
+    `Guard A passes the blind spot every <b>${P[0]} minutes</b>. Count up in ${P[0]}s (${seq(P[0])}) and click every one on the grid.`,
+    `Guard B passes the blind spot every <b>${P[1]} minutes</b>. Count up in ${P[1]}s (${seq(P[1])}) and click every one on the grid.`,
+    "Both guards left the blind spot at minute 0. Look for the first number with <b>both colours</b> on it: that's when they're next there together.",
+    `Press <b>Play</b> and watch both guards walk their routes. Are they at the blind spot together at minute ${M}?`,
+    `Both guards at the blind spot means nobody can see the fire door. Press <b>GO GO GO</b> (or G) when they're both there.`,
+  ];
+  const NAMES5 = ["guard A", "guard B", "together", "check the CCTV", "GO"];
+  // At the fire door the plan so far is one line, so GO sits high in the panel (clear of the mission's ORACLE box, bottom right)
+  function render(){
+    const li = (i, cls, n, html) => `<li class="${cls}"><i>${n}</i><span>${html}</span></li>`;
+    $("plan").innerHTML = step >= 4 ? li(0, "done", "✓", `The plan: A every ${P[0]}, B every ${P[1]}, so both at the blind spot at minute ${M}`) + li(4, step > 4 ? "done" : "on", step > 4 ? "✓" : 5, step > 4 ? STEPS[4][2] : STEPS[4][0])
+      : STEPS.map((s, i) => li(i, i < step ? "done" : i === step ? "on" : "", i < step ? "✓" : i + 1, i < step ? s[2] : i === step ? s[0] : s[1])).join("");
+    document.querySelectorAll(".gcard").forEach((c, k) => c.classList.toggle("on", step === k));
+    window.__pnPatrol.step = step + 1;
+    if(step < 5) T.step(HINTS[step], { name: `Step ${step + 1} of 5: ${NAMES5[step]}` });
+  }
   function paint(c){ const t = +c.dataset.t, on = marks.map((s, i) => s.has(t) ? i : -1).filter(i => i >= 0);
-    c.style.background = !on.length ? "" : on.length === 1 ? CSS[on[0]] + "66" : `linear-gradient(135deg, ${on.map((i, k) => `${CSS[i]}88 ${k / on.length * 100}% ${(k + 1) / on.length * 100}%`).join(", ")})`;
+    c.style.background = !on.length ? "" : on.length === 1 ? CSS[on[0]] + "66" : `linear-gradient(135deg, ${CSS[0]}88 0% 50%, ${CSS[1]}88 50% 100%)`;
     c.style.borderColor = on.length === 1 ? CSS[on[0]] : on.length ? "#fff" : ""; c.innerHTML = t + (on.length ? `<small>${on.map(i => NAMES[i]).join("")}</small>` : ""); }
-  function grid(kind){
-    const hs = $("hs"); hs.hidden = !kind; hs.className = "hs" + (kind === "ref" ? " ref" : ""); if(!kind){ hs.innerHTML = ""; return; }
-    hs.style.setProperty("--rows", LV.grid / 10);
-    hs.innerHTML = T.range(1, LV.grid).map(t => kind === "live" ? `<button type="button" data-t="${t}" aria-label="Minute ${t}">${t}</button>` : `<span data-t="${t}">${t}</span>`).join("");
-  }
-  function markNext(i){
-    mg = i; const p = P();
-    document.querySelectorAll(".gcard").forEach((c, k) => c.classList.toggle("on", k === i));
-    if(i < p.length){ ask(`Click every minute <b>guard ${NAMES[i]}</b> reaches the door: every ${p[i]} minutes.`);
-      T.step(`Click every minute <b>guard ${NAMES[i]}</b> reaches the door on the grid (every ${p[i]} minutes: ${p[i]}, ${p[i] * 2}, ${p[i] * 3}…).`, { name: STAGES[0] }); }
-    else { ask(`Both guards left the door at minute 0. Click the <b>next</b> minute they're at the door <b>together</b>.`);
-      T.step(`Look for the first number with ${both(p.length)} guards' colours on it. That's when they're at the door together.`, { name: STAGES[0] }); }
-  }
-  function deal(){
-    const p = P();
-    meeting = false; busy = false; lure = false; walking = false; clearTimeout(timer);
-    setupGuards(p); resetCrew(); pills(); tag(""); say(""); logs.length = 0; $("log").innerHTML = "";
-    $("feedLab").textContent = FEEDS[st];
-    $("cards").innerHTML = p.map((q, i) => `<div class="gcard" style="--c:${CSS[i]}">${clock(CSS[i])}<span><b>Guard ${NAMES[i]}</b> passes the fire door every <b>${q}&nbsp;minutes</b></span></div>`).join("");
-    marks = p.map(() => new Set());
-    grid(st === 0 ? "live" : st === 1 ? "ref" : "");
-    $("ansRow").hidden = st === 0; $("ansIn").value = ""; $("ansBtn").disabled = false;
-    $("ansLab").innerHTML = `${["", "<b>Use the grid</b> (no marking).", "<b>No grid this time.</b>"][st]} Next minute they're ${both(p.length)} at the door together:`;
-    $("ask").hidden = st > 0;
-    window.__pnPatrol.stage = st + 1; window.__pnPatrol.answer = ANS();
-    if(st === 0) markNext(0);
-    else {
-      T.step((p.length === 3 ? "All three guards" : "Both guards") + " left the door at minute 0. " + (st === 1 ? `Use the grid to count up in each guard's round. The first number that's in every guard's count is when they're together.${p.length === 3 ? " Try guards A and B first, then check guard C." : ""}`
-        : `No grid: count up in the biggest round and check each number. Does every other round go into it?`), { name: STAGES[st] });
-      if(!document.querySelector(".twb-layer.open")) $("ansIn").focus({ preventScroll: true });
-    }
-    startLoop();
-  }
+  function act(text, cls, fn){ const b = $("actBtn"); $("act").hidden = !text; if(!text) return; b.textContent = text; b.className = "pn-btn primary pn-go" + (cls ? " " + cls : ""); b.disabled = false; b.onclick = fn; }
+  // Marking: gentle feedback, no strikes. A guard's minutes are done when every one on the grid is marked.
+  function markDone(g){ say(`Guard ${NAMES[g]}: ${[...marks[g]].sort((a, b) => a - b).slice(0, 4).join(", ")}…`, "ok"); T.SND("verified"); step = g + 1; render(); }
   $("hs").addEventListener("click", e => {
-    const c = e.target.closest("button[data-t]"); if(!c || over || meeting || busy || st !== 0) return;
-    const t = +c.dataset.t, p = P();
-    if(mg >= p.length) return check(t, c);
-    if(marks[mg].has(t)) return;
-    if(t % p[mg] === 0){ marks[mg].add(t); paint(c); T.SND("tag");
-      if(T.range(1, LV.grid).filter(x => x % p[mg] === 0).every(x => marks[mg].has(x))){ say(`Guard ${NAMES[mg]}: ${[...marks[mg]].sort((a, b) => a - b).slice(0, 4).join(", ")}…`, "ok"); markNext(mg + 1); }
-    } else { c.classList.add("bad"); setTimeout(() => c.classList.remove("bad"), 800); T.SND("wrong"); say(`${t} isn't in guard ${NAMES[mg]}'s round: ${p[mg]} doesn't go into ${t}.`, "bad"); }   // stage 1 is for learning: no strike
+    const c = e.target.closest("button[data-t]"); if(!c || over || busy || step > 2) return;
+    const t = +c.dataset.t;
+    if(step === 2) return choose(t, c);
+    const g = step, p = P[g]; if(marks[g].has(t)) return;
+    if(t % p === 0){ marks[g].add(t); paint(c); T.SND("tag");
+      if(T.range(1, LV.grid).filter(x => x % p === 0).every(x => marks[g].has(x))) markDone(g);
+    } else { c.classList.add("bad"); setTimeout(() => c.classList.remove("bad"), 800); T.SND("wrong"); say(`Not ${t}: guard ${NAMES[g]} comes every ${p} minutes, so count up in ${p}s (${seq(p)}).`, "warn"); }
   });
-  $("ansBtn").addEventListener("click", () => { const v = parseInt($("ansIn").value, 10); if(!Number.isInteger(v) || v < 1){ say("Type a minute.", "warn"); return; } check(v); });
-  $("ansIn").addEventListener("keydown", e => { if(e.key === "Enter") $("ansBtn").click(); });
-  $("ansIn").addEventListener("input", () => T.SND("typing"));
-  // Every answer is checked on the feed. Right: it plays from minute 0 to the meeting. Wrong: it jumps to that minute.
-  async function check(v, cell){
-    if(over || busy || meeting) return;
-    const p = P(), M = ANS();
-    busy = true; $("ansBtn").disabled = true; clearTimeout(timer);
-    if(v === M){ if(cell) cell.classList.add("gold"); say(`Playing the feed to minute ${v}…`); await runFeed(M); if(meeting) return; return met(); }
-    jumpTo(v); alarm.hit();
+  // Step 3: the first minute marked by both. A wrong answer is an alarm strike, and the feed jumps to that minute to show why.
+  function choose(v, cell){
+    if(over || busy) return;
+    if(v === M){ if(cell) cell.classList.add("gold"); T.SND("lockon"); say(`${M} = ${P[0]} × ${M / P[0]} = ${P[1]} × ${M / P[1]}: the lowest common multiple.`, "ok"); toCheck(); return; }
+    busy = true; jumpTo(v); alarm.hit();
     if(cell){ cell.classList.add("bad"); setTimeout(() => cell.classList.remove("bad"), 900); }
-    say(p.every(q => v % q === 0) ? `Minute ${v}: they're ${both(p.length)} at the door, but they were together earlier. Find the first time after 0.`
-      : `Minute ${v}: ${p.map((q, i) => `${NAMES[i]} ${v % q === 0 ? "✓" : "✗"}`).join(" · ")}. Not ${both(p.length)} at the door.`, "bad");
+    const inA = v % P[0] === 0, inB = v % P[1] === 0;
+    say(inA && inB ? `Minute ${v}: they're both there, but they were together earlier. Find the first one.`
+      : inA || inB ? `Minute ${v}: only guard ${inA ? "A" : "B"} is at the blind spot. Look for a minute with both colours.`
+      : `Minute ${v}: neither guard is at the blind spot. Look for a minute with both colours.`, "bad");
     if(over) return;
-    timer = setTimeout(() => { if(over || meeting) return; startLoop(); busy = false; $("ansBtn").disabled = false; if(!cell){ $("ansIn").focus({ preventScroll: true }); $("ansIn").select(); } }, 1900 / sp());
+    timer = setTimeout(() => { if(over || step !== 2) return; busy = false; startLoop(); }, 1900 / sp());
   }
-  // The decoy: a purple throw from FOX and WREN right across the floor. It lands, rolls on, and keeps ringing.
-  async function throwDecoy(){
-    const g = new TH.Group(); F.root.add(g);
-    const from = fox.at().setY(4), rest = LW.clone().setY(1.2), dir = rest.clone().sub(D).setY(0).normalize();
-    let land = rest.clone().addScaledVector(dir, -F.cell * 2.5);   // it bounces the last few squares
-    const lc = { x: Math.round((land.x + F.PLATE / 2) / F.cell - 0.5), y: Math.round((land.z + F.PLATE / 2) / F.cell - 0.5) };
-    if(!free(lc.x, lc.y)) land = rest.clone(); land.y = 1.2;
-    const span = from.distanceTo(land), arc = new TH.QuadraticBezierCurve3(from, from.clone().lerp(land, 0.5).setY(Math.min(60, 18 + span * 0.35)), land);
-    const path = new TH.CurvePath(); path.add(arc); if(land.distanceTo(rest) > 0.5) path.add(new TH.LineCurve3(land, rest));
-    const segs = 120, tube = new TH.TubeGeometry(path, segs, 0.7, 6, false);
-    const trail = new TH.Mesh(tube, new TH.MeshBasicMaterial({ color: PURPLE, transparent: true, opacity: 0.85, depthWrite: false })); trail.renderOrder = 25; g.add(trail);
-    const ball = new TH.Mesh(new TH.SphereGeometry(1.5, 12, 12), new TH.MeshBasicMaterial({ color: PURPLE })); g.add(ball);
-    const flightLen = arc.getLength() / path.getLength();
-    const at = e => { ball.position.copy(path.getPointAt(Math.min(1, e))); tube.setDrawRange(0, Math.ceil(e * segs) * 6 * 6); };
-    if(RM){ at(1); } else await F.tween(Math.min(1700, 700 + span * 7), at, t => t < 0.75 ? (t / 0.75) * flightLen : flightLen + (1 - flightLen) * (1 - Math.pow(1 - (t - 0.75) / 0.25, 2)));   // flies, then rolls to a stop
-    at(1); T.SND("clamp");
-    const ring = new TH.Mesh(new TH.RingGeometry(F.cell * 0.6, F.cell * 1.0, 40), new TH.MeshBasicMaterial({ color: PURPLE, transparent: true, opacity: 0.8, side: TH.DoubleSide, depthWrite: false }));
-    ring.rotation.x = -Math.PI / 2; ring.position.set(rest.x, 0.8, rest.z); g.add(ring);
-    const lab = label("DECOY", null, "#d7b5ff", 20); lab.position.copy(rest).addScaledVector(NV, 7).setY(3); g.add(lab);   // just in front of it, low: clear of the feed's header
-    const off = F.onTick(now => { if(!RM) ring.material.opacity = 0.45 + 0.3 * Math.sin(now / 480); });   // a slow breath
-    T.SND("ping");
-    return { remove(){ off(); F.root.remove(g); tube.dispose(); } };
+  function toCheck(){
+    clearTimeout(timer); busy = false; step = 3; render();
+    document.querySelectorAll("#hs button").forEach(b => { b.disabled = true; if(+b.dataset.t === M) b.classList.add("gold"); });
+    act("Play last night's CCTV", "", play);
+    if(!document.querySelector(".twb-layer.open")) $("actBtn").focus({ preventScroll: true });
   }
-  // A guard leaves its round and walks to the decoy along `cells` (from the door), after `delay` ms
-  function setLure(g, cells, delay){
-    const pts = [D.clone(), ...cells.map(c => W(c.x, c.y))], path = new TH.CurvePath();
-    for(let j = 1; j < pts.length; j++) if(pts[j].distanceTo(pts[j - 1]) > 0.5) path.add(new TH.LineCurve3(pts[j - 1], pts[j]));
-    const l = { cells, path, t0: performance.now() + delay / sp(), ms: Math.min(3400, 300 + 200 * cells.length), k: 0, over: false };
-    l.done = new Promise(res => { l.res = res; }); if(!path.curves.length){ l.over = true; l.res(); }
-    g.lure = l;
+  async function play(){
+    if(over || checked || busy) return; busy = true; act("");
+    $("feedLab").textContent = `CCTV · LAST NIGHT · PLAYING TO MINUTE ${M}`; say(`Playing last night's CCTV to minute ${M}…`);
+    await runFeed(); checkedAt();
   }
-  // The squares the guards are on or still have to walk (from the one just behind each guard to the decoy), and the decoy
-  function guardCells(){ const s = [lureCell]; guards.forEach(g => { const l = g.lure; if(l) s.push(...l.cells.slice(Math.max(0, l.k - 1))); }); return s; }
-  // FOX and WREN wait until every guard is well on the way to the decoy, then take a route that stays at least three
-  // squares from wherever they are or are still going (two on a tight floor). If nothing opens up in time they settle
-  // for the plain shortest walk clear of the decoy.
-  async function planRoute(){
-    const t0 = performance.now();
-    const ready = () => guards.every(g => g.lure && (g.lure.over || g.lure.k >= 0.6 * (g.lure.cells.length - 1)));
-    for(;;){
-      const late = performance.now() - t0 > 9000 / sp();
-      if(ready() || late){
-        const cells = guardCells();
-        for(const rad of (late ? [3, 2, 1] : [3, 2])){
-          const near = nearMap(cells, rad + 1), hard = new Set(); near.forEach((d, k) => { if(d <= rad) hard.add(k); });
-          const p = plan(door, dCell, hard, near, NEAR_ALL, rad); if(p){ window.__pnPatrol.routeRad = rad; return p; }
-        }
-        if(late){ window.__pnPatrol.routeRad = 0; return bfs(door, dCell, around([lureCell], 1)) || bfs(door, dCell) || [door]; }   // 0: the last resort, for the tests to flag
-      }
-      await new Promise(res => setTimeout(res, 80));
-    }
+  // Step 4 done: both at the blind spot at minute M, seen on the recording
+  async function checkedAt(){
+    if(checked || over) return; checked = true; clearTimeout(timer);
+    for(let t = 1; t <= LV.grid; t++){ if(t % P[0] === 0) marks[0].add(t); if(t % P[1] === 0) marks[1].add(t); }   // a SKIP fills in the grid
+    document.querySelectorAll("#hs button").forEach(c => { paint(c); c.disabled = true; if(+c.dataset.t === M) c.classList.add("gold"); });
+    act(""); ff = false; dimGuards(false); onArrive = null; mode = "hold";
+    if(minute !== M || !document.querySelector(".track b.gold")){ tlWindow(M); for(let m = 1; m <= M; m++) guards.forEach(g => { if(m % g.p === 0) tlTick(g.i, m, m === M); }); }
+    minute = M; prevM = M; guards.forEach(spotTick); T.SND("lockon");
+    tag(`BOTH AT THE BLIND SPOT · MINUTE ${M}`, "gold");
+    say(`Minute ${M}: both guards at the blind spot, and nobody can see the fire door. The plan: sneak in at minute ${M}.`, "ok");
+    if(!RM){ const near = { pos: SW.clone().add(D.clone().sub(SW).setY(0).normalize().multiplyScalar(48)).setY(70), look: SW.clone() }; T.SND("zoom"); await fly(near, 800); await wait(900); await fly(CAM0, 800); } else await wait(1500);
+    step = 4; render();
+    if(PHASE === "recon") return end(true);
+    await wait(1200); goLive();
+  }
+  // Step 5: at the fire door, live. The clock runs up to the planned minute; the blind spot camera shows the guards
+  // arrive. The pupil calls it. Pressing GO too early only gets a gentle "not yet".
+  async function goLive(){
+    if(over) return; live = true; busy = false;
+    $("hs").hidden = true; $("tline").hidden = false; clearLog(); tag("");
+    $("feedLab").textContent = "LIVE · TONIGHT"; say(`The plan: GO at minute ${M}, when both guards are at the blind spot.`);
+    crewOn(true); await fly(CAMG, 900); insetOn();
+    act("GO GO GO", "go wait", go);
+    if(!document.querySelector(".twb-layer.open")) $("actBtn").focus({ preventScroll: true });
+    const from = Math.max(0, M - P[1] - 1);
+    minute = from; prevM = from; tlWindow(M, from);
+    radio("FOX ▸ At the fire door. Waiting for your call.");
+    await runTo(M, Math.max(1, (M - from) / 6));
+    if(over || going) return;
+    mode = "hold"; T.SND("lockon"); tag(`BOTH AT THE BLIND SPOT · MINUTE ${M}`, "gold");
+    $("actBtn").classList.remove("wait"); say("Both guards are at the blind spot. Nobody can see the door. Call it!", "ok");
+    radio("ORACLE ▸ They're both there. Your call.");
+    window.__pnPatrol.ready = true;
+  }
+  async function go(){
+    if(over || going) return;
+    if(minute < M - 1e-6 || !live){ T.SND("wrong"); const here = guards.filter(atSpot).map(g => NAMES[g.i]);
+      say(`Not yet: ${here.length ? `only guard ${here[0]} is at the blind spot` : "neither guard is at the blind spot"}, so someone can still see the door. Wait for minute ${M}.`, "warn"); return; }
+    going = true; act(""); mode = "hold";
+    $("gogo").classList.add("on"); T.SND("powerup"); radio("YOU ▸ They're both at the blind spot. Go, go, go!", "r");
+    await wait(1300); $("gogo").classList.remove("on"); $("inset").classList.remove("on");
+    radio("FOX ▸ Copy that. Moving."); say("");
+    const path = sneakRoute(); window.__pnPatrol.route = path.map(c => ({ x: c.x, y: c.y }));
+    await fly(CAM0, 900);
+    dest.show(); const line = routeLine(path); dest.light(true); tag(`ROUTE ▸ ${DEST.name}`); T.SND("scanline");
+    await line.show; await wait(300);
+    tag(`FOX + WREN ▸ ${DEST.name}`); T.SND("whoosh");
+    walking = true; walkMin = Infinity;
+    await walkIn(path);
+    walking = false; mode = "done";
+    radio(`WREN ▸ We're through. Heading for ${DEST.to}.`);
+    step = 5; render(); T.SND("success"); say(`FOX and WREN are through the fire door, heading for ${DEST.to}.`, "ok"); tag(`FOX AND WREN ARE THROUGH ▸ ${DEST.name}`, "green");
+    await wait(1400); end(true);
   }
   // The route on the floor: a blue line of light with a dot on every square, lit from the door to the destination
   function routeLine(cells){
@@ -528,7 +599,7 @@
     F.root.add(g);
     const draw = e => { if(tube) tube.setDrawRange(0, Math.ceil(e * segs) * 6 * 6); const n = e * cells.length; dots.forEach((m, i) => { m.material.opacity = 0.7 * Math.max(0, Math.min(1, n - i)); }); };
     const show = RM ? (draw(1), Promise.resolve()) : F.tween(Math.min(1300, 200 + 50 * cells.length), draw, t => t).then(() => draw(1));
-    return { show, remove(){ F.root.remove(g); if(tube) tube.dispose(); } };
+    return { show };
   }
   // FOX leads, WREN a step behind, from outside the door along the route to the destination
   async function walkIn(path){
@@ -538,48 +609,36 @@
     const b = wren.walk([wren.at(), ...way], ms);
     await Promise.all([a, b]);
   }
-  // They meet at the door: the LCM, seen. Then the decoy, the guards go to look, and FOX and WREN head for their next stop.
-  async function met(){
-    if(meeting || over) return; meeting = true; busy = false; clearTimeout(timer);
-    const p = P(), M = ANS();
-    if(st === 0){ marks = p.map(q => new Set(T.range(1, LV.grid).filter(t => t % q === 0))); document.querySelectorAll("#hs button").forEach(c => { paint(c); c.disabled = true; if(+c.dataset.t === M) c.classList.add("gold"); }); }   // a SKIP fills in the grid
-    else if(st === 1){ const c = document.querySelector(`#hs [data-t="${M}"]`); if(c) c.classList.add("gold"); }
-    $("ansRow").hidden = true; ff = false; dimGuards(false); onArrive = null; mode = "hold";
-    if(minute !== M || !document.querySelector(".track b.gold")){ tlWindow(M); for(let m = 1; m <= M; m++) guards.forEach(g => { if(m % g.p === 0) tlTick(g.i, m, m === M); }); }
-    minute = M; prevM = M; guards.forEach(doorTick);
-    T.SND("lockon"); say(`${M} = ${p.map(q => `${q} × ${M / q}`).join(" = ")}: the lowest common multiple.`, "ok");
-    tag(`${both(p.length).toUpperCase()} AT THE DOOR · MINUTE ${M}`, "gold"); logs.length = 0; $("log").innerHTML = "";
-    document.querySelectorAll(".gcard").forEach(c => c.classList.remove("on"));
-    if(!RM){ T.SND("zoom"); await fly(CAM1, 700); await wait(600); await fly(CAM0, 700); } else await wait(1300);
-    // the decoy, thrown right across the floor
-    T.step(`One decoy pulls ${both(p.length)} guards away from the door. FOX and WREN head for ${DEST.to}.`, { quiet: true, name: STAGES[st] });
-    tag("DECOY THROWN ▸ FAR SIDE", "purple"); T.SND("whoosh");
-    const decoy = await throwDecoy();
-    lure = true; guards.forEach((g, i) => setLure(g, LURE[i] || lure1, 250 + i * 260));
-    const arrive = Promise.all(guards.map(g => g.lure.done));
-    await wait(800); T.SND("radio"); tag("GUARDS DRAWN AWAY ▸ DOOR CLEAR");
-    const path = await planRoute();
-    window.__pnPatrol.route = path.map(c => ({ x: c.x, y: c.y }));
-    const line = routeLine(path); dest.light(true); tag(`ROUTE ▸ ${DEST.name}`); T.SND("scanline");
-    await line.show; await wait(450);
-    tag(`FOX + WREN ▸ ${DEST.name}`); T.SND("whoosh");
-    walking = true; walkMin = Infinity;
-    await walkIn(path);
-    walking = false;
-    await arrive;
-    T.SND("success"); tag(st < 2 ? `ROUTE CLEAR ▸ ${DEST.name}` : `FOX AND WREN ARE THROUGH ▸ ${DEST.name}`, "gold");
-    await wait(1200);
-    if(st === rounds.length - 1){ ["st1", "st2", "st3"].forEach(id => { $(id).className = "done"; }); return end(true); }   // the last stage keeps its picture
-    decoy.remove(); line.remove(); dest.light(false); lure = false;
-    st++; deal();
-  }
   function end(ok){
-    if(over) return; over = true; mode = "hold"; clearTimeout(timer);
-    if(ok) T.finish({ ok: true, title: "IN", lines: [`Meeting times: ${rounds.map(lcmAll).join(", ")} minutes.`, `FOX and WREN are through, heading for ${DEST.to}.`], auto: 1800 });
-    else T.finish({ ok: false, title: "SPOTTED", lines: ["The first time the guards are all at the door together is the lowest common multiple (LCM) of their rounds."] });
+    if(over) return; over = true; clearTimeout(timer); if(!ok) mode = "hold";
+    const plan = `Guard A every ${P[0]} minutes, guard B every ${P[1]}: both at the blind spot at minute ${M}, the lowest common multiple.`;
+    const effect = `sneak:${M}:${P[0]}:${P[1]}`;   // the plan, for the heist
+    if(PHASE === "recon"){
+      if(ok) T.finish({ ok: true, title: "PLAN SET", lines: [plan, `FOX and WREN go through the fire door at minute ${M}.`], effect, auto: 2200 });
+      else T.finish({ ok: false, title: "SPOTTED", lines: [`ORACLE worked it out: they're both at the blind spot at minute ${M}, the lowest common multiple of ${P[0]} and ${P[1]}.`], note: `The plan: go at minute ${M}.`, effect });
+    } else if(ok) T.finish({ ok: true, title: "IN", lines: [plan, `FOX and WREN are through, heading for ${DEST.to}.`], auto: 1800 });
+    else T.finish({ ok: false, title: "SPOTTED", lines: ["The first time both guards are at the blind spot together is the lowest common multiple (LCM) of their rounds."] });
   }
-  deal();
-  if(window.PNTest) PNTest.skip("Solve this stage", () => { met(); });
+
+  // ----- Start -----
+  if(PHASE === "go"){
+    $("hs").hidden = true; render(); tag("");
+    setTimeout(goLive, 1200 / sp());
+  } else {
+    $("feedLab").textContent = "CCTV · LAST NIGHT · FIRST MINUTES (ON A LOOP)";
+    const hs = $("hs"); hs.hidden = false; hs.style.setProperty("--rows", LV.grid / 10);
+    hs.innerHTML = T.range(1, LV.grid).map(t => `<button type="button" data-t="${t}" aria-label="Minute ${t}">${t}</button>`).join("");
+    render(); startLoop();
+  }
+  document.addEventListener("keydown", e => { if((e.key === "g" || e.key === "G") && step === 4 && live && !e.ctrlKey && !e.metaKey) go(); });
+  // Teacher SKIP: does the current step
+  if(window.PNTest) PNTest.skip("Do this step", () => {
+    if(over) return;
+    if(step <= 1){ const g = step; T.range(1, LV.grid).filter(t => t % P[g] === 0).forEach(t => marks[g].add(t)); document.querySelectorAll("#hs button").forEach(paint); markDone(g); }
+    else if(step === 2){ clearTimeout(timer); busy = false; choose(M, document.querySelector(`#hs [data-t="${M}"]`)); }
+    else if(step === 3) checkedAt();
+    else if(step === 4){ if(!live) return; if(mode === "run"){ onArrive = null; minute = M; prevM = M - 1; passes(); mode = "hold"; $("actBtn").classList.remove("wait"); } go(); }
+  });
 })();
 </script>
 </body>
