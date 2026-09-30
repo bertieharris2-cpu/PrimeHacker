@@ -154,27 +154,27 @@
     F.tween(460, e => { mesh.position.y = 26 - (26 - card.y) * e; }, t => 1 - (1 - t) * (1 - t)).then(() => T.SND("blip", cards.length));
     return 560;   // how long the drop takes (before the speed-up)
   }
-  let k = 0, over = false, right = 0, inside = false;
+  let k = 0, over = false, right = 0, inside = false, waiting = false;   // waiting: a delivery is solved and the next isn't up yet (or it was the last): input waits
   const alarm = T.alarm(3, () => end(false));
   const SIZE = 10, dg = $("dg"), read = $("read");
   function buildGrid(){ const c = 32; dg.style.gridTemplateColumns = `repeat(${SIZE}, ${c}px)`; dg.style.setProperty("--c", c + "px"); dg.innerHTML = Array.from({ length: SIZE * SIZE }, (_, i) => `<i data-r="${Math.floor(i / SIZE)}" data-c="${i % SIZE}"></i>`).join(""); }
-  function show(){ const n = counts[k]; $("bar").textContent = `Delivery ${k + 1} of ${counts.length}`; $("target").innerHTML = `${n}<small>tiles</small>`; read.innerHTML = "&nbsp;"; buildGrid(); dg.parentElement.hidden = L === "L3"; $("answer").hidden = L !== "L3"; $("noBtn").hidden = L === "L1"; if(L === "L3"){ $("sideIn").value = ""; $("sideIn").focus(); } }
+  function show(){ waiting = false; const n = counts[k]; $("bar").textContent = `Delivery ${k + 1} of ${counts.length}`; $("target").innerHTML = `${n}<small>tiles</small>`; read.innerHTML = "&nbsp;"; buildGrid(); dg.parentElement.hidden = L === "L3"; $("answer").hidden = L !== "L3"; $("noBtn").hidden = L === "L1"; if(L === "L3"){ $("sideIn").value = ""; $("sideIn").focus(); } }
   const between = n => { const r0 = Math.floor(Math.sqrt(n)); return `${r0} × ${r0} = ${r0 * r0} and ${r0 + 1} × ${r0 + 1} = ${(r0 + 1) * (r0 + 1)}`; };
   const notSquare = n => `${n} isn't square: no whole number times itself makes ${n}. ${between(n)}.`;
-  function next(ok, n, s){ $("rooms").insertAdjacentHTML("beforeend", s ? `<span class="ok">${n} tiles: ${s} × ${s} ✓</span>` : `<span>${n} tiles: not square</span>`); if(ok) right++; k++; const drop = s ? dropCard(s, n) : 0;   // a square goes on the pile even when they said it couldn't be one: the card shows the truth
+  function next(ok, n, s){ waiting = true; $("rooms").insertAdjacentHTML("beforeend", s ? `<span class="ok">${n} tiles: ${s} × ${s} ✓</span>` : `<span>${n} tiles: not square</span>`); if(ok) right++; k++; const drop = s ? dropCard(s, n) : 0;   // a square goes on the pile even when they said it couldn't be one: the card shows the truth
     if(k === counts.length) return setTimeout(() => { if(!over) prelude(); }, (drop ? drop + 2600 : 1400) / sp());   // a moment to take in the whole pile
     setTimeout(() => { if(!over) show(); }, (drop ? drop + 600 : 800) / sp()); }
   let anchor = null, cur = null;
   const cellFrom = e => { const t = document.elementFromPoint(e.clientX, e.clientY); return t && t.parentElement === dg ? { r: +t.dataset.r, c: +t.dataset.c } : null; };
   function paint(){ const r0 = Math.min(anchor.r, cur.r), r1 = Math.max(anchor.r, cur.r), c0 = Math.min(anchor.c, cur.c), c1 = Math.max(anchor.c, cur.c), h = r1 - r0 + 1, w = c1 - c0 + 1; dg.querySelectorAll("i").forEach(i => { const r = +i.dataset.r, c = +i.dataset.c; i.classList.toggle("sel", r >= r0 && r <= r1 && c >= c0 && c <= c1); }); dg.classList.toggle("bad", h !== w || h * w > counts[k]); read.textContent = `${h} × ${w} = ${h * w}`; return { h, w }; }
-  dg.addEventListener("pointerdown", e => { if(over) return; const c = cellFrom(e); if(!c) return; e.preventDefault(); dg.setPointerCapture(e.pointerId); anchor = cur = c; paint(); T.SND("tag"); });
+  dg.addEventListener("pointerdown", e => { if(over || waiting) return; const c = cellFrom(e); if(!c) return; e.preventDefault(); dg.setPointerCapture(e.pointerId); anchor = cur = c; paint(); T.SND("tag"); });
   dg.addEventListener("pointermove", e => { if(!anchor) return; const c = cellFrom(e); if(c && (c.r !== cur.r || c.c !== cur.c)){ cur = c; paint(); T.SND("plot"); } });
   dg.addEventListener("pointerup", () => { if(!anchor) return; const { h, w } = paint(); anchor = cur = null; const n = counts[k];
     if(h !== w){ say(`${h} × ${w} isn't square: the sides must match.`, "warn"); T.SND("untag"); return; }
     if(h * w !== n){ say(`${h} × ${h} = ${h * h}. You need ${n} tiles.`, "warn"); T.SND("untag"); return; }
     dg.querySelectorAll("i.sel").forEach(i => { i.classList.remove("sel"); i.classList.add("done"); }); T.SND("correct", k); say(`${h} × ${h} = ${n}. That's the strongroom floor.`, "ok"); next(true, n, h); });
-  $("noBtn").addEventListener("click", () => { if(over) return; const n = counts[k]; if(T.isSquare(n)){ const r0 = Math.sqrt(n); say(`It can: ${r0} × ${r0} = ${n}.`, "bad"); alarm.hit(); if(!over) next(false, n, r0); return; } T.SND("correct", k); say(`Right: ${between(n)}, so ${n} sits between two square numbers.`, "ok"); next(true, n, 0); });
-  $("sideBtn").addEventListener("click", () => { if(over) return; const n = counts[k], v = parseInt($("sideIn").value, 10); if(!Number.isInteger(v)){ say("Type a side length, or press \"It can't be a square\".", "warn"); return; } if(v * v === n){ T.SND("correct", k); say(`${v} × ${v} = ${n}. Side length ${v}.`, "ok"); return next(true, n, v); } say(T.isSquare(n) ? `${v} × ${v} = ${v * v}, not ${n}.` : `${v} × ${v} = ${v * v}. In fact ${n} isn't square: ${between(n)}.`, "bad"); alarm.hit(); $("sideIn").select(); });
+  $("noBtn").addEventListener("click", () => { if(over || waiting) return; const n = counts[k]; if(T.isSquare(n)){ const r0 = Math.sqrt(n); say(`It can: ${r0} × ${r0} = ${n}.`, "bad"); alarm.hit(); if(!over) next(false, n, r0); return; } T.SND("correct", k); say(`Right: ${between(n)}, so ${n} sits between two square numbers.`, "ok"); next(true, n, 0); });
+  $("sideBtn").addEventListener("click", () => { if(over || waiting) return; const n = counts[k], v = parseInt($("sideIn").value, 10); if(!Number.isInteger(v)){ say("Type a side length, or press \"It can't be a square\".", "warn"); return; } if(v * v === n){ T.SND("correct", k); say(`${v} × ${v} = ${n}. Side length ${v}.`, "ok"); return next(true, n, v); } say(T.isSquare(n) ? `${v} × ${v} = ${v * v}, not ${n}.` : `${v} × ${v} = ${v * v}. In fact ${n} isn't square: ${between(n)}.`, "bad"); alarm.hit(); $("sideIn").select(); });
   $("sideIn").addEventListener("keydown", e => { if(e.key === "Enter") $("sideBtn").click(); });
   $("sideIn").addEventListener("input", () => T.SND("typing"));
 
@@ -440,6 +440,7 @@
       while(si < seq.length && !over){ if(busy){ await wait(50); continue; } await hopTo(plates.find(p => p.n === seq[si])); }
       return "Squares stepped.";
     }
+    if(waiting) return "The next delivery is on its way.";
     const n = counts[k]; if(n === undefined) return;
     if(T.isSquare(n)){ if(L === "L3"){ $("sideIn").value = Math.sqrt(n); $("sideBtn").click(); } else next(true, n, Math.sqrt(n)); }
     else $("noBtn").click();
