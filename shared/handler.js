@@ -15,6 +15,7 @@
         border:1px solid rgba(47,191,138,.55); border-left:3px solid #2fbf8a; padding:12px 14px;
         box-shadow:0 12px 40px rgba(0,0,0,.6), 0 0 24px rgba(47,191,138,.12);
         transform:translateX(24px); opacity:0; transition:transform .25s ease, opacity .25s ease; cursor:pointer; }
+  .pnh.left{ right:auto; left:18px; }   /* say(text, { side:"left" }): clear of a right-hand terminal */
   .pnh-box.on{ transform:none; opacity:1; pointer-events:auto; }   /* a faded-out box mustn't block the buttons under it */
   .pnh-wave{ flex:0 0 38px; height:38px; display:flex; gap:3px; align-items:center; justify-content:center;
         border:1px solid rgba(47,191,138,.45); background:rgba(47,191,138,.06); }
@@ -73,7 +74,7 @@
   // Shrink the box into the chip. With reduced motion, or when the chip can't be seen, it just fades.
   async function tuck(box){
     const shown = chip.offsetWidth > 0 && getComputedStyle(chip).display !== "none";
-    if(shown && !calm()){
+    if(shown && !calm() && !wrap.classList.contains("left")){
       const b = box.getBoundingClientRect(), cr = chip.offsetLeft + chip.offsetWidth, cb = chip.offsetTop + chip.offsetHeight;
       const k = Math.max(.08, chip.offsetWidth / b.width);
       box.classList.add("tuck");
@@ -103,7 +104,7 @@
     box.innerHTML = `<div class="pnh-wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
       <div><div class="pnh-who" style="color:${who[2]}">${who[0]} <span>${who[1]}</span></div><div class="pnh-text"></div></div>`;
     box.style.borderLeftColor = who[2];
-    wrap.innerHTML = ""; wrap.appendChild(box);
+    wrap.innerHTML = ""; wrap.classList.toggle("left", item.side === "left"); wrap.appendChild(box);
     last = item; setChip(who); chip.classList.add("hide");   // the chip hides while the full box is up
     let skip = !!item.again, closed = false;
     const close = () => { closed = true; box.classList.remove("on"); };
@@ -169,8 +170,8 @@
   }
 
   window.PNHandler = {
-    say(text, { delay = 0, who = "ORACLE" } = {}){
-      const t = { text: fill(text), who };
+    say(text, { delay = 0, who = "ORACLE", side = "" } = {}){
+      const t = { text: fill(text), who, side };
       // Only the newest waiting message is kept, so a fast student never gets stale news
       setTimeout(() => { queue = [t]; if(document.body) pump(); else document.addEventListener("DOMContentLoaded", pump); }, delay);
     },

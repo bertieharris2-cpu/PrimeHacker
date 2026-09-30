@@ -1283,13 +1283,13 @@ function finishTyping(){
   return true;
 }
 async function reconToNext(){
-  const f = floorsBuilt(), last = f >= FLOORS_NEEDED, nextF = Math.min(f + 1, FLOORS_NEEDED), here = Math.max(1, Math.min(f, FLOORS_NEEDED));
+  const f = floorsBuilt(), last = f >= FLOORS_NEEDED, nextF = Math.min(f + 1, FLOORS_NEEDED);
   let typed = window.PNMode ? 0 : 1, dock = null;   // no terminal: the scan just runs
   phase = "typing";
   const scan = droneRecon(window.lastPlacements || [], () => typed);
   if(window.PNMode){
     // Docked small in the bottom right, so the floor and its intel windows stay in view
-    const done = PNMode.typeThrough({ label: `HACKING FLOOR ${here}`, keys: 54, dock: "br", hint: "Type anything to scan the floor", onProgress: k => { typed = k; } });
+    const done = PNMode.typeThrough({ label: "", keys: 54, dock: "br", hint: "", onProgress: k => { typed = k; } });
     const stop = enlargeTyping();
     dock = await done; stop();
   }

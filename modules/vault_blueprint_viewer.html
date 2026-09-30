@@ -296,13 +296,16 @@ html.pn-reduce-motion .bp-go, html.pn-reduce-motion .bp-cctv, html.pn-reduce-mot
   font-family:"Courier Prime", monospace; font-size:12px; line-height:1.45; color:rgba(110,220,255,.42); padding:6px 10px;
   background:rgba(3,14,20,.5); border-top:1px dashed rgba(110,220,255,.25); opacity:0; transition:opacity .4s; display:flex; flex-direction:column; }
 .bp-term.on{ opacity:1; }
-.bp-term .hd{ letter-spacing:.12em; color:rgba(110,220,255,.6); }
-.bp-term .hd b{ color:#ffe68a; font-weight:400; }
+.bp-term .pr{ color:rgba(235,255,248,.75); }
+.bp-term .bar{ position:relative; height:14px; margin-top:6px; border:1px solid rgba(110,220,255,.35); flex:none; }
+.bp-term .bar i{ display:block; height:100%; width:0; background:rgba(110,220,255,.45); box-shadow:0 0 10px rgba(110,220,255,.4); transition:width .3s linear; }
+.bp-term .bar span{ position:absolute; right:4px; top:50%; transform:translateY(-50%); font-size:11px; color:#ffe68a; }
 .bp-term .ln{ flex:1; display:flex; flex-direction:column; justify-content:flex-end; overflow:hidden; white-space:pre-wrap; word-break:break-all; }
 .bp-term .ln b{ color:#ffe68a; font-weight:400; } .bp-term .ln i{ font-style:normal; color:rgba(160,255,210,.55); } .bp-term .ln u{ text-decoration:none; opacity:.6; }
 .bp-term .cur{ animation:bpCur 1s steps(2) infinite; } @keyframes bpCur{ 50%{ opacity:0; } }
 /* Teacher: in the right-hand column with the rain (mode.js --pn-rain-*), 16px from the 3D view and a little lower */
-html.pn-rain-hug .bp-term{ left:var(--pn-rain-l); right:auto; width:var(--pn-rain-w); top:calc(var(--pn-rain-t) + min(32vh, 300px) + 6px); padding-left:4px; transition:opacity .4s, left .5s ease, width .5s ease; }
+/* Bertie: lowered to the bottom of the column */
+html.pn-rain-hug .bp-term{ left:var(--pn-rain-l); right:auto; width:var(--pn-rain-w); top:auto; bottom:92px; height:min(26vh, 200px); padding-left:4px; transition:opacity .4s, left .5s ease, width .5s ease; }
 @media (max-width:900px){ .bp-term{ display:none; } }
 @media (prefers-reduced-motion: reduce){ .bp-term .cur{ animation:none; } }
 html.pn-reduce-motion .bp-term .cur{ animation:none; }
@@ -441,7 +444,6 @@ function powerUpPrompt(title){
       (window.PNSound ? PNSound.whenUnlocked(() => powerUpPrompt("ASSEMBLE THE BLUEPRINT")) : Promise.resolve()).then(async () => {
         // Round 15: chapter 3, the building
         if(window.PNMode){ PNMode.chapter("building"); await PNMode.chapterCard(3, "The building"); }
-        if(window.PNHandler && !(window.PNTwistSlot && PNTwistSlot.has("assembled"))) PNHandler.say(PNStory.LINES.building, { delay: 1500 });
         const t = document.querySelector("h1"); if(t && PN) t.textContent = `${PN.mission().target}: assembling`;
         // Feedback: the plotter didn't match the arrays and slowed things down; straight into the 3D build
         // SPACE on the power-up prompt scrolls the page after this runs; bring the building back into view
@@ -509,7 +511,7 @@ function powerUpPrompt(title){
     // and the plan (chapter 4, lights to route); planAt(k) is the plan's progress (0..1).
     let bpWatch = null;
     function watchStart(label = 'Building the blueprint'){ if(!bpWatch && window.PNMode) bpWatch = PNMode.watch(label); }
-    function watchAt(k){ if(bpWatch) bpWatch.progress(k); }
+    function watchAt(k){ if(bpWatch) bpWatch.progress(k); if(window.bpTerm) bpTerm.progress(k); }
     function watchLabel(t){ if(bpWatch && bpWatch.label) bpWatch.label(t); }
     function watchEnd(){ if(bpWatch){ bpWatch.progress(1); bpWatch.end(); bpWatch = null; } if(window.PNMode) PNMode.done(); }
     function planAt(k){ watchAt(Math.min(1, k)); }
@@ -519,8 +521,7 @@ function powerUpPrompt(title){
       const h = window.PNMode ? PNMode.watch(label, { seconds }) : null;
       return { progress(k){ if(h) h.progress(k); }, label(t){ if(h && h.label) h.label(t); }, end(){ if(h){ h.end(); PNMode.done(); } } };
     }
-    // Teacher (0:12): a mini terminal under the code rain while the blueprint assembles. Any key the pupil presses
-    // types a few characters of code (like the HACK mode in roleplay_terminal). Just for fun: it never blocks a key
+    // Teacher (0:12): a mini terminal in the rain's column while the blueprint assembles. Just for fun: it never blocks a key
     // (only SPACE is kept from scrolling the page) and it goes when the build is done. It's back, with fresh code, for the plan.
     const bpTerm = (() => {
       const CODE = [
@@ -574,32 +575,42 @@ function powerUpPrompt(title){
           : part.replace(/\b(const|let|for|if|return|function|import|from|await|def|in|of|SELECT|FROM|WHERE|sudo|true|false|TRUE)\b/g, '<b>$1</b>')).join("");
         return body + (cm ? `<u>${esc(cm)}</u>` : "");
       }
-      let el = null, lnEl = null, on = false, done = [], src = "", pos = 0, row = 0, text = "", guard = null, code = CODE;
+      // Bertie: no "type to hack" title; the pupil's own keys go on the prompt, ENTER runs it and code pours out
+      // (a long line runs itself), and a loading bar shows how far the build (or the plan) has got
+      let el = null, lnEl = null, barEl = null, pcEl = null, on = false, done = [], row = 0, typed = "", guard = null, code = CODE, busy = 0;
       const target = () => (PN && PN.mission ? PN.mission().target : "TARGET");
-      function draw(){ lnEl.innerHTML = done.slice(-8).map(t => `<div>${HL(t)}</div>`).join("") + `<div>${HL(text)}<span class="cur">▌</span></div>`; }
+      function draw(){ lnEl.innerHTML = done.slice(-9).map(t => `<div>${t}</div>`).join("") + `<div class="pr">&gt; ${esc(typed)}<span class="cur">▌</span></div>`; }
+      function run(){
+        done.push(`<span class="pr">&gt; ${esc(typed)}</span>`); typed = "";
+        const n = 2 + Math.floor(Math.random() * 2);
+        for(let i = 0; i < n; i++){ busy++; setTimeout(() => { busy--; if(!on) return; done.push(HL(code[row++ % code.length].replace("{target}", target()))); draw(); SND("key"); }, (90 + i * 110) / speedUp()); }
+        draw();
+      }
       function key(e){
-        if(!on || e.ctrlKey || e.metaKey || e.altKey || e.repeat) return;
-        if(e.key.length !== 1 && e.key !== "Backspace" && e.key !== "Tab" && e.key !== "Enter") return;
+        if(!on || e.ctrlKey || e.metaKey || e.altKey) return;
+        if(e.target && e.target.closest && e.target.closest("input, textarea, select, button, [contenteditable]")) return;
+        if(e.key === "Enter"){ if(e.target === document.body) e.preventDefault(); if(!e.repeat) run(); return; }
+        if(e.key === "Backspace"){ typed = typed.slice(0, -1); draw(); return; }
+        if(e.key.length !== 1 || e.repeat) return;
         if(e.key === " " && e.target === document.body && !document.querySelector('.pn-powerup')) e.preventDefault();   // no page scroll
-        if(!src){ src = code[row++ % code.length].replace("{target}", target()); pos = 0; text = ""; }
-        const step = 2 + Math.floor(Math.random() * 4);
-        text += src.slice(pos, pos + step); pos += step;
-        if(pos >= src.length){ done.push(text); text = ""; src = ""; }
-        draw(); SND("key");
+        typed += e.key; SND("key");
+        if(typed.length >= 26) run(); else draw();
       }
       return {
         PLAN,
         start(lines = CODE){
           if(on) return; on = true;
-          if(lines !== code){ code = lines; done = []; src = ""; pos = 0; row = 0; text = ""; }   // a fresh screen for the plan
+          if(lines !== code){ code = lines; done = []; row = 0; typed = ""; }   // a fresh screen for the plan
           if(!el){ el = document.createElement('div'); el.className = 'bp-term'; el.setAttribute('aria-hidden', 'true');
-            el.innerHTML = '<div class="hd">&gt; <b>type to hack</b></div><div class="ln"></div>'; document.body.appendChild(el); lnEl = el.querySelector('.ln'); }
-          draw(); requestAnimationFrame(() => el.classList.add('on'));
+            el.innerHTML = '<div class="ln"></div><div class="bar"><i></i><span>0%</span></div>'; document.body.appendChild(el);
+            lnEl = el.querySelector('.ln'); barEl = el.querySelector('.bar i'); pcEl = el.querySelector('.bar span'); }
+          this.progress(0); draw(); requestAnimationFrame(() => el.classList.add('on'));
           document.addEventListener('keydown', key);
           // never over ORACLE's comms box: if a long message reaches up this far, the terminal steps aside
-          guard = setInterval(() => { const h = document.querySelector('.pnh'), b = h && h.getBoundingClientRect();
-            el.style.visibility = b && b.height && b.top < el.getBoundingClientRect().bottom + 8 && b.left < window.innerWidth - 20 ? 'hidden' : ''; }, 300);
+          guard = setInterval(() => { const h = document.querySelector('.pnh:not(.left) .pnh-box.on'), b = h && h.getBoundingClientRect();
+            el.style.visibility = b && b.height && b.top < el.getBoundingClientRect().bottom + 8 && b.left < el.getBoundingClientRect().right ? 'hidden' : ''; }, 300);
         },
+        progress(k){ if(!barEl) return; const v = Math.round(Math.max(0, Math.min(1, k)) * 100); barEl.style.width = v + '%'; pcEl.textContent = v + '%'; },
         stop(){ if(!on) return; on = false; clearInterval(guard); document.removeEventListener('keydown', key); if(el){ const e0 = el; el = null; e0.classList.remove('on'); setTimeout(() => e0.remove(), 450); } },
       };
     })();
@@ -837,7 +848,6 @@ function powerUpPrompt(title){
           SND("static", 0.8); setTimeout(() => SND("radio"), 250 / speedUp()); setTimeout(() => SND("glitch"), 700 / speedUp());
           SND("disturb", (reduced() ? 2400 : 3100) / 1000 / speedUp());   // Teacher: interference for as long as the floor wobbles
           say('Interference on floor 2…');
-          if(window.PNHandler) PNHandler.say(PNStory.LINES.corrupt);
           f.lines.forEach(m => m.color.set(0xff4f6d)); f.plate.material.color.set(0xff4f6d);
           if(reduced()) setBig(1);
           else {
@@ -850,7 +860,7 @@ function powerUpPrompt(title){
           await wait(2400);
           w.end();
         };
-        const r = await PNTwistSlot.run("assembled", { intro });
+        await PNTwistSlot.run("assembled", { intro });
         bpEvent('twist:assembled');
         // Back from the twist: the floor shrinks back and docks
         const w = shortWatch('Floor plan repaired', 2.6);
@@ -863,7 +873,6 @@ function powerUpPrompt(title){
         SND("dock");
         await greenRings(w);
         SND("scanline");
-        if(window.PNHandler) PNHandler.say(r && r.ok === false ? "Close enough. The floor's back in place." : "Floor plan's back. The building's whole again.");
         showLabel('FLOOR PLAN REPAIRED', 'green');
         await wait(900);
         hideLabel(); w.end();
@@ -916,7 +925,6 @@ function powerUpPrompt(title){
       async function afterAssembly(){
         // Round 15: chapter 4, the plan (no twists in this chapter)
         if(window.PNMode){ PNMode.chapter("plan"); await PNMode.chapterCard(4, "The plan"); }
-        if(window.PNHandler) PNHandler.say(PNStory.LINES.plan);
         watchStart('Lights on'); bpTerm.start(bpTerm.PLAN);   // teacher: a typing terminal in the right-hand column while the plan plays
         // Lit windows: every room has a × b windows, so every room on a floor has exactly N lights
         say('Powering up…'); watchLabel('Lights on');
@@ -925,7 +933,7 @@ function powerUpPrompt(title){
           await tween(900, e => { rooms.forEach(w => w.draw(Math.round(e * w.a * w.b))); planAt((fi + e) / order.length * 0.2); }, p => p);
           SND("seal");
         }
-        await oracle("Lights on. Every room has *a × b* ceiling lights, so every room on a floor has exactly *N* lights. A 4 × 6 office has 24.");
+        await wait(900);   // Bertie: no ORACLE line here, the lights speak for themselves
 
         // Weak point: the floor with the fewest rooms (factor pairs)
         watchLabel('Finding the weak point'); planAt(0.22);
@@ -1624,7 +1632,8 @@ function powerUpPrompt(title){
         // 3. The shell rises around the building, the camera swings round, the beacon lights
         say('Sealing the structure…');
         // Feedback round 9: ORACLE names the building as soon as its outline appears
-        if(window.PNHandler) PNHandler.once("blueprint", "There it is: {target}, all three floors in one building. Let's look for a way in.");
+        // Bertie: one short line, on the left (clear of the terminal), and nothing else during the build
+        if(window.PNHandler) PNHandler.once("blueprint", "There it is: {target}. Let's make a plan to gain access.", { side: "left" });
         shell.visible = true; gridReferences.forEach(g => g.visible = true);
         const camFrom = camera.position.clone(), lookFrom = camLook.clone();
         await Promise.all([

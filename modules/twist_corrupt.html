@@ -84,7 +84,7 @@
   // Round 16 (teacher): the brief arrives as a comms message bottom right and fades, so they can start straight away
   // Teacher: no result card at the end; once the floor has risen it goes straight back to the blueprint (result:"auto")
   const L = T.init({ id: "corrupt", stage: "BLUEPRINT", title: "CORRUPTED BLUEPRINT", briefStyle: "comms", result: "auto",
-    context: "The plan for this floor came through scrambled. Drag every room back onto the floor so no free square is left. <b>Tap</b> a room to turn it.",
+    context: "Drag every room back onto the floor so no free square is left. <b>Tap</b> a room to turn it.",   // Bertie: the CORRUPTED label already says what happened
     goal: "Rooms can't <b>overlap</b>. Keep the <b>corridors</b>, the <b>blacked-out squares</b>, lift, stairs and fire exit clear. Every other square gets used.",
     example: "A 3 × 4 room can turn round to 4 × 3: same 12 squares, different shape. An L-shaped room is two arrays joined: 3 × 2 + 1 × 2 is 6 + 2 = 8 squares. <b>⇋</b> flips it over.",
     story: `Interference on the file. The plan for one of ${T.targets()} floors is scrambled. The rooms came through, but not where they go. Fit them back together.` });

@@ -289,12 +289,13 @@
     build();   // its styles live with the WATCH strip; a page can reach its first typing before any WATCH
     return new Promise(resolve => {
       const ov = document.createElement("div"); ov.className = "pnm-type" + (dock ? " dock" : "");
-      ov.setAttribute("role", dock ? "region" : "dialog"); ov.setAttribute("aria-label", label);
+      // Bertie: label and hint can be left empty: no title, and the hint is just a TYPE key
+      ov.setAttribute("role", dock ? "region" : "dialog"); ov.setAttribute("aria-label", label || "Type");
       ov.innerHTML = `<div class="box"><div class="hd"><span>${label}</span><span class="pc">0%</span></div><div class="code"></div><div class="meter"><i></i></div>
-        <div class="hint">${hint}: <kbd>any key</kbd> or tap</div></div>`;
+        <div class="hint">${hint ? hint + ": <kbd>any key</kbd> or tap" : "<kbd>TYPE</kbd>"}</div></div>`;
       document.body.appendChild(ov);
       if(dock) document.documentElement.classList.add("pnm-docked");
-      if(state !== "turn") turn(label.charAt(0) + label.slice(1).toLowerCase());
+      if(state !== "turn") turn(label ? label.charAt(0) + label.slice(1).toLowerCase() : "Type");
       const code = ov.querySelector(".code"), meter = ov.querySelector(".meter i"), pc = ov.querySelector(".pc");
       let n = 0, text = "", stream = codeLine() + "\n";
       const need = Math.max(4, Math.round(keys / Math.max(1, speed() / 2)));
