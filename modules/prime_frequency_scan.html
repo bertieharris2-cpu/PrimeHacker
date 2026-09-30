@@ -438,6 +438,21 @@
 .thinTerm .hint kbd{ font:inherit; font-weight:700; color:#03170e; background:var(--accent); padding:0 6px; }
 .thinTerm.done{ border-color:#ffe14d; } .thinTerm.done .hint{ color:#ffe14d; }
 @media (prefers-reduced-motion: reduce){ .thinTerm .code::after{ animation:none; } }
+/* Bertie: once the capture bar is full the terminal grows, code pours in and a second bar fills, then EMAIL INTERCEPTED */
+.thinTerm .dump{ grid-column:1 / -1; height:0; overflow:hidden; font-family:var(--font-mono); font-size:13px; line-height:1.45; color:rgba(200,255,232,.72); white-space:pre; transition:height .45s ease-out; }
+.thinTerm.grow .dump{ height:104px; }
+.scope.short{ height:150px !important; transition:height .45s ease-out; }   /* makes room for the grown terminal, so nothing scrolls */
+.thinTerm .got{ grid-column:1 / -1; font:700 clamp(24px,3vw,34px)/1.1 var(--font-ui); letter-spacing:.14em; color:var(--accent); text-align:center; text-shadow:0 0 18px rgba(var(--accent-rgb),.6); padding:6px 0 2px; animation:mailIn .4s ease-out; }
+/* Bertie: arrow keys or WASD move round the number grid, F tags */
+.cell.kcur{ outline:3px solid #ffe14d !important; outline-offset:2px; }
+.keysHint{ font-family:var(--font-ui); font-size:14px; letter-spacing:.08em; color:var(--muted); }
+.keysHint kbd{ font:inherit; font-weight:700; color:#03170e; background:var(--accent); padding:0 6px; margin:0 2px; }
+/* Bertie: a detect zone left of centre on the scope. Press F as a prime passes through it */
+.fzone{ position:absolute; top:0; bottom:0; left:32%; width:12%; z-index:2; pointer-events:none; border-left:1px dashed rgba(255,225,77,.45); border-right:1px dashed rgba(255,225,77,.45); background:linear-gradient(90deg, rgba(255,225,77,.03), rgba(255,225,77,.09), rgba(255,225,77,.03)); transition:background .15s; }
+.fzone b{ position:absolute; left:50%; bottom:8px; transform:translateX(-50%); font:700 13px var(--font-ui); letter-spacing:.12em; color:#ffe14d; white-space:nowrap; }
+.fzone b kbd{ font:inherit; color:#03170e; background:#ffe14d; padding:0 6px; margin-right:6px; }
+.fzone.hit{ background:rgba(var(--accent-rgb),.25); } .fzone.miss{ background:rgba(255,107,107,.2); }
+.fzone[hidden]{ display:none; }
 .scope{ position:relative; width:100%; height:270px; border:1px solid rgba(var(--accent-rgb),.45); background:#03110f; overflow:hidden; box-shadow:inset 0 0 40px rgba(0,0,0,.8); }
 .scope canvas{ position:absolute; inset:0; width:100%; height:100%; }
 .blip{ position:absolute; top:0; left:0; min-width:0 !important; padding:6px 10px !important; font-family:var(--font-mono) !important; font-size:1.15rem; font-weight:700; color:#d9fff0; background:rgba(3,20,16,.8) !important; border:1px solid rgba(var(--accent-rgb),.7) !important; box-shadow:0 0 14px rgba(var(--accent-rgb),.35); will-change:transform; }
@@ -782,7 +797,15 @@ html.pn-mode-on .devPanel{ top: calc(var(--pn-mode-h, 62px) + 50px); }
     clearMain();
 
     const title = el("div", { class: "titleBig", text: "PRIME FREQUENCY SCAN" });
-    const sub = el("div", { class: "sub", text: "We've spotted an encrypted email leaving the target. It's carrying their building plans. The channel hides behind prime frequencies." });
+    // Bertie: one short message at the start instead of ORACLE lines during the scan, read aloud
+    const tgtName = PN ? PN.mission().target : "Rivercross Utilities";
+    const intro = PNStory.LINES.scanIntro.replace("{target}", tgtName);
+    const sub = el("div", { class: "sub", text: intro });
+    const say = () => { if(window.PNVoice) PNVoice.speak(intro, { force: true }); };
+    if(window.PNVoice && PNVoice.on()) setTimeout(() => PNVoice.speak(intro), 500);
+    const listen = el("button", { type: "button", class: "listen", html: "🔊 LISTEN <kbd class=\"spk\">L</kbd>", onClick: say });
+    const lKey = e => { if(state !== State.BRIEF){ document.removeEventListener("keydown", lKey); return; } if(e.key === "l" || e.key === "L") say(); if(e.key === "Enter"){ e.preventDefault(); btn.click(); } };
+    document.addEventListener("keydown", lKey);
     const divider = el("div", { class: "divider" });
     // The intercepted email (Bertie: it makes sense of what we're scanning for)
     const tgt = PN ? PN.mission().target : "Rivercross Utilities", dom = tgt.toLowerCase().replace(/[^a-z]+/g, "");
@@ -793,17 +816,17 @@ html.pn-mode-on .devPanel{ top: calc(var(--pn-mode-h, 62px) + 50px); }
     MODE.turn("Start the scan");
     const btn = el("button", {
       class: "pn-go",
-      text: "BEGIN SCAN",
+      html: "BEGIN SCAN <kbd class=\"spk\">ENTER</kbd>",
       onClick: () => {
         SND("start");
-        if(window.PNHandler) PNHandler.once("scan-start", PNStory.LINES.scanStart + " A prime has exactly two factors: 1 and itself.", { delay: 600 });
+        if(window.PNVoice) PNVoice.stop();
         bandIndex = 0;
         progress = new Array(CONFIG.bands.length).fill(false);
         renderScan();
       }
     });
 
-    const btnRow = el("div", { class: "btnRow" }, [btn]);
+    const btnRow = el("div", { class: "btnRow" }, [btn, listen]);
 
     main.append(title, sub, mail, divider, renderSegments(), btnRow);
   }
@@ -866,8 +889,36 @@ html.pn-mode-on .devPanel{ top: calc(var(--pn-mode-h, 62px) + 50px); }
     });
 
     const btnRow = el("div", { class: "btnRow" }, [verifyBtn, resetBtn]);
+    const keysHint = el("div", { class: "keysHint", html: "Click, or move with <kbd>WASD</kbd> or the arrows and press <kbd>F</kbd> to tag" });
 
-    main.append(heading, instruction, renderJammer(b, grid), grid, renderSegments(), btnRow);
+    main.append(heading, instruction, renderJammer(b, grid), grid, keysHint, renderSegments(), btnRow);
+    gridKeys(grid);
+  }
+
+  // Bertie: WASD or the arrow keys move a yellow cursor round the grid; F tags (or untags) the number under it
+  let gridKeyFn = null;
+  function gridKeys(grid){
+    if(gridKeyFn) document.removeEventListener("keydown", gridKeyFn);
+    const cells = [...grid.querySelectorAll(".cell")], cols = CONFIG.gridColumns;
+    let at = -1;
+    const put = i => { cells.forEach(c => c.classList.remove("kcur")); at = i; cells[at].classList.add("kcur"); };
+    const MOVE = { ArrowLeft:-1, a:-1, ArrowRight:1, d:1, ArrowUp:-cols, w:-cols, ArrowDown:cols, s:cols };
+    gridKeyFn = e => {
+      if(state !== State.SCAN || !grid.isConnected){ document.removeEventListener("keydown", gridKeyFn); gridKeyFn = null; return; }
+      if(e.ctrlKey || e.metaKey || e.altKey || e.target.closest("input,textarea,[contenteditable]")) return;
+      const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+      if(k in MOVE){
+        e.preventDefault();
+        if(at < 0){ put(0); return; }
+        const n = at + MOVE[k];
+        if(n >= 0 && n < cells.length && !(Math.abs(MOVE[k]) === 1 && Math.floor(n / cols) !== Math.floor(at / cols))) put(n);
+      } else if(k === "f" && !e.repeat){
+        e.preventDefault();
+        if(at < 0){ put(0); return; }
+        cells[at].click();
+      }
+    };
+    document.addEventListener("keydown", gridKeyFn);
   }
 
   // Jammer: knock out every multiple of a small prime, like the Sieve of Eratosthenes.
@@ -918,7 +969,6 @@ html.pn-mode-on .devPanel{ top: calc(var(--pn-mode-h, 62px) + 50px); }
     }
 
     if (ok){
-      if(window.PNHandler && bandIndex === 0) PNHandler.once("scan-band1", "Band one is clean. Keep going.");
       // A slow band costs a little signal (the clock is generous: 60 seconds)
       if(!slowNoted && Date.now() - bandStartedAt > 60000){ slowNoted = true; loseSignal(5); }
       bandMisses = 0;
@@ -1021,12 +1071,33 @@ html.pn-mode-on .devPanel{ top: calc(var(--pn-mode-h, 62px) + 50px); }
         const k = Math.min(1, n / keys); bar.style.width = Math.round(k * 100) + "%"; pc.textContent = Math.round(k * 100) + "%";
         if(k >= 1){
           document.removeEventListener("keydown", key, true); document.removeEventListener("pointerdown", key, true);
-          t.classList.add("done"); t.querySelector(".hint").textContent = doneText; SND("lockon");
+          t.classList.add("done"); t.querySelector(".hint").textContent = doneText || ""; SND("lockon");
           setTimeout(() => resolve(t), 650);   // the full bar is seen first
         }
       };
       document.addEventListener("keydown", key, true); document.addEventListener("pointerdown", key, true);
       thinTerm.finish = () => { while(n < keys) key({ type: "keydown", key: "a" }); };   // teacher tools
+    });
+  }
+  function captureDump(t, onResize){
+    return new Promise(resolve => {
+      const bar = t.querySelector(".bar i"), pc = t.querySelector(".pc"), hint = t.querySelector(".hint");
+      const dump = el("div", { class: "dump", "aria-hidden": "true" });
+      t.insertBefore(dump, t.querySelector(".bar"));
+      t.classList.remove("done"); t.querySelector(".lab").textContent = "DECRYPTING THE CARRIER";
+      if(hint) hint.textContent = "";
+      bar.style.transition = "none"; bar.style.width = "0%"; pc.textContent = "0%";
+      requestAnimationFrame(() => { t.classList.add("grow"); bar.style.transition = ""; });
+      const sc = main.querySelector(".scope"); if(sc){ sc.classList.add("short"); if(onResize) setTimeout(onResize, 480); }
+      const HEX = "0123456789ABCDEF", rows = [];
+      const row = () => { let s = ""; const n = 52 + Math.floor(Math.random() * 20); for(let i = 0; i < n; i++) s += HEX[Math.floor(Math.random() * 16)]; return Math.random() < .2 ? pick(["> mail.enc: block " + hex4() + " OK", "> attachment: building_plans.enc", "> carrier locked, reading packets", "> checksum " + hex4() + hex4() + " OK"]) : s; };
+      let p = 0;
+      const tick = setInterval(() => {
+        rows.push(row()); dump.textContent = rows.slice(-6).join("\n");
+        p = Math.min(100, p + 5); bar.style.width = p + "%"; pc.textContent = p + "%";
+        if(p % 20 === 0) SND("key");
+        if(p >= 100){ clearInterval(tick); t.classList.add("done"); setTimeout(resolve, 350); }
+      }, 100 / (window.PNTest ? PNTest.speed() : 1));
     });
   }
   const pick = a => a[Math.floor(Math.random() * a.length)];
@@ -1050,10 +1121,11 @@ html.pn-mode-on .devPanel{ top: calc(var(--pn-mode-h, 62px) + 50px); }
     const bg = el("canvas"), fg = el("canvas");
     const rx = el("div", { class: "rx", html: `<span class="rec">●</span> RX-04 · LIVE` });
     const rx2 = el("div", { class: "rx rx2", html: `GAIN <span class="gain">38</span> dB<br><span class="freq">0.00</span> MHz` });
-    scope.append(bg, fg, rx, rx2);
+    const fzone = el("div", { class: "fzone", html: "<b><kbd>F</kbd>DETECT</b>", "aria-hidden": "true" }); fzone.hidden = true;
+    scope.append(bg, fg, fzone, rx, rx2);
     const feed = el("div", { class: "scopeFeed", html: "<i></i>" });
     const hud = el("div", { class: "scopeHud" });
-    main.append(el("div", { class: "intercept" }, [heading, el("div", { class: "instruction", text: "Primes are stable signals. Click their peaks before they escape. Leave the noise." }), scope, feed, hud, el("div", { class: "ttSlot" }, [el("div", { class: "ffHint", html: "Hold <kbd>SPACE</kbd> to fast-forward" })])]));
+    main.append(el("div", { class: "intercept" }, [heading, el("div", { class: "instruction", html: "Primes are stable signals. Click their peaks, or press <b>F</b> as they pass the yellow zone. Leave the noise." }), scope, feed, hud, el("div", { class: "ttSlot" }, [el("div", { class: "ffHint", html: "Hold <kbd>SPACE</kbd> to fast-forward" })])]));
 
     const stats = { locked: 0, missed: 0, noise: 0, left: queue.length };
     const paintHud = () => { hud.innerHTML = `Locked <b>${stats.locked}</b> · Missed <b>${stats.missed}</b> · Noise clicked <b>${stats.noise}</b> · Incoming <b>${stats.left}</b>`; feed.firstChild.style.width = ((queue.length - stats.left) / queue.length * 100) + "%"; };
@@ -1103,6 +1175,19 @@ html.pn-mode-on .devPanel{ top: calc(var(--pn-mode-h, 62px) + 50px); }
       blips.forEach(b => { if(b.done || b.state !== "live") return; const q = b.el.getBoundingClientRect(), cx = q.left - r.left + q.width / 2, cy = q.top - r.top + q.height / 2, d = Math.hypot(cx - px, cy - py); if(d < bestD){ bestD = d; best = b; } });
       if(best) hitBlip(best);
     });
+    // Bertie: press F while a peak is inside the detect zone (a keyboard way to click it). Clicking still works.
+    const zoneKey = e => {
+      if(e.key !== "f" && e.key !== "F") return;
+      if(!locked || !running || finish.ran || e.repeat || e.target.closest("input,textarea,[contenteditable]")) return;
+      e.preventDefault();
+      const zl = W * .32, zr = W * .44;
+      const inZone = blips.filter(b => !b.done && b.state === "live" && b.x >= zl && b.x <= zr).sort((a, b) => Math.abs(a.x - (zl + zr) / 2) - Math.abs(b.x - (zl + zr) / 2))[0];
+      if(!inZone) return;
+      const ok = isPrime(inZone.n); hitBlip(inZone);
+      fzone.classList.remove("hit", "miss"); void fzone.offsetWidth; fzone.classList.add(ok ? "hit" : "miss");
+      setTimeout(() => fzone.classList.remove("hit", "miss"), 260);
+    };
+    document.addEventListener("keydown", zoneKey);
     const t0 = vnow;
     function frame(real){
       if(!running) return;
@@ -1144,17 +1229,21 @@ html.pn-mode-on .devPanel{ top: calc(var(--pn-mode-h, 62px) + 50px); }
     async function finish(){
       if(finish.ran) return; finish.ran = true;
       document.removeEventListener("keydown", ffKey); document.removeEventListener("keyup", ffKey); ff = 1; scope.classList.remove("ff");
+      document.removeEventListener("keydown", zoneKey); fzone.hidden = true;
       interceptDone = null;
       interceptPerfect = stats.missed === 0 && stats.noise === 0 && stats.locked > 0;
       setConsole("INTERCEPT CLOSED", `Locked ${stats.locked} of ${half} primes.`);
       // Bertie: while the line goes flat, a short typing moment captures the email, then EMAIL INTERCEPTED
       box.querySelectorAll(".ffHint").forEach(n => n.remove());
-      await thinTerm(box, { label: "CAPTURING THE EMAIL", keys: 20, hint: "Type anything to capture it", doneText: "EMAIL CAPTURED" });
+      const term = await thinTerm(box, { label: "CAPTURING THE EMAIL", keys: 20, hint: "Type anything to capture it", doneText: "" });
+      // Bertie: the terminal grows, code pours in while a second bar fills, and only then EMAIL INTERCEPTED
+      const w = MODE.watch("Capturing the email", { seconds: 3.4 });
+      await captureDump(term, size);
       running = false;
-      const w = MODE.watch("Email intercepted", { seconds: 2.5 });
       renderComplete();
-      // Teacher feedback: no separate results screen. EMAIL INTERCEPTED, then a calm fade into the email opening
-      flashAccessGranted(() => { w.end(); goToTarget(); }, { keep: true });
+      term.querySelector(".hint").remove();
+      term.append(el("div", { class: "got", role: "status", text: "EMAIL INTERCEPTED" }));
+      setTimeout(() => { w.end(); goToTarget(); }, 1400);
     }
     // Teacher test tool: close the intercept as if every prime was locked
     interceptDone = () => { if(!locked && thinTerm.finish) thinTerm.finish(); locked = true; chaos = 0; blips.forEach(b => { b.done = true; b.state = "gone"; b.el.remove(); }); spawned = queue.length; stats.locked = half; stats.left = 0; finish(); };
@@ -1165,9 +1254,8 @@ html.pn-mode-on .devPanel{ top: calc(var(--pn-mode-h, 62px) + 50px); }
     thinTerm(box, { label: "LOCK ON", keys: 16, hint: "Type anything to lock on to the channel", doneText: "CHANNEL LOCKED · SIGNAL STABLE" }).then(t => {
       if(locked) return;
       locked = true; SND("verified"); setConsole("Channel locked.", "Click the prime peaks before they leave the scope.");
-      setTimeout(() => { t.remove(); if(ffh) ffh.hidden = false; }, 900);
+      setTimeout(() => { t.remove(); if(ffh) ffh.hidden = false; fzone.hidden = false; }, 900);
       MODE.turn("Grab the prime peaks");
-      if(window.PNHandler) PNHandler.once("scan-intercept", PNStory.LINES.scanPeaks, { delay: 200 });
     });
   }
 
@@ -1176,7 +1264,6 @@ html.pn-mode-on .devPanel{ top: calc(var(--pn-mode-h, 62px) + 50px); }
   function renderComplete(){
     state = State.COMPLETE;
     SND("success");
-    if(window.PNHandler) PNHandler.once("scan-done", PNStory.LINES.scanEnd, { delay: 150 });
     setStatus("STATUS: READY");
     setConsole("EMAIL INTERCEPTED", "Attachment: building plans, encrypted.");
     const decoders = decodersFor(signal);

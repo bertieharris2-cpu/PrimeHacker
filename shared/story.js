@@ -103,6 +103,8 @@
       "*FOX* and *WREN* are going in tonight, {cover}. They'll need you on the tech: intercept the plans, decrypt them, and get them past every security system inside.",
       "Ready?",
     ],
+    // Bertie: one short line on the scan's first screen (read aloud), instead of ORACLE talking during the scan
+    scanIntro: "We've received information that someone at {target} is emailing their building plans. The email is encrypted, and it travels on a channel hidden behind prime-numbered frequencies. Use your skills to find the primes and intercept the email.",
     scanStart: "Someone at {target} is emailing their building plans to their security firm. The email is encrypted, and it travels on a channel hidden behind prime-numbered frequencies. Find the primes and we can lock on.",
     scanPeaks: "Locked on. Now catch the peaks. Every one that's prime is a piece of the email. Hold SPACE to speed it up.",
     scanEnd: "Got it. The email is ours, attachment and all. Let's decrypt the plans.",
