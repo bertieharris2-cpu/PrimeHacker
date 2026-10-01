@@ -353,6 +353,10 @@
 .getOut span.on{ opacity:1; animation:goIn .35s ease-out; }
 .getOut small{ font-size:18px; letter-spacing:.2em; color:#ffb3c0; margin-top:12px; opacity:0; }
 .getOut small.on{ opacity:1; transition:opacity .4s; }
+.getOutOverlay.quiet{ background:rgba(2,16,12,.92); }
+.getOutOverlay.quiet .getOut{ color:#7dffc4; text-shadow:0 0 26px rgba(47,191,138,.6); }
+.getOutOverlay.quiet .getOut span{ font-size:clamp(28px, 5vw, 56px); }
+.getOutOverlay.quiet .getOut small{ color:#bff5df; }
 @keyframes goIn{ from{ transform:scale(1.4); opacity:0; } }
 .ga-q .ga-prop{ font-family:var(--font-ui); font-weight:700; letter-spacing:.14em; font-size:22px; color:#eafff6; }
 .ga-q .ga-prop b{ color:#ffe14d; }
@@ -1507,6 +1511,9 @@ const TEACHER = !!(PN && PN.isTeacher());   // level buttons and test controls a
 // ?p=P&q=Q (both prime) makes every lock that pair; ?tier=T gives random pairs from that rung of the ladder.
 const QS = new URLSearchParams(location.search);
 const PRACTICE = QS.get("practice") === "1";
+// Round 19: a quiet set menu. FOX and WREN copied the security key and sneaked out; the vault is hacked from base,
+// and the ending covers our tracks (no alarm, no getaway chase).
+const QUIET = !PRACTICE && !!(window.Primenet && Primenet.twistMenu && (Primenet.twistMenu() || {}).quiet);
 const PRACTICE_PAIR = (() => {
   const p = parseInt(QS.get("p"), 10), q = parseInt(QS.get("q"), 10);
   const prime = n => { if(!Number.isInteger(n) || n < 2) return false; for(let d = 2; d * d <= n; d++) if(n % d === 0) return false; return true; };
@@ -2431,12 +2438,27 @@ async function siphonScreen({ acct, pot, frac, secs, blackout }){
     box.classList.add("cut"); SFX("denied"); SFX("alarm");
     msg.innerHTML = `<span class="big">LINE CUT</span>${pace} Security cut the line at <b>${Math.round(frac * 100)}%</b>: ${gbp(taken)} got through. The rest is frozen for the authorities. Crack the locks faster and the line stays open longer.`;
   }
-  if(window.PNHandler) PNHandler.say(frac >= 1 ? "Every penny's through. Now get FOX and WREN out." : "They've cut the line. What got through is safe. Now get FOX and WREN out.");
+  const nextJob = QUIET ? "Now cover our tracks." : "Now get FOX and WREN out.";
+  if(window.PNHandler) PNHandler.say(frac >= 1 ? `Every penny's through. ${nextJob}` : `They've cut the line. What got through is safe. ${nextJob}`);
   await animate(3200, pr => w.progress((open + pr * 3200) / (open + 3200)));
   setCinematic(false);
   w.end();
   o.remove();
   return taken;
+}
+// Quiet menus: no alarm. Log out, wipe the logs, and nobody knows we were there.
+async function coverTracks(){
+  const o = overlay("getOutOverlay quiet");
+  o.innerHTML = `<div class="getOut" role="status"><span>LOGGING OUT</span><span>WIPING THE LOGS</span><span>CLOSING THE DOOR BEHIND US</span><small>NOBODY KNOWS WE WERE THERE</small></div>`;
+  const w = Mode.watch("Covering our tracks", { seconds: 3.4 });
+  setCinematic(true);
+  SFX("radio");
+  for(const sp of o.querySelectorAll("span")){ sp.classList.add("on"); SFX("tag"); await animate(700, () => {}); }
+  o.querySelector("small").classList.add("on"); SFX("success");
+  await animate(1300, () => {});
+  setCinematic(false);
+  w.end();
+  o.remove();
 }
 // ORACLE: get out, get out, get out
 async function getOut(){
@@ -2988,9 +3010,9 @@ async function onLockSolved(){
   const hackSecs = Run.cracked.reduce((a, c) => a + (c.ms || 0), 0) / 1000;
   const tierMove = nextTier(Run.cracked, Run.wrongTotal || 0);
   Sound.ok();
-  if(window.PNHandler && !PRACTICE) PNHandler.radio("vaultOpen");
+  if(window.PNHandler && !PRACTICE){ if(QUIET) PNHandler.say("Vault's open. And they still don't know we're here."); else PNHandler.radio("vaultOpen"); }
   await sleep(500);
-  await alarmSequence();
+  if(!QUIET) await alarmSequence();   // quiet: their alarms never go off
   if(typeof Rig !== "undefined" && Rig.setBreach) Rig.setBreach(Run.locksPerRun);
   let w = Mode.watch("ORACLE is opening a way into the vault", { seconds: 2.8 });
   setCinematic(true);
@@ -3025,9 +3047,9 @@ async function onLockSolved(){
   const pot = Bank.siphonPot(DIFF, Run.locksPerRun);
   await siphonScreen({ acct, pot, frac, secs: hackSecs, blackout });
   const acctSnapshot = { name: acct.name, balance: acct.balance };
-  await getOut();
-  // The getaway: three quick calls on the numbers' properties to lose the police. 3 out of 3 adds 5%.
-  const escape = (!PN || PN.twistOn("getaway")) ? await getaway() : { score: 0 };   // teachers can switch the getaway off
+  if(QUIET) await coverTracks(); else await getOut();
+  // The getaway: three quick calls on the numbers' properties to lose the police. 3 out of 3 adds 5%. (None when nobody knows we were there.)
+  const escape = (!QUIET && (!PN || PN.twistOn("getaway"))) ? await getaway() : { score: 0 };   // teachers can switch the getaway off
   setHackTier(tierMove.to);
 
   const agent = PN ? PN.getAgent() : null;
@@ -3065,7 +3087,7 @@ async function onLockSolved(){
   const home = overlay(); home.innerHTML = `<div class="doorStage"></div>`;
   await drainAndStamp(home, { acct: acctSnapshot, banked, walletBefore, walletAfter: Bank.getWalletBalance(), codename, before, after });
   addLine("VAULT BREACH COMPLETE // SESSION SAVED", "ok");
-  if(window.PNHandler) { PNHandler.radio("safe"); PNHandler.say(`FOX and WREN are out safe, and ${acctSnapshot.name} has been found out. Outstanding work, {agent}.`, { delay: 4200 }); }
+  if(window.PNHandler){ if(QUIET) PNHandler.say(`Clean job, {agent}. They'll never know we were there, and ${acctSnapshot.name} has been found out.`); else { PNHandler.radio("safe"); PNHandler.say(`FOX and WREN are out safe, and ${acctSnapshot.name} has been found out. Outstanding work, {agent}.`, { delay: 4200 }); } }
   await caseFile({ codename, levelId: DIFF, cracked: Run.cracked.slice(), wrong: Run.wrongTotal || 0, banked, walletAfter: Bank.getWalletBalance(), after, startedAt: Run.startedAt, tierMove, frac });
 
   // A new run at the same clearance; the locks follow the agent's tier
@@ -3441,6 +3463,7 @@ async function boot(){
   addLine("Type the two primes, then ENTER.", "sys");
   if(window.PNHandler){
     if(PRACTICE) PNHandler.say("Practice run. Two locks. Type the two primes.", { delay: 1200 });
+    else if(QUIET) PNHandler.once("hack-start", `FOX and WREN are back at base. We log in to ${target ? target.name : "{target}"}'s vault with the copied key. Four locks. Type the two primes for each.`, { delay: 1200 });
     else if(PNHandler.once("hack-start", `${target ? target.name : "{target}"}'s vault. Four locks. Type the two primes for each.`, { delay: 1200 })) PNHandler.radio("vault", { delay: 5200 });
   }
   addBlank();

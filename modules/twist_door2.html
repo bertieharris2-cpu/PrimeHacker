@@ -378,7 +378,7 @@
   async function openDoor(){
     over = true; T.hideBrief();
     say("Every bolt is released. The key room door is opening.", "ok");
-    T.say("Door's open. There's the key.");
+    T.say("Door's open. There's the security key.");
     const r = $("doorview").getBoundingClientRect();
     fpv.classList.remove("move"); fpv.classList.add("hid", "end"); place(fpv, r); fpv.hidden = false; fpv.insertBefore(svg, fpv.firstChild);
     if(!still()){ void fpv.offsetWidth; fpv.style.setProperty("--dock", (550 / sp()) + "ms"); fpv.classList.add("move"); place(fpv, screenRect()); T.SND("whoosh"); await wait(560); }
@@ -506,7 +506,7 @@
 
   // ----- Start: the frame and the brief build under the walk-up; the brief zooms in once the camera has docked -----
   if(MODE === "B"){ $("tree").hidden = true; $("arr").hidden = false; $("workKind").textContent = "LIGHTS"; }
-  T.init({ id: "door2", stage: "PRIME HACK", title: "KEY ROOM DOOR", goal: `${GOAL}<br><br>${WHY}`, example: EXAMPLE,
+  T.init({ id: "door2", stage: "THE HEIST", title: "KEY ROOM DOOR", goal: `${GOAL}<br><br>${WHY}`, example: EXAMPLE,
     context: `${BOLTS === 3 ? "Three" : "Two"} bolts lock the key room. Each has a number.`,
     story: `Crew's at the key room door. ${BOLTS === 3 ? "Three" : "Two"} bolts, each locked with a number. Break the numbers into primes and key them in.` });
   show();

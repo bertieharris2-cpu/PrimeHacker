@@ -12,7 +12,7 @@
     // corrupt: none (Bertie: the CORRUPTED label says it; fewer messages in the plan)
     patrols:    "Two guards on the fire door floor. Find when they're both at the blind spot and we slip past.",
     cubes:      "Fuse box. Wire the relays and we black out their cameras.",
-    walls:      "Change of plan. The key card is in a deposit box in the basement.",
+    walls:      "The security key is in a deposit box in the basement.",
     strongroom: "Strongroom ahead. The floor is pressure plated. Find the safe way across.",
     factortree: "We're at the key room door. It's bolted, and the bolts want prime factors.",
   };

@@ -123,7 +123,7 @@
   const MODE = (() => { const q = new URLSearchParams(location.search).get("mode"); if(q === "A" || q === "B") return q;
     try{ const last = localStorage.getItem("primenet_walls_finale"), next = last === "A" ? "B" : "A"; localStorage.setItem("primenet_walls_finale", next); return next; }catch(e){ return "A"; } })();
   const L = T.init({ id: "walls3d", stage: "FACTOR VAULT", title: "DEPOSIT-BOX ROOM",
-    context: "The key is in one of these deposit boxes.",
+    context: "The security key is in one of these deposit boxes.",
     goal: T.peekLevel() === "L1" ? "Which rectangles of boxes fit on the <b>back wall</b>? Tap a rectangle to try it on the wall. Tap it again to <b>turn it round</b>. Or drag boxes out on the wall. Then use the box numbers to find the <b>key box</b>." : "Which rectangles of boxes fit on the <b>back wall</b>? They can be <b>turned round</b>. Drag on the wall to try one. Then use the box numbers to find the <b>key box</b>.",
     example: "On a back wall 8 wide and 6 high, 4 × 6 fits. 2 × 12 doesn't: 12 is too wide and too tall.",
     story: `We're in ${T.targets()} deposit-box room. The key's box is in a bank on the back wall, and the bank has to fit the wall. Work out which rectangles fit.` });

@@ -584,14 +584,14 @@
     // Round 15: ticks grouped by chapter of the story. The warm-up (sieve) is on the title screen, not in missions.
     const GROUPS = [
       ["The building", ["assembled"]],
-      ["The heist", ["entry", "power", "planb", "strongroom"]],
+      ["The heist", ["entry", "power", "keyroom", "planb", "strongroom"]],
       ["The vault", ["hack", "finale"]],
     ];
     const inMission = t => t.point !== "warmup";
     const pinOpts = P.TWISTS.filter(t => inMission(t) && (t.page || t.proto)).map(t => `<option value="${t.id}" ${P.twistPin() === t.id ? "selected" : ""}>${t.name}</option>`).join("");
     box.innerHTML = GROUPS.map(([name, points]) => `<fieldset><legend>${name}</legend>${P.TWISTS.filter(t => inMission(t) && points.includes(t.point)).map(t =>
       `<label><input type="checkbox" data-twist="${t.id}" ${P.twistOn(t.id) ? "checked" : ""}> ${t.name} <small>${t.maths}${t.page ? "" : t.proto ? " · prototype (Twist Lab switch)" : " · built into its stage"}</small></label>`).join("")}</fieldset>`).join("")
-      + `<fieldset><legend>Every mission</legend><label style="flex-direction:column;align-items:stretch;gap:6px">Always include<select id="twistPin" class="pn-input" style="font-size:15px;padding:6px"><option value="">No, rotate them</option>${pinOpts}</select><small>Each mission plays three: the corrupted blueprint or the key room door, and two heist twists.</small></label></fieldset>`;
+      + `<fieldset><legend>Every mission</legend><label style="flex-direction:column;align-items:stretch;gap:6px">Always include<select id="twistPin" class="pn-input" style="font-size:15px;padding:6px"><option value="">No, rotate them</option>${pinOpts}</select><small>Each mission plays one of four set menus of three twists. Pinning a twist keeps to the menus that have it.</small></label></fieldset>`;
     box.querySelectorAll("input").forEach(i => i.addEventListener("change", () => P.setTwistOn(i.dataset.twist, i.checked)));
     box.querySelector("#twistPin").addEventListener("change", e => P.setTwistPin(e.target.value));
   })();

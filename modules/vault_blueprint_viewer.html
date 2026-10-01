@@ -1046,6 +1046,13 @@ function powerUpPrompt(title){
         g.visible = false; return g;
       }
       let heistData = null;
+      // Round 19: the mission's set menu decides where the bank's security key is (what lets PRIMENET log in to the vault),
+      // and whether FOX and WREN sneak out with a copy (quiet) or wait at the vault (loud). No menu: the key room, loud.
+      const MENU = (PN && PN.twistMenu && PN.twistMenu()) || null;
+      const KEY_AT = MENU ? MENU.keyAt : 'keyroom', QUIET = !!(MENU && MENU.quiet);
+      const KEY_LINE = w => KEY_AT === 'strongroom' ? `Tonight the bank's security key is locked in the strongroom. It's what lets us log in to their vault. We go in on ${w}: fewest rooms, fewest guards.`
+        : KEY_AT === 'deposit' && QUIET ? `The bank's security key is kept in a deposit box in the basement. It's what lets us log in to their vault. We go in on ${w}: fewest rooms, fewest guards.`
+        : `The bank's security key is in the key room on ${w}: fewest rooms, fewest guards. It's what lets us log in to their vault.`;
       async function recon(weak){
         spinning = false;
         // Face the building the way it was built, so the route reads clearly
@@ -1085,7 +1092,8 @@ function powerUpPrompt(title){
           if(f === ground){ const ll = badge('LIFT', '#cfe8ff', 80); ll.position.set(S.x, f.yOffset + boxHeight + 5, S.z); ll.visible = false; f.group.add(ll); items.push(ll); items.push(stairs, stairTag); }
           f.rooms.forEach(r => {
             let b;
-            if(r === keyRoom) b = badge('KEY', '#ffe14d', 90);
+            if(r === keyRoom && KEY_AT === 'keyroom') b = badge('KEY', '#ffe14d', 90);
+            else if(r === keyRoom) b = badge('IN', '#6ec8ff', 70);
             else if(r === ceoRoom) b = badge('CEO', '#ffc94d', 90);
             else { b = guardDot(); guards++; }
             b.position.set(r.x, f.yOffset + (b.userData.dot ? boxHeight * 0.55 : TOP), r.z); b.visible = false; f.group.add(b); items.push(b);
@@ -1109,8 +1117,8 @@ function powerUpPrompt(title){
         mainGroup.remove(sheet);
         const wName = weak.label.split('—')[0].trim();
         const lg = document.getElementById('bpLegend');
-        if(lg){ lg.innerHTML = `<span><i style="color:#6ec8ff">●</i>You</span><span><i style="color:#6ec8ff">→</i>Your route in</span><span><i style="color:#ff4f6d">●</i>Guard</span><span><i style="color:#ffc94d">CEO</i>The boss</span><span><i style="color:#ffe14d">KEY</i>The key</span><span><i style="color:#ff9f6b">⇅</i>Fire stairs</span><span><i style="color:#cfe8ff">▣</i>Lift</span>`; lg.classList.add('on'); }
-        if(window.PNHandler) PNHandler.say(`Recon's in: ${guards} guard${guards === 1 ? '' : 's'}, one in each room. The key is on ${wName}: fewest rooms, fewest guards. The lift is watched, so we take the fire stairs.`);
+        if(lg){ lg.innerHTML = `<span><i style="color:#6ec8ff">●</i>You</span><span><i style="color:#6ec8ff">→</i>Your route in</span><span><i style="color:#ff4f6d">●</i>Guard</span><span><i style="color:#ffc94d">CEO</i>The boss</span>${KEY_AT === 'keyroom' ? '<span><i style="color:#ffe14d">KEY</i>The security key</span>' : '<span><i style="color:#6ec8ff">IN</i>Where we get in</span>'}<span><i style="color:#ff9f6b">⇅</i>Fire stairs</span><span><i style="color:#cfe8ff">▣</i>Lift</span>`; lg.classList.add('on'); }
+        if(window.PNHandler) PNHandler.say(`Recon's in: ${guards} guard${guards === 1 ? '' : 's'}, one in each room. ${KEY_LINE(wName)} The lift is watched, so we take the fire stairs.`);
         await wait(900);
 
         // The route: from the street, up the fire stairs, in through the fire door on the weak floor, to the key
@@ -1493,20 +1501,46 @@ function powerUpPrompt(title){
           await wait(500);
         }
 
-        // 3. The key room. With Plan B, the key card is in a deposit box in the basement.
+        // 3. The security key. Round 19: where it is follows the menu: the key room (Lights out; the key room door twist
+        // plays here), moved to a deposit box in the basement (Plan B), kept in a deposit box (quiet), or the strongroom (quiet, step 4).
         const keyLine = dark ? 'Lights out. Heading for the key room.' : hasTw('power') ? 'Heading for the key room.' : "Door's clear. Heading for the key room.";
         const toKey = [here, ...exitPts, ...(inside.length > 1 ? inside.slice(1) : [D.door])];
-        await move('Moving to the key room', keyLine, toKey, !hasTw('planb'));
-        here = keyPt.clone();
-        if(hasTw('planb')){
+        const viaKeyRoom = KEY_AT === 'keyroom' || (KEY_AT === 'deposit' && !QUIET);
+        if(viaKeyRoom){
+          await move('Moving to the key room', keyLine, toKey, !hasTw('planb') && !hasTw('keyroom'));
+          here = keyPt.clone();
+          if(hasTw('keyroom')){
+            const intro = async () => {
+              const w = introWatch('The key room door', 3);
+              ring(D.yW - 0.9, 0xffe14d); SND("ping"); push(0.7);
+              showLabel('KEY ROOM · BOLTED', 'gold');
+              if(window.PNHandler) PNHandler.radio("keyroom");
+              await wait(2800);
+              w.end();
+            };
+            moveEnd(); await PNTwistSlot.run('keyroom', { intro });
+            bpEvent('twist:keyroom');
+            hideLabel(); push(1);
+            tickAt(keyPt, 'keyroom');
+            if(window.PNHandler) PNHandler.radio("keyGot");
+            await wait(600);
+          }
+        }
+        if(KEY_AT === 'deposit' && hasTw('planb')){
           const BY = -16.8, depPt = V3(maxExtentX * 0.55, BY, maxExtentZ * 0.5);
-          const pathB = [keyPt, lift(D.yW), lift(BY), depPt];
+          // Plan B: from the key room, a change of plan. Quiet: the deposit box was always the plan, straight down from the way in.
+          const pathB = QUIET ? [here, ...exitPts, lift(D.yW), lift(BY), depPt] : [keyPt, lift(D.yW), lift(BY), depPt];
           const intro = async () => {
-            const w = introWatch('Change of plan', 5);
-            SND("static", 0.9); SND("radio");
-            showLabel('COMMS · INCOMING', 'blue');
-            await stageStatic(900);
-            if(window.PNHandler) { PNHandler.say("Change of plan. The key card is in a deposit box in the basement."); PNHandler.radio("planb", { delay: 3800 }); }
+            const w = introWatch(QUIET ? 'The deposit box room' : 'Change of plan', 5);
+            if(QUIET){
+              SND("lockon"); showLabel('DEPOSIT BOX ROOM · BASEMENT', 'gold');
+              if(window.PNHandler) { PNHandler.say("Down to the basement. The security key is in one of the deposit boxes."); PNHandler.radio("depositPlanned", { delay: 3800 }); }
+            } else {
+              SND("static", 0.9); SND("radio");
+              showLabel('COMMS · INCOMING', 'blue');
+              await stageStatic(900);
+              if(window.PNHandler) { PNHandler.say("Change of plan. The security key's been moved to a deposit box in the basement."); PNHandler.radio("planb", { delay: 3800 }); }
+            }
             // The basement: a plate under floor 1
             const pg = new THREE.BoxGeometry(maxExtentX * 1.8, 0.6, maxExtentZ * 1.8);
             const plate = new THREE.Mesh(pg, new THREE.MeshBasicMaterial({ color: 0x3a7bff, transparent: true, opacity: 0, depthWrite: false }));
@@ -1520,10 +1554,10 @@ function powerUpPrompt(title){
               bm.add(new THREE.LineSegments(new THREE.EdgesGeometry(bg), new THREE.LineBasicMaterial({ color: 0xffe9a3 }))); bm.position.set((i - 1) * 3, 1.4 + j * 3, -3); dep.add(bm);
             }
             dep.position.copy(depPt); mainGroup.add(dep);
-            // The new route: a blue arrow down to the basement
+            // The route down: blue for Plan B, gold when it was the plan all along
             SND("lockon");
-            showLabel('PLAN B · EMERGENCY PROTOCOL', 'blue');
-            await arrowRoute(pathB, 0x3a7bff, 'planbRoute');
+            if(!QUIET) showLabel('PLAN B · EMERGENCY PROTOCOL', 'blue');
+            await arrowRoute(pathB, QUIET ? 0xffc94d : 0x3a7bff, 'planbRoute');
             bpEvent('planb-route');
             await walk(pathB, 18);
             await wait(500);
@@ -1534,16 +1568,16 @@ function powerUpPrompt(title){
           hideLabel();
           tickAt(depPt, 'planb');
           await wait(400);
-          await move('Back up to the route', 'Got the key card. Back up to the route.', pathB.slice().reverse(), true);
+          if(QUIET) here = depPt.clone();
+          else await move('Back up to the route', 'Got the security key. Back up to the route.', pathB.slice().reverse(), true);
         }
 
         // 4. The strongroom on the vault floor (floor 2)
         const sMesh = f2.boxes[pickS.i], sPt = V3(sRoom.x, y2, sRoom.z);
         const toStrong = D.weak === f2 ? [here, sPt] : [here, lift(D.yW), lift(y2), sPt];
-        const hasS = hasTw('strongroom');
-        await move('Moving to the strongroom', 'Heading for the strongroom.', toStrong, !hasS);
-        here = sPt.clone();
-        if(hasS){
+        const hasS = hasTw('strongroom'), toS = !QUIET || KEY_AT === 'strongroom';
+        if(toS){ await move('Moving to the strongroom', KEY_AT === 'strongroom' ? 'Heading for the strongroom. The security key is in there.' : 'Heading for the strongroom.', toStrong, !hasS); here = sPt.clone(); }
+        if(hasS && toS){
           let glow = true;
           const lineM = sMesh.children.find(c => c.isLineSegments)?.material;
           const intro = async () => {
@@ -1553,9 +1587,9 @@ function powerUpPrompt(title){
             (function pulse(t){ if(!glow) return; sMesh.material.emissiveIntensity = reduced() ? 0.6 : 0.35 + 0.45 * (0.5 + 0.5 * Math.sin(t / 380)); requestAnimationFrame(pulse); })(0);
             ring(y2 + 0.3, 0xff4f6d); SND("ping"); push(0.8);
             showLabel('PRESSURE PLATES', 'red');
-            if(window.PNHandler) PNHandler.radio("strongroom");
+            if(window.PNHandler){ PNHandler.radio("strongroom"); if(dark) PNHandler.radio("strongroomDark", { delay: 3400 }); }
             bpEvent('strong-glow');
-            await wait(3200);
+            await wait(dark ? 5600 : 3200);
             w.end();
           };
           moveEnd(); await PNTwistSlot.run('strongroom', { intro });
@@ -1565,6 +1599,26 @@ function powerUpPrompt(title){
           if(lineM) lineM.color.set(0x2fbf8a);
           tickAt(sPt, 'strongroom');
           await wait(500);
+        }
+
+        // 5. Quiet menus: copy the security key, put it back, and sneak out the way they came in. The vault is hacked from base.
+        if(QUIET){
+          moveEnd();
+          const wk = shortWatch('Copying the security key', 3.4);
+          ring(here.y + 0.3, 0xffe14d); SND("verified"); push(0.8);
+          showLabel('SECURITY KEY · COPIED AND PUT BACK', 'gold'); bpEvent('key-copied');
+          if(window.PNHandler) PNHandler.radio("keyCopied");
+          await wait(3400);
+          wk.end(); hideLabel(); push(1);
+          const out = [here, lift(here.y), lift(D.yW), D.door, ...toDoor.slice().reverse()];
+          await move('Sneaking out', 'Copy made, original back in place. Sneaking out.', out, true);
+          moveEnd();
+          const wo = shortWatch('Out unseen', 4);
+          SND("verified"); showLabel('OUT · NOBODY SAW A THING', 'green'); bpEvent('sneak-out');
+          if(window.PNHandler) PNHandler.radio("sneakOut");
+          await wait(4000);
+          wo.end();
+          return;
         }
 
         // 5. The vault: the hidden vault in the basement, or the vault chamber on floor 2

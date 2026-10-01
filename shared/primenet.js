@@ -454,15 +454,15 @@
   // the others are built into their stage and only use the tick box.
   // Round 15 (Bertie): twists happen where the story puts them. The building can come in corrupted; the rest happen
   // during the heist itself (the way in, the fuse box, Plan B in the basement, the strongroom) or at the vault door.
-  const TWIST_POINTS = { assembled:"The building (as it assembles)", entry:"Heist: the way in", power:"Heist: the fuse box", planb:"Heist: Plan B, the basement", strongroom:"Heist: the strongroom", hack:"The vault (before lock 3)", finale:"Finale", warmup:"Warm-up (main menu, not in missions)" };
-  const HEIST_POINTS = ["entry", "power", "planb", "strongroom"];
+  const TWIST_POINTS = { assembled:"The building (as it assembles)", entry:"Heist: the way in", power:"Heist: the fuse box", keyroom:"Heist: the key room door", planb:"Heist: the deposit boxes, in the basement", strongroom:"Heist: the strongroom", hack:"The vault (before lock 3)", finale:"Finale", warmup:"Warm-up (main menu, not in missions)" };
+  const HEIST_POINTS = ["entry", "power", "keyroom", "planb", "strongroom"];
   const TWISTS = [
     { id:"corrupt",    point:"assembled",  name:"Corrupted blueprint",    maths:"Factor pairs as arrays", page:"twist_corrupt.html" },
     { id:"patrols",    point:"entry",      name:"Guard patrols",          maths:"Multiples and LCM", page:"twist_patrols3d.html" },
     { id:"cubes",      point:"power",      name:"Ceiling relays (cubes)", maths:"Cube numbers", page:"twist_cubes3d.html" },
-    { id:"walls",      point:"planb",      name:"Deposit boxes (Plan B)", maths:"Factor pairs and HCF", page:"twist_walls3d.html" },
+    { id:"walls",      point:"planb",      name:"Deposit boxes", maths:"Factor pairs and HCF", page:"twist_walls3d.html" },
     { id:"strongroom", point:"strongroom", name:"Square strongroom",      maths:"Square numbers", page:"twist_strongroom3d.html" },
-    { id:"factortree", point:"hack",       name:"Key room door",          maths:"Prime factorisation", page:"twist_door2.html" },
+    { id:"factortree", point:"keyroom",    name:"Key room door",          maths:"Prime factorisation", page:"twist_door2.html" },
     { id:"blackout",   point:"finale",     name:"Server blackout",        maths:"Primes" },
     { id:"getaway",    point:"finale",     name:"Getaway chase",          maths:"Primes, squares, cubes" },
     { id:"sieve",      point:"warmup",     name:"Motion-sensor sieve",    maths:"Primes and multiples", warmup:"twist_sieve2.html" },
@@ -480,38 +480,43 @@
   const twistProtos = () => !!readTw().protos;
   function setTwistProtos(on){ const d = readTw(); d.protos = !!on; writeTw(d); }
   const playable = t => t.point !== "warmup" && !!(t.page || (t.proto && twistProtos()));
-  // How many rotating twists a mission gets
-  const TWISTS_PER_MISSION = 3;
-  // The mission's twist plan: made once per session, then every stage asks it "is there a twist here?".
-  // It avoids the twists this agent had last mission when it can.
+  // Round 19 (Bertie): set menus. Each mission plays one menu: three twists that tell one story. Where the bank's
+  // security key is, and how the mission ends, follow the menu. Quiet menus: FOX and WREN copy the key, put it back and
+  // sneak out unseen; the vault is hacked from base. Loud menus: the crew wait at the vault, then get out fast.
+  const MENUS = [
+    { id:"quiet",      name:"The quiet way in",               quiet:true,  keyAt:"strongroom", picks:{ assembled:"corrupt", entry:"patrols", strongroom:"strongroom" } },
+    { id:"lightsout",  name:"Lights out",                     quiet:false, keyAt:"keyroom",    picks:{ entry:"patrols", power:"cubes", keyroom:"factortree" } },
+    { id:"planb",      name:"Plan B",                         quiet:false, keyAt:"deposit",    picks:{ power:"cubes", planb:"walls", strongroom:"strongroom" } },
+    { id:"quietbox",   name:"The quiet way in: deposit box",  quiet:true,  keyAt:"deposit",    picks:{ assembled:"corrupt", entry:"patrols", planb:"walls" } },
+  ];
+  // The mission's twist plan: made once per session (one menu), then every stage asks it "is there a twist here?".
+  // It avoids the menu this agent had last mission. A teacher pin keeps to menus with that twist; twists switched off
+  // rule out the menus that use them.
   const PLAN_KEY = "primenet_twistplan_v1";
+  const readPlan = () => { try{ return JSON.parse(localStorage.getItem(PLAN_KEY) || "{}") || {}; }catch(e){ return {}; } };
+  const writePlan = st => { try{ localStorage.setItem(PLAN_KEY, JSON.stringify(st)); }catch(e){} };
+  function menuOk(m){ return Object.values(m.picks).every(id => { const t = TWISTS.find(x => x.id === id); return t && playable(t) && twistOn(id); }); }
   function twistPlan(){
     const a = getAgent(); if(!a) return {};
-    let st; try{ st = JSON.parse(localStorage.getItem(PLAN_KEY) || "{}") || {}; }catch(e){ st = {}; }
+    const st = readPlan();
     if(st.session === a.sessionId && st.picks) return st.picks;
-    const hist = (st.history || {})[a.codename] || [];
-    const pool = TWISTS.filter(t => playable(t) && twistOn(t.id));
-    const shuffle = arr => arr.map(v => [Math.random(), v]).sort((x, y) => x[0] - y[0]).map(x => x[1]);
-    const fresh = shuffle(pool.filter(t => !hist.includes(t.id))), stale = shuffle(pool.filter(t => hist.includes(t.id)));
-    const picks = {};
-    const pin = TWISTS.find(t => t.id === twistPin() && playable(t) && twistOn(t.id));
-    if(pin) picks[pin.point] = pin.id;
-    // Round 15: three per mission: one of the corrupted blueprint or the key room door, and two heist twists
-    const heist = Object.keys(picks).filter(k => HEIST_POINTS.includes(k)).length, other = Object.keys(picks).length - heist;
-    let needHeist = 2 - heist, needOther = 1 - other;
-    for(const t of [...fresh, ...stale]){
-      if(picks[t.point]) continue;
-      const h = HEIST_POINTS.includes(t.point);
-      if(h && needHeist > 0){ picks[t.point] = t.id; needHeist--; }
-      else if(!h && t.point !== "finale" && needOther > 0){ picks[t.point] = t.id; needOther--; }
-    }
-    st.session = a.sessionId; st.picks = picks; st.history = st.history || {}; st.history[a.codename] = Object.values(picks);
-    try{ localStorage.setItem(PLAN_KEY, JSON.stringify(st)); }catch(e){}
-    return picks;
+    const last = (st.lastMenu || {})[a.codename];
+    let pool = MENUS.filter(menuOk);
+    const pin = twistPin(); if(pin && pool.some(m => Object.values(m.picks).includes(pin))) pool = pool.filter(m => Object.values(m.picks).includes(pin));
+    if(pool.length > 1) pool = pool.filter(m => m.id !== last);
+    const m = pool[Math.floor(Math.random() * pool.length)];
+    st.session = a.sessionId; st.menu = m ? m.id : ""; st.picks = m ? { ...m.picks } : {};
+    st.lastMenu = st.lastMenu || {}; if(m) st.lastMenu[a.codename] = m.id;
+    writePlan(st);
+    return st.picks;
   }
   const twistAt = point => { const id = twistPlan()[point]; return id ? TWISTS.find(t => t.id === id) : null; };
-  function setTwistPlan(picks){ const a = getAgent(); if(!a) return; let st; try{ st = JSON.parse(localStorage.getItem(PLAN_KEY) || "{}") || {}; }catch(e){ st = {}; } st.session = a.sessionId; st.picks = picks; try{ localStorage.setItem(PLAN_KEY, JSON.stringify(st)); }catch(e){} }
-  Object.assign(window.Primenet, { TWISTS, TWIST_POINTS, HEIST_POINTS, twistsOff, setTwistOn, twistOn, twistPin, setTwistPin, twistPlan, twistAt, setTwistPlan, twistProtos, setTwistProtos });
+  // The current mission's menu (null if none, or a hand-made test plan)
+  function twistMenu(){ const a = getAgent(); if(!a) return null; twistPlan(); const st = readPlan(); return MENUS.find(m => m.id === st.menu) || null; }
+  // Testing: force a menu, or a hand-made set of picks
+  function setTwistMenu(id){ const a = getAgent(), m = MENUS.find(x => x.id === id); if(!a || !m) return; const st = readPlan(); st.session = a.sessionId; st.menu = m.id; st.picks = { ...m.picks }; writePlan(st); }
+  function setTwistPlan(picks){ const a = getAgent(); if(!a) return; const st = readPlan(); st.session = a.sessionId; st.menu = ""; st.picks = picks; writePlan(st); }
+  Object.assign(window.Primenet, { TWISTS, TWIST_POINTS, HEIST_POINTS, MENUS, twistsOff, setTwistOn, twistOn, twistPin, setTwistPin, twistPlan, twistAt, twistMenu, setTwistMenu, setTwistPlan, twistProtos, setTwistProtos });
 
   applyPrefs();   // every page opens with the current agent's settings
   // Round 14: shared helpers every page gets without its own script tag: the read-aloud voice
