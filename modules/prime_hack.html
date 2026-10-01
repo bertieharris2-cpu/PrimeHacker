@@ -2984,7 +2984,7 @@ async function onLockSolved(){
     if(window.PNHandler){
       const left = Run.locksPerRun - Run.index;
       if(PRACTICE) PNHandler.say(`Lock ${Run.index} down. One more.`);
-      else PNHandler.say(left === 1 ? "Last lock, {agent}. Their security team is waking up. Make it count." : `Lock ${Run.index} down. ${left} to go.`);
+      else PNHandler.say(left === 1 ? (QUIET ? "Last lock, {agent}. Nice and quiet. They still don't know we're in." : "Last lock, {agent}. Their security team is waking up. Make it count.") : `Lock ${Run.index} down. ${left} to go.`);
     }
     Run.index += 1;
     // Round 11: the key room door (factor tree) comes before lock 3 when the mission has it (never in practice).
