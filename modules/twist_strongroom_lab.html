@@ -1,0 +1,318 @@
+<!doctype html>
+<html lang="en" class="phase-hack">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PRIMENET · Strongroom experiments</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Inter:wght@400;600;700;800&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../shared/primenet.css">
+<style>
+  /* Round 21 (Bertie: "maybe a mix? … standalone options to experiment with"). Three ways to make the strongroom a
+     square-numbers hack, side by side. Not used by missions yet. All three end with FOX and WREN crossing the floor on
+     the safe (square) plates.
+     A · Spot it, then map it: fill the gaps in the sensor log (1, 4, 9, _, 25, _), say what the pattern is, then drag
+         squares of those sizes onto the floor, corner to corner, from the door to the safe.
+     B · Sort the readings: plate readings stream in; mark each safe (square) or live; safe ones show as n × n arrays
+         and light up on the floor, making the path.
+     C · Growing squares: the path is a staircase of squares growing 1 × 1, 2 × 2, 3 × 3…; predict each next square
+         (and, at L2/L3, how many more tiles than the last). */
+  main.tw{ width:min(1600px, 100%); height:100vh; height:100dvh; box-sizing:border-box; padding:10px 16px 46px; gap:10px; }
+  main .tw-head{ padding-bottom:8px; } main .tw-head h1{ font-size:clamp(22px,2.6vw,30px); }
+  .opts{ display:flex; gap:6px; flex-wrap:wrap; }
+  .opts a{ font-family:var(--font-ui); font-weight:700; font-size:13px; letter-spacing:.12em; padding:6px 12px; border:1px solid rgba(var(--accent-rgb),.45); color:var(--text-muted); text-decoration:none; }
+  .opts a[aria-current="true"]{ color:#032018; background:var(--accent); border-color:var(--accent); }
+  .sr{ flex:1; min-height:0; display:grid; grid-template-columns:minmax(0, 1fr) minmax(0, 1.15fr); gap:12px; }
+  .term{ display:flex; flex-direction:column; gap:8px; padding:12px 16px 92px; min-height:0; background:#020a0c; font-family:var(--font-mono); }   /* clear of the BRIEF and HINTS tabs, bottom left */
+  .term .hd, .floor .hd{ display:flex; justify-content:space-between; font:700 12px var(--font-ui); letter-spacing:.18em; color:#8feaff; }
+  .log{ flex:1; min-height:0; overflow:hidden; display:flex; flex-direction:column; justify-content:flex-start; border-top:1px solid rgba(143,234,255,.15); padding-top:6px; gap:4px; font-size:16px; line-height:1.4; color:#9fffd4; }
+  .log .sys{ color:var(--text-faint); } .log .ok{ color:#7dffc4; } .log .bad{ color:#ff8aa0; } .log .me{ color:#ff9ae9; } .log .gold{ color:#ffe14d; }
+  .seq{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; font-size:26px; color:#dff8ff; margin:4px 0 6px; }
+  .seq b{ min-width:2.2em; text-align:center; padding:4px 6px; border:1px solid rgba(143,234,255,.35); background:rgba(8,26,31,.8); font-weight:400; }
+  .seq input{ width:2.6em; font:inherit; font-size:26px; text-align:center; padding:3px 4px; color:#ffe14d; background:#04141a; border:1px dashed #ffe14d; outline:none; }
+  .seq input:focus{ border-style:solid; box-shadow:0 0 12px rgba(255,225,77,.4); }
+  .seq input.ok{ border:1px solid #7dffc4; color:#7dffc4; }
+  .choices{ display:flex; flex-direction:column; gap:6px; }
+  .choices button, .bin button{ text-align:left; font:600 16px var(--font-ui); padding:9px 12px; color:#dff8ff; background:rgba(8,26,31,.9); border:1px solid rgba(143,234,255,.4); cursor:pointer; }
+  .choices button kbd, .bin button kbd{ font:700 12px var(--font-mono); padding:1px 6px; margin-right:8px; border:1px solid currentColor; }
+  .choices button:hover, .bin button:hover{ border-color:#ffe14d; }
+  .reading{ display:flex; align-items:center; gap:18px; padding:8px 0; }
+  .reading .num{ font:700 54px/1 var(--font-ui); color:#ffe14d; min-width:2.4em; text-align:center; text-shadow:0 0 16px rgba(255,225,77,.35); }
+  .bin{ display:flex; gap:8px; } .bin button.safe{ border-color:#7dffc4; color:#a9ffd9; } .bin button.live{ border-color:#ff8aa0; color:#ffb3c0; }
+  .mini{ display:inline-grid; gap:2px; vertical-align:middle; margin-left:8px; }
+  .mini i{ width:8px; height:8px; background:#7dffc4; box-shadow:0 0 4px rgba(125,255,196,.6); }
+  .ask{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; font:600 17px var(--font-ui); color:#f6feff; }
+  .ask input{ width:3.6em; font:700 22px var(--font-mono); text-align:center; padding:4px 6px; color:#ffe68a; background:#04141a; border:1px solid #ffe68a; outline:none; }
+  .floor{ display:flex; flex-direction:column; gap:8px; padding:12px 14px; min-height:0; }
+  .fwrap{ flex:1; min-height:0; display:flex; align-items:center; justify-content:center; }
+  .fg{ position:relative; display:grid; gap:2px; padding:2px; background:#071216; border:2px solid rgba(110,200,255,.55); touch-action:none; user-select:none; }
+  .fg .c{ position:relative; background:repeating-linear-gradient(45deg, rgba(160,190,200,.08) 0 4px, transparent 4px 9px), #0c1d24; border:1px solid rgba(143,234,255,.14);
+    display:flex; align-items:center; justify-content:center; font:700 calc(var(--cs) * .34) var(--font-ui); color:rgba(223,248,255,.75); }
+  .fg .c.sel{ background:rgba(255,225,77,.35); border-color:#ffe14d; }
+  .fg .c.sel.bad{ background:rgba(255,79,109,.35); border-color:#ff4f6d; }
+  .fg .c.safe{ background:rgba(47,191,138,.35); border-color:#7dffc4; color:#eafff6; }
+  .fg .c.live{ background:rgba(255,79,109,.18); }
+  .fg .c.lit{ box-shadow:inset 0 0 12px rgba(125,255,196,.8); }
+  .fg .door, .fg .safebox{ position:absolute; font:700 11px var(--font-ui); letter-spacing:.14em; padding:2px 6px; pointer-events:none; }
+  .fg .door{ right:-2px; top:-24px; color:#7dffc4; border:1px solid #7dffc4; background:rgba(2,20,14,.9); }
+  .fg .safebox{ left:-2px; bottom:-24px; color:#ffe14d; border:1px solid #ffe14d; background:rgba(30,24,2,.9); }
+  .fg .sq{ position:absolute; border:2px solid #7dffc4; background:rgba(47,191,138,.28); box-shadow:0 0 14px rgba(125,255,196,.35); display:flex; align-items:center; justify-content:center; font:700 15px var(--font-ui); color:#eafff6; pointer-events:none; animation:sqIn .35s ease-out; }
+  @keyframes sqIn{ from{ transform:scale(.6); opacity:0; } }
+  .fg .tip{ position:absolute; z-index:3; pointer-events:none; font:700 15px var(--font-mono); padding:3px 8px; background:rgba(2,10,14,.92); border:1px solid #ffe14d; color:#ffe14d; white-space:nowrap; }
+  .fg .tip.bad{ border-color:#ff4f6d; color:#ff8aa0; }
+  .fg .agent{ position:absolute; z-index:4; width:calc(var(--cs) * .5); height:calc(var(--cs) * .5); margin:calc(var(--cs) * -.25) 0 0 calc(var(--cs) * -.25); border-radius:50%; transition:left .32s linear, top .32s linear; }
+  .fg .agent.fox{ background:#6ec8ff; box-shadow:0 0 12px #6ec8ff; } .fg .agent.wren{ background:#bfefff; box-shadow:0 0 10px #bfefff; transform:scale(.8); }
+  .ctl{ display:flex; gap:8px; justify-content:flex-end; }
+  .tw-msg{ min-height:1.4em; }
+  @media (max-width:980px){ main.tw{ height:auto; } .sr{ grid-template-columns:1fr; } .floor{ min-height:420px; } }
+</style>
+</head>
+<body>
+<main class="tw">
+  <div class="tw-bar"><nav class="opts" id="opts" aria-label="Option"></nav><span id="stageLab"></span></div>
+  <div class="sr">
+    <section class="pn-panel term" aria-label="Floor sensor terminal"><div class="hd"><span>FLOOR SENSOR · STRONGROOM</span><span id="termLab">HACKED</span></div>
+      <div id="work"></div><div class="log" id="log" aria-live="polite"></div></section>
+    <section class="pn-panel floor" aria-label="The strongroom floor"><div class="hd"><span>STRONGROOM FLOOR · PRESSURE PLATES</span><span id="floorLab"></span></div>
+      <div class="fwrap" id="fwrap"><div class="fg" id="fg"></div></div><div class="ctl" id="ctl"></div></section>
+  </div>
+  <div class="tw-msg" id="msg" aria-live="polite"></div>
+</main>
+
+<script src="../shared/sound.js"></script>
+<script src="../shared/story.js"></script>
+<script src="../shared/primenet.js"></script>
+<script src="../shared/testtools.js"></script>
+<script src="../shared/handler.js"></script>
+<script src="../shared/twist.js"></script>
+<script>
+(() => {
+  "use strict";
+  const T = window.PNTwist, $ = id => document.getElementById(id);
+  const qs = new URLSearchParams(location.search);
+  const OPT = ["A", "B", "C"].includes(qs.get("opt")) ? qs.get("opt") : "A";
+  const NAMES = { A: "A · Spot it, then map it", B: "B · Sort the readings", C: "C · Growing squares" };
+  const GOALS = {
+    A: "Fill the gaps in the sensor log and say what the pattern is. Then drag <b>squares</b> of those sizes onto the floor, corner to corner, from the <b>door</b> to the <b>safe</b>.",
+    B: "Each plate reading comes in on the terminal. Mark it <b>SAFE</b> if it's a square number, <b>LIVE</b> if it isn't. The safe plates make the path across.",
+    C: "The safe path is a staircase of squares that grows each step. Work out how many tiles the next square has, and the path grows to the safe.",
+  };
+  const L = T.init({ id: "strongroomlab", stage: "THE HEIST", title: "THE STRONGROOM · EXPERIMENTS",
+    goal: GOALS[OPT], example: "A square number is a number times itself: 3 × 3 = 9, so 9 tiles make a square.",
+    context: "FOX and WREN are at the strongroom door. The floor is pressure plated. I've got into their floor sensors: find the safe way across.",
+    story: "FOX and WREN are at the strongroom door. The floor is pressure plated. I've got into their floor sensors: find the safe way across." });
+  $("opts").innerHTML = ["A", "B", "C"].map(o => { const u = new URL(location.href); u.searchParams.set("opt", o); return `<a href="${u.pathname.split("/").pop()}${u.search}" aria-current="${o === OPT}">${NAMES[o]}</a>`; }).join("");
+  const sp = () => (window.PNTest ? PNTest.speed() : 1);
+  const wait = ms => new Promise(r => setTimeout(r, ms / sp()));
+  const isSq = n => Number.isInteger(Math.sqrt(n));
+  function say(t, cls){ const m = $("msg"); m.textContent = t; m.className = "tw-msg" + (cls ? " " + cls : ""); }
+  function log(html, cls = ""){ const d = document.createElement("div"); d.className = cls; d.innerHTML = html; $("log").appendChild(d); while($("log").children.length > 9) $("log").firstChild.remove(); }
+  const alarm = T.alarm(3, () => fail());
+  let over = false;
+
+  // ----- The floor: a G × G grid of plates, the door top left and the safe bottom right -----
+  const N = { L1: 3, L2: 4, L3: 5 }[L];          // squares 1 × 1 … N × N (A and C); their sides add up to the floor's width
+  const G = OPT === "B" ? { L1: 6, L2: 7, L3: 8 }[L] : N * (N + 1) / 2;
+  const fg = $("fg"), cells = [];
+  let CS = 40;
+  function fit(){
+    const r = $("fwrap").getBoundingClientRect();
+    CS = Math.max(22, Math.min(64, Math.floor(Math.min((r.width - 20) / G, (r.height - 60) / G)) - 2));
+    fg.style.setProperty("--cs", CS + "px"); fg.style.gridTemplateColumns = `repeat(${G}, ${CS}px)`; fg.style.gridAutoRows = CS + "px";
+    redrawSquares();
+  }
+  // Mirrored: x = 0 is the right-hand column, so the door is top right and the safe bottom left (ORACLE's box sits bottom right)
+  for(let y = 0; y < G; y++) for(let x = 0; x < G; x++){ const c = document.createElement("div"); c.className = "c"; c.dataset.x = x; c.dataset.y = y; c.style.gridColumn = G - x; c.style.gridRow = y + 1; fg.appendChild(c); cells.push(c); }
+  fg.insertAdjacentHTML("beforeend", `<span class="door">DOOR</span><span class="safebox">SAFE</span>`);
+  const cell = (x, y) => cells[y * G + x];
+  const pos = (x, y) => ({ left: 2 + (G - 1 - x) * (CS + 2) + CS / 2, top: 2 + y * (CS + 2) + CS / 2 });
+  $("floorLab").textContent = `${G} × ${G} PLATES`;
+
+  // Squares drawn on the floor (A and C): { x, y, n }
+  const squares = [];
+  function drawSquare(s){
+    const d = document.createElement("div"); d.className = "sq"; s.el = d; fg.appendChild(d); placeSq(s);
+    d.textContent = s.n > 1 ? `${s.n} × ${s.n} = ${s.n * s.n}` : "1";
+  }
+  function placeSq(s){ Object.assign(s.el.style, { left: (2 + (G - s.x - s.n) * (CS + 2)) + "px", top: (2 + s.y * (CS + 2)) + "px", width: (s.n * (CS + 2) - 2) + "px", height: (s.n * (CS + 2) - 2) + "px", fontSize: Math.max(11, Math.min(16, s.n * CS / 5)) + "px" }); }
+  function redrawSquares(){ squares.forEach(placeSq); }
+
+  // ----- FOX and WREN cross on the safe cells -----
+  async function cross(path){
+    T.SND("powerup"); say("Safe path found. FOX and WREN are crossing…", "ok"); log("> agents.cross(path) // stay on the safe plates", "gold");
+    const mk = cls => { const a = document.createElement("div"); a.className = "agent " + cls; fg.appendChild(a); const p = pos(-0.6, 0); a.style.left = p.left + "px"; a.style.top = p.top + "px"; return a; };
+    const fox = mk("fox"), wren = mk("wren");
+    await wait(300);
+    for(let i = 0; i <= path.length + 1; i++){
+      const f = path[Math.min(i, path.length - 1)], w = path[Math.max(0, Math.min(i - 2, path.length - 1))];
+      const pf = pos(f[0], f[1]); fox.style.left = pf.left + "px"; fox.style.top = pf.top + "px";
+      if(i >= 1){ const pw = pos(w[0], w[1]); wren.style.left = pw.left + "px"; wren.style.top = pw.top + "px"; }
+      T.SND("tick"); await wait(330);
+    }
+    T.SND("success"); T.say("We're across. Not one plate went off.");
+    T.finish({ ok: true, title: "ACROSS THE STRONGROOM", lines: [OPT === "A" ? "The safe zones were the square numbers: 1, 4, 9, 16…" : OPT === "B" ? "Every safe plate showed a square number." : "Each step of the path was the next square number."], auto: 0 });
+  }
+  // A walk through the squares, corner to corner: each square's cells in order, then on to the next square
+  function pathThrough(sqs){
+    const out = []; let cur = [0, 0];
+    sqs.forEach(s => { const to = [s.x + s.n - 1, s.y + s.n - 1]; let [x, y] = [Math.max(cur[0], s.x), Math.max(cur[1], s.y)];
+      out.push([x, y]); while(x < to[0] || y < to[1]){ if(x < to[0]) x++; if(y < to[1]) y++; out.push([x, y]); } cur = [x, y]; });
+    return out.filter((p, i) => i === 0 || p[0] !== out[i - 1][0] || p[1] !== out[i - 1][1]);
+  }
+  function fail(){ if(over) return; over = true; T.finish({ ok: false, title: "PLATE TRIPPED", lines: ["The safe plates are the square numbers: 1, 4, 9, 16, 25… (a number times itself)."] }); }
+
+  // ===================== A · Spot it, then map it =====================
+  async function optA(){
+    $("stageLab").textContent = "Stage 1 of 2 · spot the pattern";
+    log("$ sensors.read --zone strongroom", "me"); log("Floor zones that take a person's weight safely (tiles in each zone):", "sys");
+    const len = { L1: 5, L2: 6, L3: 7 }[L], gaps = { L1: [2, 3], L2: [3, 5], L3: [0, 4, 6] }[L];
+    const vals = Array.from({ length: len }, (_, i) => (i + 1) * (i + 1));
+    const w = $("work"); w.innerHTML = `<div class="seq" id="seq">${vals.map((v, i) => gaps.includes(i) ? `<input inputmode="numeric" maxlength="3" data-v="${v}" aria-label="Missing number ${i + 1}">` : `<b>${v}</b>`).join("")}<b>…</b></div>`;
+    T.step("Look at how the numbers grow. Try drawing each one as a square of tiles: 1, then 2 × 2, then 3 × 3…", { name: "Fill the gaps" });
+    const ins = [...w.querySelectorAll("input")]; ins[0].focus();
+    await new Promise(res => {
+      const check = inp => { const v = parseInt(inp.value, 10); if(!Number.isInteger(v)) return;
+        if(v === +inp.dataset.v){ inp.classList.add("ok"); inp.disabled = true; T.SND("tag"); const nx = ins.find(i => !i.disabled); if(nx) nx.focus(); else res(); }
+        else { T.SND("wrong"); say(`Not ${v}. How would you draw the numbers either side of it as squares of tiles?`, "warn"); inp.select(); } };
+      ins.forEach(inp => inp.addEventListener("keydown", e => { if(e.key === "Enter"){ e.preventDefault(); check(inp); } }));
+      if(window.PNTest) PNTest.skip("Fill the gaps", () => { ins.forEach(i => { i.value = i.dataset.v; check(i); }); });
+    });
+    log(`Zones: ${vals.join(", ")}…`, "ok"); say("");
+    // What's the pattern?
+    const C = [["Each one is a number times itself (n × n)", true], ["Add 3 each time", false], ["Each one is double the one before", false]].sort(() => Math.random() - .5);
+    w.innerHTML = `<div class="ask">What's the pattern?</div><div class="choices">${C.map((c, i) => `<button type="button" data-k="${i}"><kbd>${i + 1}</kbd>${c[0]}</button>`).join("")}</div>`;
+    T.step("1 = 1 × 1, 4 = 2 × 2, 9 = 3 × 3… What does that make them?", { name: "Name the pattern" });
+    await new Promise(res => {
+      const pick = k => { if(C[k][1]){ T.SND("verified"); res(); } else { T.SND("wrong"); alarm.hit(); say(C[k][0] === "Add 3 each time" ? "1 + 3 = 4, but 4 + 3 = 7, not 9." : "Double 4 is 8, not 9.", "bad"); } };
+      w.querySelectorAll("button").forEach(b => b.addEventListener("click", () => pick(+b.dataset.k)));
+      const key = e => { const k = +e.key - 1; if(k >= 0 && k < C.length){ document.removeEventListener("keydown", key); pick(k); if(!C[k][1]) document.addEventListener("keydown", key); } };
+      document.addEventListener("keydown", key);
+      if(window.PNTest) PNTest.skip("Name the pattern", () => { document.removeEventListener("keydown", key); res(); });
+    });
+    if(over) return;
+    log("Pattern: square numbers (n × n). Safe zones are SQUARES of plates.", "gold"); say("");
+    // Stage 2: map the squares onto the floor
+    $("stageLab").textContent = "Stage 2 of 2 · map the safe zones";
+    const sizes = Array.from({ length: N }, (_, i) => i + 1);
+    w.innerHTML = `<div class="ask">Safe zones to place: <span id="left"></span></div>`;
+    const left = () => { $("left").innerHTML = sizes.filter(n => !squares.some(s => s.n === n)).map(n => `<b class="gold">${n} × ${n}</b>`).join(" · ") || "none"; };
+    left();
+    log(`Drag a square onto the floor for each safe zone: ${sizes.map(n => `${n} × ${n}`).join(", ")}.`, "sys");
+    T.step("Start at the door (top right). Each square must touch the one before at a corner. Squares only: as many rows as columns.", { name: "Map the safe path" });
+    $("ctl").innerHTML = `<button class="pn-btn small" type="button" id="clr">Clear the floor</button>`;
+    $("clr").addEventListener("click", () => { squares.splice(0).forEach(s => s.el.remove()); left(); say(""); });
+    await new Promise(res => {
+      let a = null, b = null; const tip = document.createElement("div"); tip.className = "tip"; tip.hidden = true; fg.appendChild(tip);
+      const at = e => { const t = document.elementFromPoint(e.clientX, e.clientY); return t && t.classList && t.classList.contains("c") ? [+t.dataset.x, +t.dataset.y] : null; };
+      const rect = () => ({ x: Math.min(a[0], b[0]), y: Math.min(a[1], b[1]), w: Math.abs(a[0] - b[0]) + 1, h: Math.abs(a[1] - b[1]) + 1 });
+      const paint = () => { cells.forEach(c => c.classList.remove("sel", "bad")); if(!a) return; const r = rect(), bad = r.w !== r.h;
+        for(let y = r.y; y < r.y + r.h; y++) for(let x = r.x; x < r.x + r.w; x++){ cell(x, y).classList.add("sel"); if(bad) cell(x, y).classList.add("bad"); }
+        tip.hidden = false; tip.className = "tip" + (bad ? " bad" : ""); tip.textContent = `${r.h} × ${r.w} = ${r.w * r.h}${bad ? " · not a square" : ""}`;
+        const p = pos(r.x + r.w - 1, r.y); tip.style.left = (p.left - CS / 2) + "px"; tip.style.top = (p.top - CS / 2 - 26) + "px"; };
+      const overlaps = r => squares.some(s => r.x < s.x + s.n && s.x < r.x + r.w && r.y < s.y + s.n && s.y < r.y + r.h);
+      const place = r => {
+        const lastSq = squares[squares.length - 1];
+        if(r.w !== r.h){ T.SND("wrong"); alarm.hit(); say(`${r.h} × ${r.w} = ${r.w * r.h} isn't a square: that zone has live plates in it.`, "bad"); return; }
+        if(!sizes.includes(r.w) || squares.some(s => s.n === r.w)){ T.SND("wrong"); say(squares.some(s => s.n === r.w) ? `You've already placed the ${r.w} × ${r.w} zone.` : `There's no ${r.w} × ${r.w} safe zone on this floor.`, "warn"); return; }
+        if(overlaps(r)){ T.SND("wrong"); say("Safe zones don't overlap.", "warn"); return; }
+        const touches = lastSq ? r.x === lastSq.x + lastSq.n && r.y === lastSq.y + lastSq.n : r.x === 0 && r.y === 0;
+        if(!touches){ T.SND("wrong"); say(lastSq ? "Each square starts at the corner where the last one ends (diagonally down and left)." : "The first square starts at the door, top right.", "warn"); return; }
+        const s = { x: r.x, y: r.y, n: r.w }; squares.push(s); drawSquare(s); T.SND("tag");
+        log(`zone ${r.w} × ${r.w} = ${r.w * r.w} plates: SAFE`, "ok"); say(""); left();
+        if(s.x + s.n === G && s.y + s.n === G){ res(); return; }
+        if(squares.length === sizes.length || s.x + s.n >= G || s.y + s.n >= G){ say("That path doesn't reach the safe. Clear the floor and try the squares in another order.", "warn"); }
+      };
+      fg.addEventListener("pointerdown", e => { if(over) return; const c = at(e); if(!c) return; e.preventDefault(); fg.setPointerCapture(e.pointerId); a = b = c; paint(); });
+      fg.addEventListener("pointermove", e => { if(!a) return; const c = at(e); if(c){ b = c; paint(); } });
+      fg.addEventListener("pointerup", () => { if(!a) return; const r = rect(); a = b = null; paint(); tip.hidden = true; place(r); });
+      if(window.PNTest) PNTest.skip("Map the safe path", () => { squares.splice(0).forEach(s => s.el.remove()); let o = 0; sizes.forEach(n => { const s = { x: o, y: o, n }; squares.push(s); drawSquare(s); o += n; }); left(); res(); });
+    });
+    $("ctl").innerHTML = ""; w.innerHTML = "";
+    await cross(pathThrough(squares));
+  }
+
+  // ===================== B · Sort the readings =====================
+  async function optB(){
+    $("stageLab").textContent = "Sort every reading";
+    const MAX = { L1: 64, L2: 144, L3: 400 }[L];
+    // A staircase path from the door to the safe (right and down moves); its plates read square numbers, the rest don't
+    const path = [[0, 0]]; let x = 0, y = 0;
+    while(x < G - 1 || y < G - 1){ if(x < G - 1 && (y === G - 1 || Math.random() < .5)) x++; else y++; path.push([x, y]); }
+    const onPath = new Set(path.map(p => p.join(",")));
+    const squaresUpTo = T.range(1, Math.floor(Math.sqrt(MAX))).map(n => n * n);
+    const near = () => { let v; do{ const s = T.pick(squaresUpTo.filter(q => q > 3)); v = s + T.pick([-2, -1, 1, 2, 3]); } while(v < 2 || v > MAX || isSq(v)); return v; };
+    cells.forEach(c => { const k = c.dataset.x + "," + c.dataset.y; c.dataset.v = onPath.has(k) ? T.pick(squaresUpTo) : near(); c.textContent = "?"; });
+    // The readings to sort: every path plate, plus the plates beside it (the tricky near-squares)
+    const beside = new Set(); path.forEach(([px, py]) => [[1, 0], [0, 1], [-1, 0], [0, -1]].forEach(([dx, dy]) => { const k = (px + dx) + "," + (py + dy); if(px + dx >= 0 && py + dy >= 0 && px + dx < G && py + dy < G && !onPath.has(k)) beside.add(k); }));
+    const extra = T.shuffle([...beside]).slice(0, { L1: 4, L2: 5, L3: 6 }[L]);
+    const queue = T.shuffle([...path.map(p => p.join(",")), ...extra]);
+    log("$ sensors.stream --plates", "me"); log(`${queue.length} plate readings incoming. SAFE if it's a square number.`, "sys");
+    T.step("Is it a number times itself? Try the square numbers you know: 1, 4, 9, 16, 25, 36, 49, 64…", { name: "Sort the readings" });
+    const w = $("work");
+    for(let i = 0; i < queue.length && !over; i++){
+      const [cx, cy] = queue[i].split(",").map(Number), c = cell(cx, cy), v = +c.dataset.v;
+      c.classList.add("lit"); c.textContent = v;
+      w.innerHTML = `<div class="reading"><span class="num">${v}</span><div class="bin"><button type="button" class="safe" data-a="s"><kbd>S</kbd>SAFE · square</button><button type="button" class="live" data-a="l"><kbd>L</kbd>LIVE · not square</button></div></div>`;
+      $("floorLab").textContent = `READING ${i + 1} OF ${queue.length}`;
+      const ans = await new Promise(res => {
+        w.querySelectorAll("button").forEach(b => b.addEventListener("click", () => res(b.dataset.a)));
+        const key = e => { const k = e.key.toLowerCase(); if(k === "s" || k === "l"){ document.removeEventListener("keydown", key); res(k); } };
+        document.addEventListener("keydown", key);
+        if(window.PNTest) PNTest.skip("Sort this reading", () => { document.removeEventListener("keydown", key); res(isSq(v) ? "s" : "l"); });
+      });
+      c.classList.remove("lit");
+      const r = Math.sqrt(v), right = (ans === "s") === isSq(v);
+      if(right && isSq(v)){ c.classList.add("safe"); T.SND("tag"); const g = `<span class="mini" style="grid-template-columns:repeat(${r}, 8px)">${"<i></i>".repeat(Math.min(v, 100))}</span>`;
+        log(`${v} = ${r} × ${r}${r <= 6 ? g : ""} SAFE`, "ok"); say(""); }
+      else if(right){ c.classList.add("live"); T.SND("untag"); const f = Math.floor(r); log(`${v}: ${f} × ${f} = ${f * f}, ${f + 1} × ${f + 1} = ${(f + 1) * (f + 1)} · LIVE`, "bad"); say(""); }
+      else { T.SND("wrong"); alarm.hit(); const f = Math.floor(r);
+        say(isSq(v) ? `${v} is ${r} × ${r}: it IS a square number, so it's safe.` : `${v} isn't square: ${f} × ${f} = ${f * f} and ${f + 1} × ${f + 1} = ${(f + 1) * (f + 1)}.`, "bad");
+        c.classList.add(isSq(v) ? "safe" : "live"); }
+      await wait(250);
+    }
+    if(over) return;
+    w.innerHTML = ""; $("floorLab").textContent = "SAFE PATH FOUND";
+    log("Every safe plate is a square number. They join up from the door to the safe.", "gold");
+    path.forEach(([px, py]) => cell(px, py).classList.add("safe"));
+    await wait(600);
+    await cross(path);
+  }
+
+  // ===================== C · Growing squares =====================
+  async function optC(){
+    $("stageLab").textContent = "Grow the safe path";
+    log("$ sensors.trace --safe", "me"); log("The safe zones grow by one row and one column each time, from the door.", "sys");
+    const w = $("work"); let o = 0;
+    for(let n = 1; n <= N && !over; n++){
+      if(n === 1){ const s = { x: 0, y: 0, n: 1 }; squares.push(s); drawSquare(s); log("zone 1: 1 × 1 = 1 plate", "ok"); o = 1; T.SND("tag"); await wait(500); continue; }
+      const prev = (n - 1) * (n - 1), ask = [{ q: `Zone ${n} is the next square. How many plates?`, a: n * n, why: `${n} × ${n} = ${n * n}` }];
+      if(L !== "L1") ask.push({ q: `How many more plates is that than zone ${n - 1} (${prev})?`, a: n * n - prev, why: `${n * n} − ${prev} = ${n * n - prev}` });
+      for(const k of ask){
+        w.innerHTML = `<div class="ask"><span>${k.q}</span><input id="ans" inputmode="numeric" maxlength="4" autocomplete="off" aria-label="Your answer"><button class="pn-btn small" type="button" id="go">CHECK ▸</button></div>`;
+        T.step(n === 2 ? "Each zone is one row and one column bigger: 1 × 1, then 2 × 2…" : `Zone ${n - 1} was ${n - 1} × ${n - 1}. What's one bigger each way?`, { name: `Zone ${n}` });
+        $("ans").focus();
+        await new Promise(res => {
+          const check = () => { const v = parseInt($("ans").value, 10); if(!Number.isInteger(v)) return;
+            if(v === k.a){ T.SND("verified"); log(`${k.why}`, "ok"); say(""); res(); }
+            else { T.SND("wrong"); alarm.hit(); say(`Not ${v}. ${k.q.startsWith("How many more") ? "Take the smaller zone away from the bigger one." : `Draw it: ${n} rows of ${n}.`}`, "bad"); $("ans").select(); } };
+          $("go").addEventListener("click", check); $("ans").addEventListener("keydown", e => { if(e.key === "Enter"){ e.preventDefault(); check(); } });
+          if(window.PNTest) PNTest.skip("Answer this", () => { $("ans").value = k.a; check(); });
+        });
+        if(over) return;
+      }
+      const s = { x: o, y: o, n }; squares.push(s); drawSquare(s); o += n; T.SND("tag");
+      await wait(400);
+    }
+    if(over) return;
+    if(L === "L3"){ log("Gaps between zones: 3, 5, 7, 9… the odd numbers.", "gold"); }
+    w.innerHTML = "";
+    await cross(pathThrough(squares));
+  }
+
+  fit(); window.addEventListener("resize", fit);
+  ({ A: optA, B: optB, C: optC })[OPT]();
+})();
+</script>
+</body>
+</html>
