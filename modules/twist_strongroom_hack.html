@@ -149,8 +149,39 @@
   .ctl:empty{ display:none; }
   .ctl .pn-btn.known{ border-color:#ffe14d; color:#ffe14d; }
   .tw-msg{ min-height:1.4em; }
-  /* The intercept: full-screen digital rain */
-  #rainfx{ position:fixed; inset:0; z-index:7000; width:100vw; height:100vh; background:#000; transition:opacity .6s; pointer-events:none; }
+  /* The intercept: a code flood like the Prime Hack's breach channel. The code's readings keep coming back; the noise never repeats */
+  .flood{ position:fixed; inset:0; z-index:7000; display:flex; align-items:center; justify-content:center; background:rgba(3,10,12,.9); transition:opacity .5s; }
+  .flood .box{ width:min(1040px,94vw); height:min(600px,80vh); display:flex; flex-direction:column; border:1px solid rgba(125,255,196,.45); background:rgba(4,14,17,.97); box-shadow:0 20px 90px rgba(0,0,0,.85), 0 0 40px rgba(125,255,196,.12); }
+  .flood .hdr{ display:flex; justify-content:space-between; gap:12px; padding:12px 18px; border-bottom:1px solid rgba(125,255,196,.25); font:800 14px var(--font-ui); letter-spacing:.16em; color:#7dffc4; }
+  .flood .hdr span{ color:var(--text-muted); font-weight:600; } .flood .pct{ color:#ffe14d; font-family:var(--font-mono); letter-spacing:.06em; }
+  .flood .body{ flex:1; min-height:0; display:grid; grid-template-columns:minmax(0,1fr) 210px; }
+  .flood .stream{ min-height:0; overflow:hidden; padding:14px 20px; font:19px/1.6 var(--font-mono); display:flex; flex-direction:column; justify-content:flex-end; color:rgba(143,234,255,.75); }
+  .flood .stream div{ white-space:nowrap; }
+  .flood .stream .noise{ color:rgba(143,234,255,.4); } .flood .stream .me{ color:#ff9ae9; } .flood .stream .warn{ color:#ffe14d; }
+  .flood .stream b{ font-weight:700; color:#dff8ff; } .flood .stream b.g{ color:#7dffc4; text-shadow:0 0 10px rgba(125,255,196,.7); }
+  .flood .stream .big{ font:800 32px var(--font-ui); letter-spacing:.18em; color:#7dffc4; text-shadow:0 0 22px rgba(125,255,196,.5); margin:8px 0 2px; }
+  .flood .tally{ border-left:1px solid rgba(125,255,196,.2); padding:14px 16px; display:flex; flex-direction:column; gap:6px; font:700 20px var(--font-mono); color:#7dffc4; overflow:hidden; }
+  .flood .tally small{ font:700 12px var(--font-ui); letter-spacing:.18em; color:#8feaff; margin-bottom:4px; }
+  .flood .tally div{ display:flex; justify-content:space-between; } .flood .tally div i{ font-style:normal; color:#ffe14d; }
+  .flood .bar{ height:6px; background:rgba(0,0,0,.5); border-top:1px solid rgba(125,255,196,.2); } .flood .bar i{ display:block; height:100%; width:0; background:#7dffc4; box-shadow:0 0 12px rgba(125,255,196,.7); }
+  /* The rule console */
+  .rules{ display:flex; flex-wrap:wrap; gap:6px; }
+  .rules button{ font:700 15px var(--font-mono); padding:6px 10px; color:#dff8ff; background:rgba(8,26,31,.9); border:1px solid rgba(143,234,255,.4); cursor:pointer; }
+  .rules button:hover, .rules button:focus-visible{ border-color:#ffe14d; outline:none; }
+  .rules button.on{ border-color:#ffe14d; color:#ffe14d; background:rgba(255,225,77,.1); }
+  .rules button.no{ opacity:.4; text-decoration:line-through; cursor:default; }
+  .term.tight .rain{ grid-auto-rows:27px; padding:3px 0; } .term.tight .work{ flex:1; } .term.tight .rd{ font-size:17px; } .term.tight .work .hd{ display:flex; justify-content:space-between; font:700 12px var(--font-ui); letter-spacing:.16em; color:#8feaff; } .term.tight #loaded{ color:#ffe14d; }
+  .out{ margin:0; flex:1; overflow:hidden; min-height:0; font:15px/1.45 var(--font-mono); color:#9fffd4; white-space:pre-wrap; }
+  .out .me{ color:#ff9ae9; } .out .bad{ color:#ff8aa0; } .out .ok{ color:#7dffc4; } .out .gold{ color:#ffe14d; } .out .sys{ color:var(--text-faint); }
+  .rd.hit{ background:rgba(125,255,196,.22) !important; border-color:#7dffc4 !important; }
+  .rd.miss{ outline:2px dashed #ff8aa0; outline-offset:-3px; }
+  .rd.leak{ color:#ff8aa0 !important; border-color:#ff4f6d !important; background:rgba(255,79,109,.15) !important; opacity:1; }
+  .fg .arr .tag{ position:absolute; bottom:calc(100% + 2px); left:-2px; font:700 9px var(--font-ui); letter-spacing:.12em; color:#2a2100; background:#ffe14d; padding:0 4px; white-space:nowrap; }
+  .fg.pad .arr{ overflow:visible; z-index:2; }
+  .fg.pad .arr b{ position:absolute; top:calc(100% + 2px); left:-2px; margin:0; font:700 12px var(--font-mono); letter-spacing:0; padding:0 4px; }
+  .fg.pad .arr.sq b{ color:#ffe14d; }
+  .fg.pad .arr em{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font:700 clamp(11px, calc(var(--cw) * .9), 22px) var(--font-mono); font-style:normal; color:#fff; text-shadow:0 0 4px #000, 0 0 2px #000; }
+  .fg .lft{ position:absolute; background:rgba(255,79,109,.45); border:2px solid #ff4f6d; pointer-events:none; animation:sqIn .3s ease-out; }
   /* Access granted: a stamped banner */
   .granted{ position:fixed; left:50%; top:42%; z-index:7500; transform:translate(-50%, -50%) rotate(-4deg); pointer-events:none; padding:14px 34px; border:4px solid #7dffc4; color:#7dffc4; background:rgba(2,16,10,.88);
     font:700 clamp(30px, 5vw, 60px) var(--font-ui); letter-spacing:.22em; text-shadow:0 0 18px rgba(125,255,196,.8); box-shadow:0 0 40px rgba(125,255,196,.35); animation:grIn .6s steps(6) 1; transition:opacity .5s; }
@@ -211,9 +242,9 @@
   // Levels: the same pool at every level; L3 adds the nth term and an open floor. max: the biggest reading; S: the
   // sketch pad; G: the floor in plates; gaps: predictions in the sensor log
   const LV = {
-    L1: { max: 64, S: 10, G: 10, sides: [2, 3, 4, 5], k: [3, 4], rep: 1, outline: true, hintAfter: 2, gaps: 2, from: [1, 2] },
-    L2: { max: 144, S: 12, G: 12, sides: [2, 3, 4, 5, 6], k: [4, 5], rep: 2, outline: true, hintAfter: 3, gaps: 3, from: [2, 3, 4] },
-    L3: { max: 225, S: 15, G: 14, sides: [2, 3, 4, 5, 6, 7], k: [5, 6], rep: 2, outline: false, hintAfter: 99, gaps: 3, from: [3, 4, 5], nth: 10 },
+    L1: { max: 64, SW: 24, SH: 12, G: 10, sides: [2, 3, 4, 5], k: [3, 4], rep: 1, outline: true, hintAfter: 2, gaps: 2, from: [1, 2] },
+    L2: { max: 144, SW: 26, SH: 14, G: 12, sides: [2, 3, 4, 5, 6], k: [4, 5], rep: 2, outline: true, hintAfter: 3, gaps: 3, from: [2, 3, 4] },
+    L3: { max: 225, SW: 30, SH: 16, G: 14, sides: [2, 3, 4, 5, 6, 7], k: [5, 6], rep: 2, outline: false, hintAfter: 99, gaps: 3, from: [3, 4, 5], nth: 10 },
   }[L] || null;
   function say(t, cls){ const m = $("msg"); m.textContent = t; m.className = "tw-msg" + (cls ? " " + cls : ""); }
   function log(html, cls = ""){ const d = document.createElement("div"); d.className = cls; d.innerHTML = html; $("log").appendChild(d); while($("log").children.length > 6) $("log").firstChild.remove(); }
@@ -241,11 +272,6 @@
     pic.querySelectorAll(".frame").forEach(f => f.remove());
     if(frame){ const f = document.createElement("div"); f.className = "frame"; Object.assign(f.style, { left: (ox - (u - d) / 2 + frame.x * u - 4) + "px", top: (oy - (u - d) / 2 + frame.y * u - 4) + "px", width: (frame.w * u + 8) + "px", height: (frame.h * u + 8) + "px" }); pic.appendChild(f); }
   }
-  // A small still picture for the evidence board
-  function miniPic(pts, max = 96){
-    const cols = Math.max(1, ...pts.map(p => p.x + 1)), rows = Math.max(1, ...pts.map(p => p.y + 1)), u = Math.max(4, Math.min(13, Math.floor(max / Math.max(cols, rows)))), d = Math.max(3, Math.round(u * .72));
-    return `<div class="mpic" style="width:${cols * u}px;height:${rows * u}px">${pts.map(p => `<i class="${p.c || ""}" style="left:${p.x * u}px;top:${p.y * u}px;width:${d}px;height:${d}px"></i>`).join("")}</div>`;
-  }
   const cap = html => { $("cap").innerHTML = html; };
 
   // ===== The pattern bank (one entry per pattern; Bertie's brief) =====
@@ -255,38 +281,25 @@
       code: "the square code", what: "square numbers",
       term: n => n * n, isTerm: isSq,
       pts: v => rectPts(root(v), root(v)),
-      // the first one by hand: drag out an array on the sketch pad (rows × columns)
-      hand: "array", handOk: v => v >= 4 && root(v) <= LV.S,
-      // a glowing reading: its dots slide through every rectangle they make, and lock gold on the square
-      async morph(v, green){
-        const fits = T.pairs(v).filter(([a, b]) => b <= 30 && (a > 1 || v <= 12 || !green));
-        for(const [a, b] of fits){
-          if(over) return;
-          const sq = a === b;
-          showPts(rectPts(a, b), { lock: sq, frame: sq ? { x: 0, y: 0, w: a, h: a } : null });
-          cap(sq ? `${v} = ${a} × ${a} <span class="gold">· a SQUARE</span>` : `${v} = ${a} × ${b}`);
-          T.SND(sq ? "lockon" : "plot");
-          await wait(sq ? 900 : 720);
-        }
-        if(green) return true;
-        // grey: no rectangle is a square. The nearest square, and the dots left over
-        const n = Math.floor(Math.sqrt(v)), left = v - n * n;
-        showPts([...rectPts(n, n), ...Array.from({ length: left }, (_, j) => ({ x: n + 1 + Math.floor(j / n), y: j % n, c: "bad" }))]);
-        cap(`${v} = ${n} × ${n} <span class="bad">+ ${left} left over · never a square</span>`);
-        return false;
-      },
+      // the first two by hand: drag out an array on the sketch pad (rows × columns). The code shape locks gold.
+      // Nothing says "square" until the rule is cracked (Bertie: that gives it away).
+      handOk: v => v >= 4 && root(v) <= Math.min(LV.SW, LV.SH),
+      locks: (h, w) => h === w,
+      // the pad builds a reading: through its rectangles (long and thin first), ending on the one that locks
+      shapes: v => T.pairs(v).filter(([a, b]) => a > 1 || v <= 3).map(([a, b]) => [a, b]),
+      // a grey reading: the nearest shape that locks, and what's left over
+      greyFit: v => { const n = Math.floor(Math.sqrt(v)); return { h: n, w: n, left: v - n * n }; },
       greyPts: v => { const n = Math.floor(Math.sqrt(v)), left = v - n * n; return [...rectPts(n, n, "n"), ...Array.from({ length: left }, (_, j) => ({ x: n + 1 + Math.floor(j / n), y: j % n, c: "bad" }))]; },
-      greyCap: v => { const n = Math.floor(Math.sqrt(v)); return `${v} = ${n} × ${n} + ${v - n * n}`; },
+      greyCap: v => { const n = Math.floor(Math.sqrt(v)); return `${v} = ${n} × ${n} + ${v - n * n} left over`; },
       okCap: v => `${v} = ${root(v)} × ${root(v)}`,
-      rules(ctx){
-        const odd = ctx.greens.find(v => v % 2) || 9, grey = ctx.grey || 12, gp = T.pairs(grey).find(([a]) => a > 1) || [1, grey];
-        return [
-          { t: "Each one makes a square: as many rows as columns (n × n)", ok: true },
-          { t: "They're all even numbers", why: `${odd} glows, and ${odd} is odd.` },
-          { t: "They go up by the same amount each time", why: "4 to 9 is 5 more, 9 to 16 is 7 more: the jumps get bigger." },
-          { t: "Each one makes a rectangle", why: `So does ${grey} (${gp[0]} × ${gp[1]}), and ${grey} is grey.` },
-        ];
-      },
+      // the rule console: each rule makes its own numbers (k = 1, 2, 3…)
+      rules: [
+        { code: "n × n", gen: k => k * k, ok: true },
+        { code: "n × 2", gen: k => 2 * k },
+        { code: "n × 3", gen: k => 3 * k },
+        { code: "start at 1, add 2 each time", gen: k => 2 * k - 1 },
+        { code: "start at 1, add 3 each time", gen: k => 3 * k - 2 },
+      ],
       cracked: "Square numbers: a number times itself. 4 = 2 × 2, 9 = 3 × 3, 16 = 4 × 4…",
       nthAsk: k => `How many dots does the ${ord(k)} square need?`,
       nthHint: k => `The 3rd is 3 × 3 = 9. The ${ord(k)} is ${k} × …?`,
@@ -345,7 +358,7 @@
     const all = T.range(1, 60).map(P.term).filter(v => v <= LV.max);
     const g = [...new Set(F.need)];
     T.shuffle(all.filter(v => v > 1)).forEach(v => { if(g.length < 9 && !g.includes(v)) g.push(v); });
-    if(!g.some(P.handOk)) g[g.length - 1] = all.find(P.handOk);
+    all.filter(P.handOk).slice(0, 4).forEach(v => { if(g.filter(P.handOk).length < 3 && !g.includes(v)) g.push(v); });
     // grey: near misses (the tricky ones), then numbers with lots of shapes, then any others
     const near = T.shuffle(all.filter(v => v > 6)).slice(0, 5).map(v => v + T.pick([-1, 1, 2, -2]));
     const rect = T.shuffle(T.range(6, LV.max).filter(v => T.pairs(v).length >= 2));
@@ -353,12 +366,22 @@
     const grey = [...new Set([...near, ...rect.slice(0, 14), ...rest])].filter(v => v >= 2 && v <= LV.max && !P.isTerm(v) && !g.includes(v)).slice(0, COLS * ROWS - g.length);
     return T.shuffle([...g, ...grey]).map(v => ({ v, g: P.isTerm(v) }));
   }
-  const READ = readings();
+  // What a rule makes, up to the level's biggest reading, and how it scores against the frozen readings
+  function ruleGen(r){ const out = []; for(let k = 1; k < 400; k++){ const v = r.gen(k); if(v > LV.max) break; if(v >= 1) out.push(v); } return out; }
+  function score(r, read){
+    const made = new Set(ruleGen(r)), greens = read.filter(o => o.g).map(o => o.v), greys = read.filter(o => !o.g).map(o => o.v);
+    const hits = greens.filter(v => made.has(v)), missed = greens.filter(v => !made.has(v)), noise = greys.filter(v => made.has(v));
+    return { made: [...made], hits, missed, noise, perfect: !missed.length && !noise.length };
+  }
+  const fair = read => P.rules.every(r => r.ok ? score(r, read).perfect : !score(r, read).perfect);
+  let READ = readings();
+  for(let t = 0; t < 60 && !fair(READ); t++) READ = readings();
   W.readings = READ.map(r => r.v); W.greens = READ.filter(r => r.g).map(r => r.v);
   const rain = $("rain"); rain.style.setProperty("--cols", COLS);
   const rdEls = () => [...rain.querySelectorAll(".rd")];
 
-  // ===== 1. Intercept: full-screen digital rain, then the readings freeze =====
+  // ===== 1. Intercept: a slow, readable code flood (Bertie: like the Prime Hack's). The code's readings keep coming
+  // back; every noise number turns up once only. A tally counts the repeats. Then the readings freeze. =====
   async function intercept(){
     $("cmd").innerHTML = "$ floorsys.connect --zone STRONGROOM";
     T.SND("radio"); await wait(500);
@@ -366,35 +389,57 @@
     $("termLab").textContent = "INTERCEPTING"; $("termLab").classList.add("live");
     let skip = false;
     if(window.PNTest) PNTest.skip("Finish the intercept", () => { skip = true; });
-    if(!RM()){
-      const cv = document.createElement("canvas"); cv.id = "rainfx"; document.body.appendChild(cv);
-      const dpr = Math.min(2, devicePixelRatio || 1), w = innerWidth, h = innerHeight; cv.width = w * dpr; cv.height = h * dpr;
-      const x = cv.getContext("2d"); x.scale(dpr, dpr);
-      const fs = 20, nc = Math.ceil(w / (fs * 1.6)), vals = [...READ.map(r => r.v), ...T.range(1, LV.max)];
-      const col = Array.from({ length: nc }, (_, i) => ({ y: -Math.random() * h, v: 0.5 + Math.random() * 1.4, s: String(T.pick(vals)), g: false }));
-      x.fillStyle = "#000"; x.fillRect(0, 0, w, h);
-      T.SND("hum");
-      const t0 = performance.now(); let lastTick = 0, last = t0;
-      await new Promise(res => {
-        const frame = now => {
-          const dt = Math.min(50, now - last) * sp(); last = now;
-          x.fillStyle = "rgba(0,0,0,.12)"; x.fillRect(0, 0, w, h);
-          x.font = `700 ${fs}px "Courier Prime", monospace`;
-          col.forEach((c, i) => {
-            c.y += c.v * dt * .3;
-            if(c.y > h + 40){ c.y = -Math.random() * 200; c.s = String(T.pick(vals)); c.g = P.isTerm(+c.s); c.v = 0.5 + Math.random() * 1.4; }
-            if(Math.floor(c.y / (fs * 1.3)) !== c.k){ c.k = Math.floor(c.y / (fs * 1.3)); c.s = String(T.pick(vals)); c.g = P.isTerm(+c.s); }
-            x.fillStyle = c.g ? "#7dffc4" : "rgba(143,234,255,.55)"; x.fillText(c.s, i * fs * 1.6, c.y - fs * 1.3);
-            x.fillStyle = "#eafff6"; x.fillText(c.s, i * fs * 1.6, c.y);
-          });
-          if(now - lastTick > 160){ lastTick = now; T.SND("tick"); }
-          if(skip || over || (now - t0) * sp() > 2600) return res();
-          requestAnimationFrame(frame);
-        };
+    const ov = document.createElement("div"); ov.className = "flood";
+    ov.innerHTML = `<div class="box"><div class="hdr"><div>PRIMENET <span>// FLOOR SENSOR INTERCEPT</span></div><div class="pct">0%</div></div>
+      <div class="body"><div class="stream"></div><div class="tally"><small>COMING BACK</small></div></div><div class="bar"><i></i></div></div>`;
+    document.body.appendChild(ov);
+    const stream = ov.querySelector(".stream"), tally = ov.querySelector(".tally");
+    const push = (html, cls = "") => { const d = document.createElement("div"); d.className = cls; d.innerHTML = html; stream.appendChild(d); while(stream.children.length > 30) stream.firstChild.remove(); };
+    const hex = n => Array.from({ length: n }, () => "0123456789ABCDEF"[Math.floor(Math.random() * 16)]).join("");
+    const plate = () => "ABCDEFGH"[Math.floor(Math.random() * 8)] + (1 + Math.floor(Math.random() * 9));
+    const greens = READ.filter(o => o.g).map(o => o.v);
+    // the noise: the grey readings on screen first, then other non-code numbers; each used once
+    const greyPool = [...T.shuffle(READ.filter(o => !o.g).map(o => o.v)), ...T.shuffle(T.range(2, LV.max).filter(v => !P.isTerm(v) && !READ.some(o => o.v === v)))];
+    const seen = {}, F0 = W.flood = { code: seen, noise: [] };
+    const beats = [
+      [0, `agent@primenet:~$ sensors.intercept --zone STRONGROOM --plates ALL`, "me"],
+      [.12, `rolling code detected · some readings repeat`, "warn"],
+      [.55, `[TRACE] ${hex(8)} :: still unseen`, "noise"],
+    ];
+    T.say("Watch the readings. Some of them keep coming back.");
+    T.SND("drone", 13);
+    const dur = 14000; let el = 0, last = performance.now(), since = 999, b = 0, n = 0;
+    await new Promise(res => {
+      const frame = now => {
+        const dt = (now - last) * sp(); last = now; el += dt; since += dt;
+        const p = Math.min(1, el / dur);
+        ov.querySelector(".bar i").style.width = p * 100 + "%"; ov.querySelector(".pct").textContent = Math.floor(p * 100) + "%";
+        while(b < beats.length && p >= beats[b][0]){ push(beats[b][1], beats[b][2]); b++; }
+        if(since > 380 && p > .04){
+          since = 0; n++;
+          const r = Math.random();
+          if(r < .1) push(`[NET] ${hex(8)} :: ${T.pick(["sync()", "checksum_ok()", "bounce_proxy()", "mask_route()"])}`, "noise");
+          else if(r < .62 || !greyPool.length){
+            // a code reading: the one seen least so far comes round again
+            const v = greens.slice().sort((x, y) => (seen[x] || 0) - (seen[y] || 0) || Math.random() - .5)[Math.floor(Math.random() * Math.min(3, greens.length))];
+            seen[v] = (seen[v] || 0) + 1;
+            push(`[SENSOR] plate_${plate()} :: reading <b class="g">${v}</b>${seen[v] > 1 ? `  <span class="warn">◂ again</span>` : ""}`);
+            tally.innerHTML = `<small>COMING BACK</small>` + Object.entries(seen).filter(([, c]) => c > 1).sort((x, y) => y[1] - x[1]).slice(0, 12).map(([v, c]) => `<div><span>${v}</span><i>×${c}</i></div>`).join("");
+            T.SND("tick");
+          } else {
+            const v = greyPool.shift(); F0.noise.push(v);
+            push(`[SENSOR] plate_${plate()} :: reading <b>${v}</b>`);
+            T.SND("chatter");
+          }
+        }
+        if(skip || over || p >= 1) return res();
         requestAnimationFrame(frame);
-      });
-      cv.style.opacity = "0"; setTimeout(() => cv.remove(), 650);
-    }
+      };
+      requestAnimationFrame(frame);
+    });
+    push("STREAM CAPTURED", "big"); T.SND("lock");
+    await wait(skip ? 200 : 1200);
+    ov.style.opacity = "0"; setTimeout(() => ov.remove(), 520);
     // the freeze: off-pattern readings dim to ghosts, the code glows
     rain.innerHTML = READ.map((o, i) => `<button type="button" class="rd${o.g ? " g" : ""}" style="--i:${i}" data-v="${o.v}" tabindex="-1" disabled>${o.v}</button>`).join("");
     rain.classList.add("in"); setTimeout(() => rain.classList.add("frozen"), 700 / sp());
@@ -406,15 +451,15 @@
   }
 
   // ===== The sketch pad / the floor: one grid, rebuilt for each =====
-  const fg = $("fg"); let N = 10, CS = 40, cells = [], labelsOn = false;
-  function buildGrid(n, kind){
-    N = n; fg.innerHTML = ""; cells = []; fg.className = "fg" + (kind === "pad" ? " pad" : "");
-    for(let y = 0; y < n; y++) for(let x = 0; x < n; x++){ const c = document.createElement("div"); c.className = "c"; c.dataset.x = x; c.dataset.y = y; fg.appendChild(c); cells.push(c); }
+  const fg = $("fg"); let NW = 10, NH = 10, CS = 40, cells = [], labelsOn = false;
+  function buildGrid(w, h, kind){
+    NW = w; NH = h; fg.innerHTML = ""; cells = []; fg.className = "fg" + (kind === "pad" ? " pad" : "");
+    for(let y = 0; y < h; y++) for(let x = 0; x < w; x++){ const c = document.createElement("div"); c.className = "c"; c.dataset.x = x; c.dataset.y = y; fg.appendChild(c); cells.push(c); }
     labelsOn = kind === "floor";
     if(labelsOn) fg.insertAdjacentHTML("beforeend", `<span class="door">DOOR</span><span class="safebox">SAFE</span>`);
     fit();
   }
-  const cell = (x, y) => cells[y * N + x];
+  const cell = (x, y) => cells[y * NW + x];
   const px = v => 2 + v * (CS + 2);
   // Show one thing on the left: the pad/floor grid, the picture, or the evidence board
   function view(which){ $("fwrap").hidden = which !== "grid"; $("picw").hidden = which !== "pic"; $("evid").hidden = which !== "evid"; fit(); }
@@ -423,10 +468,15 @@
     const tabs = Math.max(150, ...[...document.querySelectorAll(".twb-chip")].map(c => c.getBoundingClientRect().right));
     ["fwrap", "evid", "picw"].forEach(id => { const e = $(id); e.style.paddingLeft = ""; if(!e.hidden) e.style.paddingLeft = Math.max(0, tabs + 14 - e.getBoundingClientRect().left) + "px"; });
     const fw = $("fwrap"); if(fw.hidden) return;
+    // the grid either starts right of the tabs (full height) or sits above them (full width): whichever lets it be bigger
+    fw.style.paddingBottom = "";
     const r0 = fw.getBoundingClientRect(), left = parseFloat(fw.style.paddingLeft) || 0;
-    const r = { width: r0.width - left, height: r0.height };
-    CS = Math.max(18, Math.min(64, Math.floor(Math.min((r.width - 16) / N, (r.height - (labelsOn ? 56 : 12)) / N)) - 2));
-    fg.style.setProperty("--cs", CS + "px"); fg.style.gridTemplateColumns = `repeat(${N}, ${CS}px)`; fg.style.gridAutoRows = CS + "px";
+    const chipTop = Math.min(r0.bottom, ...[...document.querySelectorAll(".twb-chip")].map(c => c.getBoundingClientRect().top)), below = Math.max(0, r0.bottom - chipTop + 8);
+    const csFor = (w, h) => Math.floor(Math.min((w - 16) / NW, (h - (labelsOn ? 56 : 40)) / NH)) - 2;
+    const a = csFor(r0.width - left, r0.height), b = csFor(r0.width, r0.height - below);
+    if(b > a){ fw.style.paddingLeft = ""; fw.style.paddingBottom = below + "px"; }
+    CS = Math.max(12, Math.min(64, Math.max(a, b)));
+    fg.style.setProperty("--cs", CS + "px"); fg.style.gridTemplateColumns = `repeat(${NW}, ${CS}px)`; fg.style.gridAutoRows = CS + "px";
     fg.querySelectorAll("[data-gx]").forEach(place);
   }
   function place(el){ const x = +el.dataset.gx, y = +el.dataset.gy, w = +el.dataset.gw, h = +el.dataset.gh;
@@ -453,137 +503,207 @@
     const up = () => { if(!a) return; const r = rect(); a = b = null; paint(); if(onRect) onRect(r); };
     fg.addEventListener("pointerup", up); fg.addEventListener("pointercancel", up);
   })();
-  function stamp(r, kind){
-    fg.querySelectorAll(".arr").forEach(o => { const ox = +o.dataset.gx, oy = +o.dataset.gy, ow = +o.dataset.gw, oh = +o.dataset.gh;
-      if(r.x < ox + ow && ox < r.x + r.w && r.y < oy + oh && oy < r.y + r.h) o.remove(); });
-    return lay("arr " + kind, r.x, r.y, r.w, r.h, `<i></i><span class="grid"></span><b>${r.h} × ${r.w} = ${r.w * r.h}</b>`);
+  // The pad keeps every drawing, so they can be compared. Each is tagged with its reading (data-v).
+  const onPad = () => [...fg.querySelectorAll(".arr, .lft")].map(o => ({ x: +o.dataset.gx, y: +o.dataset.gy, w: +o.dataset.gw, h: +o.dataset.gh, v: +o.dataset.v, el: o }));
+  const hits = (r, o, gap = 0) => r.x < o.x + o.w + gap && o.x < r.x + r.w + gap && r.y < o.y + o.h + gap && o.y < r.y + r.h + gap;
+  const clashWith = (r, v) => onPad().find(o => o.v !== v && hits(r, o));
+  const clearV = v => fg.querySelectorAll(`[data-v="${v}"]`).forEach(o => o.remove());
+  // A clear space for a w × h drawing (a gap of one round the others); the oldest drawings go if the pad is full
+  function freeSpot(w, h, v, evict = true){
+    if(w > NW || h > NH) return null;
+    for(let pass = 0; pass < 8; pass++){
+      const others = onPad().filter(o => o.v !== v);
+      for(let y = 0; y + h <= NH; y++) for(let x = 0; x + w <= NW; x++){ const r = { x, y, w, h }; if(!others.some(o => hits(r, o, 1))) return r; }
+      // full: the oldest drawing the pad made goes first, the pupil's own last
+      const old = others.find(o => !o.el.classList.contains("mine")) || others[0]; if(!evict || !old) return null;
+      clearV(old.v); log(`pad full: ${old.v} cleared`, "sys");
+    }
+    return null;
+  }
+  function stamp(r, kind, v, locked){
+    const d = lay("arr " + kind, r.x, r.y, r.w, r.h, `<i></i><span class="grid"></span><em>${v}</em><b>${r.h}×${r.w}</b>${locked && r.w >= 4 ? `<span class="tag">LOCKED</span>` : ""}`);
+    d.dataset.v = v; return d;
+  }
+  // The pad builds a reading: its rectangles in turn, long and thin first; a code reading locks gold, a grey one never does
+  async function autoBuild(v, green){
+    let el = null;
+    const shapes = P.shapes(v);
+    for(const [a, b] of shapes){
+      if(over) return false;
+      const [h, w] = b <= NW && a <= NH ? [a, b] : [b, a];
+      // the in-between shapes only go where there's room; the last one makes room
+      const r = freeSpot(w, h, v, [a, b] === shapes[shapes.length - 1]); if(!r) continue;
+      clearV(v);
+      const lock = green && P.locks(h, w);
+      el = stamp(r, lock ? "sq" : "rect", v, lock); T.SND(lock ? "lockon" : "plot");
+      await wait(lock ? 900 : 650);
+    }
+    if(green) return true;
+    // grey: the nearest shape that locks, with the left-overs beside it (or underneath, if that fits better)
+    const g = P.greyFit(v), cols = Math.ceil(g.left / g.h), rows = Math.ceil(g.left / g.w);
+    clearV(v);
+    const side = () => freeSpot(g.w + 1 + cols, g.h, v, false), below = () => freeSpot(g.w, g.h + 1 + rows, v, false);
+    let r = side(), down = false;
+    if(!r){ r = below(); down = !!r; }
+    if(!r) r = freeSpot(g.w + 1 + cols, g.h, v, true);
+    if(r){
+      stamp({ x: r.x, y: r.y, w: g.w, h: g.h }, "rect", v, false).querySelector("b").textContent = P.greyCap(v);
+      for(let j = 0; j < g.left; j++){
+        const t = down ? lay("lft", r.x + j % g.w, r.y + g.h + 1 + Math.floor(j / g.w), 1, 1) : lay("lft", r.x + g.w + 1 + Math.floor(j / g.h), r.y + j % g.h, 1, 1);
+        t.dataset.v = v;
+      }
+    }
+    return false;
   }
   const mark = (el, ok) => { el.classList.add(ok ? "done" : "tried"); if(!el.querySelector(".tk")) el.insertAdjacentHTML("beforeend", `<span class="tk">${ok ? "✓" : "✗"}</span>`); };
   const ctl = $("ctl");
   const button = (label, cls, fn) => { const b = document.createElement("button"); b.type = "button"; b.className = "pn-btn " + (cls || ""); b.innerHTML = label; b.addEventListener("click", fn); ctl.appendChild(b); return b; };
 
-  // ===== 2. Investigate: the first glowing reading by hand, then the pad builds them; a grey one never fits =====
-  // Resolves "full" (go on to name the rule) or "quick" (Know this one?)
+  // ===== 2. Investigate: two glowing readings built by hand, then the pad builds them. Everything stays on the pad. =====
+  // Resolves "full" (go on to the rule console) or "quick" (Know this one?)
+  const HAND = 2;
   async function investigate(){
     setStage("investigate");
     $("stageLab").textContent = "Step 1 of 4 · investigate the readings";
-    buildGrid(LV.S, "pad"); view("grid"); $("floorHd").textContent = "SKETCH PAD"; $("floorLab").textContent = `${LV.S} × ${LV.S}`;
-    T.step(`Tap a <b>glowing</b> reading and build it on the sketch pad: drag out that many squares (rows × columns). What shape does it make?`, { name: "Investigate" });
-    say("Tap a glowing reading, then build it on the sketch pad.");
+    buildGrid(LV.SW, LV.SH, "pad"); view("grid"); $("floorHd").textContent = "SKETCH PAD"; $("floorLab").textContent = "";
+    T.step(`Tap a <b>glowing</b> reading and draw it on the sketch pad: drag out that many squares (rows × columns). Your drawings stay on the pad, so you can compare them.`, { name: "Investigate" });
+    say("Tap a glowing reading, then draw it on the sketch pad.");
     setTimeout(() => { if(stage === "investigate" && !over) radio("FOX", "We're at the door. Whenever you're ready."); }, 5000 / sp());
     const els = rdEls(); els.forEach(e => { e.disabled = false; e.tabIndex = 0; e.classList.add("on"); });
-    let part = "hand", tries = 0, el = null, busy = false, handDone = false;
+    let tries = 0, el = null, busy = false, locked = 0;
     const greensSeen = () => W.seen.filter(v => P.isTerm(v)).length;
     return await new Promise(res => {
-      let ruleBtn = null, quickBtn = null;
+      let ruleBtn = null;
       if(KNOWN){
-        quickBtn = button("Know this one? ▸", "known", () => { if(busy) return; T.SND("click"); finish("quick"); });
+        button("Know this one? ▸", "known", () => { if(busy) return; T.SND("click"); finish("quick"); });
         log(`${P.code.toUpperCase()} is in your codebook.`, "gold");
       }
       function finish(how){ if(over) return; els.forEach(e => { e.classList.remove("on", "sel"); e.disabled = true; e.tabIndex = -1; }); ctl.innerHTML = ""; onRect = null; res(how); }
       function nextPrompt(){
-        if(!handDone) return;
-        const g = greensSeen();
-        if(g < 2){ say("Tap another glowing reading: this time the pad builds it for you."); T.step("Tap another <b>glowing</b> reading and watch its picture build.", { name: "Investigate" }); return; }
-        if(W.grey == null){ say("Now tap a grey one. Does it make the same shape?"); T.step("Tap a <b>grey</b> reading. Does it make the same shape as the glowing ones?", { name: "Investigate" }); return; }
+        if(locked < HAND){ say(`Now another glowing reading: draw it the same special way.`); return; }
+        if(greensSeen() < HAND + 1){ say("Tap another glowing reading: this time the pad draws it for you."); T.step("Tap another <b>glowing</b> reading and watch the pad draw it.", { name: "Investigate" }); return; }
+        if(W.grey == null){ say("Now tap a grey one. Will it lock like the others?"); T.step("Tap a <b>grey</b> reading. Will it lock like the glowing ones?", { name: "Investigate" }); return; }
         if(!ruleBtn){ ruleBtn = button("Got the rule? ▸", "primary", () => { if(busy) return; T.SND("click"); finish("full"); }); ruleBtn.focus({ preventScroll: true }); }
-        say("Seen enough? Press Got the rule, or tap more readings.");
-        T.step("Tap more readings if you like. When you can say what the glowing ones have in common, press <b>Got the rule?</b>", { name: "Investigate" });
+        say("Compare your drawings. Got the rule? Or tap more readings.");
+        T.step("Compare the drawings on the pad. What do the locked ones have in common that the grey one hasn't? When you think you know, press <b>Got the rule?</b>", { name: "Investigate" });
       }
       async function auto(e){
         const v = +e.dataset.v, green = P.isTerm(v);
-        busy = true; view("pic"); $("floorHd").textContent = `PICTURE · ${v}`; $("floorLab").textContent = green ? "GLOWING" : "GREY";
-        log(`> picture.build ${v}`, "me");
-        const ok = await P.morph(v, green);
+        busy = true; log(`> pad.draw ${v}`, "me");
+        const ok = await autoBuild(v, green);
         busy = false; if(over) return;
         e.classList.remove("sel"); mark(e, ok);
         if(!W.seen.includes(v)) W.seen.push(v);
-        if(ok){ log(`${P.okCap(v)} <span class="gold">· fits</span>`, "ok"); }
-        else { W.grey = W.grey == null ? v : W.grey; T.SND("denied"); e.classList.remove("glitch"); void e.offsetWidth; e.classList.add("glitch"); log(`${P.greyCap(v)} <span class="sys">· never fits</span>`, "bad"); }
+        if(ok) log(`${P.okCap(v)} <span class="gold">· LOCKED</span>`, "ok");
+        else { W.grey = W.grey == null ? v : W.grey; T.SND("denied"); e.classList.remove("glitch"); void e.offsetWidth; e.classList.add("glitch"); log(`${P.greyCap(v)} <span class="sys">· won't lock</span>`, "bad"); }
         nextPrompt();
       }
       const pickR = e => {
         if(over || busy || stage !== "investigate") return;
         const v = +e.dataset.v;
         rdEls().forEach(o => o.classList.remove("sel")); void e.offsetWidth; e.classList.add("sel"); el = e; T.SND("tag");
-        if(part === "hand"){
-          if(!P.isTerm(v)){ say("Start with a glowing one: build it on the sketch pad.", "warn"); e.classList.remove("sel"); return; }
+        if(locked < HAND){
+          if(!P.isTerm(v)){ say("Start with the glowing ones: draw them on the sketch pad.", "warn"); e.classList.remove("sel"); return; }
+          if(W.seen.includes(v)){ say(`You've drawn ${v}. Pick a different glowing one.`, "warn"); e.classList.remove("sel"); return; }
           if(!P.handOk(v)){ say(`${v} is too big for the sketch pad. Pick a smaller glowing one.`, "warn"); e.classList.remove("sel"); return; }
-          W.target = v; tries = 0; fg.querySelectorAll(".arr").forEach(o => o.remove());
-          $("floorHd").textContent = `SKETCH PAD · BUILD ${v}`;
-          say(`Build ${v}: drag out ${v} squares on the sketch pad.`);
+          W.target = v; tries = 0;
+          $("floorHd").textContent = `SKETCH PAD · DRAW ${v}`;
+          say(`Draw ${v}: drag out ${v} squares on the sketch pad.`);
           return;
         }
         auto(e);
       };
       els.forEach(e => e.addEventListener("click", () => pickR(e)));
-      // the hand build: an array of the reading, until it's a square
+      // drawing by hand: any array of the right size is kept; the code shape locks
       onRect = r => {
-        if(stage !== "investigate" || part !== "hand") return;
+        if(stage !== "investigate" || locked >= HAND) return;
         if(!W.target){ say("Tap a glowing reading first.", "warn"); return; }
         const p = r.w * r.h, v = W.target;
         if(p !== v){ T.SND("untag"); say(`${r.h} × ${r.w} = ${p}. You need ${v} squares.`, "warn"); return; }
-        if(r.w !== r.h){
-          stamp(r, "rect"); T.SND("tag"); tries++;
-          log(`${v} = ${r.h} × ${r.w} <span class="sys">· a rectangle</span>`, "cy");
-          say(tries >= LV.hintAfter ? `${r.h} × ${r.w} = ${v} ✓ Now try as many rows as columns: what number times itself makes ${v}?` : `${r.h} × ${r.w} = ${v} ✓ That's ${v}. Can you build ${v} another way, so it looks more special?`, "ok");
-          if(tries === LV.hintAfter) T.step(`Try the <b>same number of rows as columns</b>. What number times itself makes ${v}?`, { name: "Investigate" });
+        const c = clashWith(r, v); if(c){ T.SND("untag"); say(`That's on top of your ${c.v}. Draw it in a clear space.`, "warn"); return; }
+        clearV(v);
+        if(!P.locks(r.h, r.w)){
+          stamp(r, "rect", v, false); T.SND("tag"); tries++;
+          log(`${v} = ${r.h} × ${r.w} <span class="sys">· won't lock</span>`, "cy");
+          say(tries >= LV.hintAfter ? `${r.h} × ${r.w} = ${v} ✓ but it won't lock. Try as many rows as columns.` : `${r.h} × ${r.w} = ${v} ✓ but it won't lock. Every glowing reading can be drawn one special way. Can you find it?`, "ok");
           return;
         }
-        stamp(r, "sq"); T.SND("lockon");
+        stamp(r, "sq", v, true).classList.add("mine"); T.SND("lockon");
         mark(el, true); el.classList.remove("sel");
-        W.seen.push(v); W.target = 0; part = "auto"; handDone = true;
-        log(`${v} = ${r.h} × ${r.w} <span class="gold">· a SQUARE</span>`, "ok");
-        say(`${r.h} × ${r.w} = ${v}: a square! As many rows as columns.`, "ok");
-        setTimeout(() => { if(stage === "investigate") nextPrompt(); }, 1500 / sp());
+        W.seen.push(v); W.target = 0; locked++;
+        log(`${v} = ${r.h} × ${r.w} <span class="gold">· LOCKED</span>`, "ok");
+        say(`${r.h} × ${r.w} = ${v}: LOCKED.`, "ok");
+        $("floorHd").textContent = "SKETCH PAD";
+        setTimeout(() => { if(stage === "investigate") nextPrompt(); }, 1200 / sp());
       };
       // Teacher SKIP, one step at a time
       if(window.PNTest) PNTest.skip("Investigate a reading", () => {
         if(busy) return;
-        if(part === "hand"){ const e = els.find(o => P.isTerm(+o.dataset.v) && P.handOk(+o.dataset.v)); pickR(e); const n = root(+e.dataset.v); onRect({ x: 0, y: 0, w: n, h: n }); return; }
-        if(greensSeen() < 2){ pickR(els.find(o => P.isTerm(+o.dataset.v) && !W.seen.includes(+o.dataset.v))); return; }
-        if(W.grey == null){ pickR(els.find(o => !P.isTerm(+o.dataset.v) && T.pairs(+o.dataset.v).length >= 2) || els.find(o => !P.isTerm(+o.dataset.v))); return; }
+        if(locked < HAND){ const e = els.find(o => P.isTerm(+o.dataset.v) && P.handOk(+o.dataset.v) && !W.seen.includes(+o.dataset.v)); pickR(e); const n = root(+e.dataset.v), r = freeSpot(n, n, +e.dataset.v); onRect(r); return; }
+        if(greensSeen() < HAND + 1){ pickR(els.find(o => P.isTerm(+o.dataset.v) && !W.seen.includes(+o.dataset.v) && root(+o.dataset.v) <= NH)); return; }
+        if(W.grey == null){ pickR(els.find(o => !P.isTerm(+o.dataset.v) && +o.dataset.v < 60 && T.pairs(+o.dataset.v).length >= 2) || els.find(o => !P.isTerm(+o.dataset.v))); return; }
         finish("full");
       });
     });
   }
 
-  // ===== 3. Name the rule: the pictures are the evidence; a right answer decrypts the readings =====
+  // ===== 3. Name the rule: the rule console. Load a rule, RUN it: it makes its numbers and fires them at the readings.
+  // Only a rule that hits every glowing reading and no noise cracks the cipher. =====
   async function nameRule(quick){
     setStage("name");
-    $("stageLab").textContent = "Step 2 of 4 · name the rule";
-    const greens = READ.filter(o => o.g).map(o => o.v);
-    // the evidence: the readings they looked at (the quick path: two glowing ones the pad shows them)
-    let seenG = W.seen.filter(P.isTerm).slice(0, 4);
-    if(seenG.length < 2) seenG = [...seenG, ...T.shuffle(greens.filter(v => v > 1 && !seenG.includes(v) && v <= 100))].slice(0, 3);
-    const figs = seenG.map(v => `<figure class="ok">${miniPic(P.pts(v))}<figcaption>${P.okCap(v)}</figcaption></figure>`).join("")
-      + (W.grey != null ? `<figure class="gr">${miniPic(P.greyPts(W.grey))}<figcaption>${P.greyCap(W.grey)}</figcaption></figure>` : "");
-    const C = T.shuffle(P.rules({ greens, grey: W.grey }));
-    view("evid"); $("floorHd").textContent = "EVIDENCE"; $("floorLab").textContent = "";
-    const ev = $("evid");
-    ev.innerHTML = `<div class="arrs">${figs}</div><div class="ask">What do the glowing readings have in common?</div><div class="choices">${C.map((c, i) => `<button type="button" data-k="${i}"><kbd>${i + 1}</kbd>${c.t}</button>`).join("")}</div>`;
-    T.step(quick ? "You've cracked this code before. What do the glowing readings have in common?" : "Look at the pictures. What does every glowing reading make that the grey one can't?", { name: "Name the rule" });
-    say("");
-    ev.querySelector("button").focus({ preventScroll: true });
+    $("stageLab").textContent = "Step 2 of 4 · crack the rule";
+    view("grid"); $("floorHd").textContent = "SKETCH PAD · YOUR EVIDENCE";
+    if(quick && !onPad().length){
+      for(const v of T.shuffle(READ.filter(o => o.g && P.handOk(o.v)).map(o => o.v)).slice(0, 2)){ await autoBuild(v, true); W.seen.push(v); }
+    }
+    const R = T.shuffle(P.rules), w = $("work");
+    $("log").hidden = true; document.querySelector(".term").classList.add("tight");
+    w.innerHTML = `<div class="hd"><span>RULE CONSOLE</span><span id="loaded">NO RULE LOADED</span></div>
+      <div class="rules">${R.map((r, i) => `<button type="button" data-k="${i}"><kbd>${i + 1}</kbd> ${r.code}</button>`).join("")}<button type="button" class="pn-btn primary" id="run" disabled>RUN ▸</button></div>
+      <pre class="out" id="out"></pre>`;
+    T.step(quick ? "You've cracked this code before. Load the rule that makes the glowing readings and <b>RUN</b> it." : "Which rule makes the glowing readings? Load one and <b>RUN</b> it: the console tests it against every reading. You need every glowing one, and no grey ones.", { name: "Crack the rule" });
+    say("Load a rule, then RUN it.");
+    const out = $("out"), run = $("run");
+    const line = (html, cls = "") => { out.insertAdjacentHTML("beforeend", `<span class="${cls}">${html}</span>\n`); };
+    let sel = -1, running = false;
+    const load = k => { if(running || over) return; const b = w.querySelector(`[data-k="${k}"]`); if(!b || b.classList.contains("no")) return;
+      sel = k; w.querySelectorAll(".rules button").forEach(x => x.classList.toggle("on", x === b)); run.disabled = false; $("loaded").textContent = `LOADED: ${R[k].code}`; T.SND("tag"); run.focus({ preventScroll: true }); };
     await new Promise(res => {
-      let done = false;
-      const pick = k => {
-        if(done || over) return; const c = C[k], b = ev.querySelector(`[data-k="${k}"]`);
-        if(c.ok){ done = true; b.classList.add("yes"); document.removeEventListener("keydown", key); res(); return; }
-        if(b.classList.contains("no")) return;
-        b.classList.add("no"); alarm.hit(); say(`Not quite: ${c.why}`, "bad");
+      const go = async () => {
+        if(running || over || sel < 0) return;
+        running = true; run.disabled = true;
+        const r = R[sel], sc = score(r, READ);
+        rdEls().forEach(e => e.classList.remove("hit", "miss", "leak"));
+        out.innerHTML = ""; T.SND("typing");
+        line(`$ cipher.test --rule "${r.code}"`, "me"); await wait(450);
+        line(`  generating: ${sc.made.slice(0, 10).join(" ")}${sc.made.length > 10 ? " …" : ""}`); await wait(600);
+        const at = v => rdEls().filter(e => +e.dataset.v === v);
+        sc.hits.forEach(v => at(v).forEach(e => e.classList.add("hit"))); T.SND("tick");
+        line(`  hits: ${sc.hits.length ? sc.hits.map(v => v + " ✓").join("  ") : "none"}`, "ok"); await wait(500);
+        if(sc.missed.length){ sc.missed.forEach(v => at(v).forEach(e => e.classList.add("miss"))); line(`  missed: ${sc.missed.join(" ")}`, "bad"); await wait(500); }
+        if(sc.noise.length){ sc.noise.forEach(v => at(v).forEach(e => { e.classList.add("leak", "glitch"); })); line(`  noise let in: ${sc.noise.slice(0, 8).join(" ")}${sc.noise.length > 8 ? " …" : ""} ✗`, "bad"); T.SND("glitch"); await wait(500); }
+        const greens = sc.hits.length + sc.missed.length;
+        if(sc.perfect){ line(`  MATCH ${greens}/${greens} · 0 noise ▸ CIPHER CRACKED`, "gold"); running = false; res(); return; }
+        line(`  MATCH ${sc.hits.length}/${greens}${sc.noise.length ? ` · ${sc.noise.length} noise` : ""} ▸ REJECTED`, "bad");
+        alarm.hit({ soft: true }); T.SND("denied");
+        w.querySelector(`[data-k="${sel}"]`).classList.add("no"); w.querySelector(`[data-k="${sel}"]`).classList.remove("on");
+        sel = -1; $("loaded").textContent = "REJECTED · LOAD ANOTHER"; running = false;
+        say(sc.missed.length ? `That rule misses ${sc.missed.slice(0, 3).join(", ")}. Look at your drawings again.` : `That rule lets noise in: ${sc.noise.slice(0, 3).join(", ")} ${sc.noise.length > 1 ? "aren't" : "isn't"} glowing.`, "bad");
       };
-      const key = e => { const k = +e.key - 1; if(k >= 0 && k < C.length && !e.ctrlKey && !e.metaKey && !e.altKey && e.target.tagName !== "INPUT"){ e.preventDefault(); pick(k); } };
-      ev.querySelectorAll("button").forEach(b => b.addEventListener("click", () => pick(+b.dataset.k)));
+      w.querySelectorAll(".rules button").forEach(b => b.addEventListener("click", () => load(+b.dataset.k)));
+      run.addEventListener("click", go);
+      const key = e => { if(stage !== "name" || e.ctrlKey || e.metaKey || e.altKey || e.target.tagName === "INPUT") return; const k = +e.key - 1; if(k >= 0 && k < R.length){ e.preventDefault(); load(k); } else if(e.key === "Enter" && sel >= 0 && e.target !== run){ e.preventDefault(); go(); } };
       document.addEventListener("keydown", key);
-      if(window.PNTest) PNTest.skip("Name the rule", () => pick(C.findIndex(c => c.ok)));
+      if(window.PNTest) PNTest.skip("Run the right rule", () => { load(R.findIndex(r => r.ok)); go(); });
     });
     if(over) return;
-    ev.querySelectorAll("button").forEach(b => { b.disabled = true; });
+    await wait(500);
+    rdEls().forEach(e => e.classList.remove("hit", "miss", "leak"));
+    w.innerHTML = ""; $("log").hidden = false; document.querySelector(".term").classList.remove("tight");
     await decrypt();
     log(`CIPHER: ${P.code.toUpperCase()}`, "gold");
     say(P.cracked, "ok");
-    T.say("That's the cipher. Now predict the next ones and we have the route.");
+    T.say(`That's the cipher: ${P.what}. Now predict the next ones and we have the route.`);
     if(LV.nth) await nthTerm();
   }
   // The cracked effect: the glowing readings scramble through random digits, then settle one by one
@@ -767,7 +887,7 @@
     setStage("route");
     $("stageLab").textContent = "Step 4 of 4 · use it: lay the safe route";
     rain.classList.add("dim");
-    buildGrid(G, "floor"); view("grid"); $("floorHd").textContent = "STRONGROOM FLOOR · PRESSURE PLATES"; $("floorLab").textContent = `${G} × ${G} PLATES`;
+    buildGrid(G, G, "floor"); view("grid"); $("floorHd").textContent = "STRONGROOM FLOOR · PRESSURE PLATES"; $("floorLab").textContent = `${G} × ${G} PLATES`;
     for(let y = 0; y < G; y++) for(let x = 0; x < G; x++) cell(x, y).classList.add(F.safeAt[y][x] ? "safe" : "live");
     if(LV.outline && F.zones) F.zones.forEach(z => lay("zone", z.x, z.y, z.n, z.n));
     T.SND("scanline");
@@ -816,7 +936,7 @@
     T.finish({ ok: false, title: "PLATE TRIPPED", lines: [P.failLine], note: "Too many quick wrong guesses and the alarm goes." });
   }
 
-  buildGrid(LV.S, "pad"); $("floorLab").textContent = `${LV.S} × ${LV.S}`;
+  buildGrid(LV.SW, LV.SH, "pad"); $("floorLab").textContent = "";
   (async () => {
     await new Promise(r => { if(!T.briefOpen()) return r(); const f = () => { if(!T.briefOpen()){ window.removeEventListener("pn-brief", f); r(); } }; window.addEventListener("pn-brief", f); });
     await intercept(); if(over) return;
