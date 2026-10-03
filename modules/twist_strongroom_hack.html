@@ -323,6 +323,41 @@
   .cipher.withpic .hist{ display:none; } .cipher.withpic .cpic{ display:flex; grid-column:1; grid-row:1; min-height:0; } .cipher.withpic .cside{ grid-column:2; grid-row:1; }
   .cipher .cpic .picw{ width:100%; height:100%; border-left:none; padding-left:0; }
   .hterm .hist .ora{ color:#7fd4ff; font-family:var(--font-ui); font-weight:600; }
+
+  /* Round 23f: a bigger terminal, and a working grid where n's box lines up with the number below it */
+  .cipher .cbox{ width:min(1210px, 97vw); height:min(700px, 95vh); }
+  .cipher .cmain{ grid-template-columns:minmax(0,1fr) 540px; }
+  .cipher.withpic .cmain{ grid-template-columns:330px minmax(0,1fr); }
+  .rx{ gap:10px; } .rx-eq span{ font-size:15px; }
+  .rx-n{ font-size:26px; } .rx-n .nb.big{ font-size:30px; }
+  .rx-grid{ display:flex; flex-direction:column; gap:6px; }
+  .rx-grid .rr{ display:grid; grid-template-columns:1.3em repeat(5, minmax(1.6em, auto)); justify-content:start; align-items:center; column-gap:.35em; font:500 32px/1.25 "IBM Plex Mono", var(--font-mono); color:#e4f1f4; }
+  .rx-grid .rr > span{ text-align:center; } .rx-grid .rr > span:first-child{ color:#a9c3c9; }
+  .rx-grid .rr.r0{ color:#ffd76a; border-bottom:1px dashed rgba(255,215,106,.35); padding-bottom:6px; }
+  .rx-grid .rr .nb{ font-size:30px; min-width:1.3em; padding:0 .2em; } .rx-grid .rr b{ color:#ffd76a; font-weight:600; }
+  .rx-tab{ font-size:17px; } .rx-tab div{ grid-template-columns:70px repeat(7, 1fr); }
+
+  .pic svg.minic{ width:100%; height:100%; } .pic svg.minic rect{ fill:#1b2f37; } .pic svg.minic rect.on{ fill:rgba(143,245,201,.25); } .pic svg.minic rect.mk{ fill:rgba(255,215,106,.35); }
+  .pic svg.minic line{ stroke:#5a2a33; stroke-width:.09; stroke-linecap:round; } .pic svg.minic line.lit{ stroke:#ff6b81; }
+  .pic svg.minic text{ font:600 .5px var(--font-ui); fill:#ffd76a; text-anchor:middle; }
+
+  /* The floor as story: comms on the right, the scan, the drawn route */
+  .term.story > .rain, .term.story > .cmd, .term.story > .log{ display:none; } .term.story .work{ flex:1; }
+  .clog{ flex:1; min-height:0; overflow:auto; display:flex; flex-direction:column; gap:10px; padding:4px 2px; }
+  .clog .cl{ display:flex; flex-direction:column; gap:3px; padding:10px 12px; border-left:3px solid #6ec8ff; background:rgba(110,200,255,.08); font:500 18px/1.4 var(--font-ui); color:#e4f1f4; max-width:88%; animation:rdIn .35s ease-out; }
+  .clog .cl b{ font:700 12px var(--font-ui); letter-spacing:.18em; color:#6ec8ff; }
+  .clog .cl.me{ align-self:flex-end; border-left:none; border-right:3px solid #8ff5c9; background:rgba(143,245,201,.08); text-align:right; } .clog .cl.me b{ color:#8ff5c9; }
+  .creply{ display:flex; flex-direction:column; gap:8px; } .creply:empty{ display:none; }
+  .creply small{ font:700 12px var(--font-ui); letter-spacing:.18em; color:#8feaff; }
+  .creply button{ font:500 18px var(--font-ui); text-align:left; padding:10px 14px; color:#f2fbfd; background:#16303a; border:1px solid rgba(143,245,201,.5); cursor:pointer; }
+  .creply button:hover, .creply button:focus-visible{ border-color:#ffd76a; outline:none; }
+  .fg .c.dark{ background:#08151a !important; border-color:rgba(143,234,255,.06) !important; }
+  .fg .sweep{ position:absolute; z-index:5; pointer-events:none; background:linear-gradient(rgba(143,245,201,0), rgba(143,245,201,.55)); box-shadow:0 6px 18px rgba(143,245,201,.6); transition:top .14s linear; }
+  .fg svg.route{ position:absolute; z-index:6; pointer-events:none; overflow:visible; }
+  .fg svg.route polyline{ fill:none; stroke:#ffd76a; stroke-width:.22; stroke-linecap:round; stroke-linejoin:round; filter:drop-shadow(0 0 .15px #ffd76a); opacity:.9; }
+  .fg svg.route circle{ fill:#fff6d0; }
+  .fg .c.hitp{ animation:hitp .6s ease-out 1; } @keyframes hitp{ 30%{ background:#ff4f6d; box-shadow:0 0 14px #ff4f6d; } }
+  .cipher{ z-index:9300; } .term.story > .hd{ display:none; }
 </style>
 </head>
 <body>
@@ -552,6 +587,11 @@
     r.eq = r.sq ? "n × n" : r.dbl ? `${r.dbl}, then double` : `${r.a}n${sgn(r.b)}`;
     r.code = r.eq;
     const N = n => `<span class="nb">${n}</span>`;
+    // grid rows: [=, a, ×, n, op, b]; a cell { t, span } spans columns
+    r.rows = n => r.sq ? [["", N("n"), "×", N("n"), "", ""], ["", N(n), "×", N(n), "", ""], ["=", { t: `<b>${n * n}</b>`, span: 3 }]]
+      : r.dbl ? [["", { t: `${r.dbl}, × 2, × 2 …`, span: 5 }], ["", { t: `${r.dbl}${" × 2".repeat(Math.min(n - 1, 5))}${n > 6 ? " …" : ""}`, span: 5 }], ["=", { t: `<b>${r.gen(n)}</b>`, span: 5 }]]
+      : r.b ? [["", r.a, "", N("n"), r.b > 0 ? "+" : "−", Math.abs(r.b)], ["", r.a, "×", N(n), r.b > 0 ? "+" : "−", Math.abs(r.b)], ["=", { t: r.a * n, span: 3 }, r.b > 0 ? "+" : "−", Math.abs(r.b)], ["=", { t: `<b>${r.gen(n)}</b>`, span: 5 }]]
+      : [["", r.a, "", N("n"), "", ""], ["", r.a, "×", N(n), "", ""], ["=", { t: `<b>${r.gen(n)}</b>`, span: 3 }]];
     r.work = n => r.sq ? [`${N(n)} × ${N(n)}`, `= <b>${n * n}</b>`]
       : r.dbl ? [`${r.dbl}${" × 2".repeat(Math.min(n - 1, 6))}${n > 7 ? " …" : ""}`, `= <b>${r.gen(n)}</b>`]
       : r.b ? [`${r.a} × ${N(n)}${sgn(r.b)}`, `= ${r.a * n}${sgn(r.b)}`, `= <b>${r.gen(n)}</b>`] : [`${r.a} × ${N(n)}`, `= <b>${r.gen(n)}</b>`];
@@ -595,7 +635,7 @@
       const safeAt = Array.from({ length: G }, () => Array(G).fill(false));
       zones.forEach(z => { for(let x = z.x; x < z.x + z.n; x++) for(let y = z.y; y < z.y + z.n; y++) safeAt[y][x] = true; });
       return { safeAt, need, zones, greens: need, summary: () => `The safe readings: ${[...new Set(need)].sort((p, q) => p - q).join(", ")}.`,
-        draw(){ if(LV.outline) zones.forEach(z => lay("zone", z.x, z.y, z.n, z.n)); }, run: () => squareRoute(zones, need, safeAt) };
+        draw(){ if(LV.outline) zones.forEach(z => lay("zone", z.x, z.y, z.n, z.n)); } };
     },
     // Matchsticks (the brief: laser bars in the corridor, predict the count for gate n). The corridor only steps right
     // or down, so only neighbouring plates share a side: n gates always have 3n + 1 bars, round the corners too.
@@ -614,7 +654,7 @@
       const n = path.length, cpN = { L1: 3, L2: 4, L3: 4 }[L] || 3;
       const cps = []; for(let i = 1; i < cpN; i++){ const lo = Math.round(n * (i - .35) / cpN), hi = Math.round(n * (i + .15) / cpN); cps.push(Math.max(2, lo + Math.floor(Math.random() * Math.max(1, hi - lo)))); } cps.push(n);
       const need = cps.map(barsTo);
-      return { safeAt, need, greens: [], path, cps, barsTo, summary: () => `Laser bars disarmed: ${cps.map((g, i) => `gate ${g} → ${need[i]}`).join(", ")}.`,
+      return { safeAt, need, greens: [], path, cps, barsTo, bars, summary: () => `Laser bars disarmed: ${cps.map((g, i) => `gate ${g} → ${need[i]}`).join(", ")}.`,
         draw(){
           const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg"); svg.setAttribute("class", "bars");
           svg.dataset.gx = 0; svg.dataset.gy = 0; svg.dataset.gw = G; svg.dataset.gh = G; svg.setAttribute("viewBox", `0 0 ${G} ${G}`); svg.setAttribute("preserveAspectRatio", "none");
@@ -628,7 +668,7 @@
           path.forEach(([x, y], i) => { const g = i + 1, cp = cps.includes(g);
             if(cp || L === "L1") lay("gn" + (cp ? " cp" : ""), x, y, 1, 1, cp ? `<span>GATE ${g}</span>` : String(g)).dataset.cp = cp ? g : ""; });
         },
-        run: () => laserRoute(path, cps, need) };
+      };
     },
   };
   const F = FLOORS[PID]();
@@ -995,15 +1035,15 @@
   let rxKey = null;
   function explorer(host, rule, { n = 1, onN = null, max = 12 } = {}){
     host.innerHTML = `<div class="rx">
-      <div class="rx-eq"><small>RULE</small><b>${rule.eq}</b><span>${rule.words}</span></div>
-      <div class="rx-is">${rule.dbl ? "n = the position: 1st, 2nd, 3rd…" : P.nIs}</div>
+      <div class="rx-eq"><small>RULE</small><span>${rule.words} · ${rule.dbl ? "n = the position" : P.nIs}</span></div>
       <div class="rx-n"><button type="button" class="rx-b" data-d="-1" aria-label="n take away 1">−</button><span>n =</span><span class="nb big"></span><button type="button" class="rx-b" data-d="1" aria-label="n add 1">+</button><small>press + to change n</small></div>
-      <div class="rx-work"></div><div class="rx-tab"></div></div>`;
+      <div class="rx-grid"></div><div class="rx-tab"></div></div>`;
     let cur = n;
     const set = v => {
       cur = Math.max(1, Math.min(max, v));
       host.querySelector(".nb.big").textContent = cur;
-      host.querySelector(".rx-work").innerHTML = rule.work(cur).map(l => `<div>${l}</div>`).join("");
+      // Bertie: every line the same size, n's box over the number that replaces it
+      host.querySelector(".rx-grid").innerHTML = rule.rows(cur).map((row, ri) => `<div class="rr${ri === 0 ? " r0" : ""}">${row.map(c => typeof c === "object" && c !== null ? `<span style="grid-column:span ${c.span}">${c.t}</span>` : `<span>${c}</span>`).join("")}</div>`).join("");
       const from = Math.max(1, Math.min(cur - 3, max - 6)), ks = T.range(from, Math.min(max, from + 6));
       host.querySelector(".rx-tab").innerHTML = `<div><span>n</span>${ks.map(k => `<i class="${k === cur ? "cur" : ""}">${k}</i>`).join("")}</div><div><span>makes</span>${ks.map(k => `<i class="${k === cur ? "cur" : ""}">${rule.gen(k)}</i>`).join("")}</div>`;
       if(onN) onN(cur);
@@ -1162,59 +1202,90 @@
   }
 
   // Prove it: the sensor log with gaps, at the prompt; a lock pin drops for each right one. Then inject.
+  // ===== 4. Decrypt (Bertie: "it feels like they're actively decrypting"). Three rounds: a burst of code, the
+  // terminal asks for one value, then a decrypt burst for it. The rule explorer stays up as the calculator.
+  // Squares: the next reading in the sensor log. Matchsticks: the laser bars to each checkpoint gate, with the
+  // corridor drawn at the side. =====
+  const hex = k => Array.from({ length: k }, () => "0123456789ABCDEF"[Math.floor(Math.random() * 16)]).join("");
+  async function burst(ms, label){
+    const verbs = ["shift(n)", "xor.block()", "unmask()", "sync()", "rotate(3)", "checksum_ok()", "seed.read()"];
+    const end = performance.now() + ms / sp(); let i = 0;
+    while(performance.now() < end && !over){ tl(`${label || "decrypt"}.block[${i++}] ${hex(8)} ${hex(4)} :: ${T.pick(verbs)}`, "gob"); if(i % 3 === 0) T.SND("data"); await wait(70); }
+  }
+  async function settle(value, text){
+    const d = tl("", "gold"), v = String(value);
+    for(let f = 0; f < 12 && !over; f++){ d.textContent = `  ${text} ${String(Math.floor(Math.random() * Math.pow(10, v.length))).padStart(v.length, "0")}`; await wait(55); }
+    d.textContent = `  ${text} ${v} ✓`; T.SND("latch");
+  }
+  // the corridor, small, for the side of the terminal: bars up to gate `lit` on, gate `mark` flagged
+  function miniCorridor(lit, mark){
+    const gp = .16, P_ = F.path;
+    pic.innerHTML = `<svg class="minic" viewBox="-.3 -.3 ${G + .6} ${G + .6}" preserveAspectRatio="xMidYMid meet">
+      ${P_.map(([x, y], i) => `<rect x="${x + .06}" y="${y + .06}" width=".88" height=".88" class="${i + 1 <= lit ? "on" : ""}${i + 1 === mark ? " mk" : ""}"/>`).join("")}
+      ${[...F.bars.values()].map(o => { const [x1, y1, x2, y2] = o.b; return `<line class="${o.gate <= lit ? "lit" : ""}" x1="${x1 + (x2 - x1) * gp}" y1="${y1 + (y2 - y1) * gp}" x2="${x2 - (x2 - x1) * gp}" y2="${y2 - (y2 - y1) * gp}"/>`; }).join("")}
+      ${P_.map(([x, y], i) => i + 1 === mark ? `<text x="${x + .5}" y="${y + .62}">${mark}</text>` : "").join("")}</svg>`;
+  }
   async function prove(){
     setStage("prove");
-    $("stageLab").textContent = "Step 3 of 4 · prove it: predict the next readings";
+    $("stageLab").textContent = "Step 3 of 4 · decrypt the floor code";
     if(!prompt) terminal();
-    const k0 = T.pick(LV.from), shown = 4, n = LV.gaps;
-    const seq = T.range(k0, k0 + shown + n - 1);
-    tl(`$ sensors.log --plates NEXT`, "me"); tl(`  predict the next ${n === 2 ? "two" : "three"} readings to open the lock`, "sys");
-    prompt.innerHTML = `<span class="ps">$ cipher.predict</span><span class="eqhint">${P.ruleText}</span><span class="seq">${seq.map((k, i) => i < shown ? `<b>${P.term(k)}</b>` : `<input inputmode="numeric" maxlength="4" data-k="${k}" aria-label="Next reading ${i - shown + 1}" disabled>`).join('<span class="sep">·</span>')}</span><span class="pins" id="pins">${'<span class="pin"></span>'.repeat(n)}</span>`;
-    status("LOCK · 0/" + n);
+    const rule = P.rules.find(r => r.ok);
     showPic();
-    P.show(P.term(seq[shown - 1])); cap(`${P.term(seq[shown - 1])} <span class="sys">· the last reading</span>`);
-    T.step(`Use the rule: what comes next in the sensor log? Type each reading at the prompt and press Enter. Each one you get right drops a pin in the lock.`, { name: "Prove it" });
-    say("What comes next? Type it and press Enter.");
-    const ins = [...prompt.querySelectorAll(".seq input")];
-    await new Promise(res => {
-      let at = 0, tries = 0;
-      const open = () => { ins.forEach((i, j) => { i.disabled = j !== at; }); ins[at].focus({ preventScroll: true }); };
-      const check = () => {
-        if(over) return; const inp = ins[at]; if(!inp.value.trim()) return;
-        const k = +inp.dataset.k, want = P.term(k);
-        if(+inp.value.trim() === want){
-          inp.classList.add("right"); inp.disabled = true; tries = 0;
-          $("pins").children[at].classList.add("drop"); T.SND("latch");
-          P.show(want, { lock: true }); cap(`${P.okCap(want)} <span class="gold">✓</span>`);
-          tl(`  ${want} ✓ pin ${at + 1} down`, "ok");
-          at++; status(`LOCK · ${at}/${n}`);
-          if(at >= ins.length){ $("pins").classList.add("open"); T.SND("lock"); res(); return; }
-          say("Pin's down. And the next?", "ok"); open(); return;
-        }
-        tries++; alarm.hit(); inp.classList.remove("glitch"); void inp.offsetWidth; inp.classList.add("glitch"); inp.select();
-        tl(`  ${inp.value} ✗ rejected`, "bad");
-        say(P.hint(k, tries), "bad");
-      };
-      ins.forEach(i => i.addEventListener("keydown", e => { if(e.key === "Enter"){ e.preventDefault(); check(); } }));
-      open();
-      if(window.PNTest) PNTest.skip("Predict the next reading", () => { const i = ins[at]; i.value = P.term(+i.dataset.k); check(); });
-    });
+    explorer($("rxh"), rule, { n: 1, max: PID === "matchsticks" ? F.path.length : 12 });
+    let rounds;
+    if(PID === "matchsticks") rounds = F.cps.map((g, i) => ({ ask: `$ lasers.gate ${g} --bars`, q: `Gate ${g}: how many laser bars from the door to here?`, want: F.need[i], n: g,
+      show: done => { miniCorridor(done ? g : (i ? F.cps[i - 1] : 0), g); cap(done ? `gate ${g}: <span class="gold">${F.need[i]}</span> bars` : `gate ${g}: ? bars`); },
+      hint: t => t < 2 ? `Use the calculator: press + until n = ${g}.` : `3 × ${g} + 1.` }));
+    else {
+      const k0 = T.pick(LV.from), shown = T.range(k0, k0 + 3).map(P.term);
+      rounds = T.range(k0 + 4, k0 + 6).map((k, i) => ({ ask: `$ cipher.next`, log: [...shown, ...T.range(k0 + 4, k - 1).map(P.term)], want: P.term(k), n: k,
+        q: "What's the next reading?", show: done => { P.show(done ? P.term(k) : P.term(k - 1), { lock: done }); cap(done ? `${P.okCap(P.term(k))} <span class="gold">✓</span>` : `${P.term(k - 1)} <span class="sys">· the last one</span>`); },
+        hint: t => P.hint(k, t) }));
+    }
+    T.step(PID === "matchsticks" ? "Decrypt the laser gates: the terminal asks for the bars at each checkpoint. Use the calculator on the right (press + to set n to the gate), type the answer and press Enter." : "Decrypt the next readings: the terminal asks for each one in turn. Use the calculator on the right if you need it, type the answer and press Enter.", { name: "Decrypt" });
+    tl(`$ cipher.decrypt --floor STRONGROOM --rule "${rule.eq}"`, "me");
+    for(let i = 0; i < rounds.length && !over; i++){
+      const r = rounds[i];
+      status(`DECRYPTING · ${i}/${rounds.length}`);
+      prompt.innerHTML = `<span class="sys">decrypting block ${i + 1} of ${rounds.length}…</span><span class="pins" id="pins">${rounds.map((_, j) => `<span class="pin${j < i ? " drop" : ""}"></span>`).join("")}</span>`;
+      r.show(false);
+      await burst(i ? 1300 : 1700, PID === "matchsticks" ? "lasers" : "decrypt"); if(over) return;
+      tl(`  ${r.q}`, "sys");
+      prompt.innerHTML = `<span class="ps">${r.ask}</span>${r.log ? `<span class="seq">${r.log.map(v => `<b>${v}</b>`).join('<span class="sep">·</span>')}<span class="sep">·</span></span>` : ""}<input id="dv" inputmode="numeric" maxlength="4" aria-label="${r.q}"><span class="sys">Enter</span><span class="pins" id="pins">${rounds.map((_, j) => `<span class="pin${j < i ? " drop" : ""}"></span>`).join("")}</span>`;
+      say(r.q);
+      const inp = $("dv"); inp.focus({ preventScroll: true });
+      await new Promise(res => {
+        let tries = 0;
+        const check = () => {
+          if(over || !inp.value.trim()) return;
+          if(+inp.value.trim() === r.want){ res(); return; }
+          tries++; alarm.hit(); inp.classList.remove("glitch"); void inp.offsetWidth; inp.classList.add("glitch"); inp.select();
+          tl(`  ${inp.value} ✗ rejected`, "bad"); say(r.hint(tries), "bad");
+        };
+        inp.addEventListener("keydown", e => { if(e.key === "Enter"){ e.preventDefault(); check(); } });
+        if(window.PNTest) PNTest.skip("Decrypt the next block", () => { inp.value = r.want; check(); });
+      });
+      if(over) return;
+      prompt.innerHTML = `<span class="sys">decrypting…</span>`;
+      await settle(r.want, PID === "matchsticks" ? `gate ${r.n} bars:` : `block ${i + 1}:`);
+      r.show(true); $("pins") && $("pins").children[i] && $("pins").children[i].classList.add("drop");
+      await wait(500);
+    }
     if(over) return;
-    tl(`  LOCK OPEN`, "gold");
+    status("LOCK OPEN"); tl(`  LOCK OPEN`, "gold"); T.SND("lock");
     await inject(); if(over) return;
     await granted();
   }
   // Bertie: once the code's in, the TYPE terminal (like the Prime Hack's): any key types gobbledegook until it's in
   async function inject(){
     const tgt = String((PN && PN.mission && PN.mission().target) || "target").toLowerCase().replace(/[^a-z]+/g, "_");
-    const hex = k => Array.from({ length: k }, () => "0123456789ABCDEF"[Math.floor(Math.random() * 16)]).join("");
     const lines = [
       () => `inject --cipher "${P.code}" --floor STRONGROOM`, () => `0x${hex(8)}  ${hex(4)} ${hex(4)} ${hex(4)} ${hex(4)}`,
       () => `plates.map(${G}x${G}).weight = BYPASS`, () => `ssh oracle@${tgt}.net -p ${1000 + Math.floor(Math.random() * 8999)}`,
       () => `sensor[${Math.floor(Math.random() * 64)}].mask(${hex(6)})`, () => `route.solve() -> ${hex(10)}`, () => `alarm.relay[${Math.floor(Math.random() * 9)}] = SILENT`,
     ];
     tl(`$ cipher.inject --floor STRONGROOM`, "me");
-    const code = tl("", "gob"), need = Math.max(6, Math.round(22 / Math.max(1, sp() / 2)));
+    const code = tl("", "gob"), need = Math.max(4, Math.round(10 / Math.max(1, sp() / 2)));
     prompt.innerHTML = `<span class="ps">$ cipher.inject</span><span class="typekey"><kbd>TYPE</kbd> any key</span><span class="meter"><i></i></span><b class="pct">0%</b>`;
     status("INJECTING");
     T.step("The code's in. Type anything to inject it into their floor system.", { name: "Inject" });
@@ -1245,136 +1316,85 @@
     closeTerminal();
   }
 
-  // ===== 5. Use it: squares. Drag each safe reading onto the floor: it fills a square zone =====
-  const tiles = [];
-  const covered = (x, y) => tiles.some(t => x >= t.x && x < t.x + t.n && y >= t.y && y < t.y + t.n);
-  let cards = [];
-  async function squareRoute(zones, need, safeAt){
-    function solvable(extra){
-      const free = Array.from({ length: G }, (_, y) => Array.from({ length: G }, (_, x) => safeAt[y][x] && !covered(x, y)));
-      if(extra) for(let x = extra.x; x < extra.x + extra.n; x++) for(let y = extra.y; y < extra.y + extra.n; y++) free[y][x] = false;
-      const left = cards.filter(c => !c.used && c !== extra?.card).map(c => c.n);
-      const cnt = {}; left.forEach(n => { cnt[n] = (cnt[n] || 0) + 1; });
-      let nodes = 0;
-      const go = () => {
-        if(++nodes > 20000) return true;
-        let fx = -1, fy = -1; outer: for(let y = 0; y < G; y++) for(let x = 0; x < G; x++) if(free[y][x]){ fx = x; fy = y; break outer; }
-        if(fx < 0) return true;
-        for(const n of Object.keys(cnt).map(Number)){
-          if(!cnt[n] || fx + n > G || fy + n > G) continue;
-          let ok = true; for(let y = fy; y < fy + n && ok; y++) for(let x = fx; x < fx + n; x++) if(!free[y][x]){ ok = false; break; }
-          if(!ok) continue;
-          const set = v => { for(let y = fy; y < fy + n; y++) for(let x = fx; x < fx + n; x++) free[y][x] = v; };
-          set(false); cnt[n]--; const r = go(); set(true); cnt[n]++;
-          if(r) return true;
-        }
-        return false;
-      };
-      return go();
-    }
-    const why = (x, y, n) => {
-      if(x < 0 || y < 0 || x + n > G || y + n > G) return "off";
-      for(let i = x; i < x + n; i++) for(let j = y; j < y + n; j++){ if(!safeAt[j][i]) return "live"; if(covered(i, j)) return "overlap"; }
-      return "";
-    };
-    const w = $("work");
-    cards = need.slice().sort((p, q) => q - p).map((n, i) => ({ n: root(n), v: n, used: false, i }));
-    w.innerHTML = `<div class="ask">Safe readings: drag each one onto the floor</div><div class="tray" id="tray">${cards.map(c => `<button type="button" class="card" data-i="${c.i}">${c.v}<small>${W.seen.includes(c.v) ? `${c.n} × ${c.n}` : ""}</small></button>`).join("")}</div>`;
-    T.step(`Drag each safe reading onto the floor: it becomes a square of plates (16 is 4 × 4). Fill every safe zone, so there's a path from the <b>door</b> to the <b>safe</b>. Keep off the red plates.`, { name: "Use it: the safe route" });
-    say("Drag each reading onto a safe zone. What size of square is it?");
-    await new Promise(res => {
-      const update = () => { W.placed = tiles.length; if(cards.every(c => c.used)) res(); };
-      const put = (c, x, y) => {
-        c.used = true; w.querySelector(`.card[data-i="${c.i}"]`).classList.add("used");
-        const el = lay("tile", x, y, c.n, c.n, `<span>${c.n} × ${c.n} = ${c.v}</span>`);
-        tiles.push({ x, y, n: c.n, el }); T.SND("clamp");
-        log(`${c.v} = ${c.n} × ${c.n} · zone filled`, "ok");
-        say(`${c.v} = ${c.n} × ${c.n}: zone filled.`, "ok"); update();
-      };
-      function landing(c, gx, gy){
-        const cand = [];
-        for(let dy = -1; dy <= 1; dy++) for(let dx = -1; dx <= 1; dx++){ const x = gx + dx, y = gy + dy; if(!why(x, y, c.n)) cand.push({ x, y, d: Math.abs(dx) + Math.abs(dy), zone: zones.some(z => z.x === x && z.y === y && z.n === c.n) }); }
-        cand.sort((p, q) => (q.zone - p.zone) || (p.d - q.d));
-        return cand;
-      }
-      let drag = null;
-      w.querySelectorAll(".card").forEach(b => b.addEventListener("pointerdown", e => {
-        if(over) return; const c = cards[+b.dataset.i]; if(c.used) return; e.preventDefault();
-        const g = document.createElement("div"); g.className = "ghost"; document.body.appendChild(g);
-        const size = c.n * (CS + 2) - 2; Object.assign(g.style, { width: size + "px", height: size + "px" }); g.style.setProperty("--cw", (CS + 2) + "px");
-        g.innerHTML = `<span>${c.n} × ${c.n} = ${c.v}</span>`; T.SND("tag");
-        drag = { c, g, size }; move(e);
-        window.addEventListener("pointermove", move); window.addEventListener("pointerup", up);
-      }));
-      const gridAt = (e, size) => { const r = fg.getBoundingClientRect(); return [Math.round((e.clientX - size / 2 - r.left - fg.clientLeft - 2) / (CS + 2)), Math.round((e.clientY - size / 2 - r.top - fg.clientTop - 2) / (CS + 2))]; };
-      const overFloor = e => { const r = fg.getBoundingClientRect(); return e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom; };
-      function move(e){ if(!drag) return; drag.g.style.left = (e.clientX - drag.size / 2) + "px"; drag.g.style.top = (e.clientY - drag.size / 2) + "px";
-        const [gx, gy] = gridAt(e, drag.size); drag.g.classList.toggle("off", overFloor(e) && !landing(drag.c, gx, gy).length); }
-      function up(e){
-        window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", up);
-        if(!drag) return; const { c, g, size } = drag; drag = null; g.remove();
-        if(!overFloor(e) || over) return;
-        const [gx, gy] = gridAt(e, size), spots = landing(c, gx, gy);
-        const ok = spots.find(s => solvable({ x: s.x, y: s.y, n: c.n, card: c }));
-        if(ok){ put(c, ok.x, ok.y); return; }
-        if(spots.length){ T.SND("untag"); say(`If ${c.v} goes there, the zones left can't be filled by the readings you have. Try another spot.`, "warn"); return; }
-        const k = why(gx, gy, c.n);
-        if(k === "live"){ alarm.hit(); tripped(); radio("FOX", "Plate went off. Holding position."); } else T.SND("untag");
-        say(k === "overlap" ? `That zone's already filled. ${c.v} is ${c.n} × ${c.n}: find a zone that size.`
-          : k === "off" ? `${c.v} is ${c.n} × ${c.n}: there it would hang off the floor.`
-          : `${c.v} is ${c.n} × ${c.n}: there it would step on live plates.`, k === "live" ? "bad" : "warn");
-      }
-      if(window.PNTest) PNTest.skip("Fill every zone", () => {
-        zones.filter(z => !tiles.some(t => t.x === z.x && t.y === z.y && t.n === z.n)).forEach(z => { const c = cards.find(q => !q.used && q.n === z.n); if(c && !why(z.x, z.y, z.n)) put(c, z.x, z.y); });
-      });
-    });
+  // ===== 5. Use it (Bertie: story now, not numbers). COMMS with FOX and WREN; the pupil replies; a scan sweeps the
+  // floor and lights the safe plates the cracked code gives; then the pupil draws the route from the DOOR to the SAFE
+  // for the agents. A live plate stops the line (a small detection hit); FOX and WREN walk exactly the drawn route. =====
+  let drawn = null;
+  function comms(){
+    const tm = document.querySelector(".term"); tm.classList.add("story");
+    $("work").innerHTML = `<div class="hd"><span>COMMS · FOX &amp; WREN</span><span id="comLab">STRONGROOM DOOR</span></div><div class="clog" id="clog"></div><div class="creply" id="creply"></div>`;
   }
-  // Matchsticks: disarm the laser bars a checkpoint at a time. How many bars from the door to gate n?
-  async function laserRoute(path, cps, need){
-    // Bertie: the term equation on show, with n = the gate. Press + to change n: the working and the floor's bars
-    // up to gate n light up. When n is the checkpoint's gate, DISARM. Exploring costs nothing.
-    const w = $("work"), bars = () => [...fg.querySelectorAll("svg.bars line")], rule = P.rules.find(r => r.ok);
-    const tm = document.querySelector(".term"); tm.classList.add("calc");
-    w.innerHTML = `<div class="hd"><span>BAR CALCULATOR</span><span id="calcLab"></span></div><div class="calcbox"><div class="rxh" id="frx"></div><div class="row1"><span class="tip2" id="ctip"></span><button type="button" class="run big" id="disarm" disabled>DISARM ▸</button></div></div>`;
-    T.step(`Each plate in the corridor is a gate, fenced with laser bars like your matchsticks. In the calculator, n is the gate. Press <b>+</b> to change n: it works out the bars from the door to gate n and lights them. At each checkpoint, set n to its gate and <b>DISARM</b>.`, { name: "Use it: the laser corridor" });
-    let g = 0, ans = 0, ex = null;
-    const onN = n => {
-      bars().forEach(l => l.classList.toggle("pv", +l.dataset.gate <= n && !l.classList.contains("off")));
-      const at = n === g; $("disarm").disabled = !at;
-      $("ctip").innerHTML = at ? `Gate ${g}: <b>${F.barsTo(g)}</b> bars. DISARM them.` : `The checkpoint is <b>gate ${g}</b>. Press ${n < g ? "+" : "−"}.`;
-    };
-    for(let i = 0; i < cps.length && !over; i++){
-      g = cps[i]; ans = need[i];
-      $("calcLab").textContent = `CHECKPOINT: GATE ${g}`;
-      ex = explorer($("frx"), rule, { n: ex ? ex.n : 1, onN, max: path.length });
-      say(`Gate ${g}: how many bars from the door to here? Press + to set n to ${g}.`);
-      await new Promise(res => {
-        const d = $("disarm"), go = () => { d.removeEventListener("click", go); res(); };
-        d.addEventListener("click", go);
-        if(window.PNTest) PNTest.skip("Disarm the next gate", () => { ex.set(g); go(); });
-      });
-      if(over) return;
-      bars().forEach(l => l.classList.remove("pv"));
-      bars().filter(l => +l.dataset.gate <= g).forEach(l => { l.classList.remove("hide"); l.classList.add("off"); });
-      const cp = fg.querySelector(`.gn.cp[data-cp="${g}"]`); if(cp) cp.classList.add("done");
-      path.slice(0, g).forEach(([x, y]) => { const c = cell(x, y); c.classList.remove("pulse"); void c.offsetWidth; c.classList.add("pulse"); });
-      T.SND("clamp"); log(`gate ${g}: ${ans} bars · disarmed`, "ok"); say(`${ans} bars to gate ${g}: disarmed.`, "ok");
-      W.placed = i + 1;
-      await wait(700);
-    }
-    w.innerHTML = ""; tm.classList.remove("calc");
-  }
+  const say2 = (who, text) => { const c = $("clog"); c.insertAdjacentHTML("beforeend", `<div class="cl ${who === "YOU" ? "me" : ""}"><b>${who}</b><span>${text}</span></div>`); c.scrollTop = c.scrollHeight; T.SND(who === "YOU" ? "click" : "radio"); };
+  const reply = opts => new Promise(res => {
+    const r = $("creply"); r.innerHTML = `<small>REPLY</small>` + opts.map((o, i) => `<button type="button" data-i="${i}">${o}</button>`).join("");
+    r.querySelectorAll("button").forEach(b => b.addEventListener("click", () => { r.innerHTML = ""; say2("YOU", opts[+b.dataset.i]); res(+b.dataset.i); }));
+    r.querySelector("button").focus({ preventScroll: true });
+    if(window.PNTest) PNTest.skip("Reply", () => r.querySelector("button").click());
+  });
   async function useIt(){
     setStage("route");
     document.querySelector(".sr").classList.remove("wide");
-    $("stageLab").textContent = "Step 4 of 4 · use it: lay the safe route";
-    rain.classList.add("dim");
-    buildGrid(G, G, "floor"); view("grid"); $("floorHd").textContent = "STRONGROOM FLOOR · PRESSURE PLATES"; $("floorLab").textContent = `${G} × ${G} PLATES`;
-    for(let y = 0; y < G; y++) for(let x = 0; x < G; x++) cell(x, y).classList.add(F.safeAt[y][x] ? "safe" : "live");
-    F.draw();
-    T.SND("scanline");
-    log(`Safe route mapped from ${P.code}. Red plates are live.`, "sys");
-    await F.run();
+    $("stageLab").textContent = "Step 4 of 4 · lay the route for FOX and WREN";
+    buildGrid(G, G, "floor"); view("grid"); $("floorHd").textContent = "STRONGROOM FLOOR · PRESSURE PLATES"; $("floorLab").textContent = "SCANNING…";
+    cells.forEach(c => c.classList.add("dark"));
+    comms();
+    await wait(400); say2("FOX", "We're at the plates. Where are we with it? What do we do?");
+    T.step("FOX is asking for an update. Reply, then the scan maps the floor.", { name: "Comms" });
+    await wait(500); await reply(["Code's cracked. Laying out the route now.", "Hold on. Mapping the safe plates."]); if(over) return;
+    await wait(500); say2("WREN", "Copy. Waiting on your route. Don't keep us standing here.");
+    // the scan: a sweep line runs down the floor; plates light as it passes
+    T.SND("scanline"); $("floorLab").textContent = "SCANNING…";
+    const sweep = lay("sweep", 0, 0, G, 1);
+    for(let y = 0; y < G && !over; y++){
+      sweep.dataset.gy = y; place(sweep);
+      for(let x = 0; x < G; x++){ const c = cell(x, y); c.classList.remove("dark"); c.classList.add(F.safeAt[y][x] ? "safe" : "live"); }
+      T.SND("tick"); await wait(140);
+    }
+    sweep.remove();
+    if(F.zones && LV.outline) F.zones.forEach(z => lay("zone", z.x, z.y, z.n, z.n));
+    if(F.bars) F.draw(), fg.querySelectorAll("svg.bars line").forEach(l => { l.classList.remove("hide"); l.classList.add("off"); });
+    $("floorLab").textContent = "SAFE PLATES MAPPED";
+    say2("FOX", "I can see green plates on my screen. Draw us the way across: door to safe.");
+    T.step("Draw the route: press on the <b>DOOR</b> plate and drag across the green plates to the <b>SAFE</b>. Keep off the red ones.", { name: "Draw the route" });
+    say("Drag from the DOOR across the green plates to the SAFE.");
+    drawn = await drawRoute(); if(over) return;
+    $("floorLab").textContent = "ROUTE SENT";
+    say2("YOU", "Route's sent. Go."); await wait(400);
+    say2("WREN", "Route's on my screen. Moving.");
+  }
+  // Press on the door plate, drag through neighbouring plates; backing up rubs out; a live plate stops the line
+  function drawRoute(){
+    return new Promise(res => {
+      const route = [[0, 0]], svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      svg.setAttribute("class", "route"); svg.dataset.gx = 0; svg.dataset.gy = 0; svg.dataset.gw = G; svg.dataset.gh = G; svg.setAttribute("viewBox", `0 0 ${G} ${G}`); svg.setAttribute("preserveAspectRatio", "none");
+      fg.appendChild(svg); place(svg);
+      const paint = () => { svg.innerHTML = `<polyline points="${route.map(([x, y]) => `${x + .5},${y + .5}`).join(" ")}"/>` + route.map(([x, y]) => `<circle cx="${x + .5}" cy="${y + .5}" r=".12"/>`).join(""); W.route = route.slice(); };
+      paint();
+      const at = e => { const t = document.elementFromPoint(e.clientX, e.clientY); return t && t.classList && t.classList.contains("c") && fg.contains(t) ? [+t.dataset.x, +t.dataset.y] : null; };
+      let down = false, done = false, lastWarn = 0;
+      const step = c => {
+        const [lx, ly] = route[route.length - 1];
+        if(c[0] === lx && c[1] === ly) return;
+        const prev = route[route.length - 2];
+        if(prev && prev[0] === c[0] && prev[1] === c[1]){ route.pop(); paint(); return; }   // back up: rub out
+        if(Math.abs(c[0] - lx) + Math.abs(c[1] - ly) !== 1 || route.some(q => q[0] === c[0] && q[1] === c[1])) return;
+        if(!F.safeAt[c[1]][c[0]]){
+          down = false; const el = cell(c[0], c[1]); el.classList.remove("hitp"); void el.offsetWidth; el.classList.add("hitp");
+          if(performance.now() - lastWarn > 1500){ lastWarn = performance.now(); alarm.hit({ weight: .5 }); tripped(); say2("FOX", "Not that one! That plate's live. Go back to your last green plate."); }
+          say("That plate's live. Press on the end of your line and carry on along the green plates.", "bad"); return;
+        }
+        route.push(c); paint(); T.SND("plot");
+        if(c[0] === G - 1 && c[1] === G - 1 && !done){ done = true; down = false; T.SND("lockon"); setTimeout(() => res(route.slice()), 300 / sp()); }
+      };
+      fg.addEventListener("pointerdown", e => { if(done || over || stage !== "route") return; const c = at(e); if(!c) return;
+        const [lx, ly] = route[route.length - 1];
+        if(c[0] !== lx || c[1] !== ly){ say(route.length === 1 ? "Start on the DOOR plate (top left)." : "Carry on from the end of your line.", "warn"); return; }
+        e.preventDefault(); fg.setPointerCapture(e.pointerId); down = true; });
+      fg.addEventListener("pointermove", e => { if(!down) return; const c = at(e); if(c) step(c); });
+      const up = () => { down = false; };
+      fg.addEventListener("pointerup", up); fg.addEventListener("pointercancel", up);
+      if(window.PNTest) PNTest.skip("Draw the route", () => { route.length = 0; route.push(...crossPath()); paint(); done = true; res(route.slice()); });
+    });
   }
 
   // ===== 6. Debrief: the plates pulse door → safe, FOX and WREN cross, the code goes in the codebook =====
@@ -1386,13 +1406,13 @@
   }
   async function debrief(){
     setStage("cross"); T.hideBrief();
-    $("work").innerHTML = ""; $("stageLab").textContent = "Crossing";
+    $("stageLab").textContent = "Crossing";
     T.SND("powerup"); log(`> agents.cross(path) // ${P.code}`, "gold");
     oracle(`That's ${P.code}: ${P.what}. FOX, WREN: step only on the safe plates.`);
-    const path = crossPath();
+    const path = drawn || crossPath();
     for(let i = 0; i < path.length; i++){ const c = cell(path[i][0], path[i][1]); c.classList.remove("pulse"); void c.offsetWidth; c.classList.add("pulse"); if(i % 3 === 0) await wait(30); }
     await wait(500);
-    radio("WREN", "Stepping on your first plate. Trusting you.");
+    if($("clog")) say2("WREN", "Stepping on your first plate. Trusting you."); else radio("WREN", "Stepping on your first plate. Trusting you.");
     const dot = cls => { const d = document.createElement("div"); d.className = "agent " + cls; fg.appendChild(d); return d; };
     const fox = dot("fox"), wren = dot("wren");
     const put = (d, [x, y], k) => { const s = CS * k; Object.assign(d.style, { width: s + "px", height: s + "px", left: (px(x) + (CS - s) / 2) + "px", top: (px(y) + (CS - s) / 2) + "px" }); };
@@ -1407,7 +1427,7 @@
     }
     if(PN && PN.crackPattern) PN.crackPattern(PID);
     T.SND("success"); log("Across. No plates triggered.", "ok"); log(`${P.code.toUpperCase()} added to your codebook.`, "gold");
-    say("FOX and WREN are across. Not one plate went off.", "ok");
+    say("FOX and WREN are across. Not one plate went off.", "ok"); if($("clog")) say2("FOX", "We're across. Not one plate went off. Nice work.");
     oracle("We're across. Not one plate went off.");
     setStage("done");
     T.finish({ ok: true, title: "CODE CRACKED", lines: [`${P.code[0].toUpperCase() + P.code.slice(1)}: ${P.cracked}`, `${F.summary()} Added to your codebook.`], auto: 1600 });
