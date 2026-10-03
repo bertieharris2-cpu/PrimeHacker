@@ -37,6 +37,7 @@
   // e.g. the crew walking to the fuse box). With an intro there's no generic CHANGE OF PLAN card.
   // run(point, { params }) : extra settings for the twist's URL, e.g. { next: "fusebox" } (where the crew goes next)
   async function run(point, opts = {}){
+    if(window.PNJump && PNJump.skipping()) return null;   // teacher BACK is fast-forwarding to a later scene
     if(window.PNMode) await PNMode.idle();
     if(!PN || !PN.twistAt || qs.get("notwist")) return null;
     const t = PN.twistAt(point) || (qs.get("twist") && PN.TWISTS.find(x => x.id === qs.get("twist") && x.point === point && (x.page || x.proto)));

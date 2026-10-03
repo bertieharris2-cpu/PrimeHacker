@@ -62,6 +62,8 @@
   .pn-powerup{ position:fixed; inset:0; z-index:9999; display:flex; align-items:center; justify-content:center; background:rgba(4,14,17,.72); font-family:var(--font-ui); }
   .pn-powerup div{ border:1px solid rgba(var(--accent-rgb),.6); background:rgba(9,32,38,.92); padding:22px 30px; text-align:center; letter-spacing:.16em; font-weight:700; color:var(--accent); animation:pnPulse 1.4s ease-in-out infinite; }
   .pn-powerup small{ display:block; margin-top:8px; letter-spacing:.06em; font-weight:400; color:var(--text-muted); }
+  .pn-powerup.soft{ background:transparent; align-items:flex-start; padding-top:34vh; } .pn-powerup.soft div{ background:rgba(4,20,26,.75); }
+  html.handoff .env{ transition:none; } .tl-head{ transition:opacity .8s ease; } html.head-wait .tl-head{ opacity:0; }
   @media (max-width:700px){ .tl-floors{ top:auto; bottom:24px; left:16px; } .tl-head{ left:16px; } }
   @media (prefers-reduced-motion: reduce){ .tl-scan::after{ animation:none; } .tl-ret{ transition:none; } .env{ transform:none; transition:opacity .45s ease; } body.env-out .env{ transform:none; } }
   .pn-reduce-motion .env, .pn-reduce-motion body.env-out .env{ transform:none; }
@@ -111,6 +113,9 @@
   const sleep = ms => new Promise(r => setTimeout(r, ms / speed()));
   const reduced = () => !!(PN && PN.reducedMotion && PN.reducedMotion());
   const M = PN ? PN.mission() : { target: "Rivercross Utilities", operation: "SILENT HERON", codename: "AGENT" };
+  // Bertie: arriving straight from the scan's envelope: it is already on screen, so no fade-in and no glitch
+  let HANDOFF = false; try{ HANDOFF = sessionStorage.getItem("pn_env_handoff") === "1"; sessionStorage.removeItem("pn_env_handoff"); }catch(e){}
+  if(HANDOFF){ const h = document.documentElement; h.classList.add("handoff", "head-wait"); document.body.classList.add("env-in"); requestAnimationFrame(() => requestAnimationFrame(() => h.classList.remove("handoff"))); }
   document.getElementById("head").innerHTML = `PRIMENET // INTERCEPTED EMAIL<br>OPERATION <b>${M.operation}</b><br>PLANS OF <b>${M.target.toUpperCase()}</b><br><em id="stat">EMAIL INTERCEPTED</em>`;
   if(PN) PN.log("target-locked", { target: M.target });
 
@@ -249,7 +254,7 @@
     PNTest.add("Go to the Factor Vault", () => { goOn(); });
   }
   function powerUpPrompt(title){
-    const ov = document.createElement("div"); ov.className = "pn-powerup";
+    const ov = document.createElement("div"); ov.className = "pn-powerup" + (HANDOFF ? " soft" : "");
     ov.innerHTML = `<div>${title}<small>Press any key or click to continue</small></div>`;
     document.body.appendChild(ov);
     return () => ov.remove();
@@ -278,9 +283,10 @@
     watchH = window.PNMode ? PNMode.watch("Decrypt the plans", { seconds: rm ? 7.4 : 8.4, onSkip: goOn }) : null;
     const ret = document.getElementById("ret");
     placeEnv();
-    // 1. The intercepted email: an envelope with a padlock (it arrives as the page fades in)
-    body.classList.add("env-in"); SND("data");
-    await sleep(600);
+    // 1. The intercepted email: an envelope with a padlock (it arrives as the page fades in, or is already here from the scan)
+    if(HANDOFF) document.documentElement.classList.remove("head-wait");
+    else { body.classList.add("env-in"); SND("data"); }
+    await sleep(HANDOFF ? 250 : 600);
     if(left) return;
     // 2. It opens (the padlock stays: the plans inside are still encrypted)
     stat("OPENING BUILDING_PLANS.ENC"); SND("latch");

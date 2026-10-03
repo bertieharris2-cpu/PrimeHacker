@@ -442,6 +442,17 @@
 .thinTerm .dump{ grid-column:1 / -1; height:0; overflow:hidden; font-family:var(--font-mono); font-size:13px; line-height:1.45; color:rgba(200,255,232,.72); white-space:pre; transition:height .45s ease-out; }
 .thinTerm.grow .dump{ height:104px; }
 .scope.short{ height:150px !important; transition:height .45s ease-out; }   /* makes room for the grown terminal, so nothing scrolls */
+/* Bertie: one screen from EMAIL INTERCEPTED to the blueprint. The words lift, the envelope appears below them (where the
+   next page has it), then the boxes fade into the next page's background and target_locked carries on from there */
+.ho-bg{ position:fixed; inset:0; z-index:9500; pointer-events:none; opacity:0; transition:opacity .8s ease; background:radial-gradient(ellipse at 50% 55%, #0b2a33 0%, #04101a 55%, #01060a 100%); box-shadow:inset 0 0 180px rgba(0,0,0,.85); }
+.ho-bg.on{ opacity:1; }
+.ho-text{ position:fixed; z-index:9510; transform:translate(-50%, -50%); white-space:nowrap; pointer-events:none; font:700 clamp(24px,3vw,34px)/1.1 var(--font-ui); letter-spacing:.14em; color:var(--accent); text-shadow:0 0 18px rgba(var(--accent-rgb),.6); transition:top .7s cubic-bezier(.3,.9,.3,1), opacity .7s ease; }
+.ho-env{ position:fixed; left:50%; width:220px; height:140px; margin-left:-110px; z-index:9520; pointer-events:none; opacity:0; transform:translateY(14px) scale(.6); transition:opacity .45s ease, transform .5s cubic-bezier(.2,1.3,.4,1); }
+.ho-env.on{ opacity:1; transform:none; }
+.ho-env svg{ position:absolute; left:0; top:0; width:100%; overflow:visible; }
+.ho-env .lock{ position:absolute; left:50%; top:66px; width:34px; height:40px; margin-left:-17px; filter:drop-shadow(0 0 8px rgba(255,90,102,.55)); }
+.ho-env .nm{ position:absolute; left:50%; top:152px; transform:translateX(-50%); text-align:center; white-space:nowrap; font-family:var(--font-mono); font-size:16px; letter-spacing:.06em; color:#bff4ff; }
+.ho-env .nm small{ display:block; margin-top:4px; font-family:var(--font-ui); font-size:12px; font-weight:700; letter-spacing:.2em; color:#ff8a8a; }
 .thinTerm .got{ grid-column:1 / -1; font:700 clamp(24px,3vw,34px)/1.1 var(--font-ui); letter-spacing:.14em; color:var(--accent); text-align:center; text-shadow:0 0 18px rgba(var(--accent-rgb),.6); padding:6px 0 2px; animation:mailIn .4s ease-out; }
 /* Bertie: arrow keys or WASD move round the number grid, F tags */
 .cell.kcur{ outline:3px solid #ffe14d !important; outline-offset:2px; }
@@ -1243,7 +1254,7 @@ html.pn-mode-on .devPanel{ top: calc(var(--pn-mode-h, 62px) + 50px); }
       renderComplete();
       term.querySelector(".hint").remove();
       term.append(el("div", { class: "got", role: "status", text: "EMAIL INTERCEPTED" }));
-      setTimeout(() => { w.end(); goToTarget(); }, 1400);
+      setTimeout(async () => { w.end(); await handoff(term.querySelector('.got')); goToTarget(true); }, 1000);
     }
     // Teacher test tool: close the intercept as if every prime was locked
     interceptDone = () => { if(!locked && thinTerm.finish) thinTerm.finish(); locked = true; chaos = 0; blips.forEach(b => { b.done = true; b.state = "gone"; b.el.remove(); }); spawned = queue.length; stats.locked = half; stats.left = 0; finish(); };
@@ -1271,8 +1282,35 @@ html.pn-mode-on .devPanel{ top: calc(var(--pn-mode-h, 62px) + 50px); }
     if(window.PNBadges){ if(signal === 100) PNBadges.award("clean-sweep"); if(interceptPerfect) PNBadges.award("interceptor"); }
     if(PN) PN.log("scan-complete", { signal, bands: CONFIG.bands.map(b => `${b.start}-${b.end}`) });
   }
-  function goToTarget(){
+  // The envelope's spot is where target_locked's camera puts the building's base (its anchor): the middle, 69% down
+  async function handoff(got){
+    const rm = !!(PN && PN.reducedMotion && PN.reducedMotion()), nap = ms => new Promise(r => setTimeout(r, ms / (window.PNTest ? PNTest.speed() : 1)));
+    const r = got ? got.getBoundingClientRect() : { left: innerWidth / 2 - 100, width: 200, top: innerHeight / 2, height: 40 };
+    const bg = el("div", { class: "ho-bg", "aria-hidden": "true" });
+    const txt = el("div", { class: "ho-text", role: "status", text: "EMAIL INTERCEPTED" });
+    txt.style.left = (r.left + r.width / 2) + "px"; txt.style.top = (r.top + r.height / 2) + "px";
+    const env = el("div", { class: "ho-env", "aria-hidden": "true" });
+    env.style.top = Math.round(innerHeight * 0.6898) + "px";
+    env.innerHTML = `<svg viewBox="0 0 220 140"><rect x="1" y="1" width="218" height="138" rx="4" fill="#061a22" stroke="rgba(111,232,255,.55)" stroke-width="2"/></svg>
+      <svg viewBox="0 0 220 140"><path d="M1 1H219V135a4 4 0 0 1-4 4H5a4 4 0 0 1-4-4Z" fill="#0a2630" stroke="#6fe8ff" stroke-width="2" stroke-linejoin="round"/><path d="M2 138L96 72M218 138L124 72" fill="none" stroke="rgba(111,232,255,.45)" stroke-width="1.5" stroke-linecap="round"/></svg>
+      <svg viewBox="0 0 220 80" style="height:80px"><path d="M2 1L110 78L218 1Z" fill="#0d3340" stroke="#6fe8ff" stroke-width="2" stroke-linejoin="round"/></svg>
+      <svg class="lock" viewBox="0 0 34 40"><path d="M9 18V12a8 8 0 0 1 16 0v6" fill="none" stroke="#ff8a8a" stroke-width="3.2" stroke-linecap="round"/><rect x="4" y="17" width="26" height="21" rx="3" fill="#3a0c12" stroke="#ff6b6b" stroke-width="2.4"/><circle cx="17" cy="25.5" r="2.6" fill="#ff8a8a"/><path d="M17 27.5v4.5" stroke="#ff8a8a" stroke-width="2.4" stroke-linecap="round"/></svg>
+      <div class="nm">building_plans.enc<small>ENCRYPTED ATTACHMENT</small></div>`;
+    document.body.append(bg, txt, env);
+    if(got) got.style.visibility = "hidden";
+    // 1. the words lift clear; 2. the envelope arrives below them
+    requestAnimationFrame(() => { txt.style.top = Math.round(innerHeight * 0.42) + "px"; });
+    await nap(rm ? 200 : 750);
+    env.classList.add("on"); SND("data");
+    await nap(rm ? 600 : 1300);
+    // 3. the words and the boxes fade into the next page's background, leaving the envelope
+    bg.classList.add("on"); txt.style.opacity = "0";
+    await nap(rm ? 400 : 900);
+  }
+  function goToTarget(direct){
     if(goToTarget.ran) return; goToTarget.ran = true;
+    // Bertie: straight on from the envelope (target_locked starts with it in the same place)
+    if(direct){ try{ sessionStorage.setItem("pn_env_handoff", "1"); }catch(e){} location.href = "target_locked.html"; return; }
     // A plain fade to the dark background (no static); target_locked fades in from it
     window.PNGlitch ? PNGlitch.go("target_locked.html", { style: "fade" }) : (location.href = "target_locked.html");
   }

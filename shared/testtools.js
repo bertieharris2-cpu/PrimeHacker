@@ -19,7 +19,12 @@
   .pnt-panel button{ background:transparent; color:#f7e3a8; border:1px solid rgba(242,193,78,.55); font:inherit; font-weight:600; text-align:left; padding:7px 10px; cursor:pointer; }
   .pnt-panel button:hover{ background:rgba(242,193,78,.15); }
   .pnt-panel label{ color:#f7e3a8; display:flex; gap:8px; align-items:center; padding:4px 2px; cursor:pointer; }
-  .pnt-msg{ color:#f7e3a8; font-size:12px; min-height:1.2em; opacity:.8; }`;
+  .pnt-msg{ color:#f7e3a8; font-size:12px; min-height:1.2em; opacity:.8; }
+  .pnt-back{ margin-bottom:6px; background:rgba(20,16,4,.96); border:2px solid #f2c14e; padding:10px; display:flex; flex-direction:column; gap:6px; min-width:230px; }
+  .pnt-back[hidden]{ display:none; }
+  .pnt-back h4{ margin:0 0 2px; color:#f2c14e; font-size:11px; letter-spacing:.14em; }
+  .pnt-back button{ background:transparent; color:#f7e3a8; border:1px solid rgba(242,193,78,.55); font:inherit; font-weight:600; text-align:left; padding:7px 10px; cursor:pointer; }
+  .pnt-back button:hover{ background:rgba(242,193,78,.15); } .pnt-back button.now{ border-color:#f2c14e; color:#fff3cf; }`;
 
   const actions = [];
   let panel, list, msg;
@@ -30,7 +35,8 @@
     const wrap = document.createElement("div"); wrap.className = "pnt";
     wrap.innerHTML = `<div class="pnt-panel" hidden><h4>TEST TOOLS · TEACHER ONLY</h4><div class="pnt-list" style="display:flex;flex-direction:column;gap:6px"></div>
       <label><input type="checkbox" class="pnt-fast"> Fast animations</label><div class="pnt-msg"></div></div>
-      <span style="display:flex;gap:6px"><button class="pnt-toggle" type="button" title="Test tools (teacher only)">TEST</button><button class="pnt-toggle pnt-skip" type="button" hidden title="Skip this step (Ctrl+Shift+K)">SKIP ▸</button></span>`;
+      <div class="pnt-back" hidden></div>
+      <span style="display:flex;gap:6px"><button class="pnt-toggle" type="button" title="Test tools (teacher only)">TEST</button><button class="pnt-toggle pnt-bk" type="button" title="Replay this or go back to an earlier scene">◂ BACK</button><button class="pnt-toggle pnt-skip" type="button" hidden title="Skip this step (Ctrl+Shift+K)">SKIP ▸</button></span>`;
     document.body.appendChild(wrap);
     panel = wrap.querySelector(".pnt-panel"); list = wrap.querySelector(".pnt-list"); msg = wrap.querySelector(".pnt-msg");
     wrap.querySelector(".pnt-toggle").addEventListener("click", e => { e.stopPropagation(); panel.hidden = !panel.hidden; });
@@ -40,6 +46,8 @@
     wrap.addEventListener("click", e => e.stopPropagation());
     wrap.addEventListener("keydown", e => e.stopPropagation());
     actions.forEach(render);
+    const bk = wrap.querySelector(".pnt-back");
+    wrap.querySelector(".pnt-bk").addEventListener("click", e => { e.stopPropagation(); if(IN_TWIST){ location.reload(); return; } panel.hidden = true; if(bk.hidden) paintBack(bk); bk.hidden = !bk.hidden; });
     skipBtn = wrap.querySelector(".pnt-skip");
     skipBtn.addEventListener("click", e => { e.stopPropagation(); runSkip(); });
     paintSkip();
@@ -56,9 +64,52 @@
     list.appendChild(b);
   }
 
+  // ---------- BACK (Bertie: replay what just happened) ----------
+  // In a twist (an iframe in the mission) BACK restarts that twist. On a mission page it lists the scenes so far; a scene
+  // on the blueprint page is reached by fast-forwarding through what comes before it (twists skipped, 16x speed).
+  const page = (location.pathname.split("/").pop() || "").toLowerCase();
+  const IN_TWIST = /^twist_/.test(page);   // a twist page (in a mission's frame or the Twist Lab): BACK restarts it
+  const SCENES = [
+    { id: "brief",    name: "Briefing",              url: "briefing.html" },
+    { id: "scan",     name: "Intercept (the scan)",  url: "prime_frequency_scan.html" },
+    { id: "email",    name: "The email",             url: "target_locked.html" },
+    { id: "floors",   name: "Floors (from floor 1)", url: "factor_vault.html", fresh: true },
+    { id: "building", name: "The building",          url: "vault_blueprint_viewer.html" },
+    { id: "plan",     name: "The plan",              url: "vault_blueprint_viewer.html", jump: "plan" },
+    { id: "recon",    name: "Guard recon",           url: "vault_blueprint_viewer.html", jump: "recon" },
+    { id: "heist",    name: "The heist",             url: "vault_blueprint_viewer.html", jump: "heist" },
+    { id: "vault",    name: "The vault",             url: "prime_hack.html" },
+  ];
+  const PAGE_SCENE = { "briefing.html": "brief", "prime_frequency_scan.html": "scan", "target_locked.html": "email", "factor_vault.html": "floors", "vault_grid_demo.html": "floors", "vault_blueprint_viewer.html": "building", "prime_hack.html": "vault" };
+  const SCENE_KEY = "pn_scene_now", JUMP_KEY = "pn_jump";
+  const idx = id => SCENES.findIndex(s => s.id === id);
+  let sceneNow = PAGE_SCENE[page] || "";
+  const setScene = id => { sceneNow = id; try{ sessionStorage.setItem(SCENE_KEY, id); }catch(e){} };
+  if(sceneNow && !IN_TWIST) setScene(sceneNow);
+  function paintBack(box){
+    const here = Math.max(0, idx(sceneNow)), tw = document.querySelector(".pnts iframe");
+    box.innerHTML = "<h4>◂ BACK · REPLAY</h4>";
+    const add = (label, fn, now) => { const b = document.createElement("button"); b.type = "button"; b.textContent = label; if(now) b.className = "now"; b.addEventListener("click", fn); box.appendChild(b); };
+    if(tw) add("Restart this twist", () => { try{ tw.contentWindow.location.reload(); }catch(e){} box.hidden = true; }, true);
+    SCENES.slice(0, here + 1).reverse().forEach(sc => add((sc.id === sceneNow ? "Replay: " : "") + sc.name, () => {
+      try{ if(sc.jump) sessionStorage.setItem(JUMP_KEY, sc.jump); else sessionStorage.removeItem(JUMP_KEY); }catch(e){}
+      if(sc.fresh){ try{ localStorage.removeItem("blueprintProgress"); }catch(e){} }
+      location.href = sc.url;
+    }, sc.id === sceneNow && !tw));
+  }
+  // Fast-forward to a scene on this page
+  let jumpTo = ""; try{ jumpTo = sessionStorage.getItem(JUMP_KEY) || ""; sessionStorage.removeItem(JUMP_KEY); }catch(e){}
+  if(IN_TWIST) jumpTo = "";
+  window.PNJump = {
+    get target(){ return jumpTo; },
+    skipping(){ return !!jumpTo; },
+    // a page calls this as each scene starts; reaching the target ends the fast-forward
+    reached(id){ if(idx(id) >= 0) setScene(id); if(jumpTo && idx(id) >= idx(jumpTo)) jumpTo = ""; },
+  };
+
   window.PNTest = {
     get fast(){ return fast; },
-    speed(){ return fast ? 8 : 1; },
+    speed(){ return jumpTo ? 16 : fast ? 8 : 1; },
     add(label, run){ const a = { label, run }; actions.push(a); if(list) render(a); },
     skip(label, run){ skipAction = run ? { label, run } : null; paintSkip(); },
   };

@@ -941,6 +941,7 @@ function powerUpPrompt(title){
       async function afterAssembly(){
         // Round 15: chapter 4, the plan (no twists in this chapter)
         if(window.PNMode){ PNMode.chapter("plan"); await PNMode.chapterCard(4, "The plan"); }
+        if(window.PNJump) PNJump.reached('plan');
         watchStart('Lights on'); bpTerm.start(bpTerm.PLAN);   // teacher: a typing terminal in the right-hand column while the plan plays
         // Lit windows: every room has a × b windows, so every room on a floor has exactly N lights
         say('Powering up…'); watchLabel('Lights on');
@@ -987,6 +988,7 @@ function powerUpPrompt(title){
       async function patrolRecon(weak){
         const dEl = window.bpDirEl; window.bpDirEl = null; if(dEl){ dEl.classList.remove('on'); setTimeout(() => dEl.remove(), 500); }
         if(!window.PNTwistSlot || !PNTwistSlot.has('entry')) return;
+        if(window.PNJump){ PNJump.reached('recon'); if(PNJump.skipping()){ sneak = window.bpSneak = { m: 20, a: 4, b: 5 }; return; } }   // fast-forwarding past the recon: a stand-in plan
         const wName = weak.label.split('—')[0].trim();
         const intro = async () => {
           const w = shortWatch("Recon: last night's CCTV", 3);
@@ -1423,6 +1425,7 @@ function powerUpPrompt(title){
       const hasTw = p => !!(window.PNTwistSlot && PNTwistSlot.has(p));
       async function heist(){
         const D = heistData; if(!D) return;
+        if(window.PNJump) PNJump.reached('heist');
         heistOn = true; exploreReset(); spinning = false;
         floorGroups.forEach(f => f.group.position.set(0, 0, 0));
         document.getElementById('floorInfo').textContent = '';
