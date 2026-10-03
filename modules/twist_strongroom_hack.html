@@ -377,6 +377,9 @@
   .hterm .prompt .cd{ flex:1; min-width:90px; height:8px; border:1px solid rgba(255,215,106,.5); } .hterm .prompt .cd i{ display:block; height:100%; width:100%; background:#ffd76a; }
   .cap .k1{ color:#7fd4ff; }
   .cipher.dec .rx-grid .rr{ font-size:24px; } .cipher.dec .rx{ gap:6px; } .cipher.dec .cpic .picw{ min-height:200px; } .cipher.dec .cap{ font-size:14px; }
+  .fg .arr s.kept{ position:absolute; left:0; top:0; bottom:0; text-decoration:none; background:rgba(255,215,106,.35); border-right:2px solid #ffd76a; transition:width .45s ease; pointer-events:none; }
+  .fg .arr s.kept.one{ background:rgba(255,215,106,.6); } .fg .arr s.kept.odd{ background:rgba(255,79,109,.5); border-right-color:#ff4f6d; }
+  .fg.pad .arr b{ white-space:nowrap; } .rx-grid small.dn{ font:500 15px var(--font-ui); color:#a9c3c9; }
 </style>
 </head>
 <body>
@@ -411,7 +414,7 @@
   const root = n => Math.round(Math.sqrt(n));
 
   // ===== Which pattern: ?pattern= plays one straight away; otherwise the rotation (teacher ticks, codebook) =====
-  const BUILT = ["squares", "matchsticks"];   // the patterns this page can play so far (Bertie's brief: one at a time)
+  const BUILT = ["squares", "matchsticks", "doubling"];   // the patterns this page can play so far (Bertie's brief: one at a time)
   const ASK = new URLSearchParams(location.search).get("pattern");
   const PID = BUILT.includes(ASK) ? ASK : (PN && PN.pickPattern ? PN.pickPattern(BUILT) : BUILT[0]);
   const KNOWN = !!(PN && PN.codebook && PN.codebook()[PID]);
@@ -595,6 +598,46 @@
       hint: (k, tries) => tries < 2 ? `Not quite. ${3 * (k - 1) + 1} sticks make ${k - 1} gates. How many does one more gate add?` : `Each new gate adds 3: ${3 * (k - 1) + 1} + 3.`,
       failLine: "The laser bars were the matchstick code: the first gate takes 4 and each new gate adds 3 (4, 7, 10, 13…).",
     },
+    // Doubling (the brief: 1, 2, 4, 8, 16…; "door codes that double in length"). On the pad a drawing folds in half
+    // again and again: the glowing ones fold all the way down to 1; a grey one gets stuck on an odd number.
+    doubling: {
+      code: "the doubling code", what: "1, 2, 4, 8, 16…: each one doubles the last",
+      term: n => Math.pow(2, n - 1), isTerm: v => v >= 1 && (v & (v - 1)) === 0,
+      with1: true, fold: true,
+      near: () => T.shuffle([3, 6, 12, 24, 48, 5, 10, 20, 40, 7, 14, 28, 56, 9, 18, 36, 30, 60]),
+      handOk: v => v >= 4 && v <= 64,
+      locks: (h, w) => { const v = h * w; return (v & (v - 1)) === 0; },
+      measure: (h, w) => h * w,
+      label: (h, w) => `${h}×${w}`,
+      tip: (h, w) => `${h} × ${w} = ${h * w}`,
+      handShape: v => { let a = Math.floor(Math.sqrt(v)); while(v % a) a--; return [a, v / a]; },
+      art: () => `<i></i><span class="grid"></span>`,
+      howTo: "drag out that many boxes (rows × columns). Then watch the pad fold it in half",
+      drawAsk: v => `Draw ${v}: drag out ${v} boxes on the sketch pad.`,
+      wrongSize: (h, w, p, v) => `${h} × ${w} = ${p}. You need ${v} boxes.`,
+      noLock: (h, w, v) => `${h} × ${w} = ${v} ✓`,
+      shapes: v => { let a = Math.floor(Math.sqrt(v)); while(v % a) a--; return [[a, v / a]]; },
+      dblPts: n => { const k = n - 1, w = Math.pow(2, Math.ceil(k / 2)), h = Math.pow(2, Math.floor(k / 2)), pk = k - 1,
+        pw = pk < 0 ? 0 : Math.pow(2, Math.ceil(pk / 2)), ph = pk < 0 ? 0 : Math.pow(2, Math.floor(pk / 2));
+        return rectPts(h, w).map(p => ({ ...p, c: p.x < pw && p.y < ph ? "" : "g" })); },
+      show: (v, o) => { const n = Math.round(Math.log2(v)) + 1; showPts(PATTERNS.doubling.dblPts(n), o); },
+      okCap: v => `${v} folds down to 1`,
+      greyCap: v => { const c = [v]; while(c[c.length - 1] % 2 === 0) c.push(c[c.length - 1] / 2); return `${c.join(" → ")} won't fold`; },
+      nIs: "n = the position: 1st, 2nd, 3rd…",
+      rules: [
+        { dbl: 1, words: "start at 1, double each time", ok: true },
+        { a: 2, b: 0, words: "n times 2" },
+        { sq: true, words: "n times itself" },
+        { a: 3, b: -2, words: "start at 1, add 3 each time" },
+        { a: 2, b: -1, words: "start at 1, add 2 each time" },
+      ],
+      tryIt: { goal: 5, ban: "Watch each step copy the last one.", done: "✓ 1 × 2 × 2 × 2 × 2 = <b>16</b>. Each step doubles the last one.", key: "<span class=\"k1\">green</span> = the new copy" },
+      req: { from: 4, to: 7, ask: n => `⚠ DOOR CODE n = ${n} · how many digits?`, label: "door" },
+      floorG: 8,
+      cracked: "Doubling: each reading is the one before × 2. 1, 2, 4, 8, 16, 32…",
+      hint: (k, tries) => tries < 2 ? `Not quite. ${Math.pow(2, k - 2)} doubled is…?` : `${Math.pow(2, k - 2)} × 2.`,
+      failLine: "The door codes were the doubling code: each one is the last one × 2 (1, 2, 4, 8, 16…).",
+    },
   };
   const P = PATTERNS[PID];
   const MAX = (P.max && P.max[L]) || LV.max;
@@ -608,7 +651,7 @@
     const N = n => `<span class="nb">${n}</span>`;
     // grid rows: [=, a, ×, n, op, b]; a cell { t, span } spans columns
     r.rows = n => r.sq ? [["", N("n"), "×", N("n"), "", ""], ["", N(n), "×", N(n), "", ""], ["=", { t: `<b>${n * n}</b>`, span: 3 }]]
-      : r.dbl ? [["", { t: `${r.dbl}, × 2, × 2 …`, span: 5 }], ["", { t: `${r.dbl}${" × 2".repeat(Math.min(n - 1, 5))}${n > 6 ? " …" : ""}`, span: 5 }], ["=", { t: `<b>${r.gen(n)}</b>`, span: 5 }]]
+      : r.dbl ? [["", { t: `${r.dbl} × 2 × 2 × …`, span: 5 }], ["", { t: `${r.dbl}${" × 2".repeat(Math.min(n - 1, 7))}${n > 8 ? " …" : ""}${n > 1 ? ` <small class="dn">(× 2, ${n - 1} time${n > 2 ? "s" : ""})</small>` : ""}`, span: 5 }], ["=", { t: `<b>${r.gen(n)}</b>`, span: 5 }]]
       : r.b ? [["", r.a, "", N("n"), r.b > 0 ? "+" : "−", Math.abs(r.b)], ["", r.a, "×", N(n), r.b > 0 ? "+" : "−", Math.abs(r.b)], ["=", { t: r.a * n, span: 3 }, r.b > 0 ? "+" : "−", Math.abs(r.b)], ["=", { t: `<b>${r.gen(n)}</b>`, span: 5 }]]
       : [["", r.a, "", N("n"), "", ""], ["", r.a, "×", N(n), "", ""], ["=", { t: `<b>${r.gen(n)}</b>`, span: 3 }]];
     r.work = n => r.sq ? [`${N(n)} × ${N(n)}`, `= <b>${n * n}</b>`]
@@ -619,7 +662,7 @@
   const ord = k => k + (k % 100 >= 11 && k % 100 <= 13 ? "th" : ["th", "st", "nd", "rd"][k % 10] || "th");
 
   // ===== The floors (beat 5): each pattern lays the safe route its own way =====
-  const G = LV.G;
+  const G = P.floorG || LV.G;
   const FLOORS = {
     // Squares (as Round 22): a chain of square zones, door (top left) to safe (bottom right); drag each reading onto one
     squares(){
@@ -655,6 +698,14 @@
       zones.forEach(z => { for(let x = z.x; x < z.x + z.n; x++) for(let y = z.y; y < z.y + z.n; y++) safeAt[y][x] = true; });
       return { safeAt, need, zones, greens: need, summary: () => `The safe readings: ${[...new Set(need)].sort((p, q) => p - q).join(", ")}.`,
         draw(){ if(LV.outline) zones.forEach(z => lay("zone", z.x, z.y, z.n, z.n)); } };
+    },
+    // Doubling: the safe corridor's straight runs double (1, 1, 2, 2, 4, 4), right and down by turns: exactly 8 × 8
+    doubling(){
+      const first = T.pick(["R", "D"]), path = [[0, 0]];
+      [1, 1, 2, 2, 4, 4].forEach((len, i) => { const m = (i % 2 === 0) === (first === "R") ? "R" : "D";
+        for(let k = 0; k < len; k++){ const [x, y] = path[path.length - 1]; path.push(m === "R" ? [x + 1, y] : [x, y + 1]); } });
+      const safeAt = Array.from({ length: G }, () => Array(G).fill(false)); path.forEach(([x, y]) => { safeAt[y][x] = true; });
+      return { safeAt, need: [], greens: [], path, summary: () => "The door codes doubled: 1, 2, 4, 8, 16… and the corridor's runs doubled too (1, 2, 4).", draw(){} };
     },
     // Matchsticks (the brief: laser bars in the corridor, predict the count for gate n). The corridor only steps right
     // or down, so only neighbouring plates share a side: n gates always have 3n + 1 bars, round the corners too.
@@ -701,7 +752,8 @@
     T.shuffle(all.filter(v => v > 1)).forEach(v => { if(g.length < 9 && !g.includes(v)) g.push(v); });
     all.filter(P.handOk).slice(0, 4).forEach(v => { if(g.filter(P.handOk).length < 3 && !g.includes(v)) g.push(v); });
     // grey: near misses (the tricky ones), then numbers with lots of shapes, then any others
-    const near = T.shuffle(all.filter(v => v > 6)).slice(0, 5).map(v => v + T.pick([-1, 1, 2, -2]));
+    if(P.with1 && !g.includes(1)) g.push(1);
+    const near = P.near ? P.near().filter(v => v <= MAX).slice(0, 10) : T.shuffle(all.filter(v => v > 6)).slice(0, 5).map(v => v + T.pick([-1, 1, 2, -2]));
     const rect = T.shuffle(T.range(6, MAX).filter(v => T.pairs(v).length >= 2));
     const rest = T.shuffle(T.range(5, MAX));
     const grey = [...new Set([...near, ...rect.slice(0, 14), ...rest])].filter(v => v >= 2 && v <= MAX && !P.isTerm(v) && !g.includes(v)).slice(0, COLS * ROWS - g.length);
@@ -917,7 +969,29 @@
     d.dataset.v = v; return d;
   }
   // The pad builds a reading: its rectangles in turn, long and thin first; a code reading locks gold, a grey one never does
+  async function foldAnim(el, v){
+    const chain = [v]; while(chain[chain.length - 1] % 2 === 0) chain.push(chain[chain.length - 1] / 2);
+    const kept = document.createElement("s"); kept.className = "kept"; el.appendChild(kept);
+    const lab = el.querySelector("b");
+    for(let i = 0; i < chain.length && !over; i++){
+      kept.style.width = (chain[i] / v * 100) + "%"; lab.textContent = chain.slice(0, i + 1).join(" → ");
+      T.SND(i ? "plot" : "tag"); await wait(i ? 520 : 300);
+    }
+    const one = chain[chain.length - 1] === 1;
+    kept.classList.add(one ? "one" : "odd");
+    lab.textContent = chain.join(" → ") + (one ? " ✓" : " ✗ won't fold");
+    return one;
+  }
   async function autoBuild(v, green){
+    if(P.fold){
+      // doubling: draw it, then fold it in half until it can't
+      const [h0, w0] = P.shapes(v)[0], [h, w] = w0 <= NW && h0 <= NH ? [h0, w0] : [w0, h0];
+      clearV(v); const r = freeSpot(w, h, v, true); if(!r) return green;
+      const el = stamp(r, "rect", v, false); T.SND("plot"); await wait(400);
+      const one = await foldAnim(el, v);
+      if(one){ el.classList.remove("rect"); el.classList.add("sq"); T.SND("lockon"); }
+      return one;
+    }
     let el = null;
     const shapes = P.shapes(v);
     for(const [a, b] of shapes){
@@ -1018,6 +1092,16 @@
         if(p !== v){ T.SND("untag"); say(P.wrongSize(r.h, r.w, p, v), "warn"); return; }
         const c = clashWith(r, v); if(c){ T.SND("untag"); say(`That's on top of your ${c.v}. Draw it in a clear space.`, "warn"); return; }
         clearV(v);
+        if(P.fold){
+          const el0 = stamp(r, "rect", v, false); el0.classList.add("mine"); busy = true;
+          foldAnim(el0, v).then(one => { busy = false; if(over || !one) return;
+            el0.classList.remove("rect"); el0.classList.add("sq"); T.SND("lockon");
+            mark(el, true); el.classList.remove("sel"); W.seen.push(v); W.target = 0; locked++;
+            log(`${v} folds down to 1 <span class="gold">· LOCKED</span>`, "ok"); say(`${v} folds in half all the way down to 1: LOCKED.`, "ok");
+            $("floorHd").textContent = "SKETCH PAD";
+            setTimeout(() => { if(stage === "investigate") nextPrompt(); }, 1200 / sp()); });
+          return;
+        }
         if(!P.locks(r.h, r.w)){
           stamp(r, "rect", v, false); T.SND("tag"); tries++;
           log(`${v} = ${P.label(r.h, r.w)} <span class="sys">· won't lock</span>`, "cy");
@@ -1077,7 +1161,7 @@
     return { set, get n(){ return cur; }, banner: html => { const b = host.querySelector(".rx-ban"); if(b) b.innerHTML = html; return b; } };
   }
   // The right picture for n (after the crack): n gates with the + 1 stick and each gate's 3 coloured; an n × n array
-  const picN = n => PID === "matchsticks" ? showGates(n, { groups: true }) : showPts(rectPts(n, n), { lock: true, instant: true, frame: { x: 0, y: 0, w: n, h: n } });
+  const picN = n => PID === "matchsticks" ? showGates(n, { groups: true }) : PID === "doubling" ? showPts(P.dblPts(n), { instant: true }) : showPts(rectPts(n, n), { lock: true, instant: true, frame: { x: 0, y: 0, w: n, h: n } });
 
   let hist = null, prompt = null;
   // Bertie: the terminal comes into the middle of the screen, big. The frozen readings and the picture move into it
@@ -1187,15 +1271,15 @@
     tl(`$ cipher.explain --rule "${rule.eq}"`, "me"); tl(`  ${rule.words}: ${P.nIs}`, "sys");
     status("THE RULE");
     // Bertie: make it clear what to do. A short task with a finish: press ▲ until n = 4, then CONTINUE appears
-    const ms = PID === "matchsticks", goal = 4;
-    const key = ms ? "<span class=\"k1\">blue</span> = the + 1 stick · each colour = one gate's 3 sticks" : "n rows of n dots";
+    const ms = PID === "matchsticks", TI = P.tryIt || {}, goal = TI.goal || 4;
+    const key = TI.key || (ms ? "<span class=\"k1\">blue</span> = the + 1 stick · each colour = one gate's 3 sticks" : "n rows of n dots");
     let reached = false, ex;
-    ex = explorer($("rxh"), rule, { n: 1, banner: `TRY IT · Press <b>▲</b> until n = ${goal}. ${ms ? "Watch what each new gate adds." : "Watch the square grow."}`,
+    ex = explorer($("rxh"), rule, { n: 1, banner: `TRY IT · Press <b>▲</b> until n = ${goal}. ${TI.ban || (ms ? "Watch what each new gate adds." : "Watch the square grow.")}`,
       onN: n => { picN(n); cap(`n = ${n}: <span class="gold">${rule.gen(n)}</span><br><span class="sys">${key}</span>`);
         if(n === goal && !reached){ reached = true; T.SND("lockon");
-          const b = ex && ex.banner(ms ? `✓ 3 × 4 + 1 = <b>13</b>. Every gate adds 3 sticks, plus the 1 at the start.` : `✓ 4 × 4 = <b>16</b>. n rows of n.`); if(b) b.classList.add("done");
+          const b = ex && ex.banner(TI.done || (ms ? `✓ 3 × 4 + 1 = <b>13</b>. Every gate adds 3 sticks, plus the 1 at the start.` : `✓ 4 × 4 = <b>16</b>. n rows of n.`)); if(b) b.classList.add("done");
           $("dgo").hidden = false; $("dgo").focus({ preventScroll: true }); say("That's the rule working. CONTINUE when you're ready.", "ok"); } } });
-    prompt.innerHTML = `<span class="tip2">Press <b>▲</b> to make <span class="nb">n</span> bigger. Watch the picture and the sum.</span><button type="button" class="run" id="dgo" hidden>CONTINUE ▸</button>`;
+    prompt.innerHTML = `<span class="tip2">Press <b>▲</b> to make <span class="nb">n</span> bigger. Watch the picture and the working.</span><button type="button" class="run" id="dgo" hidden>CONTINUE ▸</button>`;
     T.step(`Press <b>▲</b> until n = ${goal}, and watch the picture and the sum change. Then <b>CONTINUE</b>.`, { name: "The rule" });
     say(`Press ▲ until n = ${goal}.`);
     await new Promise(res => { $("dgo").addEventListener("click", res); if(window.PNTest) PNTest.skip("Continue", res); });
@@ -1269,9 +1353,9 @@
     const verbs = ["shift(n)", "xor.block()", "unmask()", "sync()", "rotate(3)", "checksum_ok()", "seed.read()", "plate.map()"];
     (async () => { let i = 0; while(!stopped && !over){ tl(`${ms ? "lasers" : "floor"}.block[${i++}] ${hex(8)} ${hex(4)} ${hex(4)} :: ${T.pick(verbs)}`, "gob"); if(i % 4 === 0) T.SND("data"); await wait(rate); } })();
     tl(`$ cipher.decrypt --floor STRONGROOM --rule "${rule.eq}"`, "me");
-    const ns = T.shuffle(T.range(5, 9)).slice(0, 3);
+    const RQ = P.req || {}, ns = T.shuffle(T.range(RQ.from || 5, RQ.to || 9)).slice(0, 3);
     const reqs = ms ? F.cps.map((g, i) => ({ n: g, want: F.need[i], ask: `⚠ GATE ${g} · laser bars?`, hint: `Use the calculator: set n to ${g}.`, done: () => miniCorridor(g, F.cps[i + 1] || 0) }))
-      : ns.map(n => ({ n, want: n * n, ask: `⚠ CHECKSUM REQUEST · n = ${n} · value?`, hint: `Use the calculator: set n to ${n}.`, done: () => {} }));
+      : ns.map(n => ({ n, want: rule.gen(n), ask: RQ.ask ? RQ.ask(n) : `⚠ CHECKSUM REQUEST · n = ${n} · value?`, hint: `Use the calculator: set n to ${n}.`, done: () => {} }));
     const pins = i => `<span class="pins" id="pins">${reqs.map((_, j) => `<span class="pin${j < i ? " drop" : ""}"></span>`).join("")}</span>`;
     for(let i = 0; i < reqs.length && !over; i++){
       const r = reqs[i];
@@ -1302,7 +1386,7 @@
       if(over) return;
       prompt.innerHTML = `<span class="sys">accepted…</span>${pins(i)}`;
       tl(`  ${r.want} ✓ ACCEPTED`, "ok");
-      await settle(r.want, ms ? `gate ${r.n} bars:` : `block ${i + 1}:`);
+      await settle(r.want, ms ? `gate ${r.n} bars:` : RQ.label === "door" ? `door code ${r.n}:` : `block ${i + 1}:`);
       r.done(); $("pins") && $("pins").children[i] && $("pins").children[i].classList.add("drop");
       rate = 70;
     }

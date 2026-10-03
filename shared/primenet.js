@@ -528,7 +528,7 @@
   const PATTERNS = [
     { id:"squares",     name:"Square numbers", code:"the square code",     order:"early", terms:"1, 4, 9, 16, 25", ready:true },
     { id:"matchsticks", name:"Matchsticks",    code:"the matchstick code", order:"early", terms:"4, 7, 10, 13, 16", ready:true },
-    { id:"doubling",    name:"Doubling",       code:"the doubling code",   order:"early", terms:"1, 2, 4, 8, 16" },
+    { id:"doubling",    name:"Doubling",       code:"the doubling code",   order:"early", terms:"1, 2, 4, 8, 16", ready:true },
     { id:"lshapes",     name:"L-shapes (odd numbers)", code:"the L code",  order:"early", terms:"1, 3, 5, 7, 9" },
     { id:"crosses",     name:"Crosses",        code:"the cross code",      order:"early", terms:"1, 5, 9, 13, 17" },
   ];
