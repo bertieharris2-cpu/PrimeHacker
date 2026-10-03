@@ -161,6 +161,15 @@
     };
   }
 
+  // Round 22 (Bertie): the detection meter (shared/detect.js) in place of the alarm strikes: guessing is what gets you
+  // caught. stage "plan": full is a near miss (a few seconds lying low, never a fail); "heist": full trips the alarm (onTrip).
+  // Same hit() as the alarm (it returns how many mistakes so far). Falls back to the strikes if detect.js isn't loaded.
+  function detect({ stage = "heist", onTrip, host } = {}){
+    if(!window.PNDetect) return alarm(3, onTrip, host);
+    return PNDetect.create({ stage, level, host: host || document.querySelector(".tw-bar") || document.body,
+      onFull: d => { if(stage === "heist"){ if(onTrip) onTrip(); } else PNDetect.nearMiss(d); } });
+  }
+
   // auto: in a mission, hand back after this many ms (the twist's last picture stays up that long)   // effect: something the stage shows afterwards (e.g. "dark")
   function finish({ ok = true, title, lines = [], note = "", effect = "", auto = 0, result = resultMode }){
     if(document.querySelector(".tw-result")) return;   // one result screen only (a twist could end twice)
@@ -312,5 +321,5 @@
   const gcd = (a, b) => b ? gcd(b, a % b) : a;
   const lcm = (a, b) => a * b / gcd(a, b);
 
-  window.PNTwist = { init, peekLevel, setGoal, step, showBrief, hideBrief, showHints, briefOpen: anyOpen, alarm, finish, say, target, targets, level: () => level, SND, isPrime, isSquare, isCube, pairs, smallestFactor, shuffle, pick, range, gcd, lcm };
+  window.PNTwist = { init, peekLevel, setGoal, step, showBrief, hideBrief, showHints, briefOpen: anyOpen, alarm, detect, finish, say, target, targets, level: () => level, SND, isPrime, isSquare, isCube, pairs, smallestFactor, shuffle, pick, range, gcd, lcm };
 })();

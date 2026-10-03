@@ -133,6 +133,7 @@
 <script src="../shared/buildings.js"></script>
 <script src="../shared/testtools.js"></script>
 <script src="../shared/handler.js"></script>
+<script src="../shared/detect.js"></script>
 <script src="../shared/twist.js"></script>
 <script src="../shared/floor3d.js"></script>
 <script>
@@ -154,8 +155,9 @@
   // ----- The two rounds: numbers scale with the level. The grid always runs past the answer. -----
   const LV = {
     L1: { grid: 30, s: [[3, 4], [4, 5], [3, 5], [4, 6], [2, 5]] },
-    L2: { grid: 50, s: [[6, 8], [6, 9], [4, 10], [6, 10], [8, 12], [4, 14], [6, 14]] },
-    L3: { grid: 60, s: [[9, 12], [10, 15], [12, 16], [12, 18], [14, 21], [9, 15], [10, 25], [8, 20]] },
+    // Round 22: rounds 2 to 6 minutes at L1, 3 to 8 at L2, 4 to 12 at L3 (L3's often share a factor, so the LCM isn't just A × B)
+    L2: { grid: 50, s: [[4, 6], [3, 8], [4, 7], [5, 6], [5, 7], [5, 8], [6, 8], [6, 7]] },
+    L3: { grid: 60, s: [[6, 9], [6, 10], [8, 10], [8, 12], [9, 12], [10, 12], [4, 10], [5, 12], [4, 11]] },
   }[L];
   const qa = parseInt(qs.get("a"), 10), qb = parseInt(qs.get("b"), 10);   // the heist passes the plan's rounds on
   const P = (qa > 0 && qb > 0 && qa !== qb ? [qa, qb] : T.pick(LV.s).slice()).sort((x, y) => x - y), M = T.lcm(P[0], P[1]);
@@ -483,7 +485,7 @@
       : "We need to work out when to go in. Watch last night's CCTV and record when each guard passes the blind spot.",
     story: PHASE === "go" ? "" : "Recon: two guards patrol near the fire door. Record their rounds on last night's CCTV and work out when FOX and WREN can go in." });
   $("dest").textContent = PHASE === "recon" ? "THE PLAN ▸ WHEN DO WE GO IN?" : `FOX + WREN ▸ NEXT STOP: ${DEST.name}`;
-  const alarm = PHASE === "go" ? null : T.alarm(3, () => end(false));
+  const alarm = PHASE === "go" ? null : T.detect({ stage: "plan" });   // Round 22: the recon is the plan: guessing gets a near miss
   function say(t, cls){ const m = $("msg"); m.textContent = t; m.className = "tw-msg" + (cls ? " " + cls : ""); }
   function tag(t, cls){ const el = $("tag"); el.textContent = t; el.className = "tag" + (t ? " on" : "") + (cls ? " " + cls : ""); }
   const clock = c => `<svg viewBox="0 0 26 26" aria-hidden="true"><circle cx="13" cy="13" r="11" fill="none" stroke="${c}" stroke-width="2.4"/><path d="M13 6.5V13l4.5 3" fill="none" stroke="${c}" stroke-width="2.4" stroke-linecap="round"/></svg>`;

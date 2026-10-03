@@ -122,6 +122,7 @@
 <script src="../shared/primenet.js"></script>
 <script src="../shared/testtools.js"></script>
 <script src="../shared/handler.js"></script>
+<script src="../shared/detect.js"></script>
 <script src="../shared/twist.js"></script>
 <script>
 (() => {
@@ -153,7 +154,7 @@
   const chipsFor = k => (L === "L1" && k === 0) ? "always" : "afterWrong";
   const CHIPS = L === "L3" ? [2, 3, 5, 7, 11, 13] : [2, 3, 5, 7];
   let k = 0, over = false, busy = false, splits = 0, slips = 0, typed = "", keypadOn = false;
-  const alarm = T.alarm(BOLTS + 1, () => end());   // three strikes; four at L3, where there are three long trees
+  const alarm = T.detect({ stage: "heist", onTrip: () => end() });   // Round 22: the detection meter (quick wrong guesses trip it)
   const primeFactors = n => { const out = []; let m = n; for(let d = 2; d * d <= m; d++) while(m % d === 0){ out.push(d); m /= d; } if(m > 1) out.push(m); return out; };
   // The code for a number: its primes smallest first; at L3 shown with powers (2^3 × 3^2 × 5)
   const powers = n => { const pf = primeFactors(n); return [...new Set(pf)].map(p => { const c = pf.filter(x => x === p).length; return c > 1 ? `${p}^${c}` : `${p}`; }).join(" × "); };

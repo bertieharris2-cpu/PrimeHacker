@@ -286,7 +286,7 @@ body{ padding:12px 16px !important; overflow-y:auto; }
 @keyframes dirIn{ from{ opacity:0; transform:translateX(-8px); } }
 /* Bertie: the fire door stays on the blueprint: a stopwatch runs and the pupil presses SPACE at the planned minute */
 .bp-sw{ position:absolute; left:50%; bottom:18px; transform:translateX(-50%); z-index:7; width:min(620px, calc(100% - 40px)); padding:12px 16px 14px; background:rgba(2,10,14,.92); border:1px solid rgba(110,200,255,.6); box-shadow:0 10px 40px rgba(0,0,0,.6); font-family:var(--font-mono); color:#dff8ff; }
-.bp-sw .hd{ display:flex; justify-content:space-between; font:700 12px var(--font-ui); letter-spacing:.18em; color:#8feaff; }
+.bp-sw .hd{ display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:6px 14px; font:700 12px var(--font-ui); letter-spacing:.18em; color:#8feaff; }
 .bp-sw .clk{ font-size:44px; line-height:1.1; color:#ffe14d; text-align:center; letter-spacing:.06em; text-shadow:0 0 14px rgba(255,225,77,.45); margin:4px 0 6px; }
 .bp-sw .strip{ position:relative; height:34px; border-bottom:1px solid rgba(143,234,255,.4); margin:0 6px; }
 .bp-sw .strip .t{ position:absolute; bottom:0; width:1px; height:8px; background:rgba(143,234,255,.5); }
@@ -368,6 +368,7 @@ button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [clas
   <script src="../shared/story.js"></script>
   <script src="../shared/primenet.js"></script>
   <script src="../shared/buildings.js"></script>
+  <script src="../shared/detect.js"></script>
   <script src="../shared/mode.js"></script>
   <script src="../shared/badges.js"></script>
   <script src="../shared/testtools.js"></script>
@@ -1419,7 +1420,9 @@ function powerUpPrompt(title){
       // The fire door stopwatch: runs from a little before the planned minute M; SPACE (or the button) within ±win goes
       function stopwatchGo(M, longer){
         return new Promise(resolve => {
-          const from = Math.max(0, M - longer - 1), rate = Math.max(1.1, (M - from) / 8), win = Math.max(1, rate * 0.9), to = Math.ceil(M + win + 2);
+          // Round 22: the window is per level (about ±1.5 minutes at L1, ±1 at L2, ±0.6 at L3), set in real seconds so it stays fair
+          const LVL = (PN && PN.level ? PN.level() : 'L1'), WIN_S = { L1: 1.1, L2: 0.7, L3: 0.42 }[LVL] || 0.7;
+          const from = Math.max(0, M - longer - 1), rate = Math.max(1.1, (M - from) / 8), win = Math.max(0.45, rate * WIN_S), to = Math.ceil(M + win + 2);
           const el = document.createElement('div'); el.className = 'bp-sw'; el.setAttribute('role', 'region'); el.setAttribute('aria-label', 'Fire door stopwatch');
           const X = m => ((m - from) / (to - from) * 100).toFixed(2) + '%';
           let ticks = ''; for(let m = from; m <= to; m++) ticks += `<i class="t" style="left:${X(m)}">${(m - from) % 2 === 0 || m === M ? `<small>${m}</small>` : ''}</i>`;
@@ -1428,13 +1431,17 @@ function powerUpPrompt(title){
             <div class="ft"><span>Press <b>SPACE</b> when the stopwatch reaches minute <b>${M}</b>.</span><button type="button">GO (SPACE)</button></div><div class="msg" aria-live="polite"></div>`;
           stageEl.appendChild(el);
           const clk = el.querySelector('.clk'), ph = el.querySelector('.ph'), msg = el.querySelector('.msg');
+          // The heist's detection meter: pressing early again and again is guessing. Full: the guards spot movement at the
+          // door and FOX and WREN wait for the next time they're both at the blind spot (the stopwatch starts again).
+          const det = window.PNDetect ? PNDetect.create({ stage: 'heist', level: LVL, host: el.querySelector('.hd'), onFull: d => { run = false; msg.textContent = 'Movement at the door: the guards nearly saw you. Wait for the next time.';
+            setTimeout(() => { if(over) return; d.set(35); minute = from; msg.textContent = ''; run = true; }, 2200 / speedUp()); } }) : null;
           if(window.PNMode) PNMode.turn(`Press SPACE at minute ${M}`);
           let minute = from, run = true, over = false, last = performance.now();
-          const finish = () => { over = true; run = false; document.removeEventListener('keydown', key, true); if(window.PNTest) PNTest.skip('', null); if(window.PNMode && PNMode.done) PNMode.done(); el.remove(); SND("lockon"); bpEvent('door-go'); resolve(); };
+          const finish = () => { over = true; run = false; if(det) det.destroy(); document.removeEventListener('keydown', key, true); if(window.PNTest) PNTest.skip('', null); if(window.PNMode && PNMode.done) PNMode.done(); el.remove(); SND("lockon"); bpEvent('door-go'); resolve(); };
           const press = () => {
             if(over || !run) return;
             if(Math.abs(minute - M) <= win) return finish();
-            if(minute < M){ SND("wrong"); msg.textContent = `Not yet: it's only minute ${Math.floor(minute)}. Wait for minute ${M}.`; }
+            if(minute < M){ SND("wrong"); msg.textContent = `Not yet: it's only minute ${Math.floor(minute)}. Wait for minute ${M}.`; if(det) det.hit(); }
           };
           const key = e => { if(e.ctrlKey || e.metaKey || e.altKey) return; if(e.code === 'Space' || e.key === ' ' || e.key === 'g' || e.key === 'G' || e.key === 'Enter'){ e.preventDefault(); e.stopPropagation(); press(); } };
           document.addEventListener('keydown', key, true);

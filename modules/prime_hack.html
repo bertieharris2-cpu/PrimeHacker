@@ -473,6 +473,21 @@ html.term-cycle .terminal{ animation:termCycle 8s linear infinite; }
 .trace.hot .bar{ animation:traceHot .8s ease-in-out infinite; }
 .trace.hot .tl b{ color:#ff6b6b; }
 @keyframes traceHot{ 50%{ box-shadow:0 0 14px rgba(255,45,85,.7); } }
+/* Round 22 (Bertie: "a red bar … how close they are to failing"): the trace is a big red bar across the top of the
+   terminal (the decoder's small one is hidden). Quick wrong guesses push it up faster. */
+.lockRig .trace{ display:none; }
+.terminalWindow.hasTrace .lockRig{ top:66px; }
+.traceTop{ position:relative; display:flex; align-items:center; gap:12px; margin:0 0 12px; padding:8px 12px; border:1px solid rgba(255,79,109,.55); background:rgba(30,0,8,.45); font-family:var(--font-ui); }
+.traceTop .tl{ font-weight:700; font-size:13px; letter-spacing:.18em; color:#ff8aa0; white-space:nowrap; }
+.traceTop .tl small{ font-weight:600; font-size:11px; letter-spacing:.06em; color:rgba(255,200,210,.75); margin-left:6px; }
+.traceTop .bar{ flex:1; min-width:80px; height:18px; border:1px solid rgba(255,107,138,.75); background:rgba(0,0,0,.45); position:relative; overflow:hidden; }
+.traceTop .bar i{ position:absolute; left:0; top:0; bottom:0; width:0; background:linear-gradient(90deg, #ff9a5a, #ff4f6d 55%, #ff1f4b); box-shadow:0 0 12px rgba(255,79,109,.6); transition:width .5s ease; }
+.traceTop .tv{ font-family:var(--font-mono); font-size:18px; font-weight:700; color:#ffd0d8; min-width:3.2em; text-align:right; }
+.traceTop.hot{ border-color:#ff4f6d; } .traceTop.hot .bar{ animation:traceHot .8s ease-in-out infinite; } .traceTop.hot .tv{ color:#ff4f6d; }
+.traceTop .gs{ position:absolute; right:12px; top:calc(100% + 4px); z-index:5; font-weight:700; font-size:11px; letter-spacing:.14em; color:#ffe14d; background:rgba(20,2,8,.92); border:1px solid rgba(255,225,77,.6); padding:2px 8px; opacity:0; transition:opacity .25s; white-space:nowrap; pointer-events:none; }
+.traceTop .gs.on{ opacity:1; }
+@media (prefers-reduced-motion: reduce){ .traceTop.hot .bar{ animation:none; } }
+@media (max-width: 980px){ .terminalWindow.hasTrace .lockRig{ top:auto; } }
 .traceFlash{ position:fixed; inset:0; z-index:6500; pointer-events:none; animation:traceFlash .5s ease-in-out 4; }
 @keyframes traceFlash{ 50%{ background:rgba(255,30,60,.22); } }
 @media (max-width: 980px){ .lockRig{ position:static; width:auto; flex-direction:row; flex-wrap:wrap; justify-content:center; margin-bottom:10px; } .terminalWindow.hasRig .terminal{ padding-right:0; } }
@@ -2684,6 +2699,10 @@ const Rig = (() => {
     <div class="breach" title="Walls breached so far. It fills a quarter with every lock you crack."><div class="tl"><span>BREACH <small>walls down</small></span><b class="bv">0/4</b></div><div class="bar"><i></i></div></div>
     <div class="trace" title="How close their security is to finding you. Wrong answers push it up; at 100% they swap the lock for a new number."><div class="tl"><span>TRACE <small>security finding you</small></span><b class="tv">0%</b></div><div class="bar"><i></i></div></div>`;
   if(win){ win.appendChild(el); win.classList.add("hasRig"); }
+  // The big trace bar across the top of the terminal
+  const top = document.createElement("div"); top.className = "traceTop"; top.title = "How close their security is to finding you. Wrong answers push it up, quick guesses much more; at 100% they swap the lock for a new number.";
+  top.innerHTML = `<span class="tl">TRACE <small>how close they are to finding you</small></span><span class="bar"><i></i></span><b class="tv">0%</b><span class="gs"></span>`;
+  if(win){ win.prepend(top); win.classList.add("hasTrace"); }
   const t1 = el.querySelector(".t1"), t2 = el.querySelector(".t2"), stat = el.querySelector(".rigStat"), hexEl = el.querySelector(".rigHex");
   let gen = 0;     // each new answer bumps this, so an older animation stops where it is
   const fast = () => (window.PNTest ? PNTest.speed() : 1) * speed();
@@ -2734,10 +2753,19 @@ const Rig = (() => {
       api.jamTimer = setTimeout(() => { setTumbler(t1, null); setTumbler(t2, null); el.classList.remove("jam"); }, 900 / fast());
     },
     paintTrace(){
-      const tr = el.querySelector(".trace");
-      tr.querySelector("i").style.width = api.trace + "%";
-      tr.querySelector(".tv").textContent = Math.round(api.trace) + "%";
-      tr.classList.toggle("hot", api.trace >= 75);
+      [el.querySelector(".trace"), top].forEach(tr => {
+        tr.querySelector("i").style.width = api.trace + "%";
+        tr.querySelector(".tv").textContent = Math.round(api.trace) + "%";
+        tr.classList.toggle("hot", api.trace >= 75);
+      });
+    },
+    // A wrong answer: quick ones in a row (guessing) push the trace up much faster
+    lastWrong: -1e9,
+    mistake(n){
+      const now = performance.now(), dt = now - api.lastWrong; api.lastWrong = now;
+      const f = dt < 1500 ? 2.5 : dt < 4000 ? 1.8 : 1;
+      if(f > 1){ const g = top.querySelector(".gs"); g.textContent = f > 2 ? "GUESSING! SLOW DOWN" : "TOO QUICK: THINK FIRST"; g.classList.add("on"); clearTimeout(api.gsT); api.gsT = setTimeout(() => g.classList.remove("on"), 2200); }
+      api.raise(Math.round(n * f));
     },
     raise(n){
       if(Run.index > Run.locksPerRun || FF.active || api.busy) return;
@@ -2766,14 +2794,14 @@ const Rig = (() => {
     },
     startClock(){
       clearInterval(api.timer);
-      // Slow background rise: 1% every 5 seconds while a lock is open
-      api.timer = setInterval(() => { if(!document.hidden && !FF.active && Run.index <= Run.locksPerRun && !Run.solved) api.raise(1); }, 5000);
+      // Slow background rise: 1% every 5 seconds while a lock is open (every 3.5 at L3: the biggest stretch)
+      api.timer = setInterval(() => { if(!document.hidden && !FF.active && Run.index <= Run.locksPerRun && !Run.solved) api.raise(1); }, DIFF === "L3" ? 3500 : 5000);
     },
   };
   api.paintTrace();
   return api;
 })();
-const TRACE_STEP = { L1: 15, L2: 18, L3: 20 };   // trace added by a wrong product; a non-prime adds two thirds of this
+const TRACE_STEP = { L1: 15, L2: 18, L3: 24 };   // trace added by a wrong product; a non-prime adds two thirds of this (Round 22: L3 faster)
 const TRACE_MULT = PN && PN.perk ? PN.perk("trace", 1) : 1;   // safehouse gadget: the trace scrambler (×0.75) or ghost cloak (×0.5) slow every rise
 
 // ===================== SUCCESS SCREENS =====================
@@ -3236,7 +3264,7 @@ async function handleMath(text){
     Run.tries = (Run.tries || 0) + 1;
     Run.wrongTotal = (Run.wrongTotal || 0) + 1;
     if(window.PNSound) PNSound.play("wrong");
-    Rig.jam(p, q); Rig.raise(TRACE_STEP[DIFF] || 15);
+    Rig.jam(p, q); Rig.mistake(TRACE_STEP[DIFF] || 15);
     if(window.PNHandler && Run.tries === 3) PNHandler.once(`hack-tip-${Run.n}`, `Try dividing ${Run.n} by the small primes: 2, 3, 5, 7, 11. If one goes in exactly, you've found half the pair.`);
     if(Run.tries >= 3){
       const cands = primesUpTo(Math.floor(Math.sqrt(Run.n))).slice(0, 6);
@@ -3250,7 +3278,7 @@ async function handleMath(text){
     Run.tries = (Run.tries || 0) + 1;
     Run.wrongTotal = (Run.wrongTotal || 0) + 1;
     if(window.PNSound) PNSound.play("denied");
-    Rig.jam(p, q); Rig.raise(Math.round((TRACE_STEP[DIFF] || 15) * 2 / 3));
+    Rig.jam(p, q); Rig.mistake(Math.round((TRACE_STEP[DIFF] || 15) * 2 / 3));
     const bad = !isPrime(p) ? p : q;
     let split = ""; for(let i=2;i*i<=bad;i++){ if(bad%i===0){ split = ` It's ${i} × ${bad/i}.`; break; } }
     if(Run.tries >= 3) setHint(`Right product, but <b>${bad}</b> isn't prime.${split} Break it down and try again.`);

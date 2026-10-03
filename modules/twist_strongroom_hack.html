@@ -129,6 +129,7 @@
 <script src="../shared/primenet.js"></script>
 <script src="../shared/testtools.js"></script>
 <script src="../shared/handler.js"></script>
+<script src="../shared/detect.js"></script>
 <script src="../shared/twist.js"></script>
 <script>
 (() => {
@@ -155,7 +156,7 @@
   const DRAWS = 3;   // green readings drawn as squares before the question
   function say(t, cls){ const m = $("msg"); m.textContent = t; m.className = "tw-msg" + (cls ? " " + cls : ""); }
   function log(html, cls = ""){ const d = document.createElement("div"); d.className = cls; d.innerHTML = html; $("log").appendChild(d); while($("log").children.length > 6) $("log").firstChild.remove(); }
-  const alarm = T.alarm(3, () => fail());
+  const alarm = T.detect({ stage: "heist", onTrip: () => fail() });   // Round 22: quick wrong guesses trip it
   let over = false, stage = "stream";
   const W = window.__pnStrong = { level: L, stage: "stream", drawn: [], grey: null, placed: 0 };   // for automated checks
   const setStage = s => { stage = s; W.stage = s; };

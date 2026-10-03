@@ -112,6 +112,7 @@
 <script src="../shared/primenet.js"></script>
 <script src="../shared/testtools.js"></script>
 <script src="../shared/handler.js"></script>
+<script src="../shared/detect.js"></script>
 <script src="../shared/twist.js"></script>
 <script>
 (() => {
@@ -135,7 +136,7 @@
   // Two walls whose totals share a useful common factor (the key box), not 1 and not the smaller total itself
   const rounds = (() => { for(let i = 0; i < 200; i++){ const w = T.shuffle(SETS).slice(0, 2), g = T.gcd(w[0][0], w[1][0]); if(g >= 2 && g < Math.min(w[0][0], w[1][0])) return w; } return T.shuffle(SETS).slice(0, 2); })();
   let r = 0, over = false, right = 0, total = 0, hue = 150;
-  const alarm = T.alarm(3, () => end(false));
+  const alarm = T.detect({ stage: "heist", onTrip: () => end(false) });   // Round 22: quick wrong guesses trip it
   const fits = (a, b, W, H) => (a <= H && b <= W) || (b <= H && a <= W);
   const sp = () => (window.PNTest ? PNTest.speed() : 1);
   const reduced = window.Primenet && Primenet.reducedMotion ? Primenet.reducedMotion() : matchMedia("(prefers-reduced-motion: reduce)").matches;   // the learner's motion setting, or the system one

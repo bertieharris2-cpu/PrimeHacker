@@ -75,6 +75,7 @@
 <script src="../shared/primenet.js"></script>
 <script src="../shared/testtools.js"></script>
 <script src="../shared/handler.js"></script>
+<script src="../shared/detect.js"></script>
 <script src="../shared/twist.js"></script>
 <script src="../shared/floor3d.js"></script>
 <script>
@@ -290,6 +291,9 @@
   function toBoard(p, x, y){ p.onBoard = true; p.x = x; p.y = y; fg.appendChild(p.el); p.el.style.position = ""; paint(p, C); p.el.style.left = x * C + "px"; p.el.style.top = y * C + "px"; }
   function say(t, cls){ const m = $("msg"); m.textContent = t; m.className = "tw-msg" + (cls ? " " + cls : ""); }
   let over = false, turns = 0, misfits = 0;
+  // Round 22 (Bertie): this one is trial and error, so a room that doesn't fit costs nothing. Only rapid-fire dropping
+  // (guessing) fills the detection meter, and full is a near miss, never a fail.
+  const det = T.detect({ stage: "plan", host: document.querySelector("#fbox .lab") });
   // Turn (a quarter turn) or flip a room, in place on the floor if there's space
   function reshape(p, s, what){
     if(over) return;
@@ -327,9 +331,9 @@
       if(!s.moved){ turn(p); return; }
       p.el.classList.remove("drag", "bad");
       const [gx, gy] = gridPos(e, s);
-      if(inside(e) && valid(p, gx, gy) && !solvable(p, gx, gy)){ p.onBoard = false; misfits++; T.SND("untag"); say(STUCK, "warn"); }
+      if(inside(e) && valid(p, gx, gy) && !solvable(p, gx, gy)){ p.onBoard = false; misfits++; det.hit({ soft: true }); T.SND("untag"); say(STUCK, "warn"); }
       else if(inside(e) && valid(p, gx, gy)){ toBoard(p, gx, gy); T.SND("clamp"); say(`${label(p, 99)} room placed.`, "ok"); }
-      else if(inside(e)){ p.onBoard = false; misfits++; T.SND("untag"); say("That's over a corridor, a blacked-out square, the lift, the stairs or another room. Try another spot, or turn it.", "warn"); fg.classList.remove("glitch"); void fg.offsetWidth; fg.classList.add("glitch"); }
+      else if(inside(e)){ p.onBoard = false; misfits++; det.hit({ soft: true }); T.SND("untag"); say("That's over a corridor, a blacked-out square, the lift, the stairs or another room. Try another spot, or turn it.", "warn"); fg.classList.remove("glitch"); void fg.offsetWidth; fg.classList.add("glitch"); }
       else { p.onBoard = false; }
       layoutTray(); update();
     };
@@ -359,7 +363,9 @@
     T.say("Floor rebuilt. Sending it back into the blueprint.");
     setTimeout(() => T.finish({ ok: true, title: "BLUEPRINT REPAIRED", lines: [], effect: "repaired" }), 2000 / (window.PNTest ? PNTest.speed() : 1));
   }
-  fit();
+  // Round 22: L1 starts with two rooms already in place (where they go in the known solution)
+  if(L === "L1") T.shuffle(pieces).slice(0, 2).forEach(p => { const sl = p.sol; setShape(p, { bw: sl.bw, bh: sl.bh, parts: sl.parts }); toBoard(p, sl.x, sl.y); });
+  fit(); update();
   let rz = 0; window.addEventListener("resize", () => { cancelAnimationFrame(rz); rz = requestAnimationFrame(() => { if(!over) fit(); }); });
   // Quiet: goes to HINTS (?), which only opens when the pupil asks
   T.step(`Drag all <b>${pieces.length} rooms</b> onto the floor. <b>Tap</b> a room to turn it round. <b>⇋</b> flips an L-shaped room over.`, { quiet: true, name: "Rebuild the floor" });

@@ -598,6 +598,7 @@ html.pn-mode-on .devPanel{ top: calc(var(--pn-mode-h, 62px) + 50px); }
 <script src="../shared/story.js"></script>
 
 <script src="../shared/primenet.js"></script>
+<script src="../shared/detect.js"></script>
 <script src="../shared/voice.js"></script>
 <script src="../shared/mode.js"></script>
 <script src="../shared/badges.js"></script>
@@ -649,7 +650,17 @@ html.pn-mode-on .devPanel{ top: calc(var(--pn-mode-h, 62px) + 50px); }
   // A strong signal earns decoder charges for the Factor Vault.
   let signal = 100, bandStartedAt = 0;
   const loseSignal = n => { signal = Math.max(20, signal - n); updateSignalMeters(); };
+  // Round 22 (Bertie: lots of wrong clicks on the email intercept could alert the company): a SUSPICION meter in the
+  // scan's header, in place of the signal bars (the signal still earns the decoder charges, behind the scenes). Wrong
+  // verifies and noise clicks raise it, quick ones much more. Full: their mail server closes the channel (this band's tags
+  // are wiped and the pupil lies low for a few seconds), never a mission failure.
+  const sus = window.PNDetect ? PNDetect.create({ stage: "email", level: LEVEL_ID, host: null, onFull: d => {
+    if(state === State.SCAN){ selected.clear(); main.querySelectorAll(".cell").forEach(c => { c.classList.remove("selected", "wrongTag", "missed"); c.setAttribute("aria-pressed", "false"); }); if(typeof syncVerify === "function") syncVerify(); }
+    setConsole("CHANNEL CLOSED", "Their mail server noticed something. Lie low, then try again.");
+    PNDetect.nearMiss(d, { title: "CHANNEL CLOSED", text: "Too many wrong signals, too fast: their mail server noticed something. Lie low for a moment, then try again, more carefully.", seconds: 4, after: 35 });
+  } }) : null;
   function signalMeter(){
+    if(sus) return sus.el;   // the one meter, moved into each new heading
     const w = el("div", { class: "signal", title: "Signal strength: a fast, clean scan earns decoder charges for the vault" });
     w.innerHTML = `SIGNAL <span class="bars">${[1,2,3,4,5].map(() => "<i></i>").join("")}</span> <b></b>`;
     paintSignal(w); return w;
@@ -989,7 +1000,7 @@ html.pn-mode-on .devPanel{ top: calc(var(--pn-mode-h, 62px) + 50px); }
     } else {
       setConsole("NOISE DETECTED", "Rescan required.");
       bandMisses++;
-      loseSignal(10);
+      loseSignal(10); if(sus) sus.hit();
       const wrongTags = [...selected].filter(n => !primes.has(n)), missedP = [...primes].filter(n => !selected.has(n));
       if(bandMisses === 1){
         setConsole("NOISE DETECTED", `${wrongTags.length} tag${wrongTags.length === 1 ? " is" : "s are"} noise and ${missedP.length} signal${missedP.length === 1 ? " is" : "s are"} missing. Rescan.`);
@@ -1175,7 +1186,7 @@ html.pn-mode-on .devPanel{ top: calc(var(--pn-mode-h, 62px) + 50px); }
     function hitBlip(blip){
       if(blip.done || !running) return;
       if(isPrime(blip.n)){ stats.locked++; retire(blip, "locked", "LOCKED"); SND("correct", Math.min(8, stats.locked - 1)); setConsole("SIGNAL LOCKED", `${blip.n} is prime: only 1 and ${blip.n} go into it.`); }
-      else { stats.noise++; let f = ""; for(let i = 2; i * i <= blip.n; i++) if(blip.n % i === 0){ f = `${i}×${blip.n / i}`; break; } retire(blip, "noise", blip.n === 1 ? "1: NOT PRIME" : `= ${f}`); SND("wrong"); loseSignal(4); setConsole("NOISE", blip.n === 1 ? "1 is not prime: it has only one factor." : `${blip.n} = ${f.replace("×", " × ")}, so it isn't prime.`); }
+      else { stats.noise++; let f = ""; for(let i = 2; i * i <= blip.n; i++) if(blip.n % i === 0){ f = `${i}×${blip.n / i}`; break; } retire(blip, "noise", blip.n === 1 ? "1: NOT PRIME" : `= ${f}`); SND("wrong"); loseSignal(4); if(sus) sus.hit(); setConsole("NOISE", blip.n === 1 ? "1 is not prime: it has only one factor." : `${blip.n} = ${f.replace("×", " × ")}, so it isn't prime.`); }
       paintHud();
     }
     // Feedback: clicks were too fussy. A click anywhere near a peak's label (within 70px) counts for it.

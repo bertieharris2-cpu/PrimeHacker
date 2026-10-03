@@ -422,6 +422,14 @@
 
     /* Three parts, always: draw | pairs | arrays */
     main{ flex:1 1 auto; min-height:0; display:grid; grid-template-columns:minmax(0, 1.12fr) minmax(300px, .78fr) minmax(0, 1.1fr); gap:18px; }
+    /* Round 22: L3 has no drawing grid (type the pairs); the table and the arrays share the width */
+    body.no-draw main{ grid-template-columns:minmax(300px, .9fr) minmax(0, 1.1fr); }
+    body.no-draw .panel-draw, body.no-draw .read-box{ display:none; }
+    .fv-det{ display:flex; flex-wrap:wrap; justify-content:center; align-items:center; gap:8px 16px; margin-top:8px; min-height:0; }
+    .fv-det:empty{ display:none; }
+    .fv-win{ font-family:var(--font-ui); font-weight:700; font-size:12px; letter-spacing:.14em; color:#ffe14d; }
+    .fv-win b{ font-family:var(--font-mono); font-size:15px; letter-spacing:.02em; }
+    .fv-win.low{ color:#ff8aa0; }
     .panel{ min-height:0; min-width:0; display:flex; flex-direction:column; gap:8px; padding:12px 14px; overflow:hidden;
       border:1px solid var(--panel-border); background:var(--panel-bg); backdrop-filter:blur(8px);
       box-shadow:0 0 0 1px rgba(var(--accent-rgb),.15) inset, 0 20px 60px rgba(0,0,0,.5); position:relative; }
@@ -567,6 +575,7 @@ body{ font-size: var(--font-size); }
         <div class="read-box" aria-live="polite"><div class="drag-read idle" id="dragRead">Drag on the grid</div></div>
         <div class="msg-line" id="hint" role="status" aria-live="polite"></div>
         <div class="progress-line">Found <b id="progress">0 of 0</b></div>
+        <div class="fv-det" id="fvDet"></div>
       </section>
 
       <!-- RIGHT: arrays -->
@@ -580,6 +589,7 @@ body{ font-size: var(--font-size); }
   <script src="../shared/story.js"></script>
 
   <script src="../shared/primenet.js"></script>
+  <script src="../shared/detect.js"></script>
   <script src="../shared/buildings.js"></script>
   <script src="../shared/mode.js"></script>
   <script src="../shared/badges.js"></script>
@@ -1057,6 +1067,8 @@ body{ font-size: var(--font-size); }
       setHint(msg, "bad");
       audioManager.playIncorrectTone();
       floorMisses++;
+      if(fvDet) fvDet.hit();   // Round 22: the detection meter (only quick guessing fills it)
+      armNudge();
       if(window.PNHandler && floorMisses === 3) PNHandler.once(`vault-tip-${N}`, `Try counting up from 1. If a number goes into ${N} exactly, its partner is ${N} ÷ that number.`);
     }
 
@@ -1066,6 +1078,7 @@ body{ font-size: var(--font-size); }
       if(busyFloor || found.has(key)) return false;
       found.add(key);
       freshKey = key;
+      armNudge();
       if(found.size === 1) setMode("Sector Authorization");
       audioManager.playCorrectTone();
       setHint(x === y ? `${x} × ${x} = ${N} ✓ A square: it looks the same both ways round.` : `${x} × ${y} = ${N} ✓ Turned round, ${y} × ${x} is the same pair.`, "good");
@@ -1079,6 +1092,7 @@ body{ font-size: var(--font-size); }
     let busyFloor = false;
     function completeFloor(){
       busyFloor = true;
+      clearTimeout(nudgeT); clearInterval(winT);
       document.body.classList.add("floor-done");
       pairsTable.querySelectorAll("[contenteditable]").forEach(td => td.contentEditable = "false");
       if(document.activeElement && document.activeElement.blur) document.activeElement.blur();
@@ -1318,6 +1332,43 @@ body{ font-size: var(--font-size); }
       }
     }
 
+    // ===== Round 22: per-level help and the detection meter (Bertie: discourage guessing, keep the plan forgiving) =====
+    // L1: the drawing grid, and a nudge when they're stuck (a number to try, never the answer). L2: hints after a mistake.
+    // L3: no drawing grid (type the pairs) and a decrypt window: running out of time raises the meter, never a fail.
+    // The meter is the plan's gentle one: it drains while they think; only rapid guessing fills it (then a near miss).
+    const fvSp = () => (window.PNTest ? PNTest.speed() : 1);
+    let fvDet = null, nudgeT = 0, winT = 0, winLeft = 0;
+    function armNudge(){
+      clearTimeout(nudgeT); if(PRACTICE || currentDifficulty !== "L1") return;
+      nudgeT = setTimeout(() => { if(busyFloor) return; const next = allPairs.find(([a, b]) => !found.has(keyOf(a, b))); if(!next) return;
+        setHint(next[0] === 1 ? `Every number has a pair with 1: what times 1 makes ${N}?` : `Stuck? Try ${next[0]}: does ${next[0]} go into ${N} exactly? Count up in ${next[0]}s.`, "warn"); armNudge(); }, 25000 / fvSp());
+    }
+    function paintWindow(){ const w = document.querySelector(".fv-win"); if(!w) return; w.innerHTML = `DECRYPT WINDOW <b>${Math.floor(winLeft / 60)}:${String(winLeft % 60).padStart(2, "0")}</b>`; w.classList.toggle("low", winLeft <= 15); }
+    function startWindow(secs){
+      clearInterval(winT); winLeft = secs; paintWindow();
+      winT = setInterval(() => {
+        if(busyFloor || document.hidden || document.querySelector(".pnd-near")) return;
+        winLeft = Math.max(0, winLeft - 1); paintWindow();
+        if(winLeft > 0) return;
+        clearInterval(winT);
+        if(fvDet) fvDet.set(fvDet.value + 30);
+        setHint("The decrypt window closed. ORACLE bought another minute.", "warn");
+        if(window.PNHandler) PNHandler.say("Window's closing on us, {agent}. I've bought another minute. Keep going.");
+        startWindow(60);
+      }, 1000 / fvSp());
+    }
+    function levelHelp(){
+      const l3 = !PRACTICE && currentDifficulty === "L3";
+      document.body.classList.toggle("no-draw", l3);
+      const box = document.getElementById("fvDet");
+      if(!PRACTICE && window.PNDetect && !fvDet) fvDet = PNDetect.create({ stage: "plan", level: currentDifficulty, host: box,
+        onFull: d => PNDetect.nearMiss(d, { text: "Too many wrong pairs, too fast: the vault's security nearly noticed. Lie low a moment, then think each pair through." }) });
+      if(fvDet) fvDet.set(0);
+      box.querySelectorAll(".fv-win").forEach(n => n.remove()); clearInterval(winT);
+      if(l3){ const w = document.createElement("span"); w.className = "fv-win"; box.appendChild(w); startWindow(25 * allPairs.length); }
+      armNudge();
+    }
+
     // ===== INIT =====
     function init(newN){
       // If newN provided, use it; otherwise pick random from current difficulty
@@ -1344,8 +1395,9 @@ body{ font-size: var(--font-size); }
       setMode("Vault Analysis Terminal");
       const floor = Math.min(getCompletedLevels().length + 1, FLOORS_NEEDED);
       document.getElementById("nSub").textContent = PRACTICE ? "PRACTICE" : `FLOOR ${floor} OF ${FLOORS_NEEDED}`;
-      setHint(`Type a pair in the table, or draw a rectangle on the grid.`);
+      setHint(!PRACTICE && currentDifficulty === "L3" ? `Type a pair in the table.` : `Type a pair in the table, or draw a rectangle on the grid.`);
       resetRead();
+      levelHelp();
       if(PN && !PRACTICE) PN.log("vault", { floor, n: N, level: currentDifficulty });
       floorMisses = 0;
       floorIntro(floor);
