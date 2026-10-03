@@ -120,14 +120,14 @@
   function peekLevel(){ const a = PN && PN.getAgent(); return ["L1", "L2", "L3"].includes(qs.get("level")) ? qs.get("level") : (a && a.level) || "L1"; }
   // Teacher: "make all twists carry straight on". In a mission every twist is result:"auto": the twist's own ending is the payoff,
   // so finish() shows no result card and hands back by itself. The Twist Lab keeps the card (Play again). init({ result: "card" }) opts out.
-  function init({ id, stage, title, goal, story, brief, example, briefTitle, context, briefStyle, result }){
+  function init({ id, stage, title, goal, story, brief, example, briefTitle, context, briefStyle, result, levels }){
     resultMode = result || (MISSION ? "auto" : "");
     const st = document.createElement("style"); st.textContent = css + (EMBED ? " .pnh{ display:none !important; }" : ""); document.head.appendChild(st);
     if(PN && PN.applyLoot) PN.applyLoot();   // safehouse shop: hologram tint and night lens
     level = peekLevel();
     const wrap = document.querySelector(".tw") || document.body;
     const head = document.createElement("header"); head.className = "tw-head";
-    const lv = ["L1", "L2", "L3"].map(l => { const u = new URL(location.href); u.searchParams.set("level", l); return `<a href="${u.pathname.split("/").pop()}${u.search}" aria-current="${l === level}">${l}</a>`; }).join("");
+    const lv = (levels || ["L1", "L2", "L3"]).map(l => { const u = new URL(location.href); u.searchParams.set("level", l); return `<a href="${u.pathname.split("/").pop()}${u.search}" aria-current="${l === level}">${l}</a>`; }).join("");
     head.innerHTML = MISSION
       ? `<div class="l"><h1>${title}</h1></div>`   // teacher: no CHANGE OF PLAN · L1 line over the title in a mission (the lab keeps its line)
       : qs.get("warmup") === "1" ? `<div class="l"><span class="eb">WARM-UP · OPTIONAL</span><h1>${title}</h1></div><div class="r"><a class="pn-btn small" href="../index.html" style="text-decoration:none">Main menu</a></div>`

@@ -27,7 +27,7 @@
   .term{ display:flex; flex-direction:column; gap:8px; padding:12px 16px; min-height:0; background:#020a0c; font-family:var(--font-mono); overflow:hidden; }
   .term .hd, .floor .hd{ display:flex; justify-content:space-between; gap:10px; font:700 12px var(--font-ui); letter-spacing:.18em; color:#8feaff; }
   .term .hd #termLab.live{ color:#7dffc4; }
-  .term{ transition:padding-bottom .3s; } .term.oracle.tight{ padding-bottom:132px; }
+
   .cmd{ font-size:15px; line-height:1.45; color:#ff9ae9; min-height:1.45em; }
   .cmd .ok{ color:#7dffc4; } .cmd .sys{ color:var(--text-faint); } .cmd .gold{ color:#ffe14d; }
   /* The readings, frozen after the rain */
@@ -103,18 +103,26 @@
   .pic .frame{ position:absolute; border:2px solid #ffe14d; box-shadow:0 0 18px rgba(255,225,77,.45); pointer-events:none; animation:frIn .3s ease-out; }
   @keyframes frIn{ from{ opacity:0; transform:scale(1.15); } }
   .pic.instant i{ transition:none; }
-  .pic svg.gates line{ stroke:#8feaff; stroke-width:5; stroke-linecap:round; filter:drop-shadow(0 0 4px rgba(143,234,255,.8)); animation:stIn .18s ease-out backwards; }
-  .pic svg.gates.lock line{ stroke:#ffe14d; filter:drop-shadow(0 0 5px rgba(255,225,77,.85)); }
-  @keyframes stIn{ from{ opacity:0; stroke-width:12; stroke:#fff; } }
+  /* matchsticks: pale wood with a red head; gold when locked */
+  .st line{ stroke:#e9c98f; stroke-linecap:round; } .st circle{ fill:#ff5a4f; }
+  .pic svg.gates .st{ animation:stIn .2s ease-out backwards; filter:drop-shadow(0 0 3px rgba(233,201,143,.5)); }
+  .pic svg.gates.lock .st line{ stroke:#ffe14d; } .pic svg.gates.lock .st{ filter:drop-shadow(0 0 5px rgba(255,225,77,.8)); }
+  .pic svg.gates.demo .st{ opacity:.14; animation:none; transition:opacity .3s; } .pic svg.gates.demo .st.on, .pic svg.gates.demo .st.one{ opacity:1; }
+  .pic svg.gates.demo .st.one line{ stroke:#6ec8ff; } .pic svg.gates.demo .st.grp1 line{ stroke:#ffe14d; } .pic svg.gates.demo .st.grp0 line{ stroke:#ffb35c; }
+  @keyframes stIn{ from{ opacity:0; transform:translateY(-6px); } }
   .fg .arr svg.sticks{ position:absolute; inset:-1px; width:calc(100% + 2px); height:calc(100% + 2px); overflow:visible; }
-  .fg .arr svg.sticks path{ fill:none; stroke:#8feaff; stroke-width:3; vector-effect:non-scaling-stroke; stroke-linecap:round; }
+  .fg .arr svg.sticks .st line{ stroke-width:4; vector-effect:non-scaling-stroke; }
+  .fg.pad .arr.ms em, .fg.pad .arr.ms .tag{ display:none; }
+  .fg.pad .arr.ms b{ top:50%; left:calc(100% + 10px); transform:translateY(-50%); font-size:13px; }
   .fg .arr.ms{ border-color:transparent !important; background:rgba(110,200,255,.08) !important; box-shadow:none !important; }
-  .fg .arr.ms.sq svg.sticks path{ stroke:#ffe14d; filter:drop-shadow(0 0 3px rgba(255,225,77,.8)); }
+  .fg .arr.ms.sq svg.sticks .st line{ stroke:#ffe14d; } .fg .arr.ms.sq svg.sticks{ filter:drop-shadow(0 0 3px rgba(255,225,77,.8)); }
   .fg .lft.stick{ background:none; border:none; } .fg .lft.stick::after{ content:""; position:absolute; left:42%; top:4%; bottom:4%; width:16%; background:#ff4f6d; box-shadow:0 0 6px #ff4f6d; }
   /* The matchstick floor: laser bars along the corridor */
   .fg svg.bars{ position:absolute; pointer-events:none; overflow:visible; z-index:3; }
   .fg svg.bars line{ stroke:#ff3b5c; stroke-width:4; vector-effect:non-scaling-stroke; stroke-linecap:round; filter:drop-shadow(0 0 4px #ff3b5c); transition:stroke .4s, opacity .4s; }
   .fg svg.bars line.hide{ opacity:0; } .fg svg.bars line.off{ stroke:#2fbf8a; filter:none; opacity:.55; }
+  .fg svg.bars line.pv{ opacity:1; stroke:#ffe14d; filter:drop-shadow(0 0 4px #ffe14d); }
+  .fg svg.bars circle.em{ fill:#4a5a62; }
   .fg .gn{ position:absolute; z-index:4; pointer-events:none; display:flex; align-items:center; justify-content:center; font:700 11px var(--font-mono); color:rgba(223,248,255,.6); }
   .fg .gn.cp{ font-size:12px; color:#2a2100; } .fg .gn.cp span{ background:#ffe14d; padding:0 3px; white-space:nowrap; } .fg .gn.cp.done span{ background:#7dffc4; }
   .cap{ min-height:1.5em; text-align:center; font:700 18px var(--font-mono); color:#dff8ff; }
@@ -169,12 +177,17 @@
   .flood .box{ width:min(1040px,94vw); height:min(600px,80vh); display:flex; flex-direction:column; border:1px solid rgba(125,255,196,.45); background:rgba(4,14,17,.97); box-shadow:0 20px 90px rgba(0,0,0,.85), 0 0 40px rgba(125,255,196,.12); }
   .flood .hdr{ display:flex; justify-content:space-between; gap:12px; padding:12px 18px; border-bottom:1px solid rgba(125,255,196,.25); font:800 14px var(--font-ui); letter-spacing:.16em; color:#7dffc4; }
   .flood .hdr span{ color:var(--text-muted); font-weight:600; } .flood .pct{ color:#ffe14d; font-family:var(--font-mono); letter-spacing:.06em; }
-  .flood .body{ flex:1; min-height:0; display:grid; grid-template-columns:minmax(0,1fr) 210px; }
+  .flood .body{ flex:1; min-height:0; display:grid; grid-template-columns:minmax(0,1fr) 260px; }
   .flood .stream{ min-height:0; overflow:hidden; padding:14px 20px; font:19px/1.6 var(--font-mono); display:flex; flex-direction:column; justify-content:flex-end; color:rgba(143,234,255,.75); }
   .flood .stream div{ white-space:pre; }
   .flood .stream .noise{ color:rgba(143,234,255,.4); } .flood .stream .me{ color:#ff9ae9; } .flood .stream .warn{ color:#ffe14d; }
   .flood .stream b{ font-weight:700; color:#dff8ff; } .flood .stream b.g{ color:#7dffc4; text-shadow:0 0 10px rgba(125,255,196,.7); }
   .flood .stream .big{ font:800 32px var(--font-ui); letter-spacing:.18em; color:#7dffc4; text-shadow:0 0 22px rgba(125,255,196,.5); margin:8px 0 2px; }
+  .flood .comms{ gap:10px; font:600 14px/1.35 var(--font-ui); color:#dff8ff; overflow:auto; }
+  .flood .comms .cl{ display:flex; flex-direction:column; gap:2px; padding:8px 10px; border-left:3px solid #6ec8ff; background:rgba(110,200,255,.08); animation:rdIn .4s ease-out; }
+  .flood .comms .cl b{ font:700 12px var(--font-ui); letter-spacing:.18em; color:#6ec8ff; }
+  .flood .foot{ display:flex; justify-content:space-between; align-items:center; padding:10px 18px; border-top:1px solid rgba(125,255,196,.2); font:700 13px var(--font-ui); letter-spacing:.16em; color:#8feaff; }
+  .flood .foot kbd{ font:700 12px var(--font-mono); padding:0 5px; border:1px solid currentColor; margin-left:4px; }
   .flood .tally{ border-left:1px solid rgba(125,255,196,.2); padding:14px 16px; display:flex; flex-direction:column; gap:6px; font:700 20px var(--font-mono); color:#7dffc4; overflow:hidden; }
   .flood .tally small{ font:700 12px var(--font-ui); letter-spacing:.18em; color:#8feaff; margin-bottom:4px; }
   .flood .tally div{ display:flex; justify-content:space-between; } .flood .tally div i{ font-style:normal; color:#ffe14d; }
@@ -188,6 +201,26 @@
   .term.tight .rain{ grid-auto-rows:27px; padding:3px 0; } .term.tight .work{ flex:1; } .term.tight .rd{ font-size:17px; } .term.tight .work .hd{ display:flex; justify-content:space-between; font:700 12px var(--font-ui); letter-spacing:.16em; color:#8feaff; } .term.tight #loaded{ color:#ffe14d; }
   .out{ margin:0; flex:1; overflow:hidden; min-height:0; font:15px/1.45 var(--font-mono); color:#9fffd4; white-space:pre-wrap; }
   .out .me{ color:#ff9ae9; } .out .bad{ color:#ff8aa0; } .out .ok{ color:#7dffc4; } .out .gold{ color:#ffe14d; } .out .sys{ color:var(--text-faint); }
+  /* The cipher terminal: centred and big (Bertie) */
+  .cipher{ position:fixed; inset:0; z-index:7200; display:flex; align-items:center; justify-content:center; background:rgba(2,8,10,.6); transition:background .25s; }
+  .cipher .cbox{ width:min(1000px, 94vw); height:min(640px, 88vh); flex:none; box-shadow:0 20px 90px rgba(0,0,0,.85), 0 0 40px rgba(125,255,196,.12); font-size:18px; padding:14px 18px; transition:opacity .25s, padding-bottom .3s; }
+  html.oracle .cipher .cbox{ padding-bottom:140px; }
+  .cipher.peek{ background:transparent; pointer-events:none; } .cipher.peek .cbox{ opacity:.06; } .cipher.peek #peek{ pointer-events:auto; opacity:1; position:fixed; top:14px; right:20px; z-index:2; }
+  .cipher .chd{ display:flex; gap:16px; align-items:center; font:700 13px var(--font-ui); letter-spacing:.18em; color:#8feaff; padding-bottom:8px; }
+  .cipher .chd #loaded{ margin-left:auto; color:#ffe14d; }
+  .cipher .cread .rain{ --cols:15 !important; grid-template-columns:repeat(15, minmax(0,1fr)); grid-auto-rows:34px; gap:4px; border-top:none; }
+  .cipher .cread .rd{ font-size:20px; }
+  .cipher .cmain{ flex:1; min-height:0; display:grid; grid-template-columns:minmax(0,1fr) auto; gap:14px; margin-top:8px; }
+  .cipher .cbox .hist{ font-size:17px; }
+  .cipher .cpic .picw{ width:380px; height:100%; min-height:200px; border-left:1px solid rgba(125,255,196,.2); padding-left:12px; }
+  .cipher .cpic:empty{ display:none; } .cipher .cpic .cap{ font-size:18px; }
+  .cipher .cbox .prompt{ font-size:18px; } .cipher .cbox .prompt button.rule{ font-size:18px; padding:9px 14px; } .cipher .cbox .prompt button.run{ font-size:18px; padding:9px 18px; }
+  .cipher .prompt .rules2{ display:grid; grid-template-columns:1fr 1fr; gap:8px; width:100%; } .cipher .prompt .rules2 button{ text-align:left; }
+  .cipher .cbox .prompt input{ font-size:22px; width:3.2em; }
+  .pic i.dim{ background:#22414a; box-shadow:none; }
+  .term.calc .work{ flex:1; } .term.calc .log{ display:none; } html.oracle .term.calc{ padding-bottom:132px; }
+  .term.calc .hterm{ font-size:17px; } .term.calc .prompt input{ font-size:20px; } .term.calc .prompt button.run{ font-size:15px; padding:6px 12px; }
+  .term.calc .hist b{ color:#ffe14d; }
   /* The cipher terminal */
   .hterm{ flex:1; min-height:0; display:flex; flex-direction:column; background:#01070a; border:1px solid rgba(125,255,196,.25); padding:8px 10px; font:15px/1.45 var(--font-mono); color:#9fffd4; }
   .hterm .hist{ flex:1; min-height:0; overflow:auto; white-space:pre-wrap; scrollbar-width:thin; }
@@ -225,6 +258,20 @@
   .granted{ position:fixed; left:50%; top:42%; z-index:7500; transform:translate(-50%, -50%) rotate(-4deg); pointer-events:none; padding:14px 34px; border:4px solid #7dffc4; color:#7dffc4; background:rgba(2,16,10,.88);
     font:700 clamp(30px, 5vw, 60px) var(--font-ui); letter-spacing:.22em; text-shadow:0 0 18px rgba(125,255,196,.8); box-shadow:0 0 40px rgba(125,255,196,.35); animation:grIn .6s steps(6) 1; transition:opacity .5s; }
   @keyframes grIn{ 0%{ clip-path:inset(0 100% 0 0); transform:translate(-50%, -50%) rotate(-4deg) scale(1.4); } 50%{ clip-path:inset(30% 0 40% 0); transform:translate(-48%, -50%) rotate(-4deg) scale(1.05); } 100%{ clip-path:inset(0); } }
+  /* Investigate (Bertie): the sketch pad runs right across the top, so drawings go in order; the readings strip below */
+  .sr.wide{ grid-template-columns:minmax(0,1fr); grid-template-rows:minmax(0,1fr) 222px; }
+  .sr.wide .ctl{ position:absolute; right:14px; bottom:12px; z-index:4; }
+  .sr.wide .term{ display:grid; grid-template-columns:minmax(0,1fr) minmax(240px,.42fr); grid-template-rows:auto auto minmax(0,1fr); column-gap:16px; align-content:start; }
+  .sr.wide .term > .hd, .sr.wide .term > .cmd{ grid-column:1 / -1; }
+  .sr.wide .term > .rain{ grid-column:1; grid-row:3; --cols:10 !important; grid-template-columns:repeat(10, minmax(0,1fr)); align-self:start; }
+  .sr.wide .term > .work{ display:none; }
+  .sr.wide .term > .log{ grid-column:2; grid-row:3; }
+  /* Drawings can be moved (drag) and erased (×) */
+  .fg.pad .arr{ pointer-events:auto; cursor:grab; touch-action:none; }
+  .fg.pad .arr.moving{ cursor:grabbing; opacity:.75; z-index:6; }
+  .fg.pad .arr.moving.bad{ outline:2px solid #ff4f6d; }
+  .fg.pad .arr .x{ all:unset; position:absolute; top:-9px; right:-9px; width:18px; height:18px; display:flex; align-items:center; justify-content:center; border-radius:50%; font:700 12px var(--font-ui); color:#fff; background:#5a2030; border:1px solid #ff8aa0; cursor:pointer; z-index:3; opacity:.8; }
+  .fg.pad .arr .x:hover, .fg.pad .arr .x:focus-visible{ opacity:1; background:#ff4f6d; }
   [hidden]{ display:none !important; }
   @media (prefers-reduced-motion: reduce){ .rain.in .rd, .rain.frozen .rd.g, .fg .arr, .fg .tile, .rd.glitch, .rd.sel::before, .rd.sel::after, .floor.shake, .granted, .fg .c.pulse{ animation:none !important; } .fg .agent, .pic i{ transition:none; } }
   html.pn-reduce-motion .rain.in .rd, html.pn-reduce-motion .rain.frozen .rd.g, html.pn-reduce-motion .fg .arr, html.pn-reduce-motion .fg .tile, html.pn-reduce-motion .rd.glitch, html.pn-reduce-motion .rd.sel::before, html.pn-reduce-motion .rd.sel::after,
@@ -270,18 +317,20 @@
   const PID = BUILT.includes(ASK) ? ASK : (PN && PN.pickPattern ? PN.pickPattern(BUILT) : BUILT[0]);
   const KNOWN = !!(PN && PN.codebook && PN.codebook()[PID]);
 
-  const L = T.init({ id: "strongroomhack", stage: "THE HEIST", title: "THE STRONGROOM", eyebrow: "THE HEIST", briefTitle: "COMMS · ORACLE", briefStyle: "comms",
+  T.init({ levels: ["L1"], id: "strongroomhack", stage: "THE HEIST", title: "THE STRONGROOM", eyebrow: "THE HEIST", briefTitle: "COMMS · ORACLE", briefStyle: "comms",
     goal: "Readings rain down the terminal. The <b>glowing</b> ones are the real code: they follow a hidden pattern. Tap them to see their pictures, name the rule, predict the next readings, then use it to lay the safe route from the <b>door</b> to the <b>safe</b>.",
     example: "Tap a glowing reading and its picture builds on the pad. Tap a grey one: it never fits the pattern.",
     context: "I'm in their floor system. The readings are live. The glowing ones are the real code. Find the rule.",
     story: "FOX and WREN are at the strongroom door. The floor is pressure plated, protected by a rolling code. ORACLE is in the floor system: crack the code and find the safe way across." });
+  // Bertie: L1 only for now ("if we establish level one we can then extend"). L2/L3 settings stay below for later.
+  const L = "L1";
   const sp = () => (window.PNTest ? PNTest.speed() : 1);
   const wait = ms => new Promise(r => setTimeout(r, ms / sp()));
   const RM = () => document.documentElement.classList.contains("pn-reduce-motion") || matchMedia("(prefers-reduced-motion: reduce)").matches;
   // Levels: the same pool at every level; L3 adds the nth term and an open floor. max: the biggest reading; S: the
   // sketch pad; G: the floor in plates; gaps: predictions in the sensor log
   const LV = {
-    L1: { max: 64, SW: 24, SH: 12, G: 10, sides: [2, 3, 4, 5], k: [3, 4], rep: 1, outline: true, hintAfter: 2, gaps: 2, from: [1, 2] },
+    L1: { max: 64, SW: 40, SH: 10, G: 10, sides: [2, 3, 4, 5], k: [3, 4], rep: 1, outline: true, hintAfter: 2, gaps: 2, from: [1, 2] },
     L2: { max: 144, SW: 26, SH: 14, G: 12, sides: [2, 3, 4, 5, 6], k: [4, 5], rep: 2, outline: true, hintAfter: 3, gaps: 3, from: [2, 3, 4] },
     L3: { max: 225, SW: 30, SH: 16, G: 14, sides: [2, 3, 4, 5, 6, 7], k: [5, 6], rep: 2, outline: false, hintAfter: 99, gaps: 3, from: [3, 4, 5], nth: 10 },
   }[L] || null;
@@ -290,8 +339,8 @@
   // ORACLE's box sits bottom right (here, or the mission page's over this one) and tucks away after a read;
   // while it's up, the terminal panel keeps its bottom clear so the prompt is never under it
   let oraT = 0;
-  const oracle = text => { T.say(text); const t = document.querySelector(".term"); t.classList.add("oracle"); clearTimeout(oraT);
-    oraT = setTimeout(() => t.classList.remove("oracle"), (400 + text.length * 22 + Math.min(9000, 2600 + text.length * 45)) / sp()); };
+  const oracle = text => { T.say(text); const t = document.documentElement; t.classList.add("oracle"); clearTimeout(oraT);
+    oraT = setTimeout(() => t.classList.remove("oracle"), (1400 + text.length * 22 + Math.min(9000, 2600 + text.length * 45)) / sp()); };
   const radio = (who, text) => { T.SND("radio"); log(`<b>${who}</b>${text}`, "radio"); };
   const alarm = T.detect({ stage: "heist", onTrip: () => fail() });   // quick wrong guesses trip it
   let over = false, stage = "intercept";
@@ -317,15 +366,21 @@
     pic.querySelectorAll(".frame").forEach(f => f.remove());
     if(frame){ const f = document.createElement("div"); f.className = "frame"; Object.assign(f.style, { left: (ox - (u - d) / 2 + frame.x * u - 4) + "px", top: (oy - (u - d) / 2 + frame.y * u - 4) + "px", width: (frame.w * u + 8) + "px", height: (frame.h * u + 8) + "px" }); pic.appendChild(f); }
   }
-  // A row of n gates, the sticks snapping in one at a time (first gate 4, then 3 each)
-  function showGates(n, { lock = false } = {}){
+  // One matchstick (Bertie: they looked like a grid of squares): a stick with a gap at each joint and a red head
+  function stickSVG(x1, y1, x2, y2, u, extra = ""){
+    const g = .13, ax = x1 + (x2 - x1) * g, ay = y1 + (y2 - y1) * g, bx = x2 - (x2 - x1) * g, by = y2 - (y2 - y1) * g;
+    return `<g class="st" ${extra}><line x1="${ax}" y1="${ay}" x2="${bx}" y2="${by}" stroke-width="${u * .11}"/><circle cx="${bx}" cy="${by}" r="${u * .075}"/></g>`;
+  }
+  // A row of n gates, the sticks snapping in one at a time (first gate 4, then 3 each). demo: all start dim, returns them
+  function showGates(n, { lock = false, demo = false } = {}){
     pic.innerHTML = "";
     const r = pic.getBoundingClientRect(), u = Math.max(8, Math.min(64, (r.width - 40) / n, (r.height - 40) / 1.4)), w = n * u, x0 = (r.width - w) / 2, y0 = (r.height - u) / 2;
     const L = [];
-    for(let i = 0; i < n; i++){ const x = x0 + i * u; if(i === 0) L.push([x, y0, x, y0 + u]); L.push([x, y0, x + u, y0], [x, y0 + u, x + u, y0 + u], [x + u, y0, x + u, y0 + u]); }
+    for(let i = 0; i < n; i++){ const x = x0 + i * u; if(i === 0) L.push([x, y0 + u, x, y0]); L.push([x, y0, x + u, y0], [x, y0 + u, x + u, y0 + u], [x + u, y0 + u, x + u, y0]); }
     const step = Math.min(70, 1600 / L.length);
-    pic.innerHTML = `<svg class="gates${lock ? " lock" : ""}" width="${r.width}" height="${r.height}">${L.map((l, i) => `<line x1="${l[0]}" y1="${l[1]}" x2="${l[2]}" y2="${l[3]}" style="animation-delay:${RM() ? 0 : Math.round(i * step / sp())}ms"/>`).join("")}</svg>`;
+    pic.innerHTML = `<svg class="gates${lock ? " lock" : ""}${demo ? " demo" : ""}" width="${r.width}" height="${r.height}">${L.map((l, i) => stickSVG(l[0], l[1], l[2], l[3], u, `style="animation-delay:${RM() || demo ? 0 : Math.round(i * step / sp())}ms"`)).join("")}</svg>`;
     if(!RM()) setTimeout(() => T.SND("tick"), 0);
+    return [...pic.querySelectorAll(".st")];
   }
   const cap = html => { $("cap").innerHTML = html; };
 
@@ -338,18 +393,28 @@
       pts: v => rectPts(root(v), root(v)),
       // the first two by hand: drag out an array on the sketch pad (rows × columns). The code shape locks gold.
       // Nothing says "square" until the rule is cracked (Bertie: that gives it away).
-      handOk: v => v >= 4 && root(v) <= Math.min(LV.SW, LV.SH),
+      handOk: v => v >= 4 && root(v) <= Math.min(PW, PH),
       locks: (h, w) => h === w,
       measure: (h, w) => h * w,
       label: (h, w) => `${h}×${w}`,
       tip: (h, w) => `${h} × ${w} = ${h * w}`,
       handShape: v => [root(v), root(v)],
       art: () => `<i></i><span class="grid"></span>`,
-      howTo: "drag out that many squares (rows × columns)",
-      drawAsk: v => `Draw ${v}: drag out ${v} squares on the sketch pad.`,
-      wrongSize: (h, w, p, v) => `${h} × ${w} = ${p}. You need ${v} squares.`,
+      howTo: "drag out that many boxes (rows × columns)",
+      drawAsk: v => `Draw ${v}: drag out ${v} boxes on the sketch pad.`,
+      wrongSize: (h, w, p, v) => `${h} × ${w} = ${p}. You need ${v} boxes.`,
       noLock: (h, w, v, hint) => `${h} × ${w} = ${v} ✓ but it won't lock. ${hint ? "Try as many rows as columns." : "Every glowing reading can be drawn one special way. Can you find it?"}`,
       show: (v, o) => showPts(rectPts(root(v), root(v)), o),
+      ruleText: "n × n", demoArg: "n",
+      // n × n: the rows light one at a time (4, 8, 12, 16), then 4 × 4 = 16
+      async demo(n, out){
+        for(let r = 1; r <= n; r++){
+          showPts(rectPts(n, n).map((p, i) => ({ ...p, c: Math.floor(i / n) < r ? "g" : "dim" })), { frame: r === n ? { x: 0, y: 0, w: n, h: n } : null });
+          cap(`${r} row${r > 1 ? "s" : ""} of ${n} = <span class="gold">${r * n}</span>`); T.SND("tick"); await wait(520);
+        }
+        showPts(rectPts(n, n), { lock: true, frame: { x: 0, y: 0, w: n, h: n } }); cap(`${n} × ${n} = <span class="gold">${n * n}</span>`); T.SND("lockon");
+        out(`  ${n} × ${n} = ${n * n}`, "ok"); await wait(700);
+      },
       // the pad builds a reading: through its rectangles (long and thin first), ending on the one that locks
       shapes: v => T.pairs(v).filter(([a, b]) => a > 1 || v <= 3).map(([a, b]) => [a, b]),
       // a grey reading: the nearest shape that locks, and what's left over
@@ -378,20 +443,33 @@
       code: "the matchstick code", what: "4, 7, 10, 13…: each new gate adds 3 sticks",
       term: n => 3 * n + 1, isTerm: v => v >= 4 && (v - 1) % 3 === 0,
       max: { L1: 40, L2: 64, L3: 88 },
-      handOk: v => v >= 7 && (v - 1) / 3 <= LV.SW,
+      pad: { SW: 30, SH: 7 },   // rows of gates: a wide, short pad
+      handOk: v => v >= 7 && (v - 1) / 3 <= PW,
       locks: (h, w) => h === 1 || w === 1,
       measure: (h, w) => h * (w + 1) + w * (h + 1),
       label: (h, w) => h === 1 || w === 1 ? `${h * w} gate${h * w > 1 ? "s" : ""}` : `${h}×${w} block`,
       tip: (h, w) => `${h === 1 || w === 1 ? `${h * w} gate${h * w > 1 ? "s" : ""}` : `${h} × ${w} block`} · ${h * (w + 1) + w * (h + 1)} sticks`,
       handShape: v => [1, (v - 1) / 3],
       // the sticks on the cell edges of an h × w block
-      art: (h, w) => { let d = ""; for(let y = 0; y <= h; y++) d += `M0 ${y}H${w}`; for(let x = 0; x <= w; x++) d += `M${x} 0V${h}`;
-        return `<svg class="sticks" viewBox="-.06 -.06 ${w + .12} ${h + .12}" preserveAspectRatio="none"><path d="${d}"/></svg>`; },
+      art: (h, w) => { let d = ""; for(let y = 0; y <= h; y++) for(let x = 0; x < w; x++) d += stickSVG(x, y, x + 1, y, 1); for(let x = 0; x <= w; x++) for(let y = 0; y < h; y++) d += stickSVG(x, y + 1, x, y, 1);
+        return `<svg class="sticks" viewBox="-.1 -.1 ${w + .2} ${h + .2}" preserveAspectRatio="none">${d}</svg>`; },
       howTo: "drag out a block of gates (squares made of sticks) that uses that many sticks",
       drawAsk: v => `Build ${v}: drag out gates that use ${v} sticks.`,
       wrongSize: (h, w, p, v) => `That uses ${p} sticks. You need ${v}.`,
       noLock: (h, w, v, hint) => `A ${h} × ${w} block uses ${v} sticks ✓ but it won't lock. ${hint ? "Try the gates in one straight line." : "Every glowing reading can be built one special way. Can you find it?"}`,
       show: (v, o) => showGates((v - 1) / 3, o),
+      ruleText: "3 × gates + 1", demoArg: "gates",
+      // 3 × gates + 1: the first stick on its own (the + 1), then each gate's 3 new sticks together (3, 6, 9, 12)
+      async demo(n, out){
+        const lines = showGates(n, { demo: true });
+        lines[0].classList.add("one"); cap(`the first stick: <span class="gold">+ 1</span>`); T.SND("tick"); await wait(800);
+        for(let g = 1; g <= n; g++){
+          lines.slice(1 + (g - 1) * 3, 1 + g * 3).forEach(l => l.classList.add("on", "grp" + (g % 2)));
+          cap(`${g} gate${g > 1 ? "s" : ""}: 3 × ${g} = ${3 * g}, + 1 = <span class="gold">${3 * g + 1}</span>`); T.SND("tick"); await wait(650);
+        }
+        cap(`3 × ${n} + 1 = <span class="gold">${3 * n + 1}</span> sticks`); T.SND("lockon");
+        out(`  3 × ${n} + 1 = ${3 * n + 1}`, "ok"); await wait(700);
+      },
       // the pad builds a reading one gate at a time
       shapes: v => T.range(1, Math.max(1, Math.floor((v - 1) / 3))).map(n => [1, n]),
       stepMs: 260,
@@ -414,7 +492,8 @@
     },
   };
   const P = PATTERNS[PID];
-  const MAX = (P.max && P.max[L]) || LV.max;   // the biggest reading (long rows of gates have to fit the pad)
+  const MAX = (P.max && P.max[L]) || LV.max;
+  const PW = (P.pad && P.pad.SW) || LV.SW, PH = (P.pad && P.pad.SH) || LV.SH;   // the sketch pad   // the biggest reading (long rows of gates have to fit the pad)
   const ord = k => k + (k % 100 >= 11 && k % 100 <= 13 ? "th" : ["th", "st", "nd", "rd"][k % 10] || "th");
 
   // ===== The floors (beat 5): each pattern lays the safe route its own way =====
@@ -478,7 +557,10 @@
           svg.dataset.gx = 0; svg.dataset.gy = 0; svg.dataset.gw = G; svg.dataset.gh = G; svg.setAttribute("viewBox", `0 0 ${G} ${G}`); svg.setAttribute("preserveAspectRatio", "none");
           // L1: every bar shows (you can count them); L2: up to the first checkpoint; L3: none until disarmed
           const show = { L1: n, L2: cps[0], L3: 0 }[L] ?? n;
-          svg.innerHTML = [...bars.values()].map(o => `<line data-gate="${o.gate}" class="${o.gate > show ? "hide" : ""}" x1="${o.b[0]}" y1="${o.b[1]}" x2="${o.b[2]}" y2="${o.b[3]}"/>`).join("");
+          const gp = .16, pts = new Map();
+          svg.innerHTML = [...bars.values()].map(o => { const [x1, y1, x2, y2] = o.b; [[x1, y1], [x2, y2]].forEach(q => pts.set(q.join(","), q));
+            return `<line data-gate="${o.gate}" class="${o.gate > show ? "hide" : ""}" x1="${x1 + (x2 - x1) * gp}" y1="${y1 + (y2 - y1) * gp}" x2="${x2 - (x2 - x1) * gp}" y2="${y2 - (y2 - y1) * gp}"/>`; }).join("")
+            + [...pts.values()].map(([x, y]) => `<circle class="em" cx="${x}" cy="${y}" r=".07"/>`).join("");
           fg.appendChild(svg); place(svg);
           path.forEach(([x, y], i) => { const g = i + 1, cp = cps.includes(g);
             if(cp || L === "L1") lay("gn" + (cp ? " cp" : ""), x, y, 1, 1, cp ? `<span>GATE ${g}</span>` : String(g)).dataset.cp = cp ? g : ""; });
@@ -528,7 +610,8 @@
     if(window.PNTest) PNTest.skip("Finish the intercept", () => { skip = true; });
     const ov = document.createElement("div"); ov.className = "flood";
     ov.innerHTML = `<div class="box"><div class="hdr"><div>PRIMENET <span>// FLOOR SENSOR INTERCEPT</span></div><div class="pct">0%</div></div>
-      <div class="body"><div class="stream"></div><div class="tally"><small>COMING BACK</small></div></div><div class="bar"><i></i></div></div>`;
+      <div class="body"><div class="stream"></div><div class="tally comms"><small>COMMS</small></div></div><div class="bar"><i></i></div>
+      <div class="foot"><span id="capt">CAPTURING…</span><button type="button" class="pn-btn primary" id="minim" hidden>MINIMISE ▸ <kbd>SPACE</kbd></button></div></div>`;
     document.body.appendChild(ov);
     const stream = ov.querySelector(".stream"), tally = ov.querySelector(".tally");
     const push = (html, cls = "") => { const d = document.createElement("div"); d.className = cls; d.innerHTML = html; stream.appendChild(d); while(stream.children.length > 30) stream.firstChild.remove(); };
@@ -545,10 +628,17 @@
       return Math.max(6, Math.min(14, Math.floor((stream.clientWidth - 44 - 13 * cw) / (5 * cw)))); };
     const beats = [
       [0, `agent@primenet:~$ sensors.intercept --zone STRONGROOM --plates ALL`, "me"],
-      [.12, `rolling code detected · some readings repeat`, "warn"],
+      [.12, `rolling code detected`, "warn"],
       [.55, `[TRACE] ${hex(8)} :: still unseen`, "noise"],
     ];
-    oracle("Watch the readings. Some of them keep coming back.");
+    // Bertie: FOX and WREN on comms. They're on the clock, and it tells the pupil what to look for
+    const comms = [
+      [.18, "FOX", "That's a lot of numbers. Some of them keep turning up. What patterns do you notice?"],
+      [.6, "WREN", "Guard rotation's in eight minutes. Which ones glow? Do you see them again?"],
+      [1, "FOX", "Got enough? Hit SPACE and let's look at them properly."],
+    ];
+    let cm = 0;
+    const comm = (who, text) => { T.SND("radio"); tally.insertAdjacentHTML("beforeend", `<div class="cl"><b>${who}</b><span>${text}</span></div>`); };
     T.SND("drone", 13);
     const dur = 15000; let el = 0, last = performance.now(), since = 999, b = 0, n = 0;
     await new Promise(res => {
@@ -557,7 +647,8 @@
         const p = Math.min(1, el / dur);
         ov.querySelector(".bar i").style.width = p * 100 + "%"; ov.querySelector(".pct").textContent = Math.floor(p * 100) + "%";
         while(b < beats.length && p >= beats[b][0]){ push(beats[b][1], beats[b][2]); b++; }
-        if(since > 650 && p > .04){
+        while(cm < comms.length && p >= comms[cm][0]){ comm(comms[cm][1], comms[cm][2]); cm++; }
+        if(since > (p >= 1 ? 1100 : 650) && p > .04){
           // a whole line of readings across the box; a few of the code's readings glow in it (sometimes none)
           since = 0; n++;
           if(Math.random() < .08){ push(`[NET] ${hex(8)} :: ${T.pick(["sync()", "checksum_ok()", "bounce_proxy()", "mask_route()"])}`, "noise"); }
@@ -569,17 +660,21 @@
               else { const v = greyPool.length ? greyPool.shift() : T.pick(noiseAny); F0.noise.push(v); cells.push(String(v).padStart(3)); }
             }
             push(`<span class="noise">plates_${"ABCDEFGH"[n % 8]} ::</span> ${cells.join("  ")}`, "row");
-            tally.innerHTML = `<small>COMING BACK</small>` + Object.entries(seen).filter(([, c]) => c > 1).sort((x, y) => y[1] - x[1]).slice(0, 12).map(([v, c]) => `<div><span>${v}</span><i>×${c}</i></div>`).join("");
             T.SND(g ? "tick" : "chatter");
           }
         }
-        if(skip || over || p >= 1) return res();
+        // full: it keeps trickling until the pupil minimises it (Bertie: it shouldn't disappear by itself)
+        if(p >= 1 && !captured){ captured = true; push("STREAM CAPTURED", "big"); T.SND("lock"); $("capt").textContent = "STREAM CAPTURED"; const mb = $("minim"); mb.hidden = false; mb.focus({ preventScroll: true }); }
+        if(skip || over || closed) return res();
         requestAnimationFrame(frame);
       };
+      let captured = false, closed = false;
+      const close = () => { if(captured || skip){ closed = true; document.removeEventListener("keydown", key, true); } };
+      const key = e => { if(e.code === "Space" || e.key === " "){ e.preventDefault(); close(); } };
+      document.addEventListener("keydown", key, true);
+      $("minim").addEventListener("click", close);
       requestAnimationFrame(frame);
     });
-    push("STREAM CAPTURED", "big"); T.SND("lock");
-    await wait(skip ? 200 : 1200);
     ov.style.opacity = "0"; setTimeout(() => ov.remove(), 520);
     // the freeze: off-pattern readings dim to ghosts, the code glows
     rain.innerHTML = READ.map((o, i) => `<button type="button" class="rd${o.g ? " g" : ""}" style="--i:${i}" data-v="${o.v}" tabindex="-1" disabled>${o.v}</button>`).join("");
@@ -607,7 +702,10 @@
   function fit(){
     // clear of the BRIEF and HINTS tabs (bottom left): start right of the widest one
     const tabs = Math.max(150, ...[...document.querySelectorAll(".twb-chip")].map(c => c.getBoundingClientRect().right));
-    ["fwrap", "evid", "picw"].forEach(id => { const e = $(id); e.style.paddingLeft = ""; if(!e.hidden) e.style.paddingLeft = Math.max(0, tabs + 14 - e.getBoundingClientRect().left) + "px"; });
+    const tm = document.querySelector(".term"); tm.style.paddingLeft = "";
+    if(document.querySelector(".sr").classList.contains("wide")) tm.style.paddingLeft = Math.max(16, tabs + 14 - tm.getBoundingClientRect().left) + "px";
+    const wide = document.querySelector(".sr").classList.contains("wide");   // wide: the pad is above the tabs, so no gap needed
+    ["fwrap", "evid", "picw"].forEach(id => { const e = $(id); e.style.paddingLeft = ""; if(!e.hidden && !wide) e.style.paddingLeft = Math.max(0, tabs + 14 - e.getBoundingClientRect().left) + "px"; });
     const fw = $("fwrap"); if(fw.hidden) return;
     // the grid either starts right of the tabs (full height) or sits above them (full width): whichever lets it be bigger
     fw.style.paddingBottom = "";
@@ -644,6 +742,30 @@
     const up = () => { if(!a) return; const r = rect(); a = b = null; paint(); if(onRect) onRect(r); };
     fg.addEventListener("pointerup", up); fg.addEventListener("pointercancel", up);
   })();
+  // Move a drawing (and its left-overs) by dragging it; × erases it
+  (function moveErase(){
+    let mv = null;
+    const cellAt = e => { const r = fg.getBoundingClientRect(); return [Math.floor((e.clientX - r.left - 2) / (CS + 2)), Math.floor((e.clientY - r.top - 2) / (CS + 2))]; };
+    fg.addEventListener("click", e => { const x = e.target.closest(".arr .x"); if(!x || !fg.classList.contains("pad")) return; e.stopPropagation(); const v = +x.closest(".arr").dataset.v; clearV(v); T.SND("untag"); log(`${v} erased`, "sys"); });
+    fg.addEventListener("pointerdown", e => {
+      const a = e.target.closest(".arr"); if(!a || e.target.closest(".x") || !fg.classList.contains("pad") || over) return;
+      e.preventDefault(); e.stopPropagation(); fg.setPointerCapture(e.pointerId);
+      const v = +a.dataset.v, parts = [...fg.querySelectorAll(`[data-v="${v}"]`)];
+      mv = { v, parts, start: cellAt(e), orig: parts.map(p => [+p.dataset.gx, +p.dataset.gy]), d: [0, 0], ok: true }; parts.forEach(p => p.classList.add("moving")); T.SND("tag");
+    }, true);
+    fg.addEventListener("pointermove", e => {
+      if(!mv) return; const c = cellAt(e), d = [c[0] - mv.start[0], c[1] - mv.start[1]];
+      if(d[0] === mv.d[0] && d[1] === mv.d[1]) return; mv.d = d;
+      mv.parts.forEach((p, i) => { p.dataset.gx = mv.orig[i][0] + d[0]; p.dataset.gy = mv.orig[i][1] + d[1]; place(p); });
+      const others = onPad().filter(o => o.v !== mv.v);
+      mv.ok = mv.parts.every(p => { const r = { x: +p.dataset.gx, y: +p.dataset.gy, w: +p.dataset.gw, h: +p.dataset.gh }; return r.x >= 0 && r.y >= 0 && r.x + r.w <= NW && r.y + r.h <= NH && !others.some(o => hits(r, o)); });
+      mv.parts.forEach(p => p.classList.toggle("bad", !mv.ok));
+    });
+    const up = () => { if(!mv) return; const m = mv; mv = null;
+      if(!m.ok) m.parts.forEach((p, i) => { p.dataset.gx = m.orig[i][0]; p.dataset.gy = m.orig[i][1]; place(p); });
+      m.parts.forEach(p => p.classList.remove("moving", "bad")); T.SND(m.ok ? "clamp" : "untag"); };
+    fg.addEventListener("pointerup", up); fg.addEventListener("pointercancel", up);
+  })();
   // The pad keeps every drawing, so they can be compared. Each is tagged with its reading (data-v).
   const onPad = () => [...fg.querySelectorAll(".arr, .lft")].map(o => ({ x: +o.dataset.gx, y: +o.dataset.gy, w: +o.dataset.gw, h: +o.dataset.gh, v: +o.dataset.v, el: o }));
   const hits = (r, o, gap = 0) => r.x < o.x + o.w + gap && o.x < r.x + r.w + gap && r.y < o.y + o.h + gap && o.y < r.y + r.h + gap;
@@ -654,7 +776,11 @@
     if(w > NW || h > NH) return null;
     for(let pass = 0; pass < 8; pass++){
       const others = onPad().filter(o => o.v !== v);
-      for(let y = 0; y + h <= NH; y++) for(let x = 0; x + w <= NW; x++){ const r = { x, y, w, h }; if(!others.some(o => hits(r, o, 1))) return r; }
+      // in order: squares left to right; rows of gates top to bottom (their labels sit to the right)
+      const lab = PID === "matchsticks" ? 9 : 0, wide = o => ({ ...o, w: o.w + (o.el.classList.contains("arr") ? lab : 0) });
+      const fits = (x, y) => { const r = { x, y, w: w + lab, h }; return x + w <= NW && !others.some(o => hits(r, wide(o), 1)); };
+      if(PID === "matchsticks"){ for(let y = 0; y + h <= NH; y++) for(let x = 0; x + w <= NW; x++) if(fits(x, y)) return { x, y, w, h }; }
+      else for(let x = 0; x + w <= NW; x++) for(let y = 0; y + h <= NH; y++) if(fits(x, y)) return { x, y, w, h };
       // full: the oldest drawing the pad made goes first, the pupil's own last
       const old = others.find(o => !o.el.classList.contains("mine")) || others[0]; if(!evict || !old) return null;
       clearV(old.v); log(`pad full: ${old.v} cleared`, "sys");
@@ -662,7 +788,7 @@
     return null;
   }
   function stamp(r, kind, v, locked){
-    const d = lay("arr " + kind + (PID === "matchsticks" ? " ms" : ""), r.x, r.y, r.w, r.h, `${P.art(r.h, r.w)}<em>${v}</em><b>${P.label(r.h, r.w)}</b>${locked && r.w >= 4 ? `<span class="tag">LOCKED</span>` : ""}`);
+    const d = lay("arr " + kind + (PID === "matchsticks" ? " ms" : ""), r.x, r.y, r.w, r.h, `${P.art(r.h, r.w)}<em>${v}</em><b>${PID === "matchsticks" ? `${v} · ` : ""}${P.label(r.h, r.w)}</b>${locked && r.w >= 4 ? `<span class="tag">LOCKED</span>` : ""}<button type="button" class="x" title="Erase" aria-label="Erase ${v}">×</button>`);
     d.dataset.v = v; return d;
   }
   // The pad builds a reading: its rectangles in turn, long and thin first; a code reading locks gold, a grey one never does
@@ -706,8 +832,9 @@
   async function investigate(){
     setStage("investigate");
     $("stageLab").textContent = "Step 1 of 4 · investigate the readings";
-    buildGrid(LV.SW, LV.SH, "pad"); view("grid"); $("floorHd").textContent = "SKETCH PAD"; $("floorLab").textContent = "";
-    T.step(`Tap a <b>glowing</b> reading and draw it on the sketch pad: ${P.howTo}. Your drawings stay on the pad, so you can compare them.`, { name: "Investigate" });
+    document.querySelector(".sr").classList.add("wide");
+    buildGrid(PW, PH, "pad"); view("grid"); $("floorHd").textContent = "SKETCH PAD"; $("floorLab").textContent = "DRAG A DRAWING TO MOVE IT · × TO ERASE";
+    T.step(`Tap a <b>glowing</b> reading and draw it on the sketch pad: ${P.howTo}. Your drawings stay on the pad, so you can compare them. Drag a drawing to move it; × erases it.`, { name: "Investigate" });
     say("Tap a glowing reading, then draw it on the sketch pad.");
     setTimeout(() => { if(stage === "investigate" && !over) radio("FOX", "We're at the door. Whenever you're ready."); }, 5000 / sp());
     const els = rdEls(); els.forEach(e => { e.disabled = false; e.tabIndex = 0; e.classList.add("on"); });
@@ -720,7 +847,12 @@
         log(`${P.code.toUpperCase()} is in your codebook.`, "gold");
       }
       function finish(how){ if(over) return; els.forEach(e => { e.classList.remove("on", "sel"); e.disabled = true; e.tabIndex = -1; }); ctl.innerHTML = ""; onRect = null; res(how); }
+      let told = 0;
+      const nudge = () => { const n = onPad().filter(o => o.el.classList.contains("arr")).length;
+        if(n >= 2 && told === 0){ told = 1; radio("WREN", "What's special about those numbers? Put them side by side."); }
+        else if(locked >= HAND && W.grey != null && told === 1){ told = 2; radio("FOX", "Look at the ones that lock. What do they have in common? Clock's ticking."); } };
       function nextPrompt(){
+        nudge();
         if(locked < HAND){ say(`Now another glowing reading: draw it the same special way.`); return; }
         if(greensSeen() < HAND + 1){ say("Tap another glowing reading: this time the pad draws it for you."); T.step("Tap another <b>glowing</b> reading and watch the pad draw it.", { name: "Investigate" }); return; }
         if(W.grey == null){ say("Now tap a grey one. Will it lock like the others?"); T.step("Tap a <b>grey</b> reading. Will it lock like the glowing ones?", { name: "Investigate" }); return; }
@@ -795,12 +927,24 @@
   //   $ cipher.predict 9 · 16 · [__]     the next readings, a lock pin drops for each
   //   $ cipher.inject                    any key types gobbledegook until the floor opens =====
   let hist = null, prompt = null;
+  // Bertie: the terminal comes into the middle of the screen, big. The frozen readings and the picture move into it
+  // (and back when it closes); the pad stays behind it, and SHOW MY DRAWINGS peeks at it.
   function terminal(){
-    const w = $("work");
-    $("log").hidden = true; document.querySelector(".term").classList.add("tight");
-    w.innerHTML = `<div class="hd"><span>CIPHER TERMINAL</span><span id="loaded"></span></div><div class="hterm"><div class="hist" id="hist"></div><div class="prompt" id="prompt"></div></div>`;
+    if($("cipher")) return;
+    const ov = document.createElement("div"); ov.className = "cipher"; ov.id = "cipher";
+    ov.innerHTML = `<div class="cbox hterm"><div class="chd"><span>CIPHER TERMINAL</span><span id="loaded"></span><button type="button" class="pn-btn small" id="peek">SHOW MY DRAWINGS</button></div>
+      <div class="cread" id="cread"></div><div class="cmain"><div class="hist" id="hist"></div><div class="cpic" id="cpic"></div></div><div class="prompt" id="prompt"></div></div>`;
+    document.body.appendChild(ov);
+    $("cread").appendChild(rain); $("cpic").appendChild($("picw")); $("picw").hidden = true;
+    $("peek").addEventListener("click", () => { const on = ov.classList.toggle("peek"); $("peek").textContent = on ? "BACK TO THE TERMINAL" : "SHOW MY DRAWINGS"; T.SND("click"); });
     hist = $("hist"); prompt = $("prompt");
   }
+  function closeTerminal(){
+    const ov = $("cipher"); if(!ov) return;
+    $("cmd").after(rain); $("evid").before($("picw")); $("picw").hidden = true;
+    ov.remove(); hist = prompt = null;
+  }
+  const showPic = () => { $("picw").hidden = false; };
   const tl = (html, cls = "") => { const d = document.createElement("div"); d.className = cls; d.innerHTML = html; hist.appendChild(d); while(hist.children.length > 60) hist.firstChild.remove(); hist.scrollTop = hist.scrollHeight; return d; };
   const status = t => { const e = $("loaded"); if(e) e.textContent = t; };
 
@@ -815,7 +959,7 @@
     const R = T.shuffle(P.rules);
     tl(`agent@primenet:~$ cipher.connect --zone STRONGROOM`, "me"); tl(`  connected · ${READ.length} readings frozen · ${READ.filter(o => o.g).length} glowing`, "sys");
     tl(`  load a rule and RUN it against the readings`, "sys");
-    prompt.innerHTML = `<span class="ps">$ cipher.test --rule</span>${R.map((r, i) => `<button type="button" class="rule" data-k="${i}">${r.code}</button>`).join("")}<button type="button" class="run" id="run" disabled>RUN ▸</button>`;
+    prompt.innerHTML = `<span class="ps">$ cipher.test --rule</span><div class="rules2">${R.map((r, i) => `<button type="button" class="rule" data-k="${i}">${r.code}</button>`).join("")}<button type="button" class="run" id="run" disabled>RUN ▸</button></div>`;
     status("NO RULE LOADED");
     T.step(quick ? "You've cracked this code before. Load the rule that makes the glowing readings and <b>RUN</b> it." : "Which rule makes the glowing readings? Load one and <b>RUN</b> it: the terminal tests it against every reading. You need every glowing one, and no grey ones.", { name: "Crack the code" });
     say("Load a rule, then RUN it.");
@@ -860,6 +1004,7 @@
     tl(`  ${P.cracked}`, "ok");
     say(P.cracked, "ok");
     oracle(`That's the cipher: ${P.what}. Now predict the next ones and we have the route.`);
+    await demo();
     if(LV.nth) await nthTerm();
   }
   // The cracked effect: the glowing readings scramble through random digits, then settle one by one
@@ -881,6 +1026,27 @@
     T.SND("thunk");
     $("cmd").innerHTML = `$ cipher.solve <span class="ok">✓</span> <span class="gold">${P.code.toUpperCase()}</span>`;
     await wait(500);
+  }
+  // Bertie: once they have the rule, show it working on the picture (3 × 4 + 1 = 13), then let them try other numbers
+  async function demo(){
+    if(!P.demo) return;
+    showPic();
+    tl(`$ cipher.demo --${P.demoArg} 4`, "me"); tl(`  rule: ${P.ruleText}`, "gold");
+    status("THE RULE, WORKING");
+    await P.demo(4, tl);
+    prompt.innerHTML = `<span class="ps">$ cipher.demo --${P.demoArg}</span><input id="dn" inputmode="numeric" maxlength="2" aria-label="Try another number"><span class="sys">try another number, Enter</span><button type="button" class="run" id="dgo">CONTINUE ▸</button>`;
+    T.step(`That's the rule working. Type another number to see it again, or press <b>CONTINUE</b>.`, { name: "The rule" });
+    say("Try another number to see the rule work, or press CONTINUE.");
+    const inp = $("dn"); inp.focus({ preventScroll: true });
+    await new Promise(res => {
+      let busy = false, go = false;
+      inp.addEventListener("keydown", async e => { if(e.key !== "Enter") return; e.preventDefault(); const n = Math.round(+inp.value);
+        if(busy || !(n >= 1 && n <= 12)){ if(!busy) say("Try a number from 1 to 12.", "warn"); return; }
+        busy = true; tl(`$ cipher.demo --${P.demoArg} ${n}`, "me"); await P.demo(n, tl); busy = false; if(go) return res(); inp.select(); });
+      $("dgo").addEventListener("click", () => { go = true; $("dgo").disabled = true; if(!busy) res(); });
+      if(window.PNTest) PNTest.skip("Continue", () => res());
+    });
+    prompt.innerHTML = "";
   }
   // L3: the nth term, typed at the prompt; then the pad builds it to check
   async function nthTerm(){
@@ -904,7 +1070,7 @@
     });
     if(over) return;
     prompt.innerHTML = ""; tl(`  ${ans} ✓ verified`, "ok");
-    view("pic"); $("floorHd").textContent = `PICTURE · THE ${ord(k).toUpperCase()}`;
+    showPic();
     P.show(ans, { lock: true }); cap(P.nthCap(k)); T.SND("lockon");
     say(`Right: ${ans}. The pad builds it to check.`, "ok");
     await wait(1800);
@@ -920,7 +1086,7 @@
     tl(`$ sensors.log --plates NEXT`, "me"); tl(`  predict the next ${n === 2 ? "two" : "three"} readings to open the lock`, "sys");
     prompt.innerHTML = `<span class="ps">$ cipher.predict</span><span class="seq">${seq.map((k, i) => i < shown ? `<b>${P.term(k)}</b>` : `<input inputmode="numeric" maxlength="4" data-k="${k}" aria-label="Next reading ${i - shown + 1}" disabled>`).join('<span class="sep">·</span>')}</span><span class="pins" id="pins">${'<span class="pin"></span>'.repeat(n)}</span>`;
     status("LOCK · 0/" + n);
-    view("pic"); $("floorHd").textContent = "PICTURE"; $("floorLab").textContent = "";
+    showPic();
     P.show(P.term(seq[shown - 1])); cap(`${P.term(seq[shown - 1])} <span class="sys">· the last reading</span>`);
     T.step(`Use the rule: what comes next in the sensor log? Type each reading at the prompt and press Enter. Each one you get right drops a pin in the lock.`, { name: "Prove it" });
     say("What comes next? Type it and press Enter.");
@@ -991,8 +1157,7 @@
     const g = document.createElement("div"); g.className = "granted"; g.textContent = "ACCESS GRANTED"; document.body.appendChild(g);
     T.SND("success"); oracle("Lock's open. We have the route.");
     await wait(1500); g.style.opacity = "0"; setTimeout(() => g.remove(), 520);
-    $("work").innerHTML = ""; hist = prompt = null;
-    $("log").hidden = false; document.querySelector(".term").classList.remove("tight");
+    closeTerminal();
   }
 
   // ===== 5. Use it: squares. Drag each safe reading onto the floor: it fills a square zone =====
@@ -1081,39 +1246,53 @@
   }
   // Matchsticks: disarm the laser bars a checkpoint at a time. How many bars from the door to gate n?
   async function laserRoute(path, cps, need){
+    // Bertie: help with the calculation. The terminal is a bar calculator: type any gate and see 3 × gate + 1, with
+    // those bars lit on the floor. Typing the checkpoint's gate unlocks DISARM. Exploring costs nothing.
     const w = $("work"), bars = () => [...fg.querySelectorAll("svg.bars line")];
-    T.step(`Each plate in the corridor is a gate, fenced with laser bars like your matchsticks. At each checkpoint, type how many bars there are <b>from the door to that gate</b> to switch them off.`, { name: "Use it: the laser corridor" });
+    const tm = document.querySelector(".term"); tm.classList.add("calc");
+    w.innerHTML = `<div class="hd"><span>BAR CALCULATOR</span><span id="calcLab"></span></div><div class="hterm"><div class="hist" id="chist"></div><div class="prompt" id="cprompt"></div></div>`;
+    const ch = $("chist"), cl = (html, cls = "") => { ch.insertAdjacentHTML("beforeend", `<div class="${cls}">${html}</div>`); ch.scrollTop = ch.scrollHeight; };
+    cl(`$ lasers.scan --corridor`, "me"); cl(`  ${path.length} gates from the door to the safe · rule: ${P.ruleText}`, "sys");
+    T.step(`Each plate in the corridor is a gate, fenced with laser bars like your matchsticks. Use the calculator: type a gate number to see how many bars there are from the door to that gate. At each checkpoint, work out its bars and <b>DISARM</b> them.`, { name: "Use it: the laser corridor" });
     for(let i = 0; i < cps.length && !over; i++){
       const g = cps[i], ans = need[i];
-      w.innerHTML = `<div class="ask">GATE ${g}: how many laser bars from the door to here?</div><div class="row1"><input id="bars" inputmode="numeric" maxlength="3" aria-label="Laser bars to gate ${g}"><button type="button" class="pn-btn primary" id="barsGo">Disarm</button></div>`;
-      const cp = fg.querySelector(`.gn.cp[data-cp="${g}"]`); if(cp) cp.scrollIntoView({ block: "nearest" });
-      say(`Gate ${g}: how many bars from the door to here?`);
-      const inp = $("bars"); inp.focus({ preventScroll: true });
+      $("calcLab").textContent = `CHECKPOINT: GATE ${g}`;
+      cl(`  next checkpoint: GATE ${g}`, "gold");
+      $("cprompt").innerHTML = `<span class="ps">$ bars --gate</span><input id="gate" inputmode="numeric" maxlength="2" aria-label="Gate number"><button type="button" class="run" id="calc">CALCULATE</button><button type="button" class="run" id="disarm" disabled>DISARM ▸</button>`;
+      const cp = fg.querySelector(`.gn.cp[data-cp="${g}"]`);
+      say(`Gate ${g}: how many bars from the door to here? Use the calculator.`);
+      const inp = $("gate"); inp.focus({ preventScroll: true });
       await new Promise(res => {
-        let tries = 0;
-        const check = () => {
-          if(over || !inp.value.trim()) return;
-          if(+inp.value.trim() === ans){ res(); return; }
-          tries++; alarm.hit(); tripped(); radio("FOX", "Plate went off. Holding position.");
-          inp.classList.remove("glitch"); void inp.offsetWidth; inp.classList.add("glitch"); inp.select();
-          say(tries < 2 ? `Not quite. The first gate has 4 bars; each gate after it adds 3.` : `${g} gates: 4 + ${g - 1} × 3.`, "bad");
+        const calc = () => {
+          if(over) return; const n = Math.round(+inp.value); if(!inp.value.trim()) return;
+          if(!(n >= 1 && n <= path.length)){ cl(`  the corridor has gates 1 to ${path.length}`, "bad"); inp.select(); return; }
+          const b = F.barsTo(n);
+          cl(`$ bars --gate ${n}`, "me"); cl(`  3 × ${n} + 1 = <b>${b}</b> bars`, n === g ? "gold" : "ok");
+          bars().forEach(l => l.classList.toggle("pv", +l.dataset.gate <= n && !l.classList.contains("off")));
+          T.SND("tick");
+          $("disarm").disabled = n !== g;
+          if(n === g){ $("disarm").focus({ preventScroll: true }); say(`${b} bars from the door to gate ${g}. DISARM them.`, "ok"); }
+          else { say(`Gate ${n} has ${b} bars. The checkpoint is gate ${g}.`); inp.select(); }
         };
-        inp.addEventListener("keydown", e => { if(e.key === "Enter"){ e.preventDefault(); check(); } });
-        $("barsGo").addEventListener("click", check);
-        if(window.PNTest) PNTest.skip("Disarm the next gate", () => { inp.value = ans; check(); });
+        inp.addEventListener("keydown", e => { if(e.key === "Enter"){ e.preventDefault(); calc(); } });
+        $("calc").addEventListener("click", calc);
+        $("disarm").addEventListener("click", () => res());
+        if(window.PNTest) PNTest.skip("Disarm the next gate", () => { inp.value = g; calc(); res(); });
       });
       if(over) return;
+      bars().forEach(l => l.classList.remove("pv"));
       bars().filter(l => +l.dataset.gate <= g).forEach(l => { l.classList.remove("hide"); l.classList.add("off"); });
       if(cp) cp.classList.add("done");
       path.slice(0, g).forEach(([x, y]) => { const c = cell(x, y); c.classList.remove("pulse"); void c.offsetWidth; c.classList.add("pulse"); });
-      T.SND("clamp"); log(`gate ${g}: ${ans} bars · disarmed`, "ok"); say(`${ans} bars to gate ${g}: disarmed.`, "ok");
+      T.SND("clamp"); cl(`  gate ${g}: ${ans} bars disarmed ✓`, "gold"); log(`gate ${g}: ${ans} bars · disarmed`, "ok");
       W.placed = i + 1;
       await wait(700);
     }
-    w.innerHTML = "";
+    w.innerHTML = ""; tm.classList.remove("calc");
   }
   async function useIt(){
     setStage("route");
+    document.querySelector(".sr").classList.remove("wide");
     $("stageLab").textContent = "Step 4 of 4 · use it: lay the safe route";
     rain.classList.add("dim");
     buildGrid(G, G, "floor"); view("grid"); $("floorHd").textContent = "STRONGROOM FLOOR · PRESSURE PLATES"; $("floorLab").textContent = `${G} × ${G} PLATES`;
@@ -1165,7 +1344,7 @@
     T.finish({ ok: false, title: "PLATE TRIPPED", lines: [P.failLine], note: "Too many quick wrong guesses and the alarm goes." });
   }
 
-  buildGrid(LV.SW, LV.SH, "pad"); $("floorLab").textContent = "";
+  buildGrid(PW, PH, "pad"); $("floorLab").textContent = "";
   (async () => {
     await new Promise(r => { if(!T.briefOpen()) return r(); const f = () => { if(!T.briefOpen()){ window.removeEventListener("pn-brief", f); r(); } }; window.addEventListener("pn-brief", f); });
     await intercept(); if(over) return;
