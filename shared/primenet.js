@@ -461,7 +461,7 @@
     { id:"patrols",    point:"entry",      name:"Guard patrols",          maths:"Multiples and LCM", page:"twist_patrols3d.html" },
     { id:"cubes",      point:"power",      name:"Ceiling relays (cubes)", maths:"Cube numbers", page:"twist_cubes3d.html" },
     { id:"walls",      point:"planb",      name:"Deposit boxes", maths:"Factor pairs and HCF", page:"twist_walls3d.html" },
-    { id:"strongroom", point:"strongroom", name:"Square strongroom",      maths:"Square numbers", page:"twist_strongroom_hack.html" },   // Round 22: the floor sensor hack
+    { id:"strongroom", point:"strongroom", name:"Strongroom code crack",   maths:"Patterns (squares and more)", page:"twist_strongroom_hack.html" },   // Round 23: crack the floor code (a rotating pattern)
     { id:"factortree", point:"keyroom",    name:"Key room door",          maths:"Prime factorisation", page:"twist_door2.html" },
     { id:"blackout",   point:"finale",     name:"Server blackout",        maths:"Primes" },
     { id:"getaway",    point:"finale",     name:"Getaway chase",          maths:"Primes, squares, cubes" },
@@ -523,7 +523,39 @@
   // Testing: force a menu, or a hand-made set of picks
   function setTwistMenu(id){ const a = getAgent(), m = MENUS.find(x => x.id === id); if(!a || !m) return; const st = readPlan(); st.session = a.sessionId; st.menu = m.id; st.picks = { ...m.picks }; writePlan(st); }
   function setTwistPlan(picks){ const a = getAgent(); if(!a) return; const st = readPlan(); st.session = a.sessionId; st.menu = ""; st.picks = picks; writePlan(st); }
-  Object.assign(window.Primenet, { TWISTS, TWIST_POINTS, HEIST_POINTS, MENUS, menuPin, setMenuPin, twistsOff, setTwistOn, twistOn, twistPin, setTwistPin, twistPlan, twistAt, twistMenu, peekMenu, setTwistMenu, setTwistPlan, twistProtos, setTwistProtos });
+  // Round 23 (Bertie's brief): the strongroom is a code to crack, from a rotating bank of patterns. The teacher ticks
+  // which patterns can appear; each agent keeps a codebook of the ones they've cracked (shown on the case file).
+  const PATTERNS = [
+    { id:"squares",     name:"Square numbers", code:"the square code",     order:"early", terms:"1, 4, 9, 16, 25", ready:true },
+    { id:"matchsticks", name:"Matchsticks",    code:"the matchstick code", order:"early", terms:"4, 7, 10, 13, 16" },
+    { id:"doubling",    name:"Doubling",       code:"the doubling code",   order:"early", terms:"1, 2, 4, 8, 16" },
+    { id:"lshapes",     name:"L-shapes (odd numbers)", code:"the L code",  order:"early", terms:"1, 3, 5, 7, 9" },
+    { id:"crosses",     name:"Crosses",        code:"the cross code",      order:"early", terms:"1, 5, 9, 13, 17" },
+  ];
+  function patternsOff(){ const d = readTw(); return Array.isArray(d.patternsOff) ? d.patternsOff : []; }
+  function setPatternOn(id, on){ const d = readTw(), off = new Set(patternsOff()); if(on) off.delete(id); else off.add(id); d.patternsOff = [...off]; writeTw(d); }
+  const patternOn = id => !patternsOff().includes(id);
+  const CODEBOOK_KEY = "primenet_codebook_v1";
+  const readCB = () => { try{ return JSON.parse(localStorage.getItem(CODEBOOK_KEY) || "{}") || {}; }catch(e){ return {}; } };
+  const writeCB = d => { try{ localStorage.setItem(CODEBOOK_KEY, JSON.stringify(d)); }catch(e){} };
+  const cbName = () => (getAgent() || {}).codename || "_guest";
+  // { patternId: { at, times } } for the current agent
+  function codebook(){ return (readCB()[cbName()] || {}).cracked || {}; }
+  function crackPattern(id){ const d = readCB(), me = d[cbName()] = d[cbName()] || {}; me.cracked = me.cracked || {}; const c = me.cracked[id] || { times: 0 }; c.at = Date.now(); c.times++; me.cracked[id] = c; writeCB(d); }
+  // Which pattern this strongroom plays: ticked by the teacher (available = what the page can play), never the last one,
+  // uncracked first (early before later), then the one cracked longest ago
+  function pickPattern(available){
+    const d = readCB(), me = d[cbName()] = d[cbName()] || {}, cb = me.cracked || {};
+    let pool = PATTERNS.filter(p => (!available || available.includes(p.id)) && patternOn(p.id));
+    if(!pool.length) pool = PATTERNS.filter(p => !available || available.includes(p.id));
+    if(pool.length > 1) pool = pool.filter(p => p.id !== me.last);
+    const rank = p => cb[p.id] ? 2 + cb[p.id].at / 1e14 : (p.order === "early" ? 0 : 1);
+    const best = Math.min(...pool.map(rank)), top = pool.filter(p => rank(p) === best);
+    const p = top[Math.floor(Math.random() * top.length)];
+    me.last = p.id; writeCB(d);
+    return p.id;
+  }
+  Object.assign(window.Primenet, { PATTERNS, patternsOff, setPatternOn, patternOn, codebook, crackPattern, pickPattern, TWISTS, TWIST_POINTS, HEIST_POINTS, MENUS, menuPin, setMenuPin, twistsOff, setTwistOn, twistOn, twistPin, setTwistPin, twistPlan, twistAt, twistMenu, peekMenu, setTwistMenu, setTwistPlan, twistProtos, setTwistProtos });
 
   applyPrefs();   // every page opens with the current agent's settings
   // Round 14: shared helpers every page gets without its own script tag: the read-aloud voice

@@ -2989,6 +2989,7 @@ function caseFile({ codename, levelId, cracked, wrong, banked, walletAfter, afte
         <div><small>TAKEN THIS RUN</small><b>${gbp(banked)}</b></div>
         <div><small>WALLET</small><b>${gbp(walletAfter)}</b></div>
       </div>
+      ${PN && PN.codebook && Object.keys(PN.codebook()).length ? `<div class="cf-sec"><small>CODEBOOK · STRONGROOM CODES CRACKED</small><div class="cf-chips">${PN.PATTERNS.filter(p => PN.codebook()[p.id]).map(p => `<span>${p.code[0].toUpperCase() + p.code.slice(1)} · ${p.terms}…${PN.codebook()[p.id].times > 1 ? ` · ×${PN.codebook()[p.id].times}` : ""}</span>`).join("")}</div></div>` : ""}
       ${window.PNBadges && PNBadges.thisMission().length ? `<div class="cf-sec"><small>BADGES THIS MISSION</small><div class="cf-badges">${PNBadges.thisMission().map(id => `<span class="bn">${PNBadges.hex(id, true)}${PNBadges.byId(id).name}</span>`).join("")}</div></div>` : ""}
       ${tierMove ? `<div class="cf-sec"><small>LOCK DIFFICULTY</small><span>Lock difficulty ${tierMove.from + 1} of ${TIER_MAX + 1} this run (${Math.round(tierMove.avg)}s a lock on average). ${tierMove.move > 0 ? `Next run: <b>up to ${tierMove.to + 1}</b>.` : tierMove.move < 0 ? `Next run: <b>down to ${tierMove.to + 1}</b>.` : "Next run: <b>the same</b>."} Siphoned <b>${Math.round((frac || 0) * 100)}%</b> of the funds in reach.</span></div>` : ""}
       ${after && after.next ? `<div class="cf-sec"><small>NEXT RANK</small><span>${after.toNext} more vault${after.toNext === 1 ? "" : "s"} to become <b>${after.next}</b>.</span></div>` : ""}

@@ -593,7 +593,11 @@
       `<label><input type="checkbox" data-twist="${t.id}" ${P.twistOn(t.id) ? "checked" : ""}> ${t.name} <small>${t.maths}${t.page ? "" : t.proto ? " · prototype (Twist Lab switch)" : " · built into its stage"}</small></label>`).join("")}</fieldset>`).join("")
       + `<fieldset><legend>Every mission</legend><label style="flex-direction:column;align-items:stretch;gap:6px">Always include<select id="twistPin" class="pn-input" style="font-size:15px;padding:6px"><option value="">No, rotate them</option>${pinOpts}</select><small>Each mission plays one of four set menus of three twists. Pinning a twist keeps to the menus that have it.</small></label>
         <label style="flex-direction:column;align-items:stretch;gap:6px">Mission menu<select id="menuPin" class="pn-input" style="font-size:15px;padding:6px"><option value="">Random</option>${P.MENUS.map(m => `<option value="${m.id}" ${P.menuPin() === m.id ? "selected" : ""}>${m.name}</option>`).join("")}</select><small>Pick one to play it every mission (from the next mission). Set back to Random when you're done.</small></label></fieldset>`;
-    box.querySelectorAll("input").forEach(i => i.addEventListener("change", () => P.setTwistOn(i.dataset.twist, i.checked)));
+    // Round 23: the strongroom's code-crack patterns, one tick box each (an unticked pattern never appears)
+    if(P.PATTERNS) box.insertAdjacentHTML("beforeend", `<fieldset><legend>Strongroom patterns</legend>${P.PATTERNS.map(p =>
+      `<label><input type="checkbox" data-pattern="${p.id}" ${P.patternOn(p.id) ? "checked" : ""}> ${p.name} <small>${p.terms}…${p.ready ? "" : " · coming soon"}</small></label>`).join("")}</fieldset>`);
+    box.querySelectorAll("input[data-twist]").forEach(i => i.addEventListener("change", () => P.setTwistOn(i.dataset.twist, i.checked)));
+    box.querySelectorAll("input[data-pattern]").forEach(i => i.addEventListener("change", () => P.setPatternOn(i.dataset.pattern, i.checked)));
     box.querySelector("#twistPin").addEventListener("change", e => P.setTwistPin(e.target.value));
     box.querySelector("#menuPin").addEventListener("change", e => P.setMenuPin(e.target.value));
   })();
