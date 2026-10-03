@@ -128,8 +128,8 @@
   .blueprint-viewer-canvas{ position:relative; }
   .plotter{ position:absolute; inset:0; z-index:3; transition:opacity .6s ease; }
   .plotter canvas{ width:100%; height:100%; display:block; }
-  .floor-label.weak{ border-color:#ff4f6d !important; }
-  .floor-label .weaktag{ display:block; font-size:11px; letter-spacing:.14em; color:#ff4f6d; margin-top:2px; }
+  .floor-label.weak{ border-color:#6ec8ff !important; }
+  .floor-label .weaktag{ display:block; font-size:11px; letter-spacing:.14em; color:#6ec8ff; margin-top:2px; }
   .floor-label.picked{ background:rgba(var(--accent-rgb),.12); }
   .room-tip{ position:fixed; z-index:30; pointer-events:none; background:rgba(4,14,17,.95); border:1px solid var(--accent); padding:6px 10px; font-family:var(--font-mono); font-size:13px; color:var(--text-primary); white-space:nowrap; display:none; }
   .floor-info{ font-family:var(--font-mono); font-size:14px; color:var(--text-primary); text-align:center; min-height:1.4em; margin-top:4px; }
@@ -935,35 +935,22 @@ function powerUpPrompt(title){
         }
         await wait(900);   // Bertie: no ORACLE line here, the lights speak for themselves
 
-        // Weak point: the floor with the fewest rooms (factor pairs)
-        watchLabel('Finding the weak point'); planAt(0.22);
+        // Round 21 (Bertie): the way in is the floor where the security key is (the right room matters, not the fewest
+        // guards). The strongroom is on floor 2; the deposit boxes are under the ground floor; the key room keeps the floor
+        // it always had (the one with the fewest rooms), with no maths said about it. No hidden vault.
+        watchLabel('Finding the way in'); planAt(0.22);
         const pairsOf = n => getFactorPairs(n).length;
         const fewest = Math.min(...floorGroups.map(f => pairsOf(f.n)));
-        const weak = floorGroups.filter(f => pairsOf(f.n) === fewest).sort((a, b) => a.n - b.n)[0];
-        weak.lines.forEach(m => m.color.set(0xff4f6d)); weak.plate.material.color.set(0xff4f6d);
-        ring(weak.yOffset + 0.5, 0xff4f6d); SND("alarm");
-        const wl = labelFor(weak.n); if(wl){ wl.classList.add('weak'); wl.insertAdjacentHTML('beforeend', `<span class="weaktag">WEAK POINT · ${fewest} factor pair${fewest === 1 ? '' : 's'}</span>`); }
+        const weak = KEY_AT === 'strongroom' ? floorGroups[1] : KEY_AT === 'deposit' && QUIET ? floorGroups[2]
+          : floorGroups.filter(f => pairsOf(f.n) === fewest).sort((a, b) => a.n - b.n)[0];
+        weak.lines.forEach(m => m.color.set(0x6ec8ff)); weak.plate.material.color.set(0x6ec8ff);
+        ring(weak.yOffset + 0.5, 0x6ec8ff); SND("lockon");
+        const wl = labelFor(weak.n); if(wl){ wl.classList.add('weak'); wl.insertAdjacentHTML('beforeend', `<span class="weaktag">WAY IN</span>`); }
         const wName = weak.label.split('—')[0].trim();
         if(PN) PN.updateAgent({ weakFloor: wName, weakN: weak.n });
         weakPulse = true; (function pulseWeak(t){ if(!weakPulse) return; const k = 0.5 + 0.5 * Math.abs(Math.sin(t / 300)); weak.lines.forEach(m => m.opacity = k); requestAnimationFrame(pulseWeak); })(0);
         weak.lines.forEach(m => m.transparent = true);
-        await oracle(`${wName} (N=${weak.n}) has only *${fewest} factor pair${fewest === 1 ? '' : 's'}*: the fewest rooms, so the fewest guards. That's our way in.`);
-
-        // Hidden vault: the highest common factor of the three floors
-        const nums = floorGroups.map(f => f.n), h = nums.reduce(gcd);
-        const list = `${nums.slice(0, -1).join(', ')} and ${nums[nums.length - 1]}`;
-        if(h > 1){
-          const size = Math.min(maxExtentX, maxExtentZ) * 0.7;
-          const g = new THREE.BoxGeometry(size, 10, size);
-          const vault = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ color: 0xffc94d, emissive: 0xffc94d, emissiveIntensity: 0.5, transparent: true, opacity: 0.35 }));
-          vault.add(new THREE.LineSegments(new THREE.EdgesGeometry(g), new THREE.LineBasicMaterial({ color: 0xffe9a3 })));
-          vault.position.y = -30; mainGroup.add(vault); hiddenVault = vault;
-          SND("rise");
-          await tween(900, e => { vault.position.y = -30 + e * 20; });
-          ring(-5, 0xffc94d); SND("dock");
-          if(window.PNBadges && !DEMO_MODE) PNBadges.award("treasure");
-          await oracle(`Wait. ${list} all divide by *${h}*. ${h} is their *highest common factor*, and it's the key to a hidden vault in the basement.`, 600);
-        } else await oracle(`${list} share no factor except 1, so there's no hidden vault this time.`, 600);
+        await wait(900);
         planAt(0.3);
         watchLabel('Planning the way in');
         await recon(weak);
@@ -988,7 +975,7 @@ function powerUpPrompt(title){
           const w = shortWatch("Recon: last night's CCTV", 3);
           spinning = false; SND("radio");
           showLabel(`RECON · GUARDS ON ${wName}`, 'red');
-          if(window.PNHandler) PNHandler.say(`One more thing for the plan. Two guards patrol ${wName}, where our fire door is. Here's last night's CCTV: work out when FOX and WREN can sneak past.`);
+          if(window.PNHandler) PNHandler.say(`Now we need to work out when to go in. Two guards patrol ${wName}, near the fire door. Let's study last night's CCTV.`);
           await wait(3200);
           w.end();
         };
@@ -1050,9 +1037,9 @@ function powerUpPrompt(title){
       // and whether FOX and WREN sneak out with a copy (quiet) or wait at the vault (loud). No menu: the key room, loud.
       const MENU = (PN && PN.twistMenu && PN.twistMenu()) || null;
       const KEY_AT = MENU ? MENU.keyAt : 'keyroom', QUIET = !!(MENU && MENU.quiet);
-      const KEY_LINE = w => KEY_AT === 'strongroom' ? `Tonight the bank's security key is locked in the strongroom. It's what lets us log in to their vault. We go in on ${w}: fewest rooms, fewest guards.`
-        : KEY_AT === 'deposit' && QUIET ? `The bank's security key is kept in a deposit box in the basement. It's what lets us log in to their vault. We go in on ${w}: fewest rooms, fewest guards.`
-        : `The bank's security key is in the key room on ${w}: fewest rooms, fewest guards. It's what lets us log in to their vault.`;
+      const KEY_LINE = w => KEY_AT === 'strongroom' ? `Tonight the bank's security key is locked in the strongroom on ${w}. It's what lets us log in to their vault. The fire door on ${w} is our way in.`
+        : KEY_AT === 'deposit' && QUIET ? `The bank's security key is kept in a deposit box in the basement. It's what lets us log in to their vault. We go in through the fire door on ${w}, then down.`
+        : `The bank's security key is in the key room on ${w}. It's what lets us log in to their vault. The fire door on ${w} is our way in.`;
       async function recon(weak){
         spinning = false;
         // Face the building the way it was built, so the route reads clearly
@@ -1081,7 +1068,10 @@ function powerUpPrompt(title){
         const stairTag = badge('FIRE STAIRS', '#ff9f6b', 150); stairTag.position.set(F.x, roofY + 6, F.z); stairTag.visible = false; mainGroup.add(stairTag);
         // The key room: on the weak floor, the room furthest from the fire door
         const far = weak.rooms.map(r => ({ r, d: Math.hypot(r.x - wallAt.x, r.z - wallAt.z) })).sort((a, b) => b.d - a.d)[0];
-        const keyRoom = far ? far.r : null;
+        // Round 21: the room the security key is in: the key room (furthest from the fire door), the strongroom (floor 2's
+        // squarest room, the same one the heist uses), or none on these floors (a deposit box in the basement)
+        const squarest = f => f.rooms.find(r => r.a === r.b) || f.rooms.slice().sort((a, b) => a.b / a.a - b.b / b.a)[0] || null;
+        const keyRoom = KEY_AT === 'strongroom' ? squarest(weak) : KEY_AT === 'deposit' && QUIET ? null : far ? far.r : null;
         // The CEO: the top floor's most nearly square room (not the key room)
         const topF = floorGroups[0];
         const ceoRoom = topF.rooms.filter(r => r !== keyRoom).sort((a, b) => b.a / b.b - a.a / a.b)[0] || null;
@@ -1092,8 +1082,7 @@ function powerUpPrompt(title){
           if(f === ground){ const ll = badge('LIFT', '#cfe8ff', 80); ll.position.set(S.x, f.yOffset + boxHeight + 5, S.z); ll.visible = false; f.group.add(ll); items.push(ll); items.push(stairs, stairTag); }
           f.rooms.forEach(r => {
             let b;
-            if(r === keyRoom && KEY_AT === 'keyroom') b = badge('KEY', '#ffe14d', 90);
-            else if(r === keyRoom) b = badge('IN', '#6ec8ff', 70);
+            if(r === keyRoom) b = badge('KEY', '#ffe14d', 90);
             else if(r === ceoRoom) b = badge('CEO', '#ffc94d', 90);
             else { b = guardDot(); guards++; }
             b.position.set(r.x, f.yOffset + (b.userData.dot ? boxHeight * 0.55 : TOP), r.z); b.visible = false; f.group.add(b); items.push(b);
@@ -1117,8 +1106,8 @@ function powerUpPrompt(title){
         mainGroup.remove(sheet);
         const wName = weak.label.split('—')[0].trim();
         const lg = document.getElementById('bpLegend');
-        if(lg){ lg.innerHTML = `<span><i style="color:#6ec8ff">●</i>You</span><span><i style="color:#6ec8ff">→</i>Your route in</span><span><i style="color:#ff4f6d">●</i>Guard</span><span><i style="color:#ffc94d">CEO</i>The boss</span>${KEY_AT === 'keyroom' ? '<span><i style="color:#ffe14d">KEY</i>The security key</span>' : '<span><i style="color:#6ec8ff">IN</i>Where we get in</span>'}<span><i style="color:#ff9f6b">⇅</i>Fire stairs</span><span><i style="color:#cfe8ff">▣</i>Lift</span>`; lg.classList.add('on'); }
-        if(window.PNHandler) PNHandler.say(`Recon's in: ${guards} guard${guards === 1 ? '' : 's'}, one in each room. ${KEY_LINE(wName)} The lift is watched, so we take the fire stairs.`);
+        if(lg){ lg.innerHTML = `<span><i style="color:#6ec8ff">●</i>You</span><span><i style="color:#6ec8ff">→</i>Your route in</span><span><i style="color:#ff4f6d">●</i>Guard</span><span><i style="color:#ffc94d">CEO</i>The boss</span>${keyRoom ? '<span><i style="color:#ffe14d">KEY</i>The security key</span>' : ''}<span><i style="color:#ff9f6b">⇅</i>Fire stairs</span><span><i style="color:#cfe8ff">▣</i>Lift</span>`; lg.classList.add('on'); }
+        if(window.PNHandler) PNHandler.say(`${KEY_LINE(wName)} The lift is watched, so we take the fire stairs.`);
         await wait(900);
 
         // The route: from the street, up the fire stairs, in through the fire door on the weak floor, to the key
@@ -1356,7 +1345,8 @@ function powerUpPrompt(title){
         const f2 = floorGroups[1], y2 = f2.yOffset + 1.2;
         // The strongroom (step 4): floor 2's square room, or its most nearly square one (not the key room)
         const cand = f2.rooms.map((r, i) => ({ r, i })).filter(o => o.r !== D.keyRoom);
-        const pickS = (cand.find(o => o.r.a === o.r.b) || cand.sort((a, b) => a.r.b / a.r.a - b.r.b / b.r.a)[0]) || { r: f2.rooms[0], i: 0 };
+        const keyS = KEY_AT === 'strongroom' && f2.rooms.indexOf(D.keyRoom) >= 0 ? { r: D.keyRoom, i: f2.rooms.indexOf(D.keyRoom) } : null;   // the strongroom the plan marked
+        const pickS = keyS || (cand.find(o => o.r.a === o.r.b) || cand.sort((a, b) => a.r.b / a.r.a - b.r.b / b.r.a)[0]) || { r: f2.rooms[0], i: 0 };
         const sRoom = pickS.r;
         let here = D.pts[0].clone();
 
@@ -1610,7 +1600,7 @@ function powerUpPrompt(title){
           if(window.PNHandler) PNHandler.radio("keyCopied");
           await wait(3400);
           wk.end(); hideLabel(); push(1);
-          const out = [here, lift(here.y), lift(D.yW), D.door, ...toDoor.slice().reverse()];
+          const out = [here, ...(Math.abs(here.y - D.yW) < 1 ? [] : [lift(here.y), lift(D.yW)]), D.door, ...toDoor.slice().reverse()];
           await move('Sneaking out', 'Copy made, original back in place. Sneaking out.', out, true);
           moveEnd();
           const wo = shortWatch('Out unseen', 4);

@@ -91,6 +91,12 @@
   html.pn-reduce-motion .act .go, html.pn-reduce-motion .cctv .top .rec{ animation:none; }
   @media (prefers-reduced-motion: reduce){ .act .go, .cctv .top .rec{ animation:none; } .cctv .gogo{ transition:opacity .35s; transform:none; } }
   .side .tw-msg{ font-size:15px; min-height:2.6em; }
+  .ask{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; padding:10px 12px; border:1px solid rgba(255,230,138,.55); background:rgba(255,230,138,.06); font-family:var(--font-ui); font-size:17px; color:#f6feff; }
+  .ask input{ width:3.4em; font:700 22px var(--font-mono); text-align:center; padding:4px 6px; color:#ffe68a; background:#020a0c; border:1px solid #ffe68a; }
+  .ask input:focus{ outline:2px solid #ffe68a; outline-offset:1px; }
+  .ask .pn-btn{ margin-left:auto; }
+  .track .zone{ position:absolute; top:-3px; bottom:-3px; background:rgba(255,225,77,.22); border:1px solid rgba(255,225,77,.8); box-shadow:0 0 10px rgba(255,225,77,.35); pointer-events:none; }
+  .tline.go .track .ph{ width:4px; margin-left:-2px; background:#ffe14d; box-shadow:0 0 10px #ffe14d; }
   [hidden]{ display:none !important; }
   @media (max-width:900px){ main.tw{ height:auto; } .play{ grid-template-columns:1fr; } .cctv{ height:360px; flex:none; } }
 </style>
@@ -111,6 +117,7 @@
       <div class="gcards" id="cards"></div>
       <ol class="plan" id="plan" aria-live="polite"></ol>
       <div class="hs" id="hs" hidden></div>
+      <div class="ask" id="ask" hidden><label for="askIn">Guard <span id="askG">A</span> passes every</label><input id="askIn" type="text" inputmode="numeric" maxlength="3" autocomplete="off" aria-label="Minutes"><span>minutes</span><button class="pn-btn primary" type="button" id="askBtn">CHECK ▸</button></div>
       <div class="act" id="act" hidden><button class="pn-btn primary pn-go" type="button" id="actBtn"></button></div>
       <div class="tw-msg" id="msg" aria-live="polite"></div>
       <div class="radio" id="radio" aria-live="polite"></div>
@@ -413,12 +420,13 @@
     const spd = sp(), paused = T.briefOpen();
     if(mode === "loop" && !paused){ minute += dt * rate * spd; if(minute > loopW + 0.9){ minute = 0; prevM = 0; tlWindow(loopW); clearLog(); } }   // the recording loops: it never reaches a meeting
     else if(mode === "run" && !paused) minute = Math.min(target, minute + dt * rate * spd);
+    else if(mode === "rec" && !paused){ minute += dt * rate * spd; recTick(); }
     if(mode === "loop" || mode === "run") passes();
     if(mode === "run" && minute >= target){ mode = "hold"; const f = onArrive; onArrive = null; if(f) f(); }
     $("clock").textContent = `MIN ${String(Math.floor(minute + 1e-6)).padStart(2, "0")}${ff ? " ▸▸" : ""}`;
     document.querySelectorAll(".track .ph").forEach(h => { h.style.left = Math.max(0, Math.min(100, tlX(minute) * 100)) + "%"; h.hidden = minute > tlW + 0.01; });
     guards.forEach(g => { const pt = g.path.curves.length ? g.path.getPointAt(Math.min(0.999, (minute % g.p) / g.p)) : SW.clone().add(g.off); if(pt) g.dot.set(pt.x, pt.z); });
-    const here = guards.filter(atSpot), both = here.length === 2 && minute > 0.5;
+    const here = mode === "rec" || (recG >= 0 && asking) ? guards.filter(g => g.i === recG && minute > 0.5 && Math.abs(minute - Math.round(minute / g.p) * g.p) < recWin(g.i)) : guards.filter(atSpot), both = here.length === 2 && minute > 0.5;
     want.setHex(ff ? 0x5a7a80 : both ? GOLD : here.length === 1 ? COLS[here[0].i] : 0xdff8ff);
     spotRing.material.color.lerp(want, Math.min(1, dt * 10));   // eases between colours: never a flash
     spotRing.material.opacity += ((both ? 0.95 : here.length ? 0.8 : 0.55) - spotRing.material.opacity) * Math.min(1, dt * 8);
@@ -453,67 +461,138 @@
   function jumpTo(v){ mode = "hold"; ff = false; tlWindow(loopW); minute = v; prevM = v; guards.filter(g => v % g.p === 0).forEach(spotTick); }
 
   // ----- The steps -----
+  // ----- The steps (Round 21, Bertie: "we need to work out when to go in") -----
+  // Recon: 1 record guard A on last night's CCTV (SPACE each time they reach the blind spot), then say how often;
+  // 2 the same for guard B; 3 and 4 mark their minutes on the grid; 5 the first minute marked by both. Then
+  // "go at minute M". At the fire door (the heist): a scanner sweeps the minutes and the pupil presses SPACE at M.
+  const S_RECA = 0, S_RECB = 1, S_MARKA = 2, S_MARKB = 3, S_BOTH = 4, S_GO = 5;
   T.init({ id: "patrols3d", stage: "GETTING IN", title: PHASE === "go" ? "THE FIRE DOOR" : "RECON: GUARD PATROLS", eyebrow: "RECON", briefTitle: "COMMS · ORACLE",
     briefStyle: PHASE === "go" ? "comms" : undefined,
-    goal: PHASE === "go" ? `Watch the blind spot camera. When <b>both guards</b> are at the blind spot (minute ${M}), press <b>GO GO GO</b>.`
-      : "Two guards walk <b>different routes</b>. Both routes pass the <b>blind spot</b>, a corridor behind a room where nobody can see the fire door. Find the first minute they're <b>both at the blind spot</b>: that's when FOX and WREN sneak through.",
-    example: PHASE === "go" ? "" : "Every 2 minutes (2, 4, 6…) and every 3 minutes (3, 6…): both there at minute 6, the lowest common multiple of 2 and 3.",   // a pair no level uses, so it never gives an answer away
-    context: PHASE === "go" ? `FOX and WREN are at the fire door. The plan: go at minute ${M}, when both guards are at the blind spot. Watch the camera and call it.`
-      : PHASE === "recon" ? "Last night's CCTV of the floor we're going in on. Two guards, two routes. When are they both at the blind spot, out of sight of the fire door? That's when FOX and WREN sneak in."
-      : `Two guards, two routes. Work out when they're both at the blind spot, out of sight of the fire door, then call GO: FOX and WREN slip through to ${DEST.to}.`,
-    story: PHASE === "go" ? "" : "Recon: two guards patrol this floor. You're tech support: watch the CCTV and work out when FOX and WREN can sneak past." });
-  $("dest").textContent = PHASE === "recon" ? "THE PLAN ▸ WHEN CAN FOX + WREN SNEAK IN?" : `FOX + WREN ▸ NEXT STOP: ${DEST.name}`;
+    goal: PHASE === "go" ? `The plan says minute ${M}. Watch the scanner run along the minutes and press <b>SPACE</b> when it reaches <b>${M}</b>.`
+      : "Watch last night's CCTV. Press <b>SPACE</b> each time the guard reaches the <b>blind spot</b>, then work out how often they come round. Then find the first minute <b>both</b> guards are there.",
+    example: PHASE === "go" ? "" : "Every 2 minutes (2, 4, 6…) and every 3 minutes (3, 6…): both there at minute 6, the lowest common multiple of 2 and 3.",   // a pair no level uses
+    context: PHASE === "go" ? `FOX and WREN are at the fire door. Go at minute ${M}, when both guards are at the blind spot.`
+      : "We need to work out when to go in. Watch last night's CCTV and record when each guard passes the blind spot.",
+    story: PHASE === "go" ? "" : "Recon: two guards patrol near the fire door. Record their rounds on last night's CCTV and work out when FOX and WREN can go in." });
+  $("dest").textContent = PHASE === "recon" ? "THE PLAN ▸ WHEN DO WE GO IN?" : `FOX + WREN ▸ NEXT STOP: ${DEST.name}`;
   const alarm = PHASE === "go" ? null : T.alarm(3, () => end(false));
   function say(t, cls){ const m = $("msg"); m.textContent = t; m.className = "tw-msg" + (cls ? " " + cls : ""); }
   function tag(t, cls){ const el = $("tag"); el.textContent = t; el.className = "tag" + (t ? " on" : "") + (cls ? " " + cls : ""); }
   const clock = c => `<svg viewBox="0 0 26 26" aria-hidden="true"><circle cx="13" cy="13" r="11" fill="none" stroke="${c}" stroke-width="2.4"/><path d="M13 6.5V13l4.5 3" fill="none" stroke="${c}" stroke-width="2.4" stroke-linecap="round"/></svg>`;
-  $("cards").innerHTML = P.map((q, i) => `<div class="gcard" style="--c:${CSS[i]}">${clock(CSS[i])}<span><b>Guard ${NAMES[i]}</b> passes the blind spot every <b>${q}&nbsp;minutes</b></span></div>`).join("");
-  let step = PHASE === "go" ? 4 : 0, over = false, busy = false, timer = 0, checked = false, going = false;
+  const known = [PHASE === "go", PHASE === "go"];   // how often each guard comes round: worked out by the pupil in the recon
+  function cards(){ $("cards").innerHTML = P.map((q, i) => `<div class="gcard" style="--c:${CSS[i]}">${clock(CSS[i])}<span><b>Guard ${NAMES[i]}</b> passes the blind spot every <b>${known[i] ? q : "?"}&nbsp;minutes</b></span></div>`).join(""); }
+  cards();
+  let step = PHASE === "go" ? S_GO : S_RECA, over = false, busy = false, timer = 0, checked = false, going = false;
   const marks = [new Set(), new Set()];
-  // Each step: what to do now, its name before it's reached, and what it found once it's done
+  // Recording: the guard being recorded, the minutes logged, and whether the "how often?" box is up
+  let recG = -1, asking = false; const recLogs = [[], []];
+  const recWin = g => Math.max(0.6, 0.22 * P[g]);   // how close to the pass a SPACE counts (about a second either side)
+  const recNext = g => (recLogs[g].length + 1) * P[g];
+  const logTxt = g => recLogs[g].length ? recLogs[g].join(" · ") : "none yet";
   const STEPS = [
-    [`Guard A passes the blind spot every <b>${P[0]} minutes</b>. Mark those minutes on the grid.`, "Mark guard A's minutes", `Guard A: ${seq(P[0])}`],
-    [`Guard B passes the blind spot every <b>${P[1]} minutes</b>. Mark those minutes too.`, "Mark guard B's minutes", `Guard B: ${seq(P[1])}`],
-    ["When are they <b>both</b> at the blind spot? Click the first minute marked by both.", "Find when they're both there", `Both at the blind spot at minute ${M}`],
-    [`Watch last night's CCTV to check: are both guards at the blind spot at minute <b>${M}</b>?`, "Check on last night's CCTV", `Checked on the CCTV: the plan is minute ${M}`],
-    [`FOX and WREN are at the fire door. When <b>both guards</b> reach the blind spot, call it: <b>GO GO GO</b>.`, PHASE === "recon" ? "In the heist: call GO at the fire door" : "Call GO at the fire door", "FOX and WREN are through"],
+    () => asking ? `You recorded guard A at minutes <b>${logTxt(0)}</b>. How often does guard A pass the blind spot?` : `Press <b>SPACE</b> each time <b>guard A</b> reaches the blind spot. Recorded: <b>${logTxt(0)}</b>`,
+    () => asking ? `You recorded guard B at minutes <b>${logTxt(1)}</b>. How often does guard B pass the blind spot?` : `Now <b>guard B</b>: press <b>SPACE</b> each time they reach the blind spot. Recorded: <b>${logTxt(1)}</b>`,
+    () => `Guard A comes every <b>${P[0]} minutes</b>. Mark all their minutes on the grid.`,
+    () => `Guard B comes every <b>${P[1]} minutes</b>. Mark their minutes too.`,
+    () => "When are they <b>both</b> at the blind spot? Click the first minute marked by both.",
+    () => `FOX and WREN are at the fire door. Press <b>SPACE</b> when the scanner reaches minute <b>${M}</b>.`,
   ];
+  const NAMESTEP = ["Record guard A", "Record guard B", "Mark guard A's minutes", "Mark guard B's minutes", "Find when they're both there", PHASE === "recon" ? "In the heist: go at the planned minute" : "Go at the planned minute"];
+  const DONE = [`Guard A: every ${P[0]} minutes`, `Guard B: every ${P[1]} minutes`, `Guard A: ${seq(P[0])}`, `Guard B: ${seq(P[1])}`, `Both at the blind spot at minute ${M}`, "FOX and WREN are through"];
   const HINTS = [
-    `Guard A passes the blind spot every <b>${P[0]} minutes</b>. Count up in ${P[0]}s (${seq(P[0])}) and click every one on the grid.`,
-    `Guard B passes the blind spot every <b>${P[1]} minutes</b>. Count up in ${P[1]}s (${seq(P[1])}) and click every one on the grid.`,
+    "Watch guard A walk their route. Each time they reach the <b>blind spot</b> (the ring lights up in their colour), press <b>SPACE</b>. Then look at the gaps between the minutes you recorded.",
+    "Same again for guard B. Press <b>SPACE</b> when they reach the blind spot, then look at the gaps.",
+    `Count up in ${P[0]}s (${seq(P[0])}) and click every one on the grid.`,
+    `Count up in ${P[1]}s (${seq(P[1])}) and click every one on the grid.`,
     "Both guards left the blind spot at minute 0. Look for the first number with <b>both colours</b> on it: that's when they're next there together.",
-    `Press <b>Play</b> and watch both guards walk their routes. Are they at the blind spot together at minute ${M}?`,
-    `Both guards at the blind spot means nobody can see the fire door. Press <b>GO GO GO</b> (or G) when they're both there.`,
+    `Both guards at the blind spot means nobody can see the fire door. Press <b>SPACE</b> (or G) as the scanner reaches minute ${M}.`,
   ];
-  const NAMES5 = ["guard A", "guard B", "together", "check the CCTV", "GO"];
-  // At the fire door the plan so far is one line, so GO sits high in the panel (clear of the mission's ORACLE box, bottom right)
+  const lastStep = PHASE === "recon" ? S_BOTH : S_GO;
   function render(){
-    const li = (i, cls, n, html) => `<li class="${cls}"><i>${n}</i><span>${html}</span></li>`;
-    $("plan").innerHTML = step >= 4 ? li(0, "done", "✓", `The plan: A every ${P[0]}, B every ${P[1]}, so both at the blind spot at minute ${M}`) + li(4, step > 4 ? "done" : "on", step > 4 ? "✓" : 5, step > 4 ? STEPS[4][2] : STEPS[4][0])
-      : STEPS.map((s, i) => li(i, i < step ? "done" : i === step ? "on" : "", i < step ? "✓" : i + 1, i < step ? s[2] : i === step ? s[0] : s[1])).join("");
-    document.querySelectorAll(".gcard").forEach((c, k) => c.classList.toggle("on", step === k));
+    const li = (cls, n, html) => `<li class="${cls}"><i>${n}</i><span>${html}</span></li>`;
+    $("plan").innerHTML = step >= S_GO && PHASE !== "recon" ? li("done", "✓", `The plan: A every ${P[0]}, B every ${P[1]}, so both at the blind spot at minute ${M}`) + li(step > S_GO ? "done" : "on", step > S_GO ? "✓" : "▸", step > S_GO ? DONE[S_GO] : STEPS[S_GO]())
+      : STEPS.slice(0, lastStep + 1).map((s, i) => li(i < step ? "done" : i === step ? "on" : "", i < step ? "✓" : i + 1, i < step ? DONE[i] : i === step ? s() : NAMESTEP[i])).join("")
+        + (PHASE === "recon" ? li(step > S_BOTH ? "done" : "", step > S_BOTH ? "✓" : "▸", step > S_BOTH ? `The plan: go in at minute ${M}` : "The plan: when we go in") : "");
+    document.querySelectorAll(".gcard").forEach((c, k) => c.classList.toggle("on", (step === k || step === k + 2)));
     window.__pnPatrol.step = step + 1;
-    if(step < 5) T.step(HINTS[step], { name: `Step ${step + 1} of 5: ${NAMES5[step]}` });
+    if(step <= S_GO) T.step(HINTS[step], { name: PHASE === "go" ? "At the fire door" : `Step ${step + 1} of ${lastStep + 1}: ${NAMESTEP[step].replace(/^./, c => c.toLowerCase())}` });
   }
   function paint(c){ const t = +c.dataset.t, on = marks.map((s, i) => s.has(t) ? i : -1).filter(i => i >= 0);
     c.style.background = !on.length ? "" : on.length === 1 ? CSS[on[0]] + "66" : `linear-gradient(135deg, ${CSS[0]}88 0% 50%, ${CSS[1]}88 50% 100%)`;
     c.style.borderColor = on.length === 1 ? CSS[on[0]] : on.length ? "#fff" : ""; c.innerHTML = t + (on.length ? `<small>${on.map(i => NAMES[i]).join("")}</small>` : ""); }
   function act(text, cls, fn){ const b = $("actBtn"); $("act").hidden = !text; if(!text) return; b.textContent = text; b.className = "pn-btn primary pn-go" + (cls ? " " + cls : ""); b.disabled = false; b.onclick = fn; }
-  // Marking: gentle feedback, no strikes. A guard's minutes are done when every one on the grid is marked.
-  function markDone(g){ say(`Guard ${NAMES[g]}: ${[...marks[g]].sort((a, b) => a - b).slice(0, 4).join(", ")}…`, "ok"); T.SND("verified"); step = g + 1; render(); }
+  function dimGuard(i, v){ const g = guards[i]; g.dot.mesh.material.opacity = v ? 0.2 : 1; g.dot.mesh.children[0].material.opacity = v ? 0.12 : 0.6; g.lab.material.opacity = v ? 0.25 : 1; }
+
+  // ----- Steps 1 and 2: record a guard on the CCTV -----
+  function startRecord(g){
+    step = g; recG = g; asking = false; $("ask").hidden = true; $("hs").hidden = true;
+    guards.forEach(o => dimGuard(o.i, o.i !== g));
+    minute = 0; prevM = 0; ff = false; clearLog(); tlWindow(Math.ceil(3.6 * P[g]));
+    rate = P[g] / 3.6; mode = "rec";
+    $("feedLab").textContent = "CCTV · LAST NIGHT · RECORDING";
+    act("RECORD (SPACE)", "", record);
+    say(`Watch guard ${NAMES[g]}. Press SPACE when they reach the blind spot.`);
+    render();
+  }
+  // Every frame while recording: a pass that goes by unrecorded rewinds the tape to just before it
+  function recTick(){
+    if(recG < 0 || asking) return;
+    const n = recNext(recG);
+    if(minute > n + recWin(recG)){
+      mode = "hold"; T.SND("glitch"); say("Missed it. Rewinding…", "warn");
+      setTimeout(() => { if(over || recG < 0) return; minute = Math.max(0, n - 0.5 * P[recG]); prevM = minute; mode = "rec"; say(`Watch guard ${NAMES[recG]}. Press SPACE when they reach the blind spot.`); }, 900 / sp());
+    }
+  }
+  function record(){
+    if(over || recG < 0 || asking || mode !== "rec") return;
+    const g = recG, n = recNext(g);
+    if(Math.abs(minute - n) > recWin(g)){ T.SND("wrong"); say(`Nobody's at the blind spot right now. Wait for guard ${NAMES[g]}.`, "warn"); return; }
+    recLogs[g].push(n); tlTick(g, n); spotTick(guards[g]); T.SND("tag");
+    addLog(`${String(n).padStart(2, "0")} · guard ${NAMES[g]} at the blind spot (recorded)`);
+    say(`Recorded: guard ${NAMES[g]} at minute ${n}.`, "ok");
+    if(recLogs[g].length >= 3) askHowOften(); else render();
+  }
+  function askHowOften(){
+    asking = true; mode = "hold"; act("");
+    $("ask").hidden = false; $("askIn").value = ""; $("askG").textContent = NAMES[recG];
+    say(`Look at the gaps between ${logTxt(recG)}.`); render();
+    setTimeout(() => $("askIn").focus({ preventScroll: true }), 60);
+  }
+  function answer(){
+    if(!asking || over) return;
+    const g = recG, v = parseInt($("askIn").value, 10);
+    if(!Number.isInteger(v)){ say("Type a number of minutes, then ENTER.", "warn"); return; }
+    if(v !== P[g]){ T.SND("wrong"); const [a, b] = recLogs[g]; say(`Not quite. Look at the gaps: ${a} to ${b} is ${b - a} minutes.`, "warn"); $("askIn").select(); return; }
+    T.SND("verified"); known[g] = true; cards();
+    say(`Guard ${NAMES[g]} passes the blind spot every ${P[g]} minutes.`, "ok");
+    asking = false; $("ask").hidden = true; recG = -1; dimGuard(g, false);
+    if(g === 0) startRecord(1); else toMarking();
+  }
+  $("askBtn").addEventListener("click", answer);
+  $("askIn").addEventListener("keydown", e => { if(e.key === "Enter"){ e.preventDefault(); e.stopPropagation(); answer(); } });
+
+  // ----- Steps 3 to 5: the grid -----
+  function toMarking(){
+    step = S_MARKA; act(""); guards.forEach(o => dimGuard(o.i, false));
+    const hs = $("hs"); hs.hidden = false; hs.style.setProperty("--rows", LV.grid / 10);
+    hs.innerHTML = T.range(1, LV.grid).map(t => `<button type="button" data-t="${t}" aria-label="Minute ${t}">${t}</button>`).join("");
+    $("feedLab").textContent = "CCTV · LAST NIGHT · FIRST MINUTES (ON A LOOP)";
+    render(); startLoop();
+  }
+  function markDone(g){ say(`Guard ${NAMES[g]}: ${[...marks[g]].sort((a, b) => a - b).slice(0, 4).join(", ")}…`, "ok"); T.SND("verified"); step = S_MARKA + g + 1; render(); }
   $("hs").addEventListener("click", e => {
-    const c = e.target.closest("button[data-t]"); if(!c || over || busy || step > 2) return;
+    const c = e.target.closest("button[data-t]"); if(!c || over || busy || step < S_MARKA || step > S_BOTH) return;
     const t = +c.dataset.t;
-    if(step === 2) return choose(t, c);
-    const g = step, p = P[g]; if(marks[g].has(t)) return;
+    if(step === S_BOTH) return choose(t, c);
+    const g = step - S_MARKA, p = P[g]; if(marks[g].has(t)) return;
     if(t % p === 0){ marks[g].add(t); paint(c); T.SND("tag");
       if(T.range(1, LV.grid).filter(x => x % p === 0).every(x => marks[g].has(x))) markDone(g);
     } else { c.classList.add("bad"); setTimeout(() => c.classList.remove("bad"), 800); T.SND("wrong"); say(`Not ${t}: guard ${NAMES[g]} comes every ${p} minutes, so count up in ${p}s (${seq(p)}).`, "warn"); }
   });
-  // Step 3: the first minute marked by both. A wrong answer is an alarm strike, and the feed jumps to that minute to show why.
+  // Step 5: the first minute marked by both. A wrong answer is an alarm strike, and the feed jumps to that minute to show why.
   function choose(v, cell){
     if(over || busy) return;
-    if(v === M){ if(cell) cell.classList.add("gold"); T.SND("lockon"); say(`${M} = ${P[0]} × ${M / P[0]} = ${P[1]} × ${M / P[1]}: the lowest common multiple.`, "ok"); toCheck(); return; }
+    if(v === M){ if(cell) cell.classList.add("gold"); T.SND("lockon"); say(`${M} = ${P[0]} × ${M / P[0]} = ${P[1]} × ${M / P[1]}: the lowest common multiple.`, "ok"); found(); return; }
     busy = true; jumpTo(v); alarm.hit();
     if(cell){ cell.classList.add("bad"); setTimeout(() => cell.classList.remove("bad"), 900); }
     const inA = v % P[0] === 0, inB = v % P[1] === 0;
@@ -521,59 +600,54 @@
       : inA || inB ? `Minute ${v}: only guard ${inA ? "A" : "B"} is at the blind spot. Look for a minute with both colours.`
       : `Minute ${v}: neither guard is at the blind spot. Look for a minute with both colours.`, "bad");
     if(over) return;
-    timer = setTimeout(() => { if(over || step !== 2) return; busy = false; startLoop(); }, 1900 / sp());
+    timer = setTimeout(() => { if(over || step !== S_BOTH) return; busy = false; startLoop(); }, 1900 / sp());
   }
-  function toCheck(){
-    clearTimeout(timer); busy = false; step = 3; render();
-    document.querySelectorAll("#hs button").forEach(b => { b.disabled = true; if(+b.dataset.t === M) b.classList.add("gold"); });
-    act("Play last night's CCTV", "", play);
-    if(!document.querySelector(".twb-layer.open")) $("actBtn").focus({ preventScroll: true });
-  }
-  async function play(){
-    if(over || checked || busy) return; busy = true; act("");
-    $("feedLab").textContent = `CCTV · LAST NIGHT · PLAYING TO MINUTE ${M}`; say(`Playing last night's CCTV to minute ${M}…`);
-    await runFeed(); checkedAt();
-  }
-  // Step 4 done: both at the blind spot at minute M, seen on the recording
-  async function checkedAt(){
-    if(checked || over) return; checked = true; clearTimeout(timer);
+  // Found it: both at the blind spot at minute M. "Right: you need to go at minute M."
+  async function found(){
+    if(checked || over) return; checked = true; clearTimeout(timer); busy = false;
     for(let t = 1; t <= LV.grid; t++){ if(t % P[0] === 0) marks[0].add(t); if(t % P[1] === 0) marks[1].add(t); }   // a SKIP fills in the grid
     document.querySelectorAll("#hs button").forEach(c => { paint(c); c.disabled = true; if(+c.dataset.t === M) c.classList.add("gold"); });
     act(""); ff = false; dimGuards(false); onArrive = null; mode = "hold";
-    if(minute !== M || !document.querySelector(".track b.gold")){ tlWindow(M); for(let m = 1; m <= M; m++) guards.forEach(g => { if(m % g.p === 0) tlTick(g.i, m, m === M); }); }
+    tlWindow(M); for(let m = 1; m <= M; m++) guards.forEach(g => { if(m % g.p === 0) tlTick(g.i, m, m === M); });
     minute = M; prevM = M; guards.forEach(spotTick); T.SND("lockon");
     tag(`BOTH AT THE BLIND SPOT · MINUTE ${M}`, "gold");
-    say(`Minute ${M}: both guards at the blind spot, and nobody can see the fire door. The plan: sneak in at minute ${M}.`, "ok");
-    if(!RM){ const near = { pos: SW.clone().add(D.clone().sub(SW).setY(0).normalize().multiplyScalar(48)).setY(70), look: SW.clone() }; T.SND("zoom"); await fly(near, 800); await wait(900); await fly(CAM0, 800); } else await wait(1500);
-    step = 4; render();
+    step = S_BOTH + 1; render();
+    say(`Right: you need to go at minute ${M}. That's when both guards are at the blind spot and nobody can see the fire door.`, "ok");
+    if(!RM){ const near = { pos: SW.clone().add(D.clone().sub(SW).setY(0).normalize().multiplyScalar(48)).setY(70), look: SW.clone() }; T.SND("zoom"); await fly(near, 800); await wait(1400); await fly(CAM0, 800); } else await wait(2000);
     if(PHASE === "recon") return end(true);
-    await wait(1200); goLive();
+    step = S_GO; render(); await wait(1200); goLive();
   }
-  // Step 5: at the fire door, live. The clock runs up to the planned minute; the blind spot camera shows the guards
-  // arrive. The pupil calls it. Pressing GO too early only gets a gentle "not yet".
+
+  // ----- The fire door (the heist): a scanner sweeps the minutes; SPACE at the planned minute -----
+  let goWin = 1, goFrom = 0;
   async function goLive(){
     if(over) return; live = true; busy = false;
-    $("hs").hidden = true; $("tline").hidden = false; clearLog(); tag("");
-    $("feedLab").textContent = "LIVE · TONIGHT"; say(`The plan: GO at minute ${M}, when both guards are at the blind spot.`);
+    $("hs").hidden = true; $("tline").hidden = false; $("tline").classList.add("go"); clearLog(); tag("");
+    $("feedLab").textContent = "LIVE · TONIGHT"; say(`The plan: go at minute ${M}. Press SPACE when the scanner reaches ${M}.`);
     crewOn(true); await fly(CAMG, 900); insetOn();
-    act("GO GO GO", "go wait", go);
+    act("GO (SPACE)", "go", go);
     if(!document.querySelector(".twb-layer.open")) $("actBtn").focus({ preventScroll: true });
-    const from = Math.max(0, M - P[1] - 1);
-    minute = from; prevM = from; tlWindow(M, from);
+    goFrom = Math.max(0, M - P[1] - 1);
+    const r = Math.max(1.1, (M - goFrom) / 8); goWin = Math.max(1, r * 0.9);
     radio("FOX ▸ At the fire door. Waiting for your call.");
-    await runTo(M, Math.max(1, (M - from) / 6));
-    if(over || going) return;
-    mode = "hold"; T.SND("lockon"); tag(`BOTH AT THE BLIND SPOT · MINUTE ${M}`, "gold");
-    $("actBtn").classList.remove("wait"); say("Both guards are at the blind spot. Nobody can see the door. Call it!", "ok");
-    radio("ORACLE ▸ They're both there. Your call.");
-    window.__pnPatrol.ready = true;
+    while(!over && !going){
+      minute = goFrom; prevM = goFrom; tlWindow(Math.ceil(M + goWin + 2), goFrom); zone();
+      tag(`PRESS SPACE AT MINUTE ${M}`, "gold");
+      await runTo(M + goWin + 0.05, r);
+      if(over || going) return;
+      mode = "hold"; T.SND("wrong"); say(`Missed it: the guards have moved on. Watch again and press SPACE at minute ${M}.`, "warn");
+      radio("ORACLE ▸ Too late. Rewinding the plan.");
+      await wait(1600);
+    }
   }
+  // The window on the timeline: a gold zone round the planned minute
+  function zone(){ document.querySelectorAll(".track").forEach(tr => { let z = tr.querySelector(".zone"); if(!z){ z = document.createElement("span"); z.className = "zone"; tr.appendChild(z); }
+    z.style.left = Math.max(0, tlX(M - goWin) * 100) + "%"; z.style.width = Math.max(1, (tlX(M + goWin) - tlX(M - goWin)) * 100) + "%"; }); }
   async function go(){
-    if(over || going) return;
-    if(minute < M - 1e-6 || !live){ T.SND("wrong"); const here = guards.filter(atSpot).map(g => NAMES[g.i]);
-      say(`Not yet: ${here.length ? `only guard ${here[0]} is at the blind spot` : "neither guard is at the blind spot"}, so someone can still see the door. Wait for minute ${M}.`, "warn"); return; }
-    going = true; act(""); mode = "hold";
-    $("gogo").classList.add("on"); T.SND("powerup"); radio("YOU ▸ They're both at the blind spot. Go, go, go!", "r");
+    if(over || going || !live) return;
+    if(mode !== "run" || Math.abs(minute - M) > goWin){ if(minute < M){ T.SND("wrong"); say(`Not yet: it's only minute ${Math.floor(minute)}. Wait for minute ${M}.`, "warn"); } return; }
+    going = true; act(""); mode = "hold"; onArrive = null; $("tline").classList.remove("go");
+    $("gogo").classList.add("on"); T.SND("powerup"); radio("YOU ▸ They're both at the blind spot. Go, go, go!", "r"); tag(`GO · MINUTE ${M}`, "green");
     await wait(1300); $("gogo").classList.remove("on"); $("inset").classList.remove("on");
     radio("FOX ▸ Copy that. Moving."); say("");
     const path = sneakRoute(); window.__pnPatrol.route = path.map(c => ({ x: c.x, y: c.y }));
@@ -585,10 +659,9 @@
     await walkIn(path);
     walking = false; mode = "done";
     radio(`WREN ▸ We're through. Heading for ${DEST.to}.`);
-    step = 5; render(); T.SND("success"); say(`FOX and WREN are through the fire door, heading for ${DEST.to}.`, "ok"); tag(`FOX AND WREN ARE THROUGH ▸ ${DEST.name}`, "green");
+    step = S_GO + 1; render(); T.SND("success"); say(`FOX and WREN are through the fire door, heading for ${DEST.to}.`, "ok"); tag(`FOX AND WREN ARE THROUGH ▸ ${DEST.name}`, "green");
     await wait(1400); end(true);
   }
-  // The route on the floor: a blue line of light with a dot on every square, lit from the door to the destination
   function routeLine(cells){
     const pts = [D.clone(), ...cells.map(c => W(c.x, c.y)), dest.spot.clone()].map(v => v.setY(0.9)), g = new TH.Group();
     const path = new TH.CurvePath(); for(let i = 1; i < pts.length; i++) if(pts[i].distanceTo(pts[i - 1]) > 0.05) path.add(new TH.LineCurve3(pts[i - 1], pts[i]));
@@ -614,30 +687,32 @@
     const plan = `Guard A every ${P[0]} minutes, guard B every ${P[1]}: both at the blind spot at minute ${M}, the lowest common multiple.`;
     const effect = `sneak:${M}:${P[0]}:${P[1]}`;   // the plan, for the heist
     if(PHASE === "recon"){
-      if(ok) T.finish({ ok: true, title: "PLAN SET", lines: [plan, `FOX and WREN go through the fire door at minute ${M}.`], effect, auto: 2200 });
+      if(ok) T.finish({ ok: true, title: "PLAN SET", lines: [plan, `FOX and WREN go in through the fire door at minute ${M}.`], effect, auto: 2400 });
       else T.finish({ ok: false, title: "SPOTTED", lines: [`ORACLE worked it out: they're both at the blind spot at minute ${M}, the lowest common multiple of ${P[0]} and ${P[1]}.`], note: `The plan: go at minute ${M}.`, effect });
-    } else if(ok) T.finish({ ok: true, title: "IN", lines: [plan, `FOX and WREN are through, heading for ${DEST.to}.`], auto: 1800 });
+    } else if(ok) T.finish({ ok: true, title: "IN", lines: [`Gone at minute ${M}, with both guards at the blind spot.`, `FOX and WREN are through, heading for ${DEST.to}.`], auto: 1800 });
     else T.finish({ ok: false, title: "SPOTTED", lines: ["The first time both guards are at the blind spot together is the lowest common multiple (LCM) of their rounds."] });
   }
 
   // ----- Start -----
-  if(PHASE === "go"){
-    $("hs").hidden = true; render(); tag("");
-    setTimeout(goLive, 1200 / sp());
-  } else {
-    $("feedLab").textContent = "CCTV · LAST NIGHT · FIRST MINUTES (ON A LOOP)";
-    const hs = $("hs"); hs.hidden = false; hs.style.setProperty("--rows", LV.grid / 10);
-    hs.innerHTML = T.range(1, LV.grid).map(t => `<button type="button" data-t="${t}" aria-label="Minute ${t}">${t}</button>`).join("");
-    render(); startLoop();
-  }
-  document.addEventListener("keydown", e => { if((e.key === "g" || e.key === "G") && step === 4 && live && !e.ctrlKey && !e.metaKey) go(); });
+  render();
+  if(PHASE === "go"){ $("hs").hidden = true; tag(""); setTimeout(goLive, 1200 / sp()); }
+  else startRecord(0);
+  // SPACE: record a pass (recon), or go at the planned minute (fire door). G works at the door too.
+  document.addEventListener("keydown", e => {
+    if(e.ctrlKey || e.metaKey || e.altKey || T.briefOpen() || (e.target && e.target.tagName === "INPUT")) return;
+    const sp = e.code === "Space" || e.key === " ";
+    if(sp && (step === S_RECA || step === S_RECB) && !asking){ e.preventDefault(); record(); }
+    else if((sp || e.key === "g" || e.key === "G") && step === S_GO && live){ e.preventDefault(); go(); }
+  });
   // Teacher SKIP: does the current step
   if(window.PNTest) PNTest.skip("Do this step", () => {
     if(over) return;
-    if(step <= 1){ const g = step; T.range(1, LV.grid).filter(t => t % P[g] === 0).forEach(t => marks[g].add(t)); document.querySelectorAll("#hs button").forEach(paint); markDone(g); }
-    else if(step === 2){ clearTimeout(timer); busy = false; choose(M, document.querySelector(`#hs [data-t="${M}"]`)); }
-    else if(step === 3) checkedAt();
-    else if(step === 4){ if(!live) return; if(mode === "run"){ onArrive = null; minute = M; prevM = M - 1; passes(); mode = "hold"; $("actBtn").classList.remove("wait"); } go(); }
+    if(step === S_RECA || step === S_RECB){ const g = step;
+      if(!asking){ while(recLogs[g].length < 3){ const n = recNext(g); recLogs[g].push(n); tlTick(g, n); } askHowOften(); }
+      $("askIn").value = P[g]; answer(); return; }
+    if(step === S_MARKA || step === S_MARKB){ const g = step - S_MARKA; T.range(1, LV.grid).filter(t => t % P[g] === 0).forEach(t => marks[g].add(t)); document.querySelectorAll("#hs button").forEach(paint); markDone(g); }
+    else if(step === S_BOTH){ clearTimeout(timer); busy = false; choose(M, document.querySelector(`#hs [data-t="${M}"]`)); }
+    else if(step === S_GO){ if(!live) return; minute = M; prevM = M - 1; mode = "run"; go(); }
   });
 })();
 </script>
