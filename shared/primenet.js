@@ -475,6 +475,9 @@
   // The teacher can make one twist turn up in every mission (e.g. the whole class on square numbers)
   const twistPin = () => readTw().pin || "";
   function setTwistPin(id){ const d = readTw(); d.pin = id || ""; writeTw(d); }
+  // Round 21: the teacher can fix the mission menu (every mission plays it until set back to random)
+  const menuPin = () => readTw().menu || "";
+  function setMenuPin(id){ const d = readTw(); d.menu = id || ""; writeTw(d); }
   // Round 12: missions can use the prototype pages (3D, in-the-building versions) instead of the current ones.
   // A twist with only a prototype (the corrupted blueprint) joins the rotation only while this is on.
   const twistProtos = () => !!readTw().protos;
@@ -502,8 +505,10 @@
     if(st.session === a.sessionId && st.picks) return st.picks;
     const last = (st.lastMenu || {})[a.codename];
     let pool = MENUS.filter(menuOk);
-    const pin = twistPin(); if(pin && pool.some(m => Object.values(m.picks).includes(pin))) pool = pool.filter(m => Object.values(m.picks).includes(pin));
-    if(pool.length > 1) pool = pool.filter(m => m.id !== last);
+    const fixed = pool.find(m => m.id === menuPin());
+    if(fixed) pool = [fixed];
+    const pin = twistPin(); if(!fixed && pin && pool.some(m => Object.values(m.picks).includes(pin))) pool = pool.filter(m => Object.values(m.picks).includes(pin));
+    if(pool.length > 1 && !fixed) pool = pool.filter(m => m.id !== last);
     const m = pool[Math.floor(Math.random() * pool.length)];
     st.session = a.sessionId; st.menu = m ? m.id : ""; st.picks = m ? { ...m.picks } : {};
     st.lastMenu = st.lastMenu || {}; if(m) st.lastMenu[a.codename] = m.id;
@@ -516,7 +521,7 @@
   // Testing: force a menu, or a hand-made set of picks
   function setTwistMenu(id){ const a = getAgent(), m = MENUS.find(x => x.id === id); if(!a || !m) return; const st = readPlan(); st.session = a.sessionId; st.menu = m.id; st.picks = { ...m.picks }; writePlan(st); }
   function setTwistPlan(picks){ const a = getAgent(); if(!a) return; const st = readPlan(); st.session = a.sessionId; st.menu = ""; st.picks = picks; writePlan(st); }
-  Object.assign(window.Primenet, { TWISTS, TWIST_POINTS, HEIST_POINTS, MENUS, twistsOff, setTwistOn, twistOn, twistPin, setTwistPin, twistPlan, twistAt, twistMenu, setTwistMenu, setTwistPlan, twistProtos, setTwistProtos });
+  Object.assign(window.Primenet, { TWISTS, TWIST_POINTS, HEIST_POINTS, MENUS, menuPin, setMenuPin, twistsOff, setTwistOn, twistOn, twistPin, setTwistPin, twistPlan, twistAt, twistMenu, setTwistMenu, setTwistPlan, twistProtos, setTwistProtos });
 
   applyPrefs();   // every page opens with the current agent's settings
   // Round 14: shared helpers every page gets without its own script tag: the read-aloud voice
