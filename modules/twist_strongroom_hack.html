@@ -27,6 +27,7 @@
   .term{ display:flex; flex-direction:column; gap:8px; padding:12px 16px; min-height:0; background:#020a0c; font-family:var(--font-mono); overflow:hidden; }
   .term .hd, .floor .hd{ display:flex; justify-content:space-between; gap:10px; font:700 12px var(--font-ui); letter-spacing:.18em; color:#8feaff; }
   .term .hd #termLab.live{ color:#7dffc4; }
+  .term{ transition:padding-bottom .3s; } .term.oracle.tight{ padding-bottom:132px; }
   .cmd{ font-size:15px; line-height:1.45; color:#ff9ae9; min-height:1.45em; }
   .cmd .ok{ color:#7dffc4; } .cmd .sys{ color:var(--text-faint); } .cmd .gold{ color:#ffe14d; }
   /* The readings, frozen after the rain */
@@ -170,7 +171,7 @@
   .flood .hdr span{ color:var(--text-muted); font-weight:600; } .flood .pct{ color:#ffe14d; font-family:var(--font-mono); letter-spacing:.06em; }
   .flood .body{ flex:1; min-height:0; display:grid; grid-template-columns:minmax(0,1fr) 210px; }
   .flood .stream{ min-height:0; overflow:hidden; padding:14px 20px; font:19px/1.6 var(--font-mono); display:flex; flex-direction:column; justify-content:flex-end; color:rgba(143,234,255,.75); }
-  .flood .stream div{ white-space:nowrap; }
+  .flood .stream div{ white-space:pre; }
   .flood .stream .noise{ color:rgba(143,234,255,.4); } .flood .stream .me{ color:#ff9ae9; } .flood .stream .warn{ color:#ffe14d; }
   .flood .stream b{ font-weight:700; color:#dff8ff; } .flood .stream b.g{ color:#7dffc4; text-shadow:0 0 10px rgba(125,255,196,.7); }
   .flood .stream .big{ font:800 32px var(--font-ui); letter-spacing:.18em; color:#7dffc4; text-shadow:0 0 22px rgba(125,255,196,.5); margin:8px 0 2px; }
@@ -187,6 +188,30 @@
   .term.tight .rain{ grid-auto-rows:27px; padding:3px 0; } .term.tight .work{ flex:1; } .term.tight .rd{ font-size:17px; } .term.tight .work .hd{ display:flex; justify-content:space-between; font:700 12px var(--font-ui); letter-spacing:.16em; color:#8feaff; } .term.tight #loaded{ color:#ffe14d; }
   .out{ margin:0; flex:1; overflow:hidden; min-height:0; font:15px/1.45 var(--font-mono); color:#9fffd4; white-space:pre-wrap; }
   .out .me{ color:#ff9ae9; } .out .bad{ color:#ff8aa0; } .out .ok{ color:#7dffc4; } .out .gold{ color:#ffe14d; } .out .sys{ color:var(--text-faint); }
+  /* The cipher terminal */
+  .hterm{ flex:1; min-height:0; display:flex; flex-direction:column; background:#01070a; border:1px solid rgba(125,255,196,.25); padding:8px 10px; font:15px/1.45 var(--font-mono); color:#9fffd4; }
+  .hterm .hist{ flex:1; min-height:0; overflow:auto; white-space:pre-wrap; scrollbar-width:thin; }
+  .hterm .hist .me{ color:#ff9ae9; } .hterm .hist .bad{ color:#ff8aa0; } .hterm .hist .ok{ color:#7dffc4; } .hterm .hist .gold{ color:#ffe14d; } .hterm .hist .sys{ color:var(--text-faint); }
+  .hterm .hist .gob{ color:#5cffa8; text-shadow:0 0 6px rgba(92,255,168,.4); }
+  .hterm .prompt{ flex:none; display:flex; flex-wrap:wrap; align-items:center; gap:6px 8px; border-top:1px dashed rgba(125,255,196,.3); padding-top:8px; margin-top:6px; }
+  .hterm .prompt:empty{ display:none; }
+  .hterm .ps{ color:#ff9ae9; font-weight:700; } .hterm .prompt .sys{ color:var(--text-faint); font-size:13px; }
+  .hterm .prompt button.rule{ font:700 14px var(--font-mono); padding:4px 9px; color:#dff8ff; background:rgba(8,26,31,.9); border:1px solid rgba(143,234,255,.4); cursor:pointer; }
+  .hterm .prompt button.rule:hover, .hterm .prompt button.rule:focus-visible{ border-color:#ffe14d; outline:none; }
+  .hterm .prompt button.rule.on{ border-color:#ffe14d; color:#ffe14d; background:rgba(255,225,77,.1); }
+  .hterm .prompt button.rule.no{ opacity:.35; text-decoration:line-through; cursor:default; }
+  .hterm .prompt button.run{ font:700 14px var(--font-mono); padding:4px 12px; color:#02140c; background:#7dffc4; border:1px solid #7dffc4; cursor:pointer; letter-spacing:.08em; }
+  .hterm .prompt button.run:disabled{ background:transparent; color:rgba(125,255,196,.4); border-color:rgba(125,255,196,.3); cursor:default; }
+  .hterm .prompt input{ width:3em; font:700 19px var(--font-mono); text-align:center; color:#ffe14d; background:rgba(8,26,31,.95); border:1px solid rgba(143,234,255,.4); padding:1px 0; }
+  .hterm .prompt input:focus{ outline:none; border-color:#ffe14d; box-shadow:0 0 10px rgba(255,225,77,.35); }
+  .hterm .prompt input:disabled{ opacity:.4; } .hterm .prompt input.right{ opacity:1; border-color:#7dffc4; color:#7dffc4; }
+  .hterm .prompt input.glitch{ animation:rdGl .36s steps(2) 1; }
+  .hterm .prompt .seq{ font-size:19px; gap:6px; }
+  .hterm .prompt .pins{ height:28px; gap:6px; border-bottom:2px solid rgba(143,234,255,.3); padding:0 3px; margin-left:auto; }
+  .hterm .prompt .pins .pin{ width:9px; height:22px; transform:translateY(-5px); } .hterm .prompt .pins .pin.drop{ transform:translateY(5px); }
+  .hterm .prompt .typekey kbd{ font:700 13px var(--font-mono); padding:2px 8px; border:1px solid #ffe14d; color:#ffe14d; animation:rdPulse 1.6s ease-in-out infinite; }
+  .hterm .prompt .meter{ flex:1; min-width:80px; height:8px; border:1px solid rgba(125,255,196,.4); } .hterm .prompt .meter i{ display:block; height:100%; width:0; background:#7dffc4; box-shadow:0 0 8px #7dffc4; }
+  .hterm .prompt .pct{ color:#ffe14d; }
   .rd.hit{ background:rgba(125,255,196,.22) !important; border-color:#7dffc4 !important; }
   .rd.miss{ outline:2px dashed #ff8aa0; outline-offset:-3px; }
   .rd.leak{ color:#ff8aa0 !important; border-color:#ff4f6d !important; background:rgba(255,79,109,.15) !important; opacity:1; }
@@ -262,6 +287,11 @@
   }[L] || null;
   function say(t, cls){ const m = $("msg"); m.textContent = t; m.className = "tw-msg" + (cls ? " " + cls : ""); }
   function log(html, cls = ""){ const d = document.createElement("div"); d.className = cls; d.innerHTML = html; $("log").appendChild(d); while($("log").children.length > 6) $("log").firstChild.remove(); }
+  // ORACLE's box sits bottom right (here, or the mission page's over this one) and tucks away after a read;
+  // while it's up, the terminal panel keeps its bottom clear so the prompt is never under it
+  let oraT = 0;
+  const oracle = text => { T.say(text); const t = document.querySelector(".term"); t.classList.add("oracle"); clearTimeout(oraT);
+    oraT = setTimeout(() => t.classList.remove("oracle"), (400 + text.length * 22 + Math.min(9000, 2600 + text.length * 45)) / sp()); };
   const radio = (who, text) => { T.SND("radio"); log(`<b>${who}</b>${text}`, "radio"); };
   const alarm = T.detect({ stage: "heist", onTrip: () => fail() });   // quick wrong guesses trip it
   let over = false, stage = "intercept";
@@ -508,35 +538,39 @@
     // the noise: the grey readings on screen first, then other non-code numbers; each used once
     const greyPool = [...T.shuffle(READ.filter(o => !o.g).map(o => o.v)), ...T.shuffle(T.range(2, MAX).filter(v => !P.isTerm(v) && !READ.some(o => o.v === v)))];
     const seen = {}, F0 = W.flood = { code: seen, noise: [] };
+    const noiseAny = T.range(2, MAX).filter(v => !P.isTerm(v));
+    // how many readings fit across the stream (each is 3 characters and 2 spaces)
+    let cw = 0;
+    const cols = () => { if(!cw){ const m = document.createElement("span"); m.textContent = "0000000000"; m.style.cssText = "position:absolute;visibility:hidden;white-space:pre"; stream.appendChild(m); cw = m.getBoundingClientRect().width / 10 || 11.4; m.remove(); }
+      return Math.max(6, Math.min(14, Math.floor((stream.clientWidth - 44 - 13 * cw) / (5 * cw)))); };
     const beats = [
       [0, `agent@primenet:~$ sensors.intercept --zone STRONGROOM --plates ALL`, "me"],
       [.12, `rolling code detected · some readings repeat`, "warn"],
       [.55, `[TRACE] ${hex(8)} :: still unseen`, "noise"],
     ];
-    T.say("Watch the readings. Some of them keep coming back.");
+    oracle("Watch the readings. Some of them keep coming back.");
     T.SND("drone", 13);
-    const dur = 14000; let el = 0, last = performance.now(), since = 999, b = 0, n = 0;
+    const dur = 15000; let el = 0, last = performance.now(), since = 999, b = 0, n = 0;
     await new Promise(res => {
       const frame = now => {
         const dt = (now - last) * sp(); last = now; el += dt; since += dt;
         const p = Math.min(1, el / dur);
         ov.querySelector(".bar i").style.width = p * 100 + "%"; ov.querySelector(".pct").textContent = Math.floor(p * 100) + "%";
         while(b < beats.length && p >= beats[b][0]){ push(beats[b][1], beats[b][2]); b++; }
-        if(since > 380 && p > .04){
+        if(since > 650 && p > .04){
+          // a whole line of readings across the box; a few of the code's readings glow in it (sometimes none)
           since = 0; n++;
-          const r = Math.random();
-          if(r < .1) push(`[NET] ${hex(8)} :: ${T.pick(["sync()", "checksum_ok()", "bounce_proxy()", "mask_route()"])}`, "noise");
-          else if(r < .62 || !greyPool.length){
-            // a code reading: the one seen least so far comes round again
-            const v = greens.slice().sort((x, y) => (seen[x] || 0) - (seen[y] || 0) || Math.random() - .5)[Math.floor(Math.random() * Math.min(3, greens.length))];
-            seen[v] = (seen[v] || 0) + 1;
-            push(`[SENSOR] plate_${plate()} :: reading <b class="g">${v}</b>${seen[v] > 1 ? `  <span class="warn">◂ again</span>` : ""}`);
+          if(Math.random() < .08){ push(`[NET] ${hex(8)} :: ${T.pick(["sync()", "checksum_ok()", "bounce_proxy()", "mask_route()"])}`, "noise"); }
+          else {
+            const k = cols(), g = T.pick([0, 1, 1, 2, 2, 3]), at = new Set(T.shuffle(T.range(0, k - 1)).slice(0, g)), cells = [];
+            for(let c = 0; c < k; c++){
+              if(at.has(c)){ const v = greens.slice().sort((x, y) => (seen[x] || 0) - (seen[y] || 0) || Math.random() - .5)[Math.floor(Math.random() * Math.min(3, greens.length))];
+                seen[v] = (seen[v] || 0) + 1; cells.push(`<b class="g">${String(v).padStart(3)}</b>`); }
+              else { const v = greyPool.length ? greyPool.shift() : T.pick(noiseAny); F0.noise.push(v); cells.push(String(v).padStart(3)); }
+            }
+            push(`<span class="noise">plates_${"ABCDEFGH"[n % 8]} ::</span> ${cells.join("  ")}`, "row");
             tally.innerHTML = `<small>COMING BACK</small>` + Object.entries(seen).filter(([, c]) => c > 1).sort((x, y) => y[1] - x[1]).slice(0, 12).map(([v, c]) => `<div><span>${v}</span><i>×${c}</i></div>`).join("");
-            T.SND("tick");
-          } else {
-            const v = greyPool.shift(); F0.noise.push(v);
-            push(`[SENSOR] plate_${plate()} :: reading <b>${v}</b>`);
-            T.SND("chatter");
+            T.SND(g ? "tick" : "chatter");
           }
         }
         if(skip || over || p >= 1) return res();
@@ -754,63 +788,78 @@
     });
   }
 
-  // ===== 3. Name the rule: the rule console. Load a rule, RUN it: it makes its numbers and fires them at the readings.
-  // Only a rule that hits every glowing reading and no noise cracks the cipher. =====
+  // ===== 3 + 4. The cipher terminal (Bertie: one hacker terminal, so it feels like hacking): a scrolling history with
+  // one prompt line underneath. The prompt changes as you go:
+  //   $ cipher.test --rule [rule] RUN    load a rule and RUN it: it fires its numbers at the readings (hits, misses, noise)
+  //   $ cipher.nth --n 10 [__]           L3: the 10th one
+  //   $ cipher.predict 9 · 16 · [__]     the next readings, a lock pin drops for each
+  //   $ cipher.inject                    any key types gobbledegook until the floor opens =====
+  let hist = null, prompt = null;
+  function terminal(){
+    const w = $("work");
+    $("log").hidden = true; document.querySelector(".term").classList.add("tight");
+    w.innerHTML = `<div class="hd"><span>CIPHER TERMINAL</span><span id="loaded"></span></div><div class="hterm"><div class="hist" id="hist"></div><div class="prompt" id="prompt"></div></div>`;
+    hist = $("hist"); prompt = $("prompt");
+  }
+  const tl = (html, cls = "") => { const d = document.createElement("div"); d.className = cls; d.innerHTML = html; hist.appendChild(d); while(hist.children.length > 60) hist.firstChild.remove(); hist.scrollTop = hist.scrollHeight; return d; };
+  const status = t => { const e = $("loaded"); if(e) e.textContent = t; };
+
   async function nameRule(quick){
     setStage("name");
-    $("stageLab").textContent = "Step 2 of 4 · crack the rule";
+    $("stageLab").textContent = "Step 2 of 4 · crack the code";
     view("grid"); $("floorHd").textContent = "SKETCH PAD · YOUR EVIDENCE";
     if(quick && !onPad().length){
       for(const v of T.shuffle(READ.filter(o => o.g && P.handOk(o.v)).map(o => o.v)).slice(0, 2)){ await autoBuild(v, true); W.seen.push(v); }
     }
-    const R = T.shuffle(P.rules), w = $("work");
-    $("log").hidden = true; document.querySelector(".term").classList.add("tight");
-    w.innerHTML = `<div class="hd"><span>RULE CONSOLE</span><span id="loaded">NO RULE LOADED</span></div>
-      <div class="rules">${R.map((r, i) => `<button type="button" data-k="${i}"><kbd>${i + 1}</kbd> ${r.code}</button>`).join("")}<button type="button" class="pn-btn primary" id="run" disabled>RUN ▸</button></div>
-      <pre class="out" id="out"></pre>`;
-    T.step(quick ? "You've cracked this code before. Load the rule that makes the glowing readings and <b>RUN</b> it." : "Which rule makes the glowing readings? Load one and <b>RUN</b> it: the console tests it against every reading. You need every glowing one, and no grey ones.", { name: "Crack the rule" });
+    terminal();
+    const R = T.shuffle(P.rules);
+    tl(`agent@primenet:~$ cipher.connect --zone STRONGROOM`, "me"); tl(`  connected · ${READ.length} readings frozen · ${READ.filter(o => o.g).length} glowing`, "sys");
+    tl(`  load a rule and RUN it against the readings`, "sys");
+    prompt.innerHTML = `<span class="ps">$ cipher.test --rule</span>${R.map((r, i) => `<button type="button" class="rule" data-k="${i}">${r.code}</button>`).join("")}<button type="button" class="run" id="run" disabled>RUN ▸</button>`;
+    status("NO RULE LOADED");
+    T.step(quick ? "You've cracked this code before. Load the rule that makes the glowing readings and <b>RUN</b> it." : "Which rule makes the glowing readings? Load one and <b>RUN</b> it: the terminal tests it against every reading. You need every glowing one, and no grey ones.", { name: "Crack the code" });
     say("Load a rule, then RUN it.");
-    const out = $("out"), run = $("run");
-    const line = (html, cls = "") => { out.insertAdjacentHTML("beforeend", `<span class="${cls}">${html}</span>\n`); };
+    const run = $("run");
     let sel = -1, running = false;
-    const load = k => { if(running || over) return; const b = w.querySelector(`[data-k="${k}"]`); if(!b || b.classList.contains("no")) return;
-      sel = k; w.querySelectorAll(".rules button").forEach(x => x.classList.toggle("on", x === b)); run.disabled = false; $("loaded").textContent = `LOADED: ${R[k].code}`; T.SND("tag"); run.focus({ preventScroll: true }); };
+    const load = k => { if(running || over) return; const b = prompt.querySelector(`[data-k="${k}"]`); if(!b || b.classList.contains("no")) return;
+      sel = k; prompt.querySelectorAll(".rule").forEach(x => x.classList.toggle("on", x === b)); run.disabled = false; status(`LOADED: ${R[k].code}`); T.SND("tag"); run.focus({ preventScroll: true }); };
     await new Promise(res => {
       const go = async () => {
         if(running || over || sel < 0) return;
         running = true; run.disabled = true;
         const r = R[sel], sc = score(r, READ);
         rdEls().forEach(e => e.classList.remove("hit", "miss", "leak"));
-        out.innerHTML = ""; T.SND("typing");
-        line(`$ cipher.test --rule "${r.code}"`, "me"); await wait(450);
-        line(`  generating: ${sc.made.slice(0, 10).join(" ")}${sc.made.length > 10 ? " …" : ""}`); await wait(600);
+        T.SND("typing");
+        tl(`$ cipher.test --rule "${r.code}"`, "me"); await wait(450);
+        tl(`  generating: ${sc.made.slice(0, 10).join(" ")}${sc.made.length > 10 ? " …" : ""}`); await wait(600);
         const at = v => rdEls().filter(e => +e.dataset.v === v);
         sc.hits.forEach(v => at(v).forEach(e => e.classList.add("hit"))); T.SND("tick");
-        line(`  hits: ${sc.hits.length ? sc.hits.map(v => v + " ✓").join("  ") : "none"}`, "ok"); await wait(500);
-        if(sc.missed.length){ sc.missed.forEach(v => at(v).forEach(e => e.classList.add("miss"))); line(`  missed: ${sc.missed.join(" ")}`, "bad"); await wait(500); }
-        if(sc.noise.length){ sc.noise.forEach(v => at(v).forEach(e => { e.classList.add("leak", "glitch"); })); line(`  noise let in: ${sc.noise.slice(0, 8).join(" ")}${sc.noise.length > 8 ? " …" : ""} ✗`, "bad"); T.SND("glitch"); await wait(500); }
+        tl(`  hits: ${sc.hits.length ? sc.hits.map(v => v + " ✓").join("  ") : "none"}`, "ok"); await wait(500);
+        if(sc.missed.length){ sc.missed.forEach(v => at(v).forEach(e => e.classList.add("miss"))); tl(`  missed: ${sc.missed.join(" ")}`, "bad"); await wait(500); }
+        if(sc.noise.length){ sc.noise.forEach(v => at(v).forEach(e => { e.classList.add("leak", "glitch"); })); tl(`  noise let in: ${sc.noise.slice(0, 8).join(" ")}${sc.noise.length > 8 ? " …" : ""} ✗`, "bad"); T.SND("glitch"); await wait(500); }
         const greens = sc.hits.length + sc.missed.length;
-        if(sc.perfect){ line(`  MATCH ${greens}/${greens} · 0 noise ▸ CIPHER CRACKED`, "gold"); running = false; res(); return; }
-        line(`  MATCH ${sc.hits.length}/${greens}${sc.noise.length ? ` · ${sc.noise.length} noise` : ""} ▸ REJECTED`, "bad");
+        if(sc.perfect){ tl(`  MATCH ${greens}/${greens} · 0 noise ▸ CIPHER CRACKED`, "gold"); running = false; res(); return; }
+        tl(`  MATCH ${sc.hits.length}/${greens}${sc.noise.length ? ` · ${sc.noise.length} noise` : ""} ▸ REJECTED`, "bad");
         alarm.hit({ soft: true }); T.SND("denied");
-        w.querySelector(`[data-k="${sel}"]`).classList.add("no"); w.querySelector(`[data-k="${sel}"]`).classList.remove("on");
-        sel = -1; $("loaded").textContent = "REJECTED · LOAD ANOTHER"; running = false;
+        const b = prompt.querySelector(`[data-k="${sel}"]`); b.classList.add("no"); b.classList.remove("on");
+        sel = -1; status("REJECTED · LOAD ANOTHER"); running = false;
         say(sc.missed.length ? `That rule misses ${sc.missed.slice(0, 3).join(", ")}. Look at your drawings again.` : `That rule lets noise in: ${sc.noise.slice(0, 3).join(", ")} ${sc.noise.length > 1 ? "aren't" : "isn't"} glowing.`, "bad");
       };
-      w.querySelectorAll(".rules button").forEach(b => b.addEventListener("click", () => load(+b.dataset.k)));
+      prompt.querySelectorAll(".rule").forEach(b => b.addEventListener("click", () => load(+b.dataset.k)));
       run.addEventListener("click", go);
-      const key = e => { if(stage !== "name" || e.ctrlKey || e.metaKey || e.altKey || e.target.tagName === "INPUT") return; const k = +e.key - 1; if(k >= 0 && k < R.length){ e.preventDefault(); load(k); } else if(e.key === "Enter" && sel >= 0 && e.target !== run){ e.preventDefault(); go(); } };
+      const key = e => { if(stage !== "name" || e.ctrlKey || e.metaKey || e.altKey || e.target.tagName === "INPUT") return; if(e.key === "Enter" && sel >= 0 && e.target !== run){ e.preventDefault(); go(); } };
       document.addEventListener("keydown", key);
       if(window.PNTest) PNTest.skip("Run the right rule", () => { load(R.findIndex(r => r.ok)); go(); });
     });
     if(over) return;
+    prompt.innerHTML = ""; status("CRACKED");
     await wait(500);
     rdEls().forEach(e => e.classList.remove("hit", "miss", "leak"));
-    w.innerHTML = ""; $("log").hidden = false; document.querySelector(".term").classList.remove("tight");
     await decrypt();
-    log(`CIPHER: ${P.code.toUpperCase()}`, "gold");
+    tl(`$ cipher.solve ✓ ${P.code.toUpperCase()}`, "gold");
+    tl(`  ${P.cracked}`, "ok");
     say(P.cracked, "ok");
-    T.say(`That's the cipher: ${P.what}. Now predict the next ones and we have the route.`);
+    oracle(`That's the cipher: ${P.what}. Now predict the next ones and we have the route.`);
     if(LV.nth) await nthTerm();
   }
   // The cracked effect: the glowing readings scramble through random digits, then settle one by one
@@ -833,11 +882,13 @@
     $("cmd").innerHTML = `$ cipher.solve <span class="ok">✓</span> <span class="gold">${P.code.toUpperCase()}</span>`;
     await wait(500);
   }
-  // L3: the nth term, then the pad builds it to check
+  // L3: the nth term, typed at the prompt; then the pad builds it to check
   async function nthTerm(){
-    const k = LV.nth, ans = P.term(k), w = $("work");
-    w.innerHTML = `<div class="ask">${P.nthAsk(k)}</div><div class="row1"><input id="nth" inputmode="numeric" maxlength="4" aria-label="${P.nthAsk(k)}"><button type="button" class="pn-btn primary" id="nthGo">Check</button></div>`;
-    T.step(`${P.nthAsk(k)} Type it and press Enter.`, { name: "The 10th one" });
+    const k = LV.nth, ans = P.term(k);
+    tl(`$ cipher.nth --n ${k}`, "me"); tl(`  ${P.nthAsk(k)}`, "sys");
+    prompt.innerHTML = `<span class="ps">$ cipher.nth --n ${k} =</span><input id="nth" inputmode="numeric" maxlength="4" aria-label="${P.nthAsk(k)}"><span class="sys">press Enter</span>`;
+    status(`THE ${ord(k).toUpperCase()}`);
+    T.step(`${P.nthAsk(k)} Type it at the prompt and press Enter.`, { name: "The 10th one" });
     const inp = $("nth"); inp.focus({ preventScroll: true });
     await new Promise(res => {
       let tries = 0;
@@ -845,35 +896,35 @@
         if(over) return; const v = +inp.value.trim(); if(!inp.value.trim()) return;
         if(v === ans){ res(); return; }
         tries++; alarm.hit(); inp.classList.remove("glitch"); void inp.offsetWidth; inp.classList.add("glitch"); inp.select();
+        tl(`  ${v} ✗ rejected`, "bad");
         say(tries < 2 ? `Not quite. ${P.nthHint(k)}` : `It's ${P.term(k)}: ${P.nthCap(k).replace(/<[^>]+>/g, "")}.`, "bad");
       };
       inp.addEventListener("keydown", e => { if(e.key === "Enter"){ e.preventDefault(); check(); } });
-      $("nthGo").addEventListener("click", check);
       if(window.PNTest) PNTest.skip("The 10th one", () => { inp.value = ans; check(); });
     });
     if(over) return;
-    w.innerHTML = "";
+    prompt.innerHTML = ""; tl(`  ${ans} ✓ verified`, "ok");
     view("pic"); $("floorHd").textContent = `PICTURE · THE ${ord(k).toUpperCase()}`;
     P.show(ans, { lock: true }); cap(P.nthCap(k)); T.SND("lockon");
-    log(`${ord(k)}: ${ans} ✓`, "ok"); say(`Right: ${ans}. The pad builds it to check.`, "ok");
+    say(`Right: ${ans}. The pad builds it to check.`, "ok");
     await wait(1800);
   }
 
-  // ===== 4. Prove it: the sensor log with gaps; predict the next ones, a tumbler pin drops for each =====
+  // Prove it: the sensor log with gaps, at the prompt; a lock pin drops for each right one. Then inject.
   async function prove(){
     setStage("prove");
     $("stageLab").textContent = "Step 3 of 4 · prove it: predict the next readings";
+    if(!prompt) terminal();
     const k0 = T.pick(LV.from), shown = 4, n = LV.gaps;
     const seq = T.range(k0, k0 + shown + n - 1);
-    const w = $("work");
-    w.innerHTML = `<div class="pins" id="pins">${"<span class=\"pin\"></span>".repeat(n)}<small>LOCK</small></div>
-      <div class="ask">Sensor log: predict the next ${n === 2 ? "two" : "three"} readings</div>
-      <div class="seq">${seq.map((k, i) => i < shown ? `<b>${P.term(k)}</b>` : `<input inputmode="numeric" maxlength="4" data-k="${k}" aria-label="Next reading ${i - shown + 1}" disabled>`).join('<span class="sep">·</span>')}</div>`;
+    tl(`$ sensors.log --plates NEXT`, "me"); tl(`  predict the next ${n === 2 ? "two" : "three"} readings to open the lock`, "sys");
+    prompt.innerHTML = `<span class="ps">$ cipher.predict</span><span class="seq">${seq.map((k, i) => i < shown ? `<b>${P.term(k)}</b>` : `<input inputmode="numeric" maxlength="4" data-k="${k}" aria-label="Next reading ${i - shown + 1}" disabled>`).join('<span class="sep">·</span>')}</span><span class="pins" id="pins">${'<span class="pin"></span>'.repeat(n)}</span>`;
+    status("LOCK · 0/" + n);
     view("pic"); $("floorHd").textContent = "PICTURE"; $("floorLab").textContent = "";
     P.show(P.term(seq[shown - 1])); cap(`${P.term(seq[shown - 1])} <span class="sys">· the last reading</span>`);
-    T.step(`Use the rule: what comes next in the sensor log? Type each reading and press Enter. Each one you get right drops a pin in the lock.`, { name: "Prove it" });
+    T.step(`Use the rule: what comes next in the sensor log? Type each reading at the prompt and press Enter. Each one you get right drops a pin in the lock.`, { name: "Prove it" });
     say("What comes next? Type it and press Enter.");
-    const ins = [...w.querySelectorAll(".seq input")];
+    const ins = [...prompt.querySelectorAll(".seq input")];
     await new Promise(res => {
       let at = 0, tries = 0;
       const open = () => { ins.forEach((i, j) => { i.disabled = j !== at; }); ins[at].focus({ preventScroll: true }); };
@@ -884,26 +935,64 @@
           inp.classList.add("right"); inp.disabled = true; tries = 0;
           $("pins").children[at].classList.add("drop"); T.SND("latch");
           P.show(want, { lock: true }); cap(`${P.okCap(want)} <span class="gold">✓</span>`);
-          log(`predicted ${want} ✓`, "ok");
-          at++;
+          tl(`  ${want} ✓ pin ${at + 1} down`, "ok");
+          at++; status(`LOCK · ${at}/${n}`);
           if(at >= ins.length){ $("pins").classList.add("open"); T.SND("lock"); res(); return; }
           say("Pin's down. And the next?", "ok"); open(); return;
         }
         tries++; alarm.hit(); inp.classList.remove("glitch"); void inp.offsetWidth; inp.classList.add("glitch"); inp.select();
-        say(P.hint(k, tries), "bad"); log(`${inp.value} ✗`, "bad");
+        tl(`  ${inp.value} ✗ rejected`, "bad");
+        say(P.hint(k, tries), "bad");
       };
       ins.forEach(i => i.addEventListener("keydown", e => { if(e.key === "Enter"){ e.preventDefault(); check(); } }));
       open();
       if(window.PNTest) PNTest.skip("Predict the next reading", () => { const i = ins[at]; i.value = P.term(+i.dataset.k); check(); });
     });
     if(over) return;
+    tl(`  LOCK OPEN`, "gold");
+    await inject(); if(over) return;
     await granted();
+  }
+  // Bertie: once the code's in, the TYPE terminal (like the Prime Hack's): any key types gobbledegook until it's in
+  async function inject(){
+    const tgt = String((PN && PN.mission && PN.mission().target) || "target").toLowerCase().replace(/[^a-z]+/g, "_");
+    const hex = k => Array.from({ length: k }, () => "0123456789ABCDEF"[Math.floor(Math.random() * 16)]).join("");
+    const lines = [
+      () => `inject --cipher "${P.code}" --floor STRONGROOM`, () => `0x${hex(8)}  ${hex(4)} ${hex(4)} ${hex(4)} ${hex(4)}`,
+      () => `plates.map(${G}x${G}).weight = BYPASS`, () => `ssh oracle@${tgt}.net -p ${1000 + Math.floor(Math.random() * 8999)}`,
+      () => `sensor[${Math.floor(Math.random() * 64)}].mask(${hex(6)})`, () => `route.solve() -> ${hex(10)}`, () => `alarm.relay[${Math.floor(Math.random() * 9)}] = SILENT`,
+    ];
+    tl(`$ cipher.inject --floor STRONGROOM`, "me");
+    const code = tl("", "gob"), need = Math.max(6, Math.round(22 / Math.max(1, sp() / 2)));
+    prompt.innerHTML = `<span class="ps">$ cipher.inject</span><span class="typekey"><kbd>TYPE</kbd> any key</span><span class="meter"><i></i></span><b class="pct">0%</b>`;
+    status("INJECTING");
+    T.step("The code's in. Type anything to inject it into their floor system.", { name: "Inject" });
+    say("Type anything to inject the code.");
+    let n = 0, text = "", stream = "";
+    await new Promise(res => {
+      const press = e => {
+        if(over) return;
+        if(e && e.type === "keydown"){ if(e.ctrlKey || e.metaKey || e.altKey || e.key === "Tab") return; e.preventDefault(); }
+        if(n >= need) return;
+        for(let k = 0; k < 5 + Math.floor(Math.random() * 4); k++){ if(!stream.length) stream = T.pick(lines)() + "\n"; text += stream[0]; stream = stream.slice(1); }
+        code.textContent = text.split("\n").slice(-7).join("\n"); hist.scrollTop = hist.scrollHeight; n++; T.SND("typing");
+        const k = Math.min(1, n / need); prompt.querySelector(".meter i").style.width = Math.round(k * 100) + "%"; prompt.querySelector(".pct").textContent = Math.round(k * 100) + "%";
+        if(k >= 1){ document.removeEventListener("keydown", press, true); $("work").removeEventListener("pointerdown", tap); T.SND("lockon"); setTimeout(res, 350 / sp()); }
+      };
+      const tap = () => press(null);
+      document.addEventListener("keydown", press, true);
+      $("work").addEventListener("pointerdown", tap);
+      if(window.PNTest) PNTest.skip("Inject", () => { while(n < need) press(null); });
+    });
+    if(over) return;
+    tl(`  injected ✓ floor plates mapped`, "gold");
   }
   async function granted(){
     const g = document.createElement("div"); g.className = "granted"; g.textContent = "ACCESS GRANTED"; document.body.appendChild(g);
-    T.SND("success"); T.say("Lock's open. We have the route.");
+    T.SND("success"); oracle("Lock's open. We have the route.");
     await wait(1500); g.style.opacity = "0"; setTimeout(() => g.remove(), 520);
-    $("work").innerHTML = "";
+    $("work").innerHTML = ""; hist = prompt = null;
+    $("log").hidden = false; document.querySelector(".term").classList.remove("tight");
   }
 
   // ===== 5. Use it: squares. Drag each safe reading onto the floor: it fills a square zone =====
@@ -1046,7 +1135,7 @@
     setStage("cross"); T.hideBrief();
     $("work").innerHTML = ""; $("stageLab").textContent = "Crossing";
     T.SND("powerup"); log(`> agents.cross(path) // ${P.code}`, "gold");
-    T.say(`That's ${P.code}: ${P.what}. FOX, WREN: step only on the safe plates.`);
+    oracle(`That's ${P.code}: ${P.what}. FOX, WREN: step only on the safe plates.`);
     const path = crossPath();
     for(let i = 0; i < path.length; i++){ const c = cell(path[i][0], path[i][1]); c.classList.remove("pulse"); void c.offsetWidth; c.classList.add("pulse"); if(i % 3 === 0) await wait(30); }
     await wait(500);
@@ -1066,7 +1155,7 @@
     if(PN && PN.crackPattern) PN.crackPattern(PID);
     T.SND("success"); log("Across. No plates triggered.", "ok"); log(`${P.code.toUpperCase()} added to your codebook.`, "gold");
     say("FOX and WREN are across. Not one plate went off.", "ok");
-    T.say("We're across. Not one plate went off.");
+    oracle("We're across. Not one plate went off.");
     setStage("done");
     T.finish({ ok: true, title: "CODE CRACKED", lines: [`${P.code[0].toUpperCase() + P.code.slice(1)}: ${P.cracked}`, `${F.summary()} Added to your codebook.`], auto: 1600 });
   }
