@@ -1,0 +1,583 @@
+<!doctype html>
+<html lang="en" class="phase-hack">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PRIMENET · The Strongroom</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Inter:wght@400;600;700;800&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../shared/primenet.css">
+<style>
+  /* Round 22 (Bertie's idea): the strongroom is a floor-sensor hack. ORACLE gets into the floor system and the plate
+     readings stream down the terminal; the square ones glow green. The pupil draws green readings as arrays on a sketch
+     pad until they find the shape that makes a square (2 × 8 = 16 works, 4 × 4 = 16 is a square), tries a grey one (it
+     never makes a square) and says what's special: they're square numbers, n × n. Then the safe zones on the strongroom
+     floor are squares of plates: the green readings are dragged onto them (16 becomes a 4 × 4 block), like the corrupted
+     blueprint, to make a path from the door to the safe. FOX and WREN cross on it.
+     One screen at 1280 × 720 and up: the sketch pad / floor on the left (clear of the BRIEF and HINTS tabs), the terminal on
+     the right (ORACLE's box sits bottom right in a mission, so only the log goes down there). */
+  main.tw{ width:min(1600px, 100%); height:100vh; height:100dvh; box-sizing:border-box; padding:10px 16px 40px; gap:8px; }
+  main .tw-head{ padding-bottom:8px; } main .tw-head h1{ font-size:clamp(22px,2.6vw,30px); }
+  .sr{ flex:1; min-height:0; display:grid; grid-template-columns:minmax(0, 1.15fr) minmax(0, 1fr); gap:12px; }
+  .term{ display:flex; flex-direction:column; gap:8px; padding:12px 16px; min-height:0; background:#020a0c; font-family:var(--font-mono); overflow:hidden; }
+  .term .hd, .floor .hd{ display:flex; justify-content:space-between; gap:10px; font:700 12px var(--font-ui); letter-spacing:.18em; color:#8feaff; }
+  .term .hd #termLab.live{ color:#7dffc4; }
+  .cmd{ font-size:15px; line-height:1.45; color:#ff9ae9; min-height:1.45em; }
+  .cmd .ok{ color:#7dffc4; } .cmd .sys{ color:var(--text-faint); }
+  /* The readings: rows stream in at the top and push down */
+  .rain{ position:relative; flex:none; height:calc(var(--rows) * var(--rh)); --rh:44px; overflow:hidden; border-top:1px solid rgba(143,234,255,.15); border-bottom:1px solid rgba(143,234,255,.15);
+    -webkit-mask-image:linear-gradient(transparent, #000 10%, #000 90%, transparent); mask-image:linear-gradient(transparent, #000 10%, #000 90%, transparent); transition:opacity .5s; }
+  .rain.still{ -webkit-mask-image:none; mask-image:none; }
+  .rain.dim{ opacity:.35; }
+  .row{ display:grid; grid-template-columns:repeat(var(--cols), minmax(0,1fr)); gap:6px; height:var(--rh); padding:4px 0; box-sizing:border-box; animation:rowIn .26s ease-out; }
+  @keyframes rowIn{ from{ transform:translateY(-100%); opacity:0; } }
+  .rd{ all:unset; box-sizing:border-box; display:flex; align-items:center; justify-content:center; font:700 clamp(17px,1.9vw,24px) var(--font-mono); color:rgba(223,248,255,.42); border:1px solid transparent; position:relative; }
+  .rd.g{ color:#7dffc4; text-shadow:0 0 10px rgba(125,255,196,.75); }
+  .rd.on{ cursor:pointer; border-color:rgba(143,234,255,.22); background:rgba(8,26,31,.6); }
+  .rd.g.on{ border-color:rgba(125,255,196,.55); background:rgba(10,40,30,.55); }
+  .rd.on:hover, .rd.on:focus-visible{ border-color:#ffe14d; outline:none; }
+  .rd.sel{ border-color:#ffe14d !important; background:rgba(255,225,77,.16) !important; box-shadow:0 0 14px rgba(255,225,77,.35); }
+  .rd.done::after{ content:"✓"; position:absolute; right:4px; top:1px; font-size:12px; color:#7dffc4; text-shadow:none; }
+  .rd.tried::after{ content:"✗"; position:absolute; right:4px; top:1px; font-size:12px; color:#ff8aa0; }
+  .work{ display:flex; flex-direction:column; gap:8px; min-height:0; }
+  .work:empty{ display:none; }
+  .ask{ font:600 18px var(--font-ui); color:#f6feff; line-height:1.35; }
+  .choices{ display:flex; flex-direction:column; gap:6px; }
+  .choices button{ text-align:left; font:600 16px var(--font-ui); padding:8px 12px; color:#dff8ff; background:rgba(8,26,31,.9); border:1px solid rgba(143,234,255,.4); cursor:pointer; }
+  .choices button kbd{ font:700 12px var(--font-mono); padding:1px 6px; margin-right:8px; border:1px solid currentColor; }
+  .choices button:hover, .choices button:focus-visible{ border-color:#ffe14d; outline:none; }
+  .choices button.no{ opacity:.45; text-decoration:line-through; }
+  .log{ flex:1; min-height:0; overflow:hidden; display:flex; flex-direction:column; justify-content:flex-end; gap:3px; font-size:15px; line-height:1.4; color:#9fffd4; }
+  .log .sys{ color:var(--text-faint); } .log .ok{ color:#7dffc4; } .log .bad{ color:#ff8aa0; } .log .me{ color:#ff9ae9; } .log .gold{ color:#ffe14d; } .log .cy{ color:#8feaff; }
+  /* The tray of safe readings (the route) */
+  .tray{ display:flex; flex-wrap:wrap; gap:10px; align-content:flex-start; }
+  .card{ all:unset; box-sizing:border-box; min-width:74px; padding:8px 10px 6px; display:flex; flex-direction:column; align-items:center; gap:2px; cursor:grab; touch-action:none; user-select:none;
+    font:700 30px/1 var(--font-mono); color:#7dffc4; text-shadow:0 0 10px rgba(125,255,196,.6); background:rgba(10,40,30,.7); border:1px solid rgba(125,255,196,.6); }
+  .card small{ font:600 12px var(--font-ui); letter-spacing:.08em; color:rgba(223,248,255,.7); text-shadow:none; min-height:1.2em; }
+  .card:hover, .card:focus-visible{ border-color:#ffe14d; outline:none; }
+  .card.used{ visibility:hidden; }
+  .floor{ display:flex; flex-direction:column; gap:8px; padding:12px 14px; min-height:0; }
+  .fwrap{ flex:1; min-height:0; display:flex; align-items:center; justify-content:center; }
+  /* The question: the pupil's own arrays as evidence, then the choices */
+  .evid{ flex:1; min-height:0; display:flex; flex-direction:column; justify-content:center; gap:12px; padding:0 8px; }
+  .evid .arrs{ display:flex; flex-wrap:wrap; gap:12px 22px; align-items:flex-end; }
+  .evid .choices button{ padding:6px 12px; font-size:15px; }
+  .evid figure{ margin:0; display:flex; flex-direction:column; align-items:center; gap:6px; font:700 15px var(--font-ui); color:#dff8ff; }
+  .evid figure.sq figcaption{ color:#7dffc4; } .evid figure.gr figcaption{ color:#9fb7bb; }
+  .mini{ display:grid; gap:2px; }
+  .mini i{ width:var(--m); height:var(--m); background:#7dffc4; box-shadow:0 0 4px rgba(125,255,196,.5); }
+  .gr .mini i{ background:#9fb7bb; box-shadow:none; }
+  .fg{ position:relative; display:grid; gap:2px; padding:2px; background:#071216; border:2px solid rgba(110,200,255,.55); touch-action:none; user-select:none; }
+  .fg .c{ position:relative; background:#0c1d24; border:1px solid rgba(143,234,255,.12); }
+  .fg.pad .c{ background:#0a1a20; border-color:rgba(143,234,255,.16); cursor:crosshair; }
+  .fg.pad .c.sel{ background:rgba(255,225,77,.35); border-color:#ffe14d; }
+  .fg.pad .c.sel.off{ background:rgba(255,79,109,.3); border-color:#ff4f6d; }
+  .fg .c.live{ background:repeating-linear-gradient(45deg, rgba(255,79,109,.16) 0 4px, transparent 4px 9px), #1a0d12; border-color:rgba(255,107,138,.22); }
+  .fg .c.safe{ background:rgba(125,255,196,.07); border-color:rgba(125,255,196,.26); }
+  .fg .c.step{ background:rgba(125,255,196,.55) !important; box-shadow:inset 0 0 12px rgba(234,255,246,.8); }
+  .fg .zone{ position:absolute; border:2px dashed rgba(125,255,196,.6); pointer-events:none; }
+  .fg .arr{ position:absolute; display:flex; align-items:flex-end; justify-content:center; pointer-events:none; animation:sqIn .3s ease-out; }
+  .fg .arr i{ position:absolute; inset:0; background-image:linear-gradient(var(--ac) 0 0); }
+  .fg .arr b{ position:relative; margin-bottom:4px; font:700 15px var(--font-ui); letter-spacing:.04em; color:#fff; background:rgba(2,10,14,.82); padding:1px 7px; white-space:nowrap; }
+  .fg .arr.rect{ --ac:rgba(110,200,255,.32); border:2px solid #6ec8ff; }
+  .fg .arr.sq{ --ac:rgba(47,191,138,.42); border:2px solid #7dffc4; box-shadow:0 0 16px rgba(125,255,196,.45); }
+  .fg .arr.grey{ --ac:rgba(160,180,190,.26); border:2px solid #9fb7bb; }
+  .fg .arr .grid{ position:absolute; inset:0; background-image:linear-gradient(90deg, rgba(2,10,14,.55) 1px, transparent 1px), linear-gradient(rgba(2,10,14,.55) 1px, transparent 1px); background-size:var(--cw) var(--cw); }
+  .fg .tile{ position:absolute; border:2px solid #7dffc4; background:rgba(47,191,138,.34); box-shadow:0 0 14px rgba(125,255,196,.4); display:flex; align-items:center; justify-content:center; font:700 15px var(--font-ui); color:#eafff6; pointer-events:none; animation:sqIn .3s ease-out; }
+  .fg .tile span{ background:rgba(2,10,14,.7); padding:1px 6px; white-space:nowrap; }
+  @keyframes sqIn{ from{ transform:scale(.6); opacity:0; } }
+  .fg .tip{ position:absolute; z-index:5; pointer-events:none; font:700 15px var(--font-mono); padding:3px 8px; background:rgba(2,10,14,.94); border:1px solid #ffe14d; color:#ffe14d; white-space:nowrap; }
+  .fg .tip.off{ border-color:#ff4f6d; color:#ff8aa0; }
+  .fg .door, .fg .safebox{ position:absolute; font:700 11px var(--font-ui); letter-spacing:.14em; padding:2px 6px; pointer-events:none; }
+  .fg .door{ left:-2px; top:-24px; color:#7dffc4; border:1px solid #7dffc4; background:rgba(2,20,14,.9); }
+  .fg .safebox{ right:-2px; bottom:-24px; color:#ffe14d; border:1px solid #ffe14d; background:rgba(30,24,2,.9); }
+  .fg .agent{ position:absolute; z-index:6; border-radius:50%; transition:left .3s linear, top .3s linear; pointer-events:none; }
+  .fg .agent.fox{ background:#6ec8ff; box-shadow:0 0 12px #6ec8ff; } .fg .agent.wren{ background:#bfefff; box-shadow:0 0 10px #bfefff; }
+  .fg.glitch{ animation:fgGl .45s steps(3) 1; } @keyframes fgGl{ 50%{ filter:hue-rotate(60deg) contrast(1.3); transform:translateX(2px); } }
+  .ghost{ position:fixed; z-index:9000; pointer-events:none; border:2px solid #7dffc4; background:rgba(47,191,138,.3); box-shadow:0 10px 26px rgba(0,0,0,.6);
+    background-image:linear-gradient(90deg, rgba(2,10,14,.5) 1px, transparent 1px), linear-gradient(rgba(2,10,14,.5) 1px, transparent 1px); background-size:var(--cw) var(--cw);
+    display:flex; align-items:center; justify-content:center; font:700 15px var(--font-ui); color:#eafff6; }
+  .ghost span{ background:rgba(2,10,14,.75); padding:1px 6px; white-space:nowrap; }
+  .ghost.off{ border-color:#ff4f6d; background-color:rgba(255,79,109,.25); }
+  .ctl{ display:flex; gap:8px; justify-content:flex-end; min-height:0; }
+  .ctl:empty{ display:none; }
+  .tw-msg{ min-height:1.4em; }
+  [hidden]{ display:none !important; }
+  @media (prefers-reduced-motion: reduce){ .row, .fg .arr, .fg .tile{ animation:none; } .fg .agent{ transition:none; } .fg.glitch{ animation:none; } }
+  html.pn-reduce-motion .row, html.pn-reduce-motion .fg .arr, html.pn-reduce-motion .fg .tile{ animation:none; }
+  @media (max-width:980px){ main.tw{ height:auto; } .sr{ grid-template-columns:1fr; } .floor{ min-height:460px; } }
+</style>
+</head>
+<body>
+<main class="tw">
+  <div class="tw-bar"><span id="stageLab"></span></div>
+  <div class="sr">
+    <section class="pn-panel floor" aria-label="Sketch pad and strongroom floor"><div class="hd"><span id="floorHd">SKETCH PAD</span><span id="floorLab"></span></div>
+      <div class="fwrap" id="fwrap"><div class="fg" id="fg"></div></div><div class="evid" id="evid" hidden></div><div class="ctl" id="ctl"></div></section>
+    <section class="pn-panel term" aria-label="Floor sensor terminal"><div class="hd"><span>FLOOR SENSORS · STRONGROOM</span><span id="termLab">CONNECTING…</span></div>
+      <div class="cmd" id="cmd"></div>
+      <div class="rain" id="rain" aria-label="Plate readings"></div>
+      <div class="work" id="work"></div>
+      <div class="log" id="log" aria-live="polite"></div></section>
+  </div>
+  <div class="tw-msg" id="msg" aria-live="polite"></div>
+</main>
+
+<script src="../shared/sound.js"></script>
+<script src="../shared/story.js"></script>
+<script src="../shared/primenet.js"></script>
+<script src="../shared/testtools.js"></script>
+<script src="../shared/handler.js"></script>
+<script src="../shared/twist.js"></script>
+<script>
+(() => {
+  "use strict";
+  const T = window.PNTwist, $ = id => document.getElementById(id);
+  const L = T.init({ id: "strongroomhack", stage: "THE HEIST", title: "THE STRONGROOM", eyebrow: "THE HEIST", briefTitle: "COMMS · ORACLE", briefStyle: "comms",
+    goal: "The plate readings stream down the terminal. The <b>green</b> ones are safe. Draw some of them as arrays to find out what's special about them, then drag them onto the floor to make a safe path from the <b>door</b> to the <b>safe</b>.",
+    example: "16 can be drawn as 2 × 8 or as 4 × 4. The 4 × 4 one is a square: as many rows as columns.",
+    context: "I'm in their floor system. The plate readings are coming through: the green ones are safe to stand on. What's special about them?",
+    story: "FOX and WREN are at the strongroom door. The floor is pressure plated. ORACLE is in the floor system: find the safe way across." });
+  const sp = () => (window.PNTest ? PNTest.speed() : 1);
+  const wait = ms => new Promise(r => setTimeout(r, ms / sp()));
+  const RM = window.Primenet && Primenet.reducedMotion ? Primenet.reducedMotion() : matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const isSq = n => Number.isInteger(Math.sqrt(n));
+  const root = n => Math.round(Math.sqrt(n));
+  // Levels (Bertie: the numbers stay sensible; help, size and mistakes do the work). max: the biggest reading;
+  // S: the sketch pad; G: the strongroom floor in plates; sides: the safe zones' sizes; k: how many zones; outline:
+  // each zone drawn (L1) or only the safe area (L2, L3: work out where each square goes)
+  const LV = {
+    L1: { max: 64, S: 10, G: 10, sides: [2, 3, 4, 5], k: [3, 4], rep: 1, outline: true, hintAfter: 2 },
+    L2: { max: 144, S: 12, G: 12, sides: [2, 3, 4, 5, 6], k: [4, 5], rep: 2, outline: false, hintAfter: 3 },
+    L3: { max: 225, S: 15, G: 14, sides: [2, 3, 4, 5, 6, 7], k: [5, 6], rep: 2, outline: false, hintAfter: 99 },
+  }[L] || null;
+  const DRAWS = 3;   // green readings drawn as squares before the question
+  function say(t, cls){ const m = $("msg"); m.textContent = t; m.className = "tw-msg" + (cls ? " " + cls : ""); }
+  function log(html, cls = ""){ const d = document.createElement("div"); d.className = cls; d.innerHTML = html; $("log").appendChild(d); while($("log").children.length > 6) $("log").firstChild.remove(); }
+  const alarm = T.alarm(3, () => fail());
+  let over = false, stage = "stream";
+  const W = window.__pnStrong = { level: L, stage: "stream", drawn: [], grey: null, placed: 0 };   // for automated checks
+  const setStage = s => { stage = s; W.stage = s; };
+
+  // ----- The safe path: a chain of square zones from the door (top left) to the safe (bottom right), each sharing a side with the last -----
+  function makeRoute(){
+    const { G, sides, k, rep } = LV;
+    const overlap = (a, b) => a.x < b.x + b.n && b.x < a.x + a.n && a.y < b.y + b.n && b.y < a.y + a.n;
+    let tries = 0;
+    function dfs(sq){
+      if(++tries > 20000) return null;
+      const last = sq[sq.length - 1];
+      if(last.x + last.n === G && last.y + last.n === G) return sq.length >= k[0] ? sq : null;
+      if(sq.length >= k[1]) return null;
+      const opts = [];
+      for(const a of sides){
+        if(sq.filter(s => s.n === a).length >= rep) continue;
+        const ov = Math.min(2, a, last.n);
+        for(let y = last.y - a + ov; y <= last.y + last.n - ov; y++) opts.push({ x: last.x + last.n, y, n: a });
+        for(let x = last.x - a + ov; x <= last.x + last.n - ov; x++) opts.push({ x, y: last.y + last.n, n: a });
+      }
+      for(const s of T.shuffle(opts)){
+        if(s.x < 0 || s.y < 0 || s.x + s.n > G || s.y + s.n > G || sq.some(t => overlap(t, s))) continue;
+        const r = dfs([...sq, s]); if(r) return r;
+      }
+      return null;
+    }
+    // A few candidates; keep the one that crosses the floor most evenly (near the diagonal) with the most different sizes
+    let best = null, bs = 1e9;
+    for(let c = 0; c < 14; c++){
+      tries = 0; const r = dfs([{ x: 0, y: 0, n: T.pick(LV.sides) }]); if(!r) continue;
+      const s = r.reduce((m, q) => m + Math.abs((q.x + q.n / 2) - (q.y + q.n / 2)), 0) / r.length - new Set(r.map(q => q.n)).size * 1.5;
+      if(s < bs){ bs = s; best = r; }
+    }
+    return best;
+  }
+  const G = LV.G, zones = makeRoute();   // door top left, safe bottom right
+  const need = zones.map(z => z.n * z.n);
+  const safeAt = Array.from({ length: G }, () => Array(G).fill(false));
+  zones.forEach(z => { for(let x = z.x; x < z.x + z.n; x++) for(let y = z.y; y < z.y + z.n; y++) safeAt[y][x] = true; });
+  W.zones = zones.map(z => ({ ...z })); W.need = need.slice();
+
+  // ----- The readings: the route's numbers and a few more squares (green), and non-squares (grey) -----
+  const COLS = 6, ROWS = 5;
+  const squares = T.range(2, Math.floor(Math.sqrt(LV.max))).map(n => n * n);
+  const fitsPad = n => T.pairs(n).filter(([a, b]) => b <= LV.S);
+  function readings(){
+    const g = need.slice();
+    T.shuffle(squares).forEach(s => { if(g.length < 9 && g.filter(v => v === s).length < 1) g.push(s); });
+    if(L !== "L1" && !g.includes(1) && Math.random() < .6) g[g.length - 1] = 1;   // 1 = 1 × 1 is a square too
+    // grey: near-squares (the tricky ones), numbers with two or more rectangles on the pad, then any others
+    const near = T.shuffle(squares.filter(s => s > 9)).slice(0, 5).map(s => s + T.pick([-1, 1, 2, -2])).filter(v => !isSq(v));
+    const rect = T.shuffle(T.range(6, LV.max).filter(v => !isSq(v) && fitsPad(v).length >= 2));
+    const prime = T.shuffle(T.range(5, LV.max).filter(T.isPrime));
+    const rest = T.shuffle(T.range(5, LV.max).filter(v => !isSq(v)));
+    const grey = [...new Set([...near, ...rect.slice(0, 14), ...prime.slice(0, 4), ...rest])].filter(v => v <= LV.max).slice(0, COLS * ROWS - g.length);
+    return T.shuffle([...g, ...grey]).map(v => ({ v, g: isSq(v) }));
+  }
+  const READ = readings();
+  W.readings = READ.map(r => r.v);
+  const filler = () => { const v = T.pick([...squares, ...T.range(5, LV.max)]); return { v, g: isSq(v) }; };
+
+  // ----- 1. The stream: rows of readings come down the terminal -----
+  const rain = $("rain"); rain.style.setProperty("--rows", ROWS); rain.style.setProperty("--cols", COLS);
+  const rowEl = items => { const r = document.createElement("div"); r.className = "row"; r.innerHTML = items.map(o => `<button type="button" class="rd${o.g ? " g" : ""}" data-v="${o.v}" tabindex="-1" disabled>${o.v}</button>`).join(""); return r; };
+  let streamDone = null;
+  async function stream(){
+    $("cmd").innerHTML = "$ floorsys.connect --zone STRONGROOM";
+    T.SND("radio"); await wait(700);
+    $("cmd").innerHTML = `$ floorsys.connect --zone STRONGROOM <span class="ok">✓</span> <span class="sys">· sensors.stream --plates</span>`;
+    $("termLab").textContent = "STREAMING"; $("termLab").classList.add("live");
+    T.SND("scan", 3);
+    let skip = false; streamDone = () => { skip = true; };
+    if(window.PNTest) PNTest.skip("Finish the stream", () => streamDone && streamDone());
+    const rows = [...Array.from({ length: 9 }, () => Array.from({ length: COLS }, filler)), ...Array.from({ length: ROWS }, (_, r) => READ.slice((ROWS - 1 - r) * COLS, (ROWS - r) * COLS))];
+    for(const items of rows){
+      if(skip || over) break;
+      rain.prepend(rowEl(items)); while(rain.children.length > ROWS + 1) rain.lastChild.remove();
+      if(items.some(o => o.g)) T.SND("tick");
+      await wait(RM ? 120 : 260);
+    }
+    rain.innerHTML = ""; for(let r = 0; r < ROWS; r++) rain.appendChild(rowEl(READ.slice(r * COLS, (r + 1) * COLS)));
+    [...rain.children].forEach(r => { r.style.animation = "none"; });
+    rain.classList.add("still"); streamDone = null;
+    $("termLab").textContent = "PAUSED"; $("termLab").classList.remove("live");
+    $("cmd").innerHTML = `$ sensors.stream --plates <span class="ok">· paused</span> <span class="sys">· ${READ.length} readings, ${READ.filter(o => o.g).length} safe</span>`;
+    log("Green = plates that take weight safely.", "sys");
+  }
+  const rdEls = () => [...rain.querySelectorAll(".rd")];
+
+  // ----- The sketch pad / the floor: one grid, rebuilt for each -----
+  const fg = $("fg"); let N = 10, CS = 40, cells = [], labelsOn = false;
+  function buildGrid(n, kind){
+    N = n; fg.innerHTML = ""; cells = []; fg.className = "fg" + (kind === "pad" ? " pad" : "");
+    for(let y = 0; y < n; y++) for(let x = 0; x < n; x++){ const c = document.createElement("div"); c.className = "c"; c.dataset.x = x; c.dataset.y = y; fg.appendChild(c); cells.push(c); }
+    labelsOn = kind === "floor";
+    if(labelsOn) fg.insertAdjacentHTML("beforeend", `<span class="door">DOOR</span><span class="safebox">SAFE</span>`);
+    fit();
+  }
+  const cell = (x, y) => cells[y * N + x];
+  const px = v => 2 + v * (CS + 2);   // the left/top of plate v
+  function fit(){
+    // clear of the BRIEF and HINTS tabs (bottom left): start right of the widest one
+    const fw = $("fwrap"), ev = $("evid"); fw.style.paddingLeft = ev.style.paddingLeft = "";
+    const tabs = Math.max(150, ...[...document.querySelectorAll(".twb-chip")].map(c => c.getBoundingClientRect().right));
+    const r0 = fw.getBoundingClientRect(), left = Math.max(0, tabs + 14 - r0.left);
+    fw.style.paddingLeft = left + "px"; ev.style.paddingLeft = Math.max(0, tabs + 14 - ev.getBoundingClientRect().left) + "px";
+    const r = { width: r0.width - left, height: r0.height };
+    CS = Math.max(18, Math.min(64, Math.floor(Math.min((r.width - 16) / N, (r.height - (labelsOn ? 56 : 12)) / N)) - 2));
+    fg.style.setProperty("--cs", CS + "px"); fg.style.gridTemplateColumns = `repeat(${N}, ${CS}px)`; fg.style.gridAutoRows = CS + "px";
+    fg.querySelectorAll("[data-gx]").forEach(place);
+  }
+  // Anything laid on the grid (an array, a zone, a tile) keeps its squares in data-gx/gy/gw/gh
+  function place(el){ const x = +el.dataset.gx, y = +el.dataset.gy, w = +el.dataset.gw, h = +el.dataset.gh;
+    Object.assign(el.style, { left: px(x) + "px", top: px(y) + "px", width: (w * (CS + 2) - 2) + "px", height: (h * (CS + 2) - 2) + "px" }); el.style.setProperty("--cw", (CS + 2) + "px"); }
+  function lay(cls, x, y, w, h, html){ const d = document.createElement("div"); d.className = cls; d.dataset.gx = x; d.dataset.gy = y; d.dataset.gw = w; d.dataset.gh = h; d.innerHTML = html || ""; fg.appendChild(d); place(d); return d; }
+  window.addEventListener("resize", () => { if(!over) fit(); });
+
+  // Drag out a rectangle on the sketch pad (rows × columns, like the Factor Vault's draw mode)
+  let onRect = null;
+  (function padDrag(){
+    let a = null, b = null; const tip = document.createElement("div"); tip.className = "tip"; tip.hidden = true;
+    const at = e => { const t = document.elementFromPoint(e.clientX, e.clientY); return t && t.classList && t.classList.contains("c") && fg.contains(t) ? [+t.dataset.x, +t.dataset.y] : null; };
+    const rect = () => ({ x: Math.min(a[0], b[0]), y: Math.min(a[1], b[1]), w: Math.abs(a[0] - b[0]) + 1, h: Math.abs(a[1] - b[1]) + 1 });
+    const paint = () => {
+      cells.forEach(c => c.classList.remove("sel", "off")); if(!a){ tip.hidden = true; return; }
+      const r = rect(), off = W.target && r.w * r.h !== W.target;
+      for(let y = r.y; y < r.y + r.h; y++) for(let x = r.x; x < r.x + r.w; x++){ const c = cell(x, y); c.classList.add("sel"); if(off) c.classList.toggle("off", r.w * r.h > W.target); }
+      if(!tip.isConnected) fg.appendChild(tip);
+      tip.hidden = false; tip.className = "tip" + (off ? " off" : ""); tip.textContent = `${r.h} × ${r.w} = ${r.w * r.h}`;
+      tip.style.left = px(r.x) + "px"; tip.style.top = Math.max(-30, px(r.y) - 30) + "px";
+    };
+    fg.addEventListener("pointerdown", e => { if(over || !fg.classList.contains("pad") || !onRect) return; const c = at(e); if(!c) return; e.preventDefault(); fg.setPointerCapture(e.pointerId); a = b = c; paint(); T.SND("plot"); });
+    fg.addEventListener("pointermove", e => { if(!a) return; const c = at(e); if(c && (c[0] !== b[0] || c[1] !== b[1])){ b = c; paint(); T.SND("plot"); } });
+    const up = () => { if(!a) return; const r = rect(); a = b = null; paint(); if(onRect) onRect(r); };
+    fg.addEventListener("pointerup", up); fg.addEventListener("pointercancel", up);
+  })();
+  // An array stamped on the pad: blue for a rectangle, green for a square, grey for a grey reading
+  function stamp(r, kind){
+    fg.querySelectorAll(".arr").forEach(o => { const ox = +o.dataset.gx, oy = +o.dataset.gy, ow = +o.dataset.gw, oh = +o.dataset.gh;
+      if(r.x < ox + ow && ox < r.x + r.w && r.y < oy + oh && oy < r.y + r.h) o.remove(); });   // a new array replaces any it covers
+    return lay("arr " + kind, r.x, r.y, r.w, r.h, `<i></i><span class="grid"></span><b>${r.h} × ${r.w} = ${r.w * r.h}</b>`);
+  }
+
+  // ----- 2. Draw green readings as arrays until each makes a square -----
+  async function drawGreens(){
+    setStage("draw");
+    $("stageLab").textContent = "Step 1 of 3 · what's special about the green readings?";
+    buildGrid(LV.S, "pad"); $("floorHd").textContent = "SKETCH PAD"; $("floorLab").textContent = `${LV.S} × ${LV.S}`;
+    T.say("Pick a green reading and draw it as an array on the sketch pad. What shape does it make?");
+    T.step(`Click a <b>green</b> reading, then drag out an array of that many squares on the sketch pad (rows × columns). Find the shape that makes a <b>square</b>. ${DRAWS} green readings to do.`, { name: `Draw ${DRAWS} green readings` });
+    const greens = rdEls().filter(e => e.classList.contains("g") && fitsPad(+e.dataset.v).length);
+    greens.forEach(e => { e.disabled = false; e.tabIndex = 0; e.classList.add("on"); });
+    let tries = 0;
+    await new Promise(res => {
+      const pickR = e => {
+        if(over || stage !== "draw") return;
+        rdEls().forEach(o => o.classList.remove("sel")); e.classList.add("sel");
+        W.target = +e.dataset.v; tries = 0; fg.querySelectorAll(".arr").forEach(o => o.remove());
+        $("floorHd").textContent = `SKETCH PAD · DRAW ${W.target}`; T.SND("tag");
+        say(`Draw ${W.target} as an array: drag out ${W.target} squares.`);
+      };
+      greens.forEach(e => e.addEventListener("click", () => pickR(e)));
+      onRect = r => {
+        if(stage !== "draw") return;
+        if(!W.target){ say("Click a green reading first.", "warn"); return; }
+        const p = r.w * r.h, v = W.target;
+        if(p !== v){ T.SND("untag"); say(`${r.h} × ${r.w} = ${p}. You need ${v} squares.`, "warn"); return; }
+        if(r.w !== r.h){
+          stamp(r, "rect"); T.SND("tag"); tries++;
+          log(`${v} = ${r.h} × ${r.w} <span class="sys">· a rectangle</span>`, "cy");
+          say(tries >= LV.hintAfter ? `${r.h} × ${r.w} = ${v} ✓ Now try as many rows as columns: what number times itself makes ${v}?` : `${r.h} × ${r.w} = ${v} ✓ That makes ${v}. Can you make ${v} as a square?`, "ok");
+          if(tries === LV.hintAfter) T.step(`Try the <b>same number of rows as columns</b>. What number times itself makes ${v}?`, { name: `Draw ${DRAWS} green readings` });
+          return;
+        }
+        stamp(r, "sq"); T.SND("verified");
+        const el = rdEls().find(o => o.classList.contains("sel")); if(el){ el.classList.add("done"); el.classList.remove("sel"); }
+        if(!W.drawn.includes(v)) W.drawn.push(v);
+        log(`${v} = ${r.h} × ${r.w} <span class="gold">· a SQUARE</span>`, "ok");
+        say(`${r.h} × ${r.w} = ${v}: a square! As many rows as columns.`, "ok");
+        W.target = 0;
+        if(W.drawn.length >= DRAWS){ res(); return; }
+        $("stageLab").textContent = `Step 1 of 3 · ${W.drawn.length} of ${DRAWS} green readings drawn`;
+        setTimeout(() => { if(stage === "draw" && !W.target) say(`Now another green reading. ${DRAWS - W.drawn.length} to go.`); }, 1600 / sp());
+      };
+      // Teacher SKIP: the next green reading, drawn as its square
+      if(window.PNTest) PNTest.skip("Draw a green reading", () => {
+        const e = greens.find(o => !o.classList.contains("done") && !W.drawn.includes(+o.dataset.v)); if(!e) return;
+        pickR(e); const n = root(+e.dataset.v); onRect({ x: 0, y: 0, w: n, h: n });
+      });
+    });
+    greens.forEach(e => { e.classList.remove("on", "sel"); e.disabled = true; e.tabIndex = -1; });
+  }
+
+  // ----- 2b. Try a grey reading: it never makes a square -----
+  async function tryGrey(){
+    setStage("grey");
+    await wait(1100);
+    fg.querySelectorAll(".arr").forEach(o => o.remove()); $("floorHd").textContent = "SKETCH PAD";
+    T.say("Now try a grey one. Can you make it into a square?");
+    T.step("Click a <b>grey</b> reading and try to draw it as a square on the sketch pad.", { name: "Try a grey reading" });
+    say("Now click a grey reading. Can you make it into a square?");
+    const greys = rdEls().filter(e => !e.classList.contains("g") && fitsPad(+e.dataset.v).length >= 1);
+    greys.forEach(e => { e.disabled = false; e.tabIndex = 0; e.classList.add("on"); });
+    await new Promise(res => {
+      let shapes = new Set(), v = 0, el = null;
+      const pickR = e => {
+        if(over || stage !== "grey") return;
+        rdEls().forEach(o => o.classList.remove("sel")); e.classList.add("sel"); el = e;
+        v = W.target = +e.dataset.v; shapes = new Set(); fg.querySelectorAll(".arr").forEach(o => o.remove());
+        $("floorHd").textContent = `SKETCH PAD · DRAW ${v}`; T.SND("tag"); say(`Draw ${v} as an array. Can you make it a square?`);
+      };
+      greys.forEach(e => e.addEventListener("click", () => pickR(e)));
+      onRect = r => {
+        if(stage !== "grey") return;
+        if(!v){ say("Click a grey reading first.", "warn"); return; }
+        const p = r.w * r.h;
+        if(p !== v){ T.SND("untag"); say(`${r.h} × ${r.w} = ${p}. You need ${v} squares.`, "warn"); return; }
+        stamp(r, "grey"); T.SND("tag"); shapes.add(Math.min(r.w, r.h) + "x" + Math.max(r.w, r.h));
+        log(`${v} = ${r.h} × ${r.w} <span class="sys">· not a square</span>`, "cy");
+        const all = fitsPad(v), want = Math.min(2, all.length);
+        if(shapes.size < want){ say(`${r.h} × ${r.w} = ${v}: not a square. Try another shape.`, "warn"); return; }
+        const list = all.map(([a, b]) => `${a} × ${b}`).join(", ");
+        el.classList.add("tried"); el.classList.remove("sel");
+        log(`${v}: ${list} · never a square`, "bad");
+        say(`${v} = ${list}. Never as many rows as columns: ${v} can't make a square. That's why it's grey.`, "ok");
+        W.grey = v; W.target = 0; res();
+      };
+      if(window.PNTest) PNTest.skip("Try a grey reading", () => {
+        const e = greys.find(o => fitsPad(+o.dataset.v).length >= 2) || greys[0]; if(!e) return res();
+        pickR(e); fitsPad(v).slice(0, 2).forEach(([a, b], i) => onRect({ x: 0, y: i * (a + 1), w: b, h: a }));
+      });
+    });
+    greys.forEach(e => { e.classList.remove("on", "sel"); e.disabled = true; e.tabIndex = -1; });
+  }
+
+  // ----- 3. What's special about the green readings? The pupil's own arrays are the evidence -----
+  async function question(){
+    setStage("question");
+    await wait(1800);
+    $("stageLab").textContent = "Step 2 of 3 · what's special?";
+    const greenVals = READ.filter(o => o.g).map(o => o.v), odd = W.drawn.find(v => v % 2) || greenVals.find(v => v % 2) || 9, not4 = W.drawn.find(v => v % 4) || greenVals.find(v => v % 4) || 9;
+    const grey = W.grey || 12, gp = T.pairs(grey).find(([a]) => a > 1) || [1, grey];
+    const C = T.shuffle([
+      { t: "Each one makes a square: as many rows as columns (n × n)", ok: true },
+      { t: "They're all even numbers", why: `${odd} is green, and ${odd} is odd.` },
+      { t: "They're all in the 4 times table", why: `${not4} is green, and ${not4} isn't in the 4 times table.` },
+      { t: "Each one makes a rectangle", why: `So does ${grey} (${gp[0]} × ${gp[1]}), and ${grey} is grey.` },
+    ]);
+    const mini = (h, w, cls, cap) => { const m = Math.max(4, Math.min(12, Math.floor(96 / Math.max(h, w)))); return `<figure class="${cls}"><div class="mini" style="--m:${m}px;grid-template-columns:repeat(${w}, ${m}px)">${"<i></i>".repeat(h * w)}</div><figcaption>${cap}</figcaption></figure>`; };
+    const sqs = W.drawn.map(v => { const n = root(v); return mini(n, n, "sq", `${v} = ${n} × ${n}`); }).join("");
+    const gs = W.grey ? fitsPad(W.grey).slice(0, 2).map(([a, b]) => mini(a, b, "gr", `${W.grey} = ${a} × ${b}`)).join("") : "";
+    $("fwrap").hidden = true; const ev = $("evid"); ev.hidden = false; fit();
+    $("floorHd").textContent = "YOUR ARRAYS"; $("floorLab").textContent = "";
+    ev.innerHTML = `<div class="arrs">${sqs}${gs}</div><div class="ask">What's special about the green readings?</div><div class="choices">${C.map((c, i) => `<button type="button" data-k="${i}"><kbd>${i + 1}</kbd>${c.t}</button>`).join("")}</div>`;
+    T.step("Look at the arrays you drew. What did every green reading make that the grey one couldn't?", { name: "What's special?" });
+    say("");
+    ev.querySelector("button").focus({ preventScroll: true });
+    await new Promise(res => {
+      let done = false;
+      const pick = k => {
+        if(done || over) return; const c = C[k], b = ev.querySelector(`[data-k="${k}"]`);
+        if(c.ok){ done = true; T.SND("verified"); document.removeEventListener("keydown", key); res(); return; }
+        if(b.classList.contains("no")) return;
+        b.classList.add("no"); T.SND("wrong"); alarm.hit(); say(`Not quite: ${c.why}`, "bad");
+      };
+      const key = e => { const k = +e.key - 1; if(k >= 0 && k < C.length && !e.ctrlKey && !e.metaKey && !e.altKey){ e.preventDefault(); pick(k); } };
+      ev.querySelectorAll("button").forEach(b => b.addEventListener("click", () => pick(+b.dataset.k)));
+      document.addEventListener("keydown", key);
+      if(window.PNTest) PNTest.skip("Answer: square numbers", () => pick(C.findIndex(c => c.ok)));
+    });
+    if(over) return;
+    ev.querySelectorAll("button").forEach(b => { b.disabled = true; if(!b.classList.contains("no")) b.style.borderColor = "#7dffc4"; });
+    log("Green readings are SQUARE NUMBERS: n × n.", "gold");
+    say("Square numbers: a number times itself. 4 = 2 × 2, 9 = 3 × 3, 16 = 4 × 4…", "ok");
+    T.say("Square numbers. And the safe zones on the floor are squares of plates. Let's build the path.");
+  }
+
+  // ----- 4. Build the safe path: drag green readings onto the floor's square zones -----
+  const tiles = [];   // placed: { x, y, n, el }
+  const covered = (x, y) => tiles.some(t => x >= t.x && x < t.x + t.n && y >= t.y && y < t.y + t.n);
+  // Can the readings still in the tray fill every safe plate that's left? (the first empty plate is always a zone's top-left)
+  function solvable(extra){
+    const free = Array.from({ length: G }, (_, y) => Array.from({ length: G }, (_, x) => safeAt[y][x] && !covered(x, y)));
+    if(extra) for(let x = extra.x; x < extra.x + extra.n; x++) for(let y = extra.y; y < extra.y + extra.n; y++) free[y][x] = false;
+    const left = cards.filter(c => !c.used && c !== extra?.card).map(c => c.n);
+    const cnt = {}; left.forEach(n => { cnt[n] = (cnt[n] || 0) + 1; });
+    let nodes = 0;
+    const go = () => {
+      if(++nodes > 20000) return true;
+      let fx = -1, fy = -1; outer: for(let y = 0; y < G; y++) for(let x = 0; x < G; x++) if(free[y][x]){ fx = x; fy = y; break outer; }
+      if(fx < 0) return true;
+      for(const n of Object.keys(cnt).map(Number)){
+        if(!cnt[n] || fx + n > G || fy + n > G) continue;
+        let ok = true; for(let y = fy; y < fy + n && ok; y++) for(let x = fx; x < fx + n; x++) if(!free[y][x]){ ok = false; break; }
+        if(!ok) continue;
+        const set = v => { for(let y = fy; y < fy + n; y++) for(let x = fx; x < fx + n; x++) free[y][x] = v; };
+        set(false); cnt[n]--; const r = go(); set(true); cnt[n]++;
+        if(r) return true;
+      }
+      return false;
+    };
+    return go();
+  }
+  const why = (x, y, n) => {
+    if(x < 0 || y < 0 || x + n > G || y + n > G) return "off";
+    for(let i = x; i < x + n; i++) for(let j = y; j < y + n; j++){ if(!safeAt[j][i]) return "live"; if(covered(i, j)) return "overlap"; }
+    return "";
+  };
+  let cards = [];
+  async function buildPath(){
+    setStage("route");
+    $("stageLab").textContent = "Step 3 of 3 · build the safe path";
+    await wait(900);
+    $("rain").classList.add("dim");
+    $("evid").hidden = true; $("fwrap").hidden = false;
+    buildGrid(G, "floor"); $("floorHd").textContent = "STRONGROOM FLOOR · PRESSURE PLATES"; $("floorLab").textContent = `${G} × ${G} PLATES`;
+    for(let y = 0; y < G; y++) for(let x = 0; x < G; x++) cell(x, y).classList.add(safeAt[y][x] ? "safe" : "live");
+    if(LV.outline) zones.forEach(z => lay("zone", z.x, z.y, z.n, z.n));
+    T.SND("scanline");
+    log(`${zones.length} safe zones mapped. Red plates are live.`, "sys");
+    const w = $("work");
+    cards = need.slice().sort((p, q) => q - p).map((n, i) => ({ n: root(n), v: n, used: false, i }));
+    w.innerHTML = `<div class="ask">Safe readings: drag each one onto the floor</div><div class="tray" id="tray">${cards.map(c => `<button type="button" class="card" data-i="${c.i}">${c.v}<small>${W.drawn.includes(c.v) ? `${c.n} × ${c.n}` : ""}</small></button>`).join("")}</div>`;
+    T.step(`Drag each green reading onto the floor: it becomes a square of plates (16 is 4 × 4). Fill every safe zone, so there's a path from the <b>door</b> to the <b>safe</b>. Keep off the red plates.`, { name: "Build the safe path" });
+    say("Drag each reading onto a safe zone. What size of square is it?");
+    await new Promise(res => {
+      const update = () => { W.placed = tiles.length; if(cards.every(c => c.used)) res(); };
+      const put = (c, x, y) => {
+        c.used = true; w.querySelector(`.card[data-i="${c.i}"]`).classList.add("used");
+        const el = lay("tile", x, y, c.n, c.n, `<span>${c.n} × ${c.n} = ${c.v}</span>`);
+        tiles.push({ x, y, n: c.n, el }); T.SND("clamp");
+        log(`${c.v} = ${c.n} × ${c.n} · zone filled`, "ok");
+        say(`${c.v} = ${c.n} × ${c.n}: zone filled.`, "ok"); update();
+      };
+      // A drop near a spot it fits snaps into it (L1: the drawn zone of that size first)
+      function landing(c, gx, gy){
+        const cand = [];
+        for(let dy = -1; dy <= 1; dy++) for(let dx = -1; dx <= 1; dx++){ const x = gx + dx, y = gy + dy; if(!why(x, y, c.n)) cand.push({ x, y, d: Math.abs(dx) + Math.abs(dy), zone: zones.some(z => z.x === x && z.y === y && z.n === c.n) }); }
+        cand.sort((p, q) => (q.zone - p.zone) || (p.d - q.d));
+        return cand;
+      }
+      let drag = null;
+      w.querySelectorAll(".card").forEach(b => b.addEventListener("pointerdown", e => {
+        if(over) return; const c = cards[+b.dataset.i]; if(c.used) return; e.preventDefault();
+        const g = document.createElement("div"); g.className = "ghost"; document.body.appendChild(g);
+        const size = c.n * (CS + 2) - 2; Object.assign(g.style, { width: size + "px", height: size + "px" }); g.style.setProperty("--cw", (CS + 2) + "px");
+        g.innerHTML = `<span>${c.n} × ${c.n} = ${c.v}</span>`; T.SND("tag");
+        drag = { c, g, size }; move(e);
+        window.addEventListener("pointermove", move); window.addEventListener("pointerup", up);
+      }));
+      const gridAt = (e, size) => { const r = fg.getBoundingClientRect(); return [Math.round((e.clientX - size / 2 - r.left - fg.clientLeft - 2) / (CS + 2)), Math.round((e.clientY - size / 2 - r.top - fg.clientTop - 2) / (CS + 2))]; };
+      const overFloor = e => { const r = fg.getBoundingClientRect(); return e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom; };
+      function move(e){ if(!drag) return; drag.g.style.left = (e.clientX - drag.size / 2) + "px"; drag.g.style.top = (e.clientY - drag.size / 2) + "px";
+        const [gx, gy] = gridAt(e, drag.size); drag.g.classList.toggle("off", overFloor(e) && !landing(drag.c, gx, gy).length); }
+      function up(e){
+        window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", up);
+        if(!drag) return; const { c, g, size } = drag; drag = null; g.remove();
+        if(!overFloor(e) || over) return;
+        const [gx, gy] = gridAt(e, size), spots = landing(c, gx, gy);
+        const ok = spots.find(s => solvable({ x: s.x, y: s.y, n: c.n, card: c }));
+        if(ok){ put(c, ok.x, ok.y); return; }
+        if(spots.length){ T.SND("untag"); say(`If ${c.v} goes there, the zones left can't be filled by the readings you have. Try another spot.`, "warn"); return; }
+        const k = why(gx, gy, c.n);
+        T.SND("wrong"); alarm.hit(); fg.classList.remove("glitch"); void fg.offsetWidth; fg.classList.add("glitch");
+        say(k === "overlap" ? `That zone's already filled. ${c.v} is ${c.n} × ${c.n}: find a zone that size.`
+          : k === "off" ? `${c.v} is ${c.n} × ${c.n}: there it would hang off the floor.`
+          : `${c.v} is ${c.n} × ${c.n}: there it would step on live plates.`, "bad");
+      }
+      if(window.PNTest) PNTest.skip("Fill every zone", () => {
+        const left = zones.filter(z => !tiles.some(t => t.x === z.x && t.y === z.y && t.n === z.n));
+        left.forEach(z => { const c = cards.find(q => !q.used && q.n === z.n); if(c && !why(z.x, z.y, z.n)) put(c, z.x, z.y); });
+      });
+    });
+  }
+
+  // ----- 5. FOX and WREN cross on the safe plates, door (top right) to safe (bottom left) -----
+  function crossPath(){
+    const start = [0, 0], end = [G - 1, G - 1], key = (x, y) => x + "," + y, prev = new Map([[key(...start), null]]), q = [start];
+    while(q.length){ const [x, y] = q.shift(); if(x === end[0] && y === end[1]) break;
+      for(const [dx, dy] of [[-1, 0], [0, 1], [1, 0], [0, -1]]){ const nx = x + dx, ny = y + dy, k = key(nx, ny); if(nx >= 0 && ny >= 0 && nx < G && ny < G && safeAt[ny][nx] && !prev.has(k)){ prev.set(k, [x, y]); q.push([nx, ny]); } } }
+    const out = []; for(let c = end; c; c = prev.get(key(...c))) out.unshift(c); return out;
+  }
+  async function cross(){
+    setStage("cross"); T.hideBrief();
+    $("work").innerHTML = ""; $("stageLab").textContent = "Crossing";
+    T.SND("powerup"); say("Every zone is filled. FOX and WREN are crossing…", "ok"); log("> agents.cross(path) // squares only", "gold");
+    T.say("Path's clear. FOX, WREN: step only on the green plates.");
+    const path = crossPath(), dot = cls => { const d = document.createElement("div"); d.className = "agent " + cls; fg.appendChild(d); return d; };
+    const fox = dot("fox"), wren = dot("wren");
+    const put = (d, [x, y], k) => { const s = CS * k; Object.assign(d.style, { width: s + "px", height: s + "px", left: (px(x) + (CS - s) / 2) + "px", top: (px(y) + (CS - s) / 2) + "px" }); };
+    put(fox, [0, 0], .5); put(wren, [0, 0], .4); fox.style.top = (parseFloat(fox.style.top) - CS) + "px"; wren.style.top = (parseFloat(wren.style.top) - CS) + "px";
+    await wait(400);
+    const stepMs = Math.max(140, Math.min(320, 5200 / path.length));
+    for(let i = 0; i <= path.length + 1; i++){
+      const f = path[Math.min(i, path.length - 1)]; put(fox, f, .5); cell(f[0], f[1]).classList.add("step");
+      if(i >= 2){ put(wren, path[Math.min(i - 2, path.length - 1)], .4); }
+      if(i % 2 === 0) T.SND("tick");
+      await wait(stepMs);
+    }
+    T.SND("success"); log("Across. No plates triggered.", "ok"); say("FOX and WREN are across. Not one plate went off.", "ok");
+    T.say("We're across. Not one plate went off.");
+    setStage("done");
+    T.finish({ ok: true, title: "ACROSS THE STRONGROOM", lines: [`The safe plates were the square numbers: ${[...new Set(need)].sort((p, q) => p - q).map(v => `${v} = ${root(v)} × ${root(v)}`).join(", ")}.`], auto: 1400 });
+  }
+
+  function fail(){
+    if(over) return; over = true; setStage("failed");
+    T.finish({ ok: false, title: "PLATE TRIPPED", lines: ["The safe plates are the square numbers: a number times itself (4 = 2 × 2, 9 = 3 × 3, 16 = 4 × 4…). They can be drawn as a square array."], note: "One wrong plate and the alarm goes. The safe readings were the square numbers." });
+  }
+
+  buildGrid(LV.S, "pad"); $("floorLab").textContent = `${LV.S} × ${LV.S}`;
+  (async () => {
+    await new Promise(r => { if(!T.briefOpen()) return r(); const f = () => { if(!T.briefOpen()){ window.removeEventListener("pn-brief", f); r(); } }; window.addEventListener("pn-brief", f); });
+    await stream(); if(over) return;
+    await drawGreens(); if(over) return;
+    await tryGrey(); if(over) return;
+    await question(); if(over) return;
+    await buildPath(); if(over) return;
+    await cross();
+  })();
+})();
+</script>
+</body>
+</html>

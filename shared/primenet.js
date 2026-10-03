@@ -461,7 +461,7 @@
     { id:"patrols",    point:"entry",      name:"Guard patrols",          maths:"Multiples and LCM", page:"twist_patrols3d.html" },
     { id:"cubes",      point:"power",      name:"Ceiling relays (cubes)", maths:"Cube numbers", page:"twist_cubes3d.html" },
     { id:"walls",      point:"planb",      name:"Deposit boxes", maths:"Factor pairs and HCF", page:"twist_walls3d.html" },
-    { id:"strongroom", point:"strongroom", name:"Square strongroom",      maths:"Square numbers", page:"twist_strongroom3d.html" },
+    { id:"strongroom", point:"strongroom", name:"Square strongroom",      maths:"Square numbers", page:"twist_strongroom_hack.html" },   // Round 22: the floor sensor hack
     { id:"factortree", point:"keyroom",    name:"Key room door",          maths:"Prime factorisation", page:"twist_door2.html" },
     { id:"blackout",   point:"finale",     name:"Server blackout",        maths:"Primes" },
     { id:"getaway",    point:"finale",     name:"Getaway chase",          maths:"Primes, squares, cubes" },
