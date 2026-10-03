@@ -1031,6 +1031,15 @@ function powerUpPrompt(title){
         sp.scale.set(4.2, 4.2, 1); sp.renderOrder = 20; sp.userData.dot = true; return sp;
       }
       function fadeIn(objs, ms = 350){ return tween(ms, e => objs.forEach(o => { o.visible = true; o.traverse(c => { if(c.material){ c.material.transparent = true; c.material.opacity = e * (c.userData.op ?? 1); } }); })); }
+      // Round 22: on a fixed building's floor, a walk follows the corridors and goes in and out of rooms by their doors
+      // (shared/buildings.js walk), instead of a straight line through the rooms. Returns the points after `from`, ending at `to`.
+      function corridor(f, from, to){
+        const L = BLD && f && LAYOUTS[f.n]; if(!L || !window.PNBuildings || !from || !to) return [to];
+        const cell = PLATE / L.grid, yF = f.yOffset + 1.2;
+        const c = v => ({ x: Math.floor((v.x + PLATE / 2) / cell), y: Math.floor((v.z + PLATE / 2) / cell) });
+        const cells = PNBuildings.walk(L, c(from), c(to)); if(!cells) return [to];
+        return [...PNBuildings.corners(cells).slice(1, -1).map(q => new THREE.Vector3((q.x + 0.5) * cell - PLATE / 2, yF, (q.y + 0.5) * cell - PLATE / 2)), to];
+      }
       // The lift: a shaft through the middle of the building with a car at the bottom
       function liftAt(sx, sz, y0, h){
         const g = new THREE.Group(), c = 0xcfe8ff;
@@ -1152,6 +1161,8 @@ function powerUpPrompt(title){
           const cell = PLATE / LAYOUTS[weak.n].grid;
           KR.path.forEach(([x, y]) => pts.push(V((x + 0.5) * cell - PLATE / 2, yW, (y + 0.5) * cell - PLATE / 2)));
           pts.push(V(keyRoom.x, yW, keyRoom.z));
+        } else if(keyRoom && BLD && LAYOUTS[weak.n]){
+          pts.push(...corridor(weak, V(wallAt.x, yW, wallAt.z), V(keyRoom.x, yW, keyRoom.z)));
         } else if(keyRoom){
           // Walk the corridors in straight lines: first across, then along
           if(onX){ pts.push(V(keyRoom.x, yW, wallAt.z)); } else { pts.push(V(wallAt.x, yW, keyRoom.z)); }
@@ -1197,6 +1208,7 @@ function powerUpPrompt(title){
         for(let i = 1; i < pts.length; i++){
           const p0 = pts[i - 1], p1 = pts[i], dx = p1.x - p0.x, dz = p1.z - p0.z, dy = p1.y - p0.y, flat = Math.hypot(dx, dz);
           if(flat < 0.5 && Math.abs(dy) < 0.5) continue;
+          if(viaRoof && i === 1) continue;   // the drop onto the roof has its own line
           if(Math.abs(dy) <= 2 && flat < 3) continue;   // a step through a doorway: no line of its own
           let text;
           if(Math.abs(dy) > 2 && flat < 2){ text = dy > 0 ? `Climb the fire stairs to <b>${floorName(p1.y)}</b>` : `Down the fire stairs to <b>${floorName(p1.y)}</b>`; prevH = null; }
@@ -1204,14 +1216,14 @@ function powerUpPrompt(title){
             const h = { x: dx / flat, z: dz / flat }, m = Math.max(1, Math.round(flat * MPU)), dir = compass(dx, dz);
             let turn = '';
             if(prevH){ const cr = prevH.x * h.z - prevH.z * h.x; if(Math.abs(cr) > 0.5) turn = cr > 0 ? 'Turn right, then go ' : 'Turn left, then go '; }
-            // straight on in the same direction: one longer leg, not two
-            const last = legs[legs.length - 1];
-            if(!turn && last && last.dir === dir && last.m != null && i > 1){ last.m += m; last.text = last.text.replace(/<b>(\w+) \d+ m<\/b>/, `<b>$1 ${last.m} m</b>`); prevH = h; continue; }
-            text = i === 1 && !viaRoof ? `From the street, go <b>${dir} ${m} m</b> to the fire stairs`
-              : `${turn || 'Go '}<b>${dir} ${m} m</b>` + (Math.abs(p1.x - wallAt.x) < 0.5 && Math.abs(p1.z - wallAt.z) < 0.5 ? ' to the fire door' : '');
+            // straight on in the same direction: one longer leg, not two (never into the street or fire door lines)
+            const last = legs[legs.length - 1], street = i === 1 && !viaRoof, atDoor = Math.abs(p1.x - wallAt.x) < 0.5 && Math.abs(p1.z - wallAt.z) < 0.5;
+            if(!turn && last && last.plain && last.dir === dir && !street && !atDoor){ last.m += m; last.text = last.text.replace(/<b>(\w+) \d+ m<\/b>/, `<b>$1 ${last.m} m</b>`); prevH = h; continue; }
+            text = street ? `From the street, go <b>${dir} ${m} m</b> to the fire stairs`
+              : `${turn || 'Go '}<b>${dir} ${m} m</b>` + (atDoor ? ' to the fire door' : '');
             if(turn) text = text.replace(/^Turn (right|left), then go /, (_, d) => `Turn ${d}, then go `);
             prevH = h;
-            legs.push({ text, i, dir, m }); continue;
+            legs.push({ text, i, dir, m, plain: !street && !atDoor }); continue;
           }
           legs.push({ text, i });
         }
@@ -1269,7 +1281,7 @@ function powerUpPrompt(title){
         window.bpDirEl = dirEl;   // the recon takes it away
         if(!hasRecon){ dirEl.classList.remove('on'); setTimeout(() => dirEl.remove(), 600); }
         // Round 15: the route drawn here becomes the heist path in chapter 5
-        heistData = { pts, agent, halo, tag, keyRoom, weak, wallAt, onX, sx, sz, S, yW, perFloor, door: V(wallAt.x, yW, wallAt.z), route: !!(KR && LAYOUTS[weak.n]) };
+        heistData = { pts, agent, halo, tag, keyRoom, weak, wallAt, onX, sx, sz, S, yW, perFloor, door: V(wallAt.x, yW, wallAt.z), route: !!(BLD && keyRoom && LAYOUTS[weak.n]) };
         spinning = true;
       }
 
@@ -1520,7 +1532,8 @@ function powerUpPrompt(title){
           const cands = W.rooms.map((r, i) => ({ r, i })).filter(o => o.r !== D.keyRoom);
           const gap = r => Math.hypot(Math.max(0, Math.abs(D.door.x - r.x) - r.w / 2), Math.max(0, Math.abs(D.door.z - r.z) - r.d / 2));
           const pool = cands.filter(o => !(W === f2 && o.r === sRoom));   // not the strongroom, which comes later
-          const srv = (pool.length ? pool : cands).sort((x, y) => gap(x.r) - gap(y.r))[0] || null;
+          const named = BLD && BLD.serverRoom ? cands.find(o => o.r.name === BLD.serverRoom) : null;   // Round 22: the building's own server room
+          const srv = named || (pool.length ? pool : cands).sort((x, y) => gap(x.r) - gap(y.r))[0] || null;
           // Where they go in (the room's door, or the side facing the fire door) and the wall the fuse box is on (facing the camera)
           let fuseWall, inward, fw = null, Ein = null, Eout = null;
           if(srv){
@@ -1553,7 +1566,7 @@ function powerUpPrompt(title){
             if(room(1) < 8 && room(-1) > room(1)) side.negate(); sOff = Math.max(0, Math.min(10, room(1))); }
           const fusePt = fuseWall.clone().addScaledVector(inward, srv ? 5 : 6).addScaledVector(side, sOff); fusePt.y = yF;
           const corner = Eout && (D.onX ? V3(Eout.x, yF, here.z) : V3(here.x, yF, Eout.z));
-          await move(srv ? 'Moving to the server room' : 'Moving to the fuse box', srv ? "Door's clear. The fuse box is in the server room." : "Door's clear. Heading for the fuse box.", srv ? [here, corner, Eout] : [here, fusePt]);
+          await move(srv ? 'Moving to the server room' : 'Moving to the fuse box', srv ? "Door's clear. The fuse box is in the server room." : "Door's clear. Heading for the fuse box.", srv ? (BLD ? [here, ...corridor(W, here, Eout)] : [here, corner, Eout]) : [here, fusePt]);
           here = fusePt.clone();
           if(srv) exitPts = [Ein, Eout];
           // The server room: tinted blue with its name over it (its guard has stepped out)
@@ -1631,7 +1644,8 @@ function powerUpPrompt(title){
         // 3. The security key. Round 19: where it is follows the menu: the key room (Lights out; the key room door twist
         // plays here), moved to a deposit box in the basement (Plan B), kept in a deposit box (quiet), or the strongroom (quiet, step 4).
         const keyLine = dark ? 'Lights out. Heading for the key room.' : hasTw('power') ? 'Heading for the key room.' : "Door's clear. Heading for the key room.";
-        const toKey = [here, ...exitPts, ...(inside.length > 1 ? inside.slice(1) : [D.door])];
+        const toKey = BLD && exitPts.length && inside.length > 1 ? [here, ...exitPts, ...corridor(D.weak, exitPts[exitPts.length - 1], keyPt)]
+          : [here, ...exitPts, ...(inside.length > 1 ? inside.slice(1) : [D.door])];
         const viaKeyRoom = KEY_AT === 'keyroom' || (KEY_AT === 'deposit' && !QUIET);
         if(viaKeyRoom){
           await move('Moving to the key room', keyLine, toKey, !hasTw('planb') && !hasTw('keyroom'));
@@ -1656,7 +1670,8 @@ function powerUpPrompt(title){
         if(KEY_AT === 'deposit' && hasTw('planb')){
           const BY = -16.8, depPt = V3(maxExtentX * 0.55, BY, maxExtentZ * 0.5);
           // Plan B: from the key room, a change of plan. Quiet: the deposit box was always the plan, straight down from the way in.
-          const pathB = QUIET ? [here, ...exitPts, lift(D.yW), lift(BY), depPt] : [keyPt, lift(D.yW), lift(BY), depPt];
+          const pathB = QUIET ? [here, ...exitPts, ...corridor(D.weak, exitPts.length ? exitPts[exitPts.length - 1] : here, lift(D.yW)), lift(BY), depPt]
+            : [keyPt, ...corridor(D.weak, keyPt, lift(D.yW)), lift(BY), depPt];
           const intro = async () => {
             const w = introWatch(QUIET ? 'The deposit box room' : 'Change of plan', 5);
             if(QUIET){
@@ -1703,7 +1718,8 @@ function powerUpPrompt(title){
         const sMesh = f2.boxes[pickS.i], sPt = V3(sRoom.x, y2, sRoom.z);
         // Round 22: on a building with a route to the strongroom (the key is in there), walk the corridors
         const routeToS = keyS && D.weak === f2 && D.route && inside.length > 2 && inside[inside.length - 1].distanceTo(sPt) < 0.01;
-        const toStrong = routeToS ? [here, ...exitPts, ...inside.slice(1)] : D.weak === f2 ? [here, sPt] : [here, lift(D.yW), lift(y2), sPt];
+        const toStrong = routeToS ? [here, ...exitPts, ...inside.slice(1)] : D.weak === f2 ? [here, ...corridor(f2, here, sPt)]
+          : [here, ...corridor(D.weak, here, lift(D.yW)), lift(y2), ...corridor(f2, lift(y2), sPt)];
         const hasS = hasTw('strongroom'), toS = !QUIET || KEY_AT === 'strongroom';
         if(toS){ await move('Moving to the strongroom', KEY_AT === 'strongroom' ? 'Heading for the strongroom. The security key is in there.' : 'Heading for the strongroom.', toStrong, !hasS); here = sPt.clone(); }
         if(hasS && toS){
@@ -1741,7 +1757,8 @@ function powerUpPrompt(title){
           await wait(3400);
           wk.end(); hideLabel(); push(1);
           const back = D.route && here.distanceTo(keyPt) < 0.01 ? inside.slice(0, -1).reverse() : null;   // back along the building's route
-          const out = back ? [here, ...back, ...toDoor.slice().reverse()] : [here, ...(Math.abs(here.y - D.yW) < 1 ? [] : [lift(here.y), lift(D.yW)]), D.door, ...toDoor.slice().reverse()];
+          const up = Math.abs(here.y - D.yW) < 1 ? [] : [lift(here.y), lift(D.yW)];
+          const out = back ? [here, ...back, ...toDoor.slice().reverse()] : [here, ...up, ...corridor(D.weak, up.length ? up[1] : here, D.door), ...toDoor.slice().reverse()];
           await move('Sneaking out', 'Copy made, original back in place. Sneaking out.', out, true);
           moveEnd();
           const wo = shortWatch('Out unseen', 4);
