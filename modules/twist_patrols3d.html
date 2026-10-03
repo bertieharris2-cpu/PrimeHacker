@@ -54,13 +54,14 @@
   /* The timeline over the feed: a tick every time a guard reaches the blind spot */
   .tline{ flex:none; padding:7px 22px 6px 12px; display:flex; flex-direction:column; gap:3px; }
   .lane, .axis{ display:grid; grid-template-columns:92px minmax(0,1fr); gap:8px; align-items:center; white-space:nowrap; }
-  .lane{ height:20px; }
+  .lane{ height:30px; }
   .lane .ll{ font-family:var(--font-ui); font-weight:700; font-size:12px; letter-spacing:.12em; color:var(--c); display:flex; align-items:center; gap:6px; }
   .lane .ll i{ width:10px; height:10px; border-radius:50%; background:var(--c); }
   .track{ position:relative; height:100%; border-bottom:1px solid rgba(143,234,255,.25); }
-  .track b{ position:absolute; bottom:0; width:3px; height:14px; margin-left:-1px; background:var(--c); }
-  .track b.gold{ height:19px; background:#ffe14d; box-shadow:0 0 8px #ffe14d; }
-  .track b small{ position:absolute; left:6px; bottom:2px; font:400 11px/1 var(--font-mono); color:rgba(235,255,248,.8); }
+  .track b{ position:absolute; bottom:0; width:5px; height:24px; margin-left:-2px; background:var(--c); box-shadow:0 0 8px var(--c); animation:tickIn .45s ease-out; }
+  @keyframes tickIn{ from{ transform:scaleY(.2); opacity:.3; } }
+  .track b.gold{ height:30px; background:#ffe14d; box-shadow:0 0 12px #ffe14d; }
+  .track b small{ position:absolute; left:8px; bottom:4px; font:700 16px/1 var(--font-mono); color:#f6feff; text-shadow:0 0 6px #000; }
   .track b.gold small{ color:#ffe14d; font-weight:700; }
   .track .ph{ position:absolute; top:-2px; bottom:-2px; left:0; width:2px; background:rgba(255,255,255,.7); }
   .axis{ font-family:var(--font-mono); font-size:12px; color:var(--text-faint); } .axis > span{ font-family:var(--font-ui); letter-spacing:.14em; font-size:11px; }
@@ -320,7 +321,7 @@
   const spotRing = new TH.Mesh(new TH.RingGeometry(F.cell * 0.55, F.cell * 0.95, 40), new TH.MeshBasicMaterial({ color: 0xdff8ff, transparent: true, opacity: 0.55, side: TH.DoubleSide, depthWrite: false }));
   spotRing.rotation.x = -Math.PI / 2; spotRing.position.set(SW.x, 0.8, SW.z); F.root.add(spotRing);
   let spotLab = null;
-  relabel(() => { if(spotLab) F.root.remove(spotLab); spotLab = label("BLIND SPOT", behind ? `BEHIND THE ${behind.toUpperCase()}` : "OUT OF SIGHT OF THE DOOR", "#ffe68a", 30); spotLab.position.set(SW.x, 15, SW.z); F.root.add(spotLab); });
+  relabel(() => { if(spotLab) F.root.remove(spotLab); spotLab = label("BLIND SPOT", behind ? `BEHIND THE ${behind.toUpperCase()}` : "OUT OF SIGHT OF THE DOOR", "#ffe68a", 30); spotLab.position.copy(SW).addScaledVector(new TH.Vector3(1, 0, 0).applyQuaternion(pc.quaternion).setY(0).normalize(), 21).setY(15); F.root.add(spotLab); });   // Bertie: beside the spot, not over it
   let doorLab = null;
   relabel(() => { if(doorLab) F.root.remove(doorLab); doorLab = label("FIRE DOOR", null, "#7dffc4", 17); doorLab.position.copy(D).addScaledVector(SIDE, (D.x * SIDE.x + D.z * SIDE.z) > 0 ? -22 : 22).setY(4); F.root.add(doorLab); });
   // How close every square is to the nearest of `cells`, up to `cap` squares away
@@ -377,7 +378,7 @@
   function tlTick(i, m, gold){
     const tr = document.querySelector(`.track[data-g="${i}"]`); if(!tr || m > tlW || m < tlA) return;
     const b = document.createElement("b"); b.style.left = (tlX(m) * 100) + "%"; if(gold) b.className = "gold";
-    if(gold || tr.clientWidth * guards[i].p / (tlW - tlA) > 14 + 8 * String(m).length) b.innerHTML = `<small>${m}</small>`;   // numbers only where there's room
+    if(gold || mode === "rec" || tr.clientWidth * guards[i].p / (tlW - tlA) > 16 + 10 * String(m).length) b.innerHTML = `<small>${m}</small>`;   // numbers only where there's room
     tr.appendChild(b);
   }
   // A tick pops up over the blind spot each time a guard reaches it, then fades
@@ -510,7 +511,9 @@
   const lastStep = PHASE === "recon" ? S_BOTH : S_GO;
   function render(){
     const li = (cls, n, html) => `<li class="${cls}"><i>${n}</i><span>${html}</span></li>`;
-    $("plan").innerHTML = step >= S_GO && PHASE !== "recon" ? li("done", "✓", `The plan: A every ${P[0]}, B every ${P[1]}, so both at the blind spot at minute ${M}`) + li(step > S_GO ? "done" : "on", step > S_GO ? "✓" : "▸", step > S_GO ? DONE[S_GO] : STEPS[S_GO]())
+    const rec = PHASE !== "go" && step <= S_RECB;   // Bertie: while recording a guard, only that step shows
+    $("cards").hidden = rec;
+    $("plan").innerHTML = rec ? li("on", step + 1, STEPS[step]()) : step >= S_GO && PHASE !== "recon" ? li("done", "✓", `The plan: A every ${P[0]}, B every ${P[1]}, so both at the blind spot at minute ${M}`) + li(step > S_GO ? "done" : "on", step > S_GO ? "✓" : "▸", step > S_GO ? DONE[S_GO] : STEPS[S_GO]())
       : STEPS.slice(0, lastStep + 1).map((s, i) => li(i < step ? "done" : i === step ? "on" : "", i < step ? "✓" : i + 1, i < step ? DONE[i] : i === step ? s() : NAMESTEP[i])).join("")
         + (PHASE === "recon" ? li(step > S_BOTH ? "done" : "", step > S_BOTH ? "✓" : "▸", step > S_BOTH ? `The plan: go in at minute ${M}` : "The plan: when we go in") : "");
     document.querySelectorAll(".gcard").forEach((c, k) => c.classList.toggle("on", (step === k || step === k + 2)));
@@ -531,7 +534,7 @@
     rate = P[g] / 3.6; mode = "rec";
     $("feedLab").textContent = "CCTV · LAST NIGHT · RECORDING";
     act("RECORD (SPACE)", "", record);
-    say(`Watch guard ${NAMES[g]}. Press SPACE when they reach the blind spot.`);
+    say("");
     render();
   }
   // Every frame while recording: a pass that goes by unrecorded rewinds the tape to just before it
@@ -540,7 +543,7 @@
     const n = recNext(recG);
     if(minute > n + recWin(recG)){
       mode = "hold"; T.SND("glitch"); say("Missed it. Rewinding…", "warn");
-      setTimeout(() => { if(over || recG < 0) return; minute = Math.max(0, n - 0.5 * P[recG]); prevM = minute; mode = "rec"; say(`Watch guard ${NAMES[recG]}. Press SPACE when they reach the blind spot.`); }, 900 / sp());
+      setTimeout(() => { if(over || recG < 0) return; minute = Math.max(0, n - 0.5 * P[recG]); prevM = minute; mode = "rec"; say(""); }, 900 / sp());
     }
   }
   function record(){

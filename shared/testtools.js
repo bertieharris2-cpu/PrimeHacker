@@ -60,7 +60,7 @@
     get fast(){ return fast; },
     speed(){ return fast ? 8 : 1; },
     add(label, run){ const a = { label, run }; actions.push(a); if(list) render(a); },
-    skip(label, run){ skipAction = { label, run }; paintSkip(); },
+    skip(label, run){ skipAction = run ? { label, run } : null; paintSkip(); },
   };
   if(document.readyState === "loading") document.addEventListener("DOMContentLoaded", build); else build();
 })();

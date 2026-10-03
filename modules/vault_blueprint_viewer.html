@@ -246,14 +246,6 @@ body{ padding:12px 16px !important; overflow-y:auto; }
 .proceed-btn:not(:disabled){ font-size:16px !important; padding:15px 30px !important; font-weight:700; animation:hackPulse 1.6s ease-in-out infinite; }
 @keyframes hackPulse{ 50%{ box-shadow:0 0 26px rgba(var(--accent-hack-rgb),.65), inset 0 0 12px rgba(var(--accent-hack-rgb),.25); } }
 @media (prefers-reduced-motion: reduce){ .proceed-btn:not(:disabled){ animation:none; } }
-/* Arming the protocol: type anything to fill the upload */
-.arm{ position:fixed; left:50%; bottom:24px; transform:translateX(-50%); z-index:60; width:min(760px, calc(100vw - 32px)); background:rgba(2,10,12,.97); border:1px solid rgba(var(--accent-hack-rgb),.8); box-shadow:0 20px 80px rgba(0,0,0,.8); padding:16px 18px; display:flex; flex-direction:column; gap:10px; font-family:var(--font-mono); }
-.arm h2{ margin:0; font-family:var(--font-ui); font-size:15px; letter-spacing:.18em; color:var(--accent-hack); }
-.arm .scr{ height:170px; overflow:hidden; font-size:14px; line-height:1.45; color:#9fffd4; white-space:pre; }
-.arm .scr .c2{ color:#6ec8ff; } .arm .scr .c3{ color:#ffe14d; } .arm .scr .c4{ color:#ff7ae6; }
-.arm .bar{ height:10px; border:1px solid rgba(var(--accent-hack-rgb),.6); } .arm .bar b{ display:block; height:100%; width:0; background:var(--accent-hack); box-shadow:0 0 12px var(--accent-hack); }
-.arm .st{ display:flex; justify-content:space-between; gap:10px; font-size:14px; color:var(--text-muted); }
-.arm .st.ready{ color:#ffe14d; animation:hackPulse 1.2s ease-in-out infinite; }
 @media (max-width:1050px){
   .container{ height:auto; }
   .floors-container{ grid-template-columns:1fr; }
@@ -283,6 +275,29 @@ body{ padding:12px 16px !important; overflow-y:auto; }
 .bp-cctv .ts{ position:absolute; left:58px; bottom:12px; }
 @keyframes holoBlinkBp{ 50%{ opacity:.15; } }
 @keyframes cctvSnap{ 0%{ transform:scale(1.06); opacity:.4; } }
+/* Bertie: the plan's directions, in a hologram window (planning violet, not the heist's blue) */
+.bp-dir{ position:absolute; left:16px; top:112px; z-index:6; width:min(360px, 34%); padding:10px 14px 12px; pointer-events:none; opacity:0; transform:translateY(-8px) scale(.97); transition:opacity .4s, transform .4s;
+  background:linear-gradient(180deg, rgba(60,30,110,.38), rgba(10,6,24,.82)); border:1px solid rgba(201,168,255,.75); box-shadow:0 0 26px rgba(181,140,255,.35), inset 0 0 18px rgba(181,140,255,.12); font-family:var(--font-ui); color:#efe6ff; }
+.bp-dir.on{ opacity:1; transform:none; }
+.bp-dir .hd{ font-size:12px; font-weight:700; letter-spacing:.18em; color:#c9a8ff; margin-bottom:6px; }
+.bp-dir ol{ margin:0; padding:0 0 0 20px; display:flex; flex-direction:column; gap:4px; font-size:15px; line-height:1.3; }
+.bp-dir li{ animation:dirIn .35s ease-out; } .bp-dir li b{ color:#fff; } .bp-dir li span{ display:block; font-size:13px; color:#cdbbe8; }
+.bp-dir li.no{ color:#ffb3c0; } .bp-dir li.ok{ color:#a9ffd9; } .bp-dir li.end{ color:#ffe68a; list-style:none; margin-left:-20px; margin-top:4px; }
+@keyframes dirIn{ from{ opacity:0; transform:translateX(-8px); } }
+/* Bertie: the fire door stays on the blueprint: a stopwatch runs and the pupil presses SPACE at the planned minute */
+.bp-sw{ position:absolute; left:50%; bottom:18px; transform:translateX(-50%); z-index:7; width:min(620px, calc(100% - 40px)); padding:12px 16px 14px; background:rgba(2,10,14,.92); border:1px solid rgba(110,200,255,.6); box-shadow:0 10px 40px rgba(0,0,0,.6); font-family:var(--font-mono); color:#dff8ff; }
+.bp-sw .hd{ display:flex; justify-content:space-between; font:700 12px var(--font-ui); letter-spacing:.18em; color:#8feaff; }
+.bp-sw .clk{ font-size:44px; line-height:1.1; color:#ffe14d; text-align:center; letter-spacing:.06em; text-shadow:0 0 14px rgba(255,225,77,.45); margin:4px 0 6px; }
+.bp-sw .strip{ position:relative; height:34px; border-bottom:1px solid rgba(143,234,255,.4); margin:0 6px; }
+.bp-sw .strip .t{ position:absolute; bottom:0; width:1px; height:8px; background:rgba(143,234,255,.5); }
+.bp-sw .strip .t small{ position:absolute; top:-16px; left:-8px; width:16px; text-align:center; font-size:11px; color:rgba(223,248,255,.7); }
+.bp-sw .strip .z{ position:absolute; top:0; bottom:0; background:rgba(255,225,77,.22); border:1px solid rgba(255,225,77,.85); box-shadow:0 0 12px rgba(255,225,77,.35); }
+.bp-sw .strip .z b{ position:absolute; top:-1px; left:50%; transform:translateX(-50%); font-size:13px; color:#ffe14d; }
+.bp-sw .strip .ph{ position:absolute; top:-4px; bottom:-4px; width:4px; margin-left:-2px; background:#ffe14d; box-shadow:0 0 12px #ffe14d; }
+.bp-sw .ft{ display:flex; align-items:center; gap:12px; margin-top:12px; }
+.bp-sw .ft span{ flex:1; font:600 16px/1.35 var(--font-ui); color:#f6feff; } .bp-sw .ft span b{ color:#ffe14d; }
+.bp-sw .ft button{ font:700 18px var(--font-ui); letter-spacing:.16em; padding:10px 18px; color:#032018; background:#7dffc4; border:1px solid #7dffc4; cursor:pointer; }
+.bp-sw .msg{ min-height:1.3em; margin-top:6px; font-size:14px; color:#ffb35c; }
 .bp-go{ position:absolute; inset:0; z-index:6; display:flex; align-items:center; justify-content:center; pointer-events:none;
   font-family:var(--font-ui); font-weight:700; font-size:clamp(48px,8vw,110px); letter-spacing:.16em; color:#7dffc4; text-shadow:0 0 34px rgba(47,191,138,.8);
   animation:bpGo .5s ease-in-out 4 alternate; }
@@ -476,14 +491,15 @@ function powerUpPrompt(title){
         if(!QUIZ_ON && a && a.intelBonus) PN.updateAgent({ intelBonus: 0 });   // no quiz, no intel bonus (clears one left from before)
         if(DEMO_MODE || (QUIZ_ON && a && a.quizDone)){ btn.disabled = false; if(ct) ct.textContent = 'Route planned. Ready to start the hack?'; if(window.PNMode) PNMode.turn('Press the green button to start the hack'); return; }
         btn.hidden = true;
-        if(ct) ct.textContent = QUIZ_ON ? "Answer ORACLE's question to start the hack protocol." : 'Route planned. Send the access kit to FOX and WREN.';
-        setTimeout(() => QUIZ_ON ? floorQuiz(floors, () => armProtocol(floors, afterProtocol)) : armProtocol(floors, afterProtocol), 1200 / (window.PNTest ? PNTest.speed() : 1));
+        if(ct) ct.textContent = QUIZ_ON ? "Answer ORACLE's question to start the hack protocol." : 'Route planned.';
+        // Bertie: no access-kit typing screen; the heist follows the plan
+        setTimeout(() => QUIZ_ON ? floorQuiz(floors, afterProtocol) : afterProtocol(), 1200 / (window.PNTest ? PNTest.speed() : 1));
       };
       document.getElementById('proceedToHackBtn').addEventListener('click', () => {
         const a = PN && PN.getAgent();
         document.getElementById('proceedToHackBtn').disabled = true;
-        if(!QUIZ_ON || DEMO_MODE || (a && a.quizDone)) return armProtocol(floors, afterProtocol);
-        floorQuiz(floors, () => armProtocol(floors, afterProtocol));
+        if(!QUIZ_ON || DEMO_MODE || (a && a.quizDone)) return afterProtocol();
+        floorQuiz(floors, afterProtocol);
       });
     }
 
@@ -547,22 +563,20 @@ function powerUpPrompt(title){
         "sudo ./ghost_protocol --silent --no-logs",
         "ssh oracle@primenet -p 2357",
       ];
-      // The plan's terminal (teacher: in place of the intel cards): lights, the weak point, the HCF, recon and the route
+      // The plan's terminal (teacher: in place of the intel cards): lights, the security key, the way in, recon and the route
       const PLAN = [
         "// PRIMENET recon: plan the way in",
         "const floors = blueprint.load(\"{target}\");",
         "for (const room of floors.rooms()) room.lights = room.a * room.b;",
-        "const weak = floors.sort((x, y) => x.pairs - y.pairs)[0];",
-        "function hcf(a, b) { return b ? hcf(b, a % b) : a; }",
-        "const key = floors.map(f => f.n).reduce(hcf);",
-        "if (key > 1) basement.unlock(key);",
+        "const key = vault.locate(\"security_key\");",
+        "const wayIn = floors.find(f => f.has(key)).fireDoor;",
         "scan.sweep({ from: \"street\", to: \"roof\" });",
         "guards.track(rooms, { live: true });",
-        "route.plan(\"fire_stairs\", weak.id);",
+        "route.plan(\"fire_stairs\", wayIn.id);",
         "lift.hold(0); // the lift is watched",
         "cameras.loop(feed = 7, frames = 0x2A);",
-        "def safest(floors):",
-        "    return min(floors, key = pairs)",
+        "def safest(route):",
+        "    return min(route.steps, key = risk)",
         "SELECT room FROM floors WHERE guard IS NULL;",
         "sudo ./ghost_protocol --route --quiet",
         "ssh fox@primenet -p 3571",
@@ -575,32 +589,34 @@ function powerUpPrompt(title){
           : part.replace(/\b(const|let|for|if|return|function|import|from|await|def|in|of|SELECT|FROM|WHERE|sudo|true|false|TRUE)\b/g, '<b>$1</b>')).join("");
         return body + (cm ? `<u>${esc(cm)}</u>` : "");
       }
-      // Bertie: no "type to hack" title; the pupil's own keys go on the prompt, ENTER runs it and code pours out
-      // (a long line runs itself), and a loading bar shows how far the build (or the plan) has got
-      let el = null, lnEl = null, barEl = null, pcEl = null, on = false, done = [], row = 0, typed = "", guard = null, code = CODE, busy = 0;
+      // Bertie: no "type to hack" title. Any key types the next bit of real code onto the prompt (the pupil's
+      // gobbledegook becomes code); a finished line (or ENTER) runs, and a loading bar shows how far the build has got
+      let el = null, lnEl = null, barEl = null, pcEl = null, on = false, done = [], row = 0, typed = "", cur = "", guard = null, code = CODE;
       const target = () => (PN && PN.mission ? PN.mission().target : "TARGET");
-      function draw(){ lnEl.innerHTML = done.slice(-9).map(t => `<div>${t}</div>`).join("") + `<div class="pr">&gt; ${esc(typed)}<span class="cur">▌</span></div>`; }
+      const nextLine = () => code[row++ % code.length].replace("{target}", target());
+      function draw(){ lnEl.innerHTML = done.slice(-9).map(t => `<div>${t}</div>`).join("") + `<div class="pr">&gt; ${HL(typed)}<span class="cur">▌</span></div>`; }
       function run(){
-        done.push(`<span class="pr">&gt; ${esc(typed)}</span>`); typed = "";
-        const n = 2 + Math.floor(Math.random() * 2);
-        for(let i = 0; i < n; i++){ busy++; setTimeout(() => { busy--; if(!on) return; done.push(HL(code[row++ % code.length].replace("{target}", target()))); draw(); SND("key"); }, (90 + i * 110) / speedUp()); }
-        draw();
+        if(!typed) return;
+        done.push(HL(typed)); typed = ""; cur = "";
+        if(Math.random() < 0.5) done.push(`<i>${esc(["ok", "done", "200 OK", "✓ synced", "handshake OK"][Math.floor(Math.random() * 5)])}</i>`);
+        SND("key"); draw();
       }
       function key(e){
         if(!on || e.ctrlKey || e.metaKey || e.altKey) return;
         if(e.target && e.target.closest && e.target.closest("input, textarea, select, button, [contenteditable]")) return;
-        if(e.key === "Enter"){ if(e.target === document.body) e.preventDefault(); if(!e.repeat) run(); return; }
-        if(e.key === "Backspace"){ typed = typed.slice(0, -1); draw(); return; }
-        if(e.key.length !== 1 || e.repeat) return;
+        if(e.key === "Enter"){ if(e.target === document.body) e.preventDefault(); if(!e.repeat){ if(cur){ typed += cur; cur = ""; } run(); } return; }
+        if(e.key.length !== 1 && e.key !== "Backspace") return;
         if(e.key === " " && e.target === document.body && !document.querySelector('.pn-powerup')) e.preventDefault();   // no page scroll
-        typed += e.key; SND("key");
-        if(typed.length >= 26) run(); else draw();
+        if(!cur && !typed) cur = nextLine();
+        const n = 2 + Math.floor(Math.random() * 3);
+        typed += cur.slice(0, n); cur = cur.slice(n); SND("key");
+        if(!cur) run(); else draw();
       }
       return {
         PLAN,
         start(lines = CODE){
           if(on) return; on = true;
-          if(lines !== code){ code = lines; done = []; row = 0; typed = ""; }   // a fresh screen for the plan
+          if(lines !== code){ code = lines; done = []; row = 0; typed = ""; cur = ""; }   // a fresh screen for the plan
           if(!el){ el = document.createElement('div'); el.className = 'bp-term'; el.setAttribute('aria-hidden', 'true');
             el.innerHTML = '<div class="ln"></div><div class="bar"><i></i><span>0%</span></div>'; document.body.appendChild(el);
             lnEl = el.querySelector('.ln'); barEl = el.querySelector('.bar i'); pcEl = el.querySelector('.bar span'); }
@@ -969,13 +985,14 @@ function powerUpPrompt(title){
       // plays it at the fire door (?phase=go). The mission's plan still has it once, as the 'entry' twist.
       let sneak = null;   // { m, a, b }: go at minute m (guard A every a minutes, guard B every b)
       async function patrolRecon(weak){
+        const dEl = window.bpDirEl; window.bpDirEl = null; if(dEl){ dEl.classList.remove('on'); setTimeout(() => dEl.remove(), 500); }
         if(!window.PNTwistSlot || !PNTwistSlot.has('entry')) return;
         const wName = weak.label.split('—')[0].trim();
         const intro = async () => {
           const w = shortWatch("Recon: last night's CCTV", 3);
           spinning = false; SND("radio");
           showLabel(`RECON · GUARDS ON ${wName}`, 'red');
-          if(window.PNHandler) PNHandler.say(`Now we need to work out when to go in. Two guards patrol ${wName}, near the fire door. Let's study last night's CCTV.`);
+          if(window.PNHandler) PNHandler.say(`Two guards patrol ${wName}, near the fire door. Here's last night's CCTV: let's work out when to go in.`);
           await wait(3200);
           w.end();
         };
@@ -1126,47 +1143,112 @@ function powerUpPrompt(title){
           if(onX){ pts.push(V(keyRoom.x, yW, wallAt.z)); } else { pts.push(V(wallAt.x, yW, keyRoom.z)); }
           pts.push(V(keyRoom.x, yW, keyRoom.z));
         }
+        // Bertie: this is still the PLAN, so it must not look like the heist. No FOX + WREN on the building: the entry
+        // points are weighed up first, then the route is drawn in planning violet while a hologram reads out directions.
+        const PLANC = 0xb58cff, PLANS = '#c9a8ff';
+        const MPU = 0.3;   // metres per scene unit: the building is about 40 m across
+        const hasRecon = !!(window.PNTwistSlot && PNTwistSlot.has('entry'));
+        const dirEl = document.createElement('div'); dirEl.className = 'bp-dir';
+        dirEl.innerHTML = '<div class="hd">PRIMENET · ROUTE ANALYSIS</div><ol></ol>'; stageEl.appendChild(dirEl);
+        const dirList = dirEl.querySelector('ol');
+        const dirLine = (html, cls = '') => { const li = document.createElement('li'); li.className = cls; li.innerHTML = html; dirList.appendChild(li); while(dirList.children.length > 7) dirList.firstChild.remove(); SND("tag"); };
+        requestAnimationFrame(() => dirEl.classList.add('on'));
+        // 1. The ways in, weighed up one by one
+        say('Analysing the ways in…');
+        const frontZ = onX ? 0 : -sz * maxExtentZ, frontX = onX ? -sx * maxExtentX : 0;
+        const entries = [
+          { name: 'MAIN ENTRANCE', at: V(frontX, 2, frontZ), ok: false, why: 'two guards on the desk, cameras on the door' },
+          { name: 'LIFT', at: V(S.x, 2, S.z), ok: false, why: 'watched by a camera on every floor' },
+          { name: 'ROOF', at: V(F.x, roofY + 2, F.z), ok: viaRoof, why: viaRoof ? 'nobody watches the roof, and the fire stairs come down from it' : 'no way in without the fire stairs anyway' },
+          { name: 'FIRE STAIRS', at: V(F.x, 2, F.z), ok: true, why: 'no cameras, and a fire door onto every floor' },
+        ];
+        const marks = [];
+        for(const e of entries){
+          const m = badge(`${e.name} ${e.ok ? '✓' : '✗'}`, e.ok ? '#7dffc4' : '#ff8aa0', 170); m.position.copy(e.at).add(V(0, 9, 0)); mainGroup.add(m); fadeIn([m]); marks.push(m);
+          const pin = new THREE.Mesh(new THREE.RingGeometry(2.4, 3.2, 32), new THREE.MeshBasicMaterial({ color: e.ok ? 0x7dffc4 : 0xff6b7f, transparent: true, side: THREE.DoubleSide, depthTest: false }));
+          pin.rotation.x = -Math.PI / 2; pin.position.copy(e.at); pin.renderOrder = 20; mainGroup.add(pin); marks.push(pin);
+          dirLine(`<b>${e.name}</b> ${e.ok ? '✓' : '✗'} <span>${e.why}</span>`, e.ok ? 'ok' : 'no');
+          SND(e.ok ? "verified" : "untag");
+          await wait(1100);
+        }
+        await wait(500);
+        await tween(500, k => marks.forEach(m => m.traverse(c => { if(c.material){ c.material.transparent = true; c.material.opacity = 1 - k; } })));
+        marks.forEach(m => mainGroup.remove(m));
+        dirList.innerHTML = ''; dirEl.querySelector('.hd').textContent = 'PRIMENET · THE ROUTE';
+        // 2. The directions, leg by leg, as the route draws
+        const floorName = y => { const f = floorGroups.find(f => Math.abs(f.yOffset + 1.2 - y) < 1); return f ? f.label.split('—')[0].trim() : 'THE ROOF'; };
+        const compass = (dx, dz) => Math.abs(dx) >= Math.abs(dz) ? (dx > 0 ? 'east' : 'west') : (dz > 0 ? 'south' : 'north');
+        const destName = KEY_AT === 'strongroom' ? 'the strongroom' : keyRoom ? 'the key room' : 'the fire door';
+        const legs = []; let prevH = null;
+        for(let i = 1; i < pts.length; i++){
+          const p0 = pts[i - 1], p1 = pts[i], dx = p1.x - p0.x, dz = p1.z - p0.z, dy = p1.y - p0.y, flat = Math.hypot(dx, dz);
+          if(flat < 0.5 && Math.abs(dy) < 0.5) continue;
+          let text;
+          if(Math.abs(dy) > 2 && flat < 2){ text = dy > 0 ? `Climb the fire stairs to <b>${floorName(p1.y)}</b>` : `Down the fire stairs to <b>${floorName(p1.y)}</b>`; prevH = null; }
+          else {
+            const h = { x: dx / flat, z: dz / flat }, m = Math.max(1, Math.round(flat * MPU)), dir = compass(dx, dz);
+            let turn = '';
+            if(prevH){ const cr = prevH.x * h.z - prevH.z * h.x; if(Math.abs(cr) > 0.5) turn = cr > 0 ? 'Turn right, then go ' : 'Turn left, then go '; }
+            text = i === 1 && !viaRoof ? `From the street, go <b>${dir} ${m} m</b> to the fire stairs`
+              : `${turn || 'Go '}<b>${dir} ${m} m</b>` + (Math.abs(p1.x - wallAt.x) < 0.5 && Math.abs(p1.z - wallAt.z) < 0.5 ? ' to the fire door' : '');
+            if(turn) text = text.replace(/^Turn (right|left), then go /, (_, d) => `Turn ${d}, then go `);
+            prevH = h;
+          }
+          legs.push({ text, i });
+        }
+        if(viaRoof) legs.unshift({ text: 'Drop onto the <b>roof</b>', i: 1 });
         const path = new THREE.CurvePath(); for(let i = 1; i < pts.length; i++) if(pts[i].distanceTo(pts[i - 1]) > 0.01) path.add(new THREE.LineCurve3(pts[i - 1], pts[i]));
         const dense = path.getSpacedPoints(240);
-        const BLUE = 0x6ec8ff;
         const routeGeo = new THREE.BufferGeometry().setFromPoints(dense);
-        const route = new THREE.Line(routeGeo, new THREE.LineDashedMaterial({ color: BLUE, dashSize: 3, gapSize: 2, depthTest: false, transparent: true }));
+        const route = new THREE.Line(routeGeo, new THREE.LineDashedMaterial({ color: PLANC, dashSize: 3, gapSize: 2, depthTest: false, transparent: true }));
         route.computeLineDistances(); route.renderOrder = 18; routeGeo.setDrawRange(0, 0); mainGroup.add(route);
         // Arrowheads part-way along each leg
         const arrows = [], lens = path.getCurveLengths(), total = path.getLength();
         path.curves.forEach((cv, i) => {
           const d = cv.v2.clone().sub(cv.v1); if(d.length() < 3) return;
-          const cone = new THREE.Mesh(new THREE.ConeGeometry(2.2, 5, 12), new THREE.MeshBasicMaterial({ color: BLUE, depthTest: false, transparent: true }));
+          const cone = new THREE.Mesh(new THREE.ConeGeometry(2.2, 5, 12), new THREE.MeshBasicMaterial({ color: PLANC, depthTest: false, transparent: true }));
           cone.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.clone().normalize());
           cone.position.copy(cv.v1).add(d.multiplyScalar(0.55)); cone.renderOrder = 19; cone.visible = false;
           cone.userData.at = (lens[i] - cv.getLength() * 0.45) / total;
           mainGroup.add(cone); arrows.push(cone);
         });
-        // The agent: a glowing blue dot on the street with a pulsing ring
+        // The crew's marker for the heist: made now (the heist walks it), hidden until then
         const dotTex = (() => { const cv = document.createElement('canvas'); cv.width = cv.height = 64; const g = cv.getContext('2d');
           const gr = g.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, '#f0fbff'); gr.addColorStop(.35, '#6ec8ff'); gr.addColorStop(1, 'rgba(110,200,255,0)');
           g.fillStyle = gr; g.fillRect(0, 0, 64, 64); return new THREE.CanvasTexture(cv); })();
         const agent = new THREE.Sprite(new THREE.SpriteMaterial({ map: dotTex, depthTest: false, transparent: true }));
-        agent.scale.set(9, 9, 1); agent.position.copy(pts[0]); agent.renderOrder = 21; mainGroup.add(agent);
-        const tag = badge('FOX + WREN', '#ffb35c', 150); tag.position.copy(pts[0]).add(V(0, 8, 0)); mainGroup.add(tag); fadeIn([tag]);
-        const halo = new THREE.Mesh(new THREE.RingGeometry(3, 3.6, 40), new THREE.MeshBasicMaterial({ color: BLUE, transparent: true, side: THREE.DoubleSide, depthTest: false }));
-        halo.rotation.x = -Math.PI / 2; halo.position.copy(pts[0]); halo.renderOrder = 20; mainGroup.add(halo);
+        agent.scale.set(9, 9, 1); agent.position.copy(pts[0]); agent.renderOrder = 21; agent.visible = false; mainGroup.add(agent);
+        const tag = badge('FOX + WREN', '#ffb35c', 150); tag.position.copy(pts[0]).add(V(0, 8, 0)); mainGroup.add(tag);
+        const halo = new THREE.Mesh(new THREE.RingGeometry(3, 3.6, 40), new THREE.MeshBasicMaterial({ color: 0x6ec8ff, transparent: true, side: THREE.DoubleSide, depthTest: false }));
+        halo.rotation.x = -Math.PI / 2; halo.position.copy(pts[0]); halo.renderOrder = 20; halo.visible = false; mainGroup.add(halo);
         let pulsing = true; (function pulse(t){ if(!pulsing) return; const k = (t / 1200) % 1; halo.scale.setScalar(1 + k * 2.2); halo.material.opacity = 1 - k; requestAnimationFrame(pulse); })(0);
-        await wait(500);
+        // A planning cursor (no names) traces the route as it draws
+        const cursor = new THREE.Mesh(new THREE.OctahedronGeometry(2.2), new THREE.MeshBasicMaterial({ color: 0xe6d6ff, transparent: true, depthTest: false }));
+        cursor.renderOrder = 22; cursor.position.copy(pts[0]); mainGroup.add(cursor);
+        say('Planning the route…');
         SND("route");
-        await tween(2600, e => {
-          planAt(0.64 + e * 0.16);
+        const shownLeg = new Set();
+        await tween(Math.max(5200, legs.length * 1300), e => {
+          planAt(0.64 + e * 0.32);
           routeGeo.setDrawRange(0, Math.floor(e * dense.length));
           arrows.forEach(a => { if(e >= a.userData.at) a.visible = true; });
+          cursor.position.copy(path.getPointAt(Math.min(1, e))); cursor.rotation.y = e * 12;
+          // the instruction for each leg appears as the route reaches it
+          const leg = Math.min(path.curves.length - 1, lens.findIndex(l => l >= e * total));
+          legs.forEach((L, k) => { if(!shownLeg.has(k) && L.i - 1 <= Math.max(0, leg)){ shownLeg.add(k); dirLine(L.text); } });
         }, p => p);
+        legs.forEach((L, k) => { if(!shownLeg.has(k)){ shownLeg.add(k); dirLine(L.text); } });
         arrows.forEach(a => a.visible = true);
-        await tween(2600, e => { planAt(0.8 + e * 0.2); agent.position.copy(path.getPointAt(Math.min(1, e))); halo.position.copy(agent.position); tag.position.copy(agent.position).add(V(0, 8, 0)); });
+        mainGroup.remove(cursor);
         if(keyRoom){ SND("verified"); ring(yW + 0.3, 0xffe14d); }
+        dirLine(`Then you reach <b>${destName}</b>.` + (hasRecon ? ' <span>But this floor is guarded: we need the best moment to go in.</span>' : ''), 'end');
+        if(window.PNHandler) PNHandler.say(hasRecon ? `That's the route. You'll reach ${destName}, but this floor is guarded. Let's work out the best moment to go in.` : `That's the route to ${destName}.`);
         planAt(1);
-        if(viaRoof && window.PNHandler) PNHandler.say("Change of approach: we're going in over the roof. Nobody watches the roof.");
+        if(viaRoof && window.PNHandler) PNHandler.say("Change of approach: we're going in over the roof. Nobody watches the roof.", { delay: 4200 });
         if(PN) PN.updateAgent({ route: { floor: wName, guards, viaRoof, session: PN.getAgent() && PN.getAgent().sessionId } });
-        await wait(700);
-        agent.position.copy(pts[0]); halo.position.copy(pts[0]); tag.position.copy(pts[0]).add(V(0, 8, 0));
+        await wait(hasRecon ? 4200 : 2400);
+        window.bpDirEl = dirEl;   // the recon takes it away
+        if(!hasRecon){ dirEl.classList.remove('on'); setTimeout(() => dirEl.remove(), 600); }
         // Round 15: the route drawn here becomes the heist path in chapter 5
         heistData = { pts, agent, halo, tag, keyRoom, weak, wallAt, onX, sx, sz, S, yW, perFloor, door: V(wallAt.x, yW, wallAt.z) };
         spinning = true;
@@ -1303,6 +1385,41 @@ function powerUpPrompt(title){
           .then(() => { geo.setDrawRange(0, dense.length); cones.forEach(c => c.visible = true); return line; });
       }
 
+      // The fire door stopwatch: runs from a little before the planned minute M; SPACE (or the button) within ±win goes
+      function stopwatchGo(M, longer){
+        return new Promise(resolve => {
+          const from = Math.max(0, M - longer - 1), rate = Math.max(1.1, (M - from) / 8), win = Math.max(1, rate * 0.9), to = Math.ceil(M + win + 2);
+          const el = document.createElement('div'); el.className = 'bp-sw'; el.setAttribute('role', 'region'); el.setAttribute('aria-label', 'Fire door stopwatch');
+          const X = m => ((m - from) / (to - from) * 100).toFixed(2) + '%';
+          let ticks = ''; for(let m = from; m <= to; m++) ticks += `<i class="t" style="left:${X(m)}">${(m - from) % 2 === 0 || m === M ? `<small>${m}</small>` : ''}</i>`;
+          el.innerHTML = `<div class="hd"><span>FIRE DOOR · STOPWATCH</span><span>THE PLAN: MINUTE ${M}</span></div><div class="clk">MIN ${String(from).padStart(2, '0')}</div>
+            <div class="strip">${ticks}<span class="z" style="left:${X(M - win)};width:calc(${X(M + win)} - ${X(M - win)})"><b>${M}</b></span><span class="ph"></span></div>
+            <div class="ft"><span>Press <b>SPACE</b> when the stopwatch reaches minute <b>${M}</b>.</span><button type="button">GO (SPACE)</button></div><div class="msg" aria-live="polite"></div>`;
+          stageEl.appendChild(el);
+          const clk = el.querySelector('.clk'), ph = el.querySelector('.ph'), msg = el.querySelector('.msg');
+          if(window.PNMode) PNMode.turn(`Press SPACE at minute ${M}`);
+          let minute = from, run = true, over = false, last = performance.now();
+          const finish = () => { over = true; run = false; document.removeEventListener('keydown', key, true); if(window.PNTest) PNTest.skip('', null); if(window.PNMode && PNMode.done) PNMode.done(); el.remove(); SND("lockon"); bpEvent('door-go'); resolve(); };
+          const press = () => {
+            if(over || !run) return;
+            if(Math.abs(minute - M) <= win) return finish();
+            if(minute < M){ SND("wrong"); msg.textContent = `Not yet: it's only minute ${Math.floor(minute)}. Wait for minute ${M}.`; }
+          };
+          const key = e => { if(e.ctrlKey || e.metaKey || e.altKey) return; if(e.code === 'Space' || e.key === ' ' || e.key === 'g' || e.key === 'G' || e.key === 'Enter'){ e.preventDefault(); e.stopPropagation(); press(); } };
+          document.addEventListener('keydown', key, true);
+          el.querySelector('button').addEventListener('click', press);
+          if(window.PNTest) PNTest.skip('Go at the planned minute', () => { minute = M; run = true; press(); });
+          (function frame(now){
+            if(over) return;
+            const dt = Math.min(0.1, (now - last) / 1000); last = now;
+            if(run){ minute += dt * rate * speedUp();
+              if(minute > M + win){ run = false; SND("wrong"); msg.textContent = `Missed it: the guards have moved on. Watch again and press SPACE at minute ${M}.`;
+                setTimeout(() => { if(over) return; minute = from; msg.textContent = ''; run = true; }, 1800 / speedUp()); } }
+            clk.textContent = `MIN ${String(Math.floor(minute)).padStart(2, '0')}`; ph.style.left = X(Math.min(to, minute));
+            requestAnimationFrame(frame);
+          })(last);
+        });
+      }
       const hasTw = p => !!(window.PNTwistSlot && PNTwistSlot.has(p));
       async function heist(){
         const D = heistData; if(!D) return;
@@ -1318,6 +1435,7 @@ function powerUpPrompt(title){
         await tween(reduced() ? 1 : 700, e => { mainGroup.rotation.y = rotationY = r0 * (1 - e); });
         mainGroup.rotation.y = rotationY = 0;
         mainGroup.add(trail); trailN = 0; placeCrew(D.pts[0]);
+        D.agent.visible = true; D.halo.visible = true; fadeIn([D.tag]);   // the crew only appear once the heist starts
         say(`${PN ? PN.mission().target.toUpperCase() : 'TARGET'} // HEIST IN PROGRESS`);
 
         // GO GO GO
@@ -1354,20 +1472,19 @@ function powerUpPrompt(title){
         await move('Moving to the door', 'Moving to the door.', toDoor, !hasTw('entry'));
         here = D.door.clone();
         if(hasTw('entry')){
-          // Round 17: no maths at the door. The recon was in the plan; this is the payoff: the blind spot camera, the
-          // planned minute, and the pupil calls GO GO GO (twist_patrols3d.html?phase=go)
-          const intro = async () => {
-            const w = introWatch('At the fire door', 3);
-            push(0.8);
-            showLabel(sneak ? `FIRE DOOR · THE PLAN: MINUTE ${sneak.m}` : 'FIRE DOOR', 'blue');
-            if(window.PNHandler) PNHandler.say(sneak ? `At the fire door. The plan says minute ${sneak.m}. Watch the blind spot and call it, {codename}.` : 'At the fire door. Watch the blind spot and call it, {codename}.', { who: 'FOX' });
-            await wait(2600);
-            w.end();
-          };
-          // Round 16: FOX and WREN's route in the twist heads for the next stop of this heist (lift: it's on another floor)
-          const next = hasTw('power') ? { next: 'fusebox' } : hasTw('planb') ? { next: 'deposit', lift: 1 }
-            : hasTw('strongroom') ? { next: 'strongroom', lift: D.weak === f2 ? '' : 1 } : { next: 'keyroom' };
-          moveEnd(); await PNTwistSlot.run('entry', { intro, params: { ...next, phase: 'go', a: sneak ? sneak.a : '', b: sneak ? sneak.b : '' } });
+          // Bertie: no switch to the CCTV screen. FOX and WREN wait at the fire door on the blueprint; a stopwatch runs
+          // and the pupil presses SPACE at the planned minute (within about a minute either way)
+          moveEnd();
+          const w = introWatch('At the fire door', 3);
+          push(0.8);
+          showLabel(sneak ? `FIRE DOOR · THE PLAN: MINUTE ${sneak.m}` : 'FIRE DOOR', 'blue');
+          if(window.PNHandler) PNHandler.say(sneak ? `At the fire door. Go at minute ${sneak.m}, when both guards are at the blind spot. Press SPACE when the stopwatch reaches ${sneak.m}, {codename}.` : 'At the fire door. Waiting for your call, {codename}.', { who: 'FOX' });
+          await wait(2600);
+          w.end();
+          if(sneak) await stopwatchGo(sneak.m, Math.max(sneak.a, sneak.b));
+          const goEl = document.createElement('div'); goEl.className = 'bp-go'; goEl.textContent = 'GO GO GO'; stageEl.appendChild(goEl);
+          SND("powerup"); if(window.PNHandler) PNHandler.say("They're both at the blind spot. Go, go, go!");
+          await wait(1800); goEl.remove();
           bpEvent('twist:entry');
           hideLabel(); push(1);
           tickAt(D.door, 'entry');
@@ -1571,15 +1688,16 @@ function powerUpPrompt(title){
           let glow = true;
           const lineM = sMesh.children.find(c => c.isLineSegments)?.material;
           const intro = async () => {
-            const w = introWatch('Strongroom ahead', 4);
+            const w = introWatch('Strongroom ahead', dark ? 11 : 7.6);
             sMesh.material.color.set(0xff4f6d); sMesh.material.emissive.set(0xff4f6d); sMesh.material.opacity = 0.5; sMesh.material.needsUpdate = true;
             if(lineM){ lineM.color.set(0xff4f6d); lineM.transparent = true; lineM.opacity = 1; }
             (function pulse(t){ if(!glow) return; sMesh.material.emissiveIntensity = reduced() ? 0.6 : 0.35 + 0.45 * (0.5 + 0.5 * Math.sin(t / 380)); requestAnimationFrame(pulse); })(0);
             ring(y2 + 0.3, 0xff4f6d); SND("ping"); push(0.8);
             showLabel('PRESSURE PLATES', 'red');
-            if(window.PNHandler){ PNHandler.radio("strongroom"); if(dark) PNHandler.radio("strongroomDark", { delay: 3400 }); }
+            // Bertie: the agents call it in first, then ORACLE asks for a moment, then the twist
+            if(window.PNHandler){ PNHandler.radio("strongroom"); if(dark) PNHandler.radio("strongroomDark", { delay: 4200 }); PNHandler.say("Hold position. Give me a moment: I'm getting into their floor system.", { delay: dark ? 8000 : 4600 }); }
             bpEvent('strong-glow');
-            await wait(dark ? 5600 : 3200);
+            await wait(dark ? 11000 : 7600);
             w.end();
           };
           moveEnd(); await PNTwistSlot.run('strongroom', { intro });
@@ -1806,51 +1924,6 @@ function powerUpPrompt(title){
       });
     }
 
-    // ---------- Arm the protocol ----------
-    // Type anything: each key uploads a chunk of the breach kit. When the bar is full, ENTER starts the hack.
-    function armProtocol(floors, onDone){
-      const target = PN ? PN.mission().target : 'TARGET', slug = target.toLowerCase().replace(/[^a-z]+/g, '_');
-      const a = PN && PN.getAgent(), weakF = (a && a.weakFloor) || 'FLOOR 3';
-      const hex = () => Math.floor(Math.random() * 0xffffff).toString(16).padStart(6, '0');
-      const primes = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37];
-      const LINES = [
-        () => `ssh oracle@10.${Math.floor(Math.random() * 250)}.4.${Math.floor(Math.random() * 250)} -p 443`,
-        () => `mount /vault/${slug}/floor_${1 + Math.floor(Math.random() * 3)} --key 0x${hex()}`,
-        () => `route.plan(entry="fire_stairs", target="${weakF.toLowerCase()}")`,
-        () => `breach_kit.load(primes=[${primes.slice(0, 4 + Math.floor(Math.random() * 6)).join(', ')}])`,
-        () => floors.map(f => `floor N=${f.n}: ${getFactorPairs(f.n).length} pairs OK`).join('  '),
-        () => `cams.loop(feed=${Math.floor(Math.random() * 9)}, frames=0x${hex()})`,
-        () => `lift.hold(level=0) // stay off the lift`,
-        () => `upload chunk ${hex()}${hex()} ........ ok`,
-      ];
-      const ov = document.createElement('div'); ov.className = 'arm';
-      ov.innerHTML = `<h2>SEND THE ACCESS KIT TO FOX AND WREN</h2><div class="scr" aria-hidden="true"></div><div class="bar"><b></b></div>
-        <div class="st"><span class="msg">Type anything to send the access kit.</span><span class="pct">0%</span></div>`;
-      document.body.appendChild(ov);
-      SND("comms");
-      if(window.PNMode) PNMode.turn('Type to send the access kit');
-      const scr = ov.querySelector('.scr'), bar = ov.querySelector('.bar b'), msg = ov.querySelector('.msg'), pct = ov.querySelector('.pct'), st = ov.querySelector('.st');
-      const lines = [''], NEED = 60; let n = 0, cur = LINES[0](), cls = 'c1', pos = 0, done = false;
-      function show(){ scr.innerHTML = lines.slice(-8).map((l, i, arr) => i === arr.length - 1 ? `<span class="${cls}">${l}</span>▌` : l).join('\n'); }
-      function key(e){
-        if(e.key === 'Enter' && done){ e.preventDefault(); finish(); return; }
-        if(e.key.length !== 1 && e.key !== 'Backspace') return;
-        e.preventDefault();
-        if(done){ st.classList.remove('ready'); void st.offsetWidth; st.classList.add('ready'); return; }   // full: no more typing
-        n++; SND("key");
-        const step = 3 + Math.floor(Math.random() * 5);
-        lines[lines.length - 1] += cur.slice(pos, pos + step); pos += step;
-        if(pos >= cur.length){ lines.push(''); cur = LINES[Math.floor(Math.random() * LINES.length)](); pos = 0; cls = ['c1', 'c2', 'c3', 'c4'][Math.floor(Math.random() * 4)]; }
-        const k = Math.min(1, n / NEED); bar.style.width = (k * 100) + '%'; pct.textContent = Math.round(k * 100) + '%';
-        if(k >= 1){ done = true; msg.textContent = 'Access kit sent. Press ENTER to go in.'; st.classList.add('ready'); SND("verified"); }
-        show();
-      }
-      function finish(){ document.removeEventListener('keydown', key); ov.remove(); document.querySelectorAll('.quiz').forEach(q => q.remove()); onDone(); }
-      document.addEventListener('keydown', key);
-      ov.addEventListener('click', () => { if(done) finish(); });
-      if(window.PNTest) PNTest.add("Arm the protocol", () => { n = NEED - 1; key({ key: 'x', preventDefault(){} }); });
-      show();
-    }
 
     // ---------- Floor quiz ----------
     // One question about the building. A right answer earns a 10% intel bonus on the heist.

@@ -164,7 +164,7 @@
   }
   .sw{ display:inline-block; width:10px;height:10px; margin-right:8px; border:0.5px solid rgba(255,255,255,.25); transform:translateY(1px); }
   .hint{ margin-top:6px; font-size:11px; opacity:.65; letter-spacing:.05em; color: var(--text-muted);}
-  .btnRow{ margin-top:10px; display:flex; gap:10px; align-items:center; }
+  .btnRow{ margin-top:10px; display:flex; gap:10px; align-items:center; } .btnRow[hidden]{ display:none; }
   button{
     font:inherit;
     color: var(--text);
@@ -453,10 +453,9 @@ const initBtn = document.getElementById("initBtn");
 const rerunBtn = document.getElementById("rerunBtn");
 const view3dBtn = document.getElementById("view3dBtn");
 
-if(!TEACHER){
-  document.querySelector(".hint").hidden = true;
-  [nSelect.closest("label"), initBtn, rerunBtn, view3dBtn, seedInfo].forEach(el => { if(el) el.style.display = "none"; });
-}
+// Bertie: the old build controls (N, rerun, 3D view, extrusion and tilt) are gone for everyone
+document.querySelector(".hint").hidden = true;
+document.querySelector(".btnRow").hidden = true;
 
 let cells=[];
 
@@ -1099,8 +1098,6 @@ async function triggerIsometricMorph(placements){
   }
   
   // Show exit button and mode panel
-  if(TEACHER && exitBtn) exitBtn.style.display = "inline-block";
-  if(TEACHER && modePanel) modePanel.style.display = "block";
   
   // Keep 3D view active until user clicks exit
 }

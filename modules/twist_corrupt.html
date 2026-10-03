@@ -187,6 +187,50 @@
   const occAt = (x, y, skip) => blocked[y][x] || pieces.some(p => p !== skip && p.onBoard && p.cells.some(([i, j]) => p.x + i === x && p.y + j === y));
   const valid = (p, x, y) => p.cells.every(([i, j]) => x + i >= 0 && y + j >= 0 && x + i < W && y + j < H && !occAt(x + i, y + j, p));
 
+  // Bertie: the puzzle must never become impossible. Before a room is put down (or turned in place), check the rooms
+  // still in the tray can fill every free square that would be left. A search fills the first empty square each time;
+  // if it runs too long it gives the pupil the benefit of the doubt.
+  const orients = s => { const out = [], seen = new Set(); let t = { bw: s.bw, bh: s.bh, parts: s.parts };
+    for(let f = 0; f < 2; f++){ for(let r = 0; r < 4; r++){ const cs = cellsOf(t).sort((a, b) => a[1] - b[1] || a[0] - b[0]), k = cs.map(c => c.join(",")).join(";");
+        if(!seen.has(k)){ seen.add(k); out.push(cs.map(([i, j]) => [i - cs[0][0], j - cs[0][1]])); } t = rot(t); } t = flip(t); }
+    return out; };
+  function solvable(moving, mx, my, mshape){
+    const N = W * H, free = new Uint8Array(N);
+    for(let y = 0; y < H; y++) for(let x = 0; x < W; x++) free[y * W + x] = blocked[y][x] ? 0 : 1;
+    const mark = (cs, x, y) => cs.forEach(([i, j]) => { free[(y + j) * W + x + i] = 0; });
+    pieces.forEach(q => { if(q !== moving && q.onBoard) mark(q.cells, q.x, q.y); });
+    if(moving) mark(cellsOf(mshape || shapeOf(moving)), mx, my);
+    // The rooms still to place, grouped by shape (identical rooms are interchangeable)
+    const types = new Map();
+    pieces.filter(q => q !== moving && !q.onBoard).forEach(q => { const os = q.or || (q.or = orients(q.sol)), sig = os.map(o => o.join("|")).sort()[0];
+      if(types.has(sig)) types.get(sig).left++; else types.set(sig, { os, left: 1, area: os[0].length }); });
+    const T = [...types.values()];
+    // Every way to put each shape down on the free squares, and for each square the placements that cover it
+    const place = [], byCell = Array.from({ length: N }, () => []);
+    T.forEach((t, ti) => t.os.forEach(o => { for(let y = 0; y < H; y++) for(let x = 0; x < W; x++){
+      const cs = []; let ok = true;
+      for(const [i, j] of o){ const X = x + i, Y = y + j; if(X < 0 || Y < 0 || X >= W || Y >= H || !free[Y * W + X]){ ok = false; break; } cs.push(Y * W + X); }
+      if(ok){ const k = place.length; place.push({ ti, cs }); cs.forEach(c => byCell[c].push(k)); } } }));
+    const fits = k => { const pl = place[k]; return T[pl.ti].left > 0 && pl.cs.every(c => free[c]); };
+    let nodes = 0; const t0 = performance.now();
+    const go = () => {
+      if(++nodes > 40000 || performance.now() - t0 > 600){ solvable.capped = (solvable.capped || 0) + 1; return true; }
+      // The free square with the fewest ways to cover it; none free means it's solved
+      let best = -1, bestN = 1e9;
+      for(let c = 0; c < N; c++){ if(!free[c]) continue; let n = 0; for(const k of byCell[c]) if(fits(k) && ++n >= bestN) break; if(n < bestN){ bestN = n; best = c; if(n === 0) return false; } }
+      if(best < 0) return true;
+      for(const k of byCell[best]){
+        if(!fits(k)) continue; const pl = place[k];
+        pl.cs.forEach(c => { free[c] = 0; }); T[pl.ti].left--;
+        if(go()) return true;
+        pl.cs.forEach(c => { free[c] = 1; }); T[pl.ti].left++;
+      }
+      return false;
+    };
+    return go();
+  }
+  const STUCK = "If that room goes there, the space left can't be filled by the rooms you have. Try another spot or turn it.";
+
   // Tray: the rooms, scrambled and turned round (L-shaped rooms flipped over too at L3)
   T.shuffle(P.rooms).forEach((r, idx) => {
     let s = turnN({ bw: r.bw, bh: r.bh, parts: r.parts }, Math.floor(Math.random() * 4));
@@ -251,6 +295,7 @@
     if(over) return;
     const old = shapeOf(p); setShape(p, s); turns++;
     if(p.onBoard && !valid(p, p.x, p.y)){ setShape(p, old); say(`No room to ${what} it there. Move it first.`, "warn"); T.SND("untag"); return; }
+    if(p.onBoard && !solvable(p, p.x, p.y, s)){ setShape(p, old); say(STUCK, "warn"); T.SND("untag"); return; }
     T.SND("tag"); if(p.onBoard) paint(p, C); else layoutTray();
   }
   const turn = p => reshape(p, rot(shapeOf(p)), "turn");
@@ -282,7 +327,8 @@
       if(!s.moved){ turn(p); return; }
       p.el.classList.remove("drag", "bad");
       const [gx, gy] = gridPos(e, s);
-      if(inside(e) && valid(p, gx, gy)){ toBoard(p, gx, gy); T.SND("clamp"); say(`${label(p, 99)} room placed.`, "ok"); }
+      if(inside(e) && valid(p, gx, gy) && !solvable(p, gx, gy)){ p.onBoard = false; misfits++; T.SND("untag"); say(STUCK, "warn"); }
+      else if(inside(e) && valid(p, gx, gy)){ toBoard(p, gx, gy); T.SND("clamp"); say(`${label(p, 99)} room placed.`, "ok"); }
       else if(inside(e)){ p.onBoard = false; misfits++; T.SND("untag"); say("That's over a corridor, a blacked-out square, the lift, the stairs or another room. Try another spot, or turn it.", "warn"); fg.classList.remove("glitch"); void fg.offsetWidth; fg.classList.add("glitch"); }
       else { p.onBoard = false; }
       layoutTray(); update();
@@ -317,7 +363,7 @@
   let rz = 0; window.addEventListener("resize", () => { cancelAnimationFrame(rz); rz = requestAnimationFrame(() => { if(!over) fit(); }); });
   // Quiet: goes to HINTS (?), which only opens when the pupil asks
   T.step(`Drag all <b>${pieces.length} rooms</b> onto the floor. <b>Tap</b> a room to turn it round. <b>⇋</b> flips an L-shaped room over.`, { quiet: true, name: "Rebuild the floor" });
-  window.PNCorrupt = { P, pieces, W, H, cellsOf };   // read-only, for automated checks
+  window.PNCorrupt = { P, pieces, W, H, cellsOf, solvable };   // read-only, for automated checks
   if(window.PNTest) PNTest.skip("Fit every room", () => {
     pieces.forEach(p => { p.onBoard = false; }); pieces.forEach(p => { const s = p.sol; setShape(p, { bw: s.bw, bh: s.bh, parts: s.parts }); toBoard(p, s.x, s.y); });   // every room to its place in the known solution
     layoutTray(); update();

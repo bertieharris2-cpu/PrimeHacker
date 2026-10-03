@@ -112,7 +112,6 @@
     building: "Every floor, decrypted. Now FOX and WREN can see the whole building before they go in.",
     corrupt: "Part of the file arrived damaged. Rebuild it so FOX and WREN aren't planning around a hole.",
     plan: "Mark the route for FOX and WREN. Every weak point you find is one they don't have to guess at.",
-    sendKit: "Send the access kit to the agents.",
   };
 
   // FOX and WREN over the radio. One line is picked at random from a bank, so runs feel different.
@@ -127,7 +126,7 @@
     strongroomDark: [["WREN","Lights are out, but the plates work by weight. They'll still feel us."]],
     keyCopied:   [["WREN","Key copied. Putting it back exactly where it was."], ["FOX","Nobody will know it moved."]],
     sneakOut:    [["FOX","We're out. Back to base."], ["WREN","Not a single camera saw us. Your turn now, {codename}."]],
-    strongroom:  [["WREN","Pressure plates. Only the square ones are safe, I think."], ["FOX","Think isn't enough. Check."]],
+    strongroom:  [["FOX","We're at the strongroom. The floor's pressure plated: one wrong step and the whole building wakes up. What do we do, {codename}?"], ["WREN","Strongroom floor's rigged with pressure plates. We're not moving until you say so, {codename}."]],
     keyroom:     [["FOX","The key room door. It wants the primes behind each number."]],
     keyGot:      [["WREN","Got the security key. Heading for the vault."]],
     vault:       [["WREN","Four locks. Give me the primes, I'll turn the keys."]],
