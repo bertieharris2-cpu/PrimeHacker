@@ -358,6 +358,25 @@
   .fg svg.route circle{ fill:#fff6d0; }
   .fg .c.hitp{ animation:hitp .6s ease-out 1; } @keyframes hitp{ 30%{ background:#ff4f6d; box-shadow:0 0 14px #ff4f6d; } }
   .cipher{ z-index:9300; } .term.story > .hd{ display:none; }
+
+  /* Round 23g: the stepper sits to the right of n, in its own colour, so it isn't read as part of the sum */
+  .rx-n{ gap:14px; } .rx-step{ display:inline-flex; flex-direction:column; gap:3px; }
+  .rx-step .rx-b{ width:44px; height:24px; font:700 15px var(--font-ui); color:#d8c9ff; background:transparent; border:2px solid #b69cff; border-radius:6px; }
+  .rx-step .rx-b:hover, .rx-step .rx-b:focus-visible{ background:#b69cff; color:#1a1030; outline:none; }
+  .rx-n small{ color:#b69cff; }
+  .rx-tab i.glow{ color:#8ff5c9; box-shadow:inset 0 -3px 0 #8ff5c9; } .rx-tab i.cur.glow{ color:#10222a; }
+  .rx-nudge{ font:500 16px var(--font-ui); color:#a9c3c9; } .rx-nudge b{ color:#8ff5c9; }
+  .rx-ban{ font:600 18px/1.4 var(--font-ui); color:#f2fbfd; background:rgba(182,156,255,.14); border-left:4px solid #b69cff; padding:10px 14px; }
+  .rx-ban b{ color:#ffd76a; } .rx-ban.done{ background:rgba(143,245,201,.14); border-left-color:#8ff5c9; }
+
+  .cipher.dec .cmain{ grid-template-columns:minmax(0,1fr) 470px; grid-template-rows:auto minmax(0,1fr); }
+  .cipher.dec .hist{ grid-column:1; grid-row:1 / span 2; } .cipher.dec .cside{ grid-column:2; grid-row:1; } .cipher.dec .cpic{ display:flex; grid-column:2; grid-row:2; min-height:0; border-left:1px solid rgba(143,234,255,.2); padding-left:14px; }
+  .cipher.dec .rx-tab, .cipher.dec .rx-eq{ display:none; } .cipher.dec .rx-grid .rr{ font-size:26px; } .cipher.dec .rx-ban{ font-size:15px; padding:6px 10px; }
+  .hterm .hist .req{ color:#10222a; background:#ffd76a; font-weight:600; padding:2px 8px; display:inline-block; margin:4px 0; }
+  .hterm .prompt .req{ font:600 19px "IBM Plex Mono", monospace; color:#ffd76a; }
+  .hterm .prompt .cd{ flex:1; min-width:90px; height:8px; border:1px solid rgba(255,215,106,.5); } .hterm .prompt .cd i{ display:block; height:100%; width:100%; background:#ffd76a; }
+  .cap .k1{ color:#7fd4ff; }
+  .cipher.dec .rx-grid .rr{ font-size:24px; } .cipher.dec .rx{ gap:6px; } .cipher.dec .cpic .picw{ min-height:200px; } .cipher.dec .cap{ font-size:14px; }
 </style>
 </head>
 <body>
@@ -1033,11 +1052,12 @@
   // ===== The rule explorer (Bertie: a learning tool). The term equation on top, n in a box you change with + and −,
   // the working with n put in underneath, and a little table of what the rule makes. =====
   let rxKey = null;
-  function explorer(host, rule, { n = 1, onN = null, max = 12 } = {}){
-    host.innerHTML = `<div class="rx">
+  // banner: a guidance line on top; match: values to mark in the table (the glowing readings), with a nudge line
+  function explorer(host, rule, { n = 1, onN = null, max = 12, banner = "", match = null } = {}){
+    host.innerHTML = `<div class="rx">${banner ? `<div class="rx-ban">${banner}</div>` : ""}
       <div class="rx-eq"><small>RULE</small><span>${rule.words} · ${rule.dbl ? "n = the position" : P.nIs}</span></div>
-      <div class="rx-n"><button type="button" class="rx-b" data-d="-1" aria-label="n take away 1">−</button><span>n =</span><span class="nb big"></span><button type="button" class="rx-b" data-d="1" aria-label="n add 1">+</button><small>press + to change n</small></div>
-      <div class="rx-grid"></div><div class="rx-tab"></div></div>`;
+      <div class="rx-n"><span>n =</span><span class="nb big"></span><span class="rx-step"><button type="button" class="rx-b" data-d="1" aria-label="n up 1">▲</button><button type="button" class="rx-b" data-d="-1" aria-label="n down 1">▼</button></span><small>▲ ▼ change n</small></div>
+      <div class="rx-grid"></div><div class="rx-tab"></div>${match ? `<div class="rx-nudge">Do these numbers match the <b>glowing readings</b>?</div>` : ""}</div>`;
     let cur = n;
     const set = v => {
       cur = Math.max(1, Math.min(max, v));
@@ -1045,7 +1065,7 @@
       // Bertie: every line the same size, n's box over the number that replaces it
       host.querySelector(".rx-grid").innerHTML = rule.rows(cur).map((row, ri) => `<div class="rr${ri === 0 ? " r0" : ""}">${row.map(c => typeof c === "object" && c !== null ? `<span style="grid-column:span ${c.span}">${c.t}</span>` : `<span>${c}</span>`).join("")}</div>`).join("");
       const from = Math.max(1, Math.min(cur - 3, max - 6)), ks = T.range(from, Math.min(max, from + 6));
-      host.querySelector(".rx-tab").innerHTML = `<div><span>n</span>${ks.map(k => `<i class="${k === cur ? "cur" : ""}">${k}</i>`).join("")}</div><div><span>makes</span>${ks.map(k => `<i class="${k === cur ? "cur" : ""}">${rule.gen(k)}</i>`).join("")}</div>`;
+      host.querySelector(".rx-tab").innerHTML = `<div><span>n</span>${ks.map(k => `<i class="${k === cur ? "cur" : ""}">${k}</i>`).join("")}</div><div><span>makes</span>${ks.map(k => `<i class="${k === cur ? "cur" : ""}${match && match.includes(rule.gen(k)) ? " glow" : ""}">${rule.gen(k)}</i>`).join("")}</div>`;
       if(onN) onN(cur);
     };
     host.querySelectorAll(".rx-b").forEach(b => b.addEventListener("click", () => { set(cur + +b.dataset.d); T.SND("tick"); }));
@@ -1054,7 +1074,7 @@
       const d = ["ArrowRight", "ArrowUp", "+", "="].includes(e.key) ? 1 : ["ArrowLeft", "ArrowDown", "-"].includes(e.key) ? -1 : 0; if(d){ e.preventDefault(); set(cur + d); T.SND("tick"); } };
     document.addEventListener("keydown", rxKey);
     set(cur);
-    return { set, get n(){ return cur; } };
+    return { set, get n(){ return cur; }, banner: html => { const b = host.querySelector(".rx-ban"); if(b) b.innerHTML = html; return b; } };
   }
   // The right picture for n (after the crack): n gates with the + 1 stick and each gate's 3 coloured; an n × n array
   const picN = n => PID === "matchsticks" ? showGates(n, { groups: true }) : showPts(rectPts(n, n), { lock: true, instant: true, frame: { x: 0, y: 0, w: n, h: n } });
@@ -1098,7 +1118,7 @@
     let sel = -1, running = false;
     const load = k => { if(running || over) return; const b = prompt.querySelector(`[data-k="${k}"]`); if(!b || b.classList.contains("no")) return;
       sel = k; prompt.querySelectorAll(".rule").forEach(x => x.classList.toggle("on", x === b)); run.disabled = false; status(`LOADED: ${R[k].code}`); T.SND("tag");
-      explorer($("rxh"), R[k]); };
+      explorer($("rxh"), R[k], { match: READ.filter(o => o.g).map(o => o.v) }); };
     await new Promise(res => {
       const go = async () => {
         if(running || over || sel < 0) return;
@@ -1166,10 +1186,18 @@
     showPic();
     tl(`$ cipher.explain --rule "${rule.eq}"`, "me"); tl(`  ${rule.words}: ${P.nIs}`, "sys");
     status("THE RULE");
-    explorer($("rxh"), rule, { n: 1, onN: n => { picN(n); cap(`n = ${n}: <span class="gold">${rule.gen(n)}</span>`); } });
-    prompt.innerHTML = `<span class="tip2">This is the rule. Press <b>+</b> to change <span class="nb">n</span> and watch the ${PID === "matchsticks" ? "sticks" : "dots"} and the sum.</span><button type="button" class="run" id="dgo">CONTINUE ▸</button>`;
-    T.step(`This is the rule. Press <b>+</b> to change n and watch the picture and the sum change. Then <b>CONTINUE</b>.`, { name: "The rule" });
-    say("Press + to change n. Then CONTINUE.");
+    // Bertie: make it clear what to do. A short task with a finish: press ▲ until n = 4, then CONTINUE appears
+    const ms = PID === "matchsticks", goal = 4;
+    const key = ms ? "<span class=\"k1\">blue</span> = the + 1 stick · each colour = one gate's 3 sticks" : "n rows of n dots";
+    let reached = false, ex;
+    ex = explorer($("rxh"), rule, { n: 1, banner: `TRY IT · Press <b>▲</b> until n = ${goal}. ${ms ? "Watch what each new gate adds." : "Watch the square grow."}`,
+      onN: n => { picN(n); cap(`n = ${n}: <span class="gold">${rule.gen(n)}</span><br><span class="sys">${key}</span>`);
+        if(n === goal && !reached){ reached = true; T.SND("lockon");
+          const b = ex && ex.banner(ms ? `✓ 3 × 4 + 1 = <b>13</b>. Every gate adds 3 sticks, plus the 1 at the start.` : `✓ 4 × 4 = <b>16</b>. n rows of n.`); if(b) b.classList.add("done");
+          $("dgo").hidden = false; $("dgo").focus({ preventScroll: true }); say("That's the rule working. CONTINUE when you're ready.", "ok"); } } });
+    prompt.innerHTML = `<span class="tip2">Press <b>▲</b> to make <span class="nb">n</span> bigger. Watch the picture and the sum.</span><button type="button" class="run" id="dgo" hidden>CONTINUE ▸</button>`;
+    T.step(`Press <b>▲</b> until n = ${goal}, and watch the picture and the sum change. Then <b>CONTINUE</b>.`, { name: "The rule" });
+    say(`Press ▲ until n = ${goal}.`);
     await new Promise(res => { $("dgo").addEventListener("click", res); if(window.PNTest) PNTest.skip("Continue", res); });
     prompt.innerHTML = "";
   }
@@ -1226,54 +1254,63 @@
       ${P_.map(([x, y], i) => i + 1 === mark ? `<text x="${x + .5}" y="${y + .62}">${mark}</text>` : "").join("")}</svg>`;
   }
   async function prove(){
+    // Bertie: "more like a code flood, and then you have to respond". The stream runs; three requests cut into it.
     setStage("prove");
     $("stageLab").textContent = "Step 3 of 4 · decrypt the floor code";
     if(!prompt) terminal();
-    const rule = P.rules.find(r => r.ok);
-    showPic();
-    explorer($("rxh"), rule, { n: 1, max: PID === "matchsticks" ? F.path.length : 12 });
-    let rounds;
-    if(PID === "matchsticks") rounds = F.cps.map((g, i) => ({ ask: `$ lasers.gate ${g} --bars`, q: `Gate ${g}: how many laser bars from the door to here?`, want: F.need[i], n: g,
-      show: done => { miniCorridor(done ? g : (i ? F.cps[i - 1] : 0), g); cap(done ? `gate ${g}: <span class="gold">${F.need[i]}</span> bars` : `gate ${g}: ? bars`); },
-      hint: t => t < 2 ? `Use the calculator: press + until n = ${g}.` : `3 × ${g} + 1.` }));
-    else {
-      const k0 = T.pick(LV.from), shown = T.range(k0, k0 + 3).map(P.term);
-      rounds = T.range(k0 + 4, k0 + 6).map((k, i) => ({ ask: `$ cipher.next`, log: [...shown, ...T.range(k0 + 4, k - 1).map(P.term)], want: P.term(k), n: k,
-        q: "What's the next reading?", show: done => { P.show(done ? P.term(k) : P.term(k - 1), { lock: done }); cap(done ? `${P.okCap(P.term(k))} <span class="gold">✓</span>` : `${P.term(k - 1)} <span class="sys">· the last one</span>`); },
-        hint: t => P.hint(k, t) }));
-    }
-    T.step(PID === "matchsticks" ? "Decrypt the laser gates: the terminal asks for the bars at each checkpoint. Use the calculator on the right (press + to set n to the gate), type the answer and press Enter." : "Decrypt the next readings: the terminal asks for each one in turn. Use the calculator on the right if you need it, type the answer and press Enter.", { name: "Decrypt" });
+    const ov = $("cipher"), ms = PID === "matchsticks", rule = P.rules.find(r => r.ok);
+    ov.classList.remove("withpic"); ov.classList.add("dec");
+    $("picw").hidden = !ms; cap(ms ? `<span class="sys">the corridor: gates light as you decrypt them</span>` : ""); if(ms) miniCorridor(0, F.cps[0]);
+    hist.innerHTML = "";
+    explorer($("rxh"), rule, { n: 1, max: ms ? F.path.length : 12, banner: "CALCULATOR · ▲ ▼ to set n" });
+    T.step(ms ? "The floor code is streaming in. When a request cuts in, work out the laser bars for that gate (the calculator on the right helps), type it and press Enter." : "The floor code is streaming in. When a request cuts in, work out the value for that n (the calculator on the right helps), type it and press Enter.", { name: "Decrypt" });
+    // the stream
+    let rate = 110, stopped = false;
+    const verbs = ["shift(n)", "xor.block()", "unmask()", "sync()", "rotate(3)", "checksum_ok()", "seed.read()", "plate.map()"];
+    (async () => { let i = 0; while(!stopped && !over){ tl(`${ms ? "lasers" : "floor"}.block[${i++}] ${hex(8)} ${hex(4)} ${hex(4)} :: ${T.pick(verbs)}`, "gob"); if(i % 4 === 0) T.SND("data"); await wait(rate); } })();
     tl(`$ cipher.decrypt --floor STRONGROOM --rule "${rule.eq}"`, "me");
-    for(let i = 0; i < rounds.length && !over; i++){
-      const r = rounds[i];
-      status(`DECRYPTING · ${i}/${rounds.length}`);
-      prompt.innerHTML = `<span class="sys">decrypting block ${i + 1} of ${rounds.length}…</span><span class="pins" id="pins">${rounds.map((_, j) => `<span class="pin${j < i ? " drop" : ""}"></span>`).join("")}</span>`;
-      r.show(false);
-      await burst(i ? 1300 : 1700, PID === "matchsticks" ? "lasers" : "decrypt"); if(over) return;
-      tl(`  ${r.q}`, "sys");
-      prompt.innerHTML = `<span class="ps">${r.ask}</span>${r.log ? `<span class="seq">${r.log.map(v => `<b>${v}</b>`).join('<span class="sep">·</span>')}<span class="sep">·</span></span>` : ""}<input id="dv" inputmode="numeric" maxlength="4" aria-label="${r.q}"><span class="sys">Enter</span><span class="pins" id="pins">${rounds.map((_, j) => `<span class="pin${j < i ? " drop" : ""}"></span>`).join("")}</span>`;
-      say(r.q);
+    const ns = T.shuffle(T.range(5, 9)).slice(0, 3);
+    const reqs = ms ? F.cps.map((g, i) => ({ n: g, want: F.need[i], ask: `⚠ GATE ${g} · laser bars?`, hint: `Use the calculator: set n to ${g}.`, done: () => miniCorridor(g, F.cps[i + 1] || 0) }))
+      : ns.map(n => ({ n, want: n * n, ask: `⚠ CHECKSUM REQUEST · n = ${n} · value?`, hint: `Use the calculator: set n to ${n}.`, done: () => {} }));
+    const pins = i => `<span class="pins" id="pins">${reqs.map((_, j) => `<span class="pin${j < i ? " drop" : ""}"></span>`).join("")}</span>`;
+    for(let i = 0; i < reqs.length && !over; i++){
+      const r = reqs[i];
+      status(`DECRYPTING · ${i}/${reqs.length}`);
+      prompt.innerHTML = `<span class="sys">streaming…</span>${pins(i)}`;
+      await wait(i ? 2200 : 2800); if(over) return;
+      rate = 420; T.SND("alarm");
+      tl(r.ask, "req");
+      prompt.innerHTML = `<span class="req">${r.ask}</span><input id="dv" inputmode="numeric" maxlength="4" aria-label="${r.ask}"><span class="sys">Enter</span><span class="cd"><i id="cdi"></i></span>${pins(i)}`;
+      say(r.ask.replace("⚠ ", ""));
       const inp = $("dv"); inp.focus({ preventScroll: true });
       await new Promise(res => {
-        let tries = 0;
+        // a countdown for pressure; at L1 running out only flashes a hint and starts again
+        const T0 = 20000; let left = T0, last = performance.now(), live = true;
+        const tick = now => { if(!live || over) return; left -= (now - last) * sp(); last = now; const b = $("cdi"); if(b) b.style.width = Math.max(0, left / T0 * 100) + "%";
+          if(left <= 0){ left = T0; tl("  trace rising… request repeated", "bad"); say(r.hint, "warn"); T.SND("denied"); }
+          requestAnimationFrame(tick); };
+        requestAnimationFrame(tick);
         const check = () => {
           if(over || !inp.value.trim()) return;
-          if(+inp.value.trim() === r.want){ res(); return; }
-          tries++; alarm.hit(); inp.classList.remove("glitch"); void inp.offsetWidth; inp.classList.add("glitch"); inp.select();
-          tl(`  ${inp.value} ✗ rejected`, "bad"); say(r.hint(tries), "bad");
+          if(+inp.value.trim() === r.want){ live = false; res(); return; }
+          alarm.hit(); inp.classList.remove("glitch"); void inp.offsetWidth; inp.classList.add("glitch"); inp.select();
+          tl(`  ${inp.value} ✗ REJECTED`, "bad"); say(r.hint, "bad");
         };
         inp.addEventListener("keydown", e => { if(e.key === "Enter"){ e.preventDefault(); check(); } });
-        if(window.PNTest) PNTest.skip("Decrypt the next block", () => { inp.value = r.want; check(); });
+        if(window.PNTest) PNTest.skip("Answer the request", () => { inp.value = r.want; check(); });
       });
       if(over) return;
-      prompt.innerHTML = `<span class="sys">decrypting…</span>`;
-      await settle(r.want, PID === "matchsticks" ? `gate ${r.n} bars:` : `block ${i + 1}:`);
-      r.show(true); $("pins") && $("pins").children[i] && $("pins").children[i].classList.add("drop");
-      await wait(500);
+      prompt.innerHTML = `<span class="sys">accepted…</span>${pins(i)}`;
+      tl(`  ${r.want} ✓ ACCEPTED`, "ok");
+      await settle(r.want, ms ? `gate ${r.n} bars:` : `block ${i + 1}:`);
+      r.done(); $("pins") && $("pins").children[i] && $("pins").children[i].classList.add("drop");
+      rate = 70;
     }
     if(over) return;
-    status("LOCK OPEN"); tl(`  LOCK OPEN`, "gold"); T.SND("lock");
-    await inject(); if(over) return;
+    // the rush, then the lock opens
+    prompt.innerHTML = `<span class="sys">injecting…</span>${pins(reqs.length)}`; rate = 30; await wait(1100);
+    stopped = true; status("LOCK OPEN"); tl("FLOOR CODE INJECTED ✓", "gold"); T.SND("lock");
+    await wait(500);
     await granted();
   }
   // Bertie: once the code's in, the TYPE terminal (like the Prime Hack's): any key types gobbledegook until it's in
