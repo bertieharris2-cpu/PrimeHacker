@@ -380,6 +380,12 @@
   .fg .arr s.kept{ position:absolute; left:0; top:0; bottom:0; text-decoration:none; background:rgba(255,215,106,.35); border-right:2px solid #ffd76a; transition:width .45s ease; pointer-events:none; }
   .fg .arr s.kept.one{ background:rgba(255,215,106,.6); } .fg .arr s.kept.odd{ background:rgba(255,79,109,.5); border-right-color:#ff4f6d; }
   .fg.pad .arr b{ white-space:nowrap; } .rx-grid small.dn{ font:500 15px var(--font-ui); color:#a9c3c9; }
+  .fg .arr.ls{ background:none !important; border-color:transparent !important; box-shadow:none !important; }
+  .fg .arr.ls .lcol, .fg .arr.ls .lrow{ position:absolute; background:rgba(110,200,255,.35); border:2px solid #6ec8ff; box-sizing:border-box; }
+  .fg .arr.ls .lcol{ left:0; top:0; bottom:0; width:calc(var(--cw) - 2px); } .fg .arr.ls .lrow{ left:0; right:0; bottom:0; height:calc(var(--cw) - 2px); }
+  .fg .arr.ls.sq .lcol, .fg .arr.ls.sq .lrow{ background:rgba(255,215,106,.4); border-color:#ffd76a; box-shadow:0 0 10px rgba(255,215,106,.4); }
+  .fg.pad .arr.ls em{ left:0; right:auto; width:calc(var(--cw) - 2px); }
+  .fg.pad .arr.ls{ pointer-events:none; } .fg.pad .arr.ls .lcol, .fg.pad .arr.ls .lrow, .fg.pad .arr.ls .x{ pointer-events:auto; cursor:grab; }
 </style>
 </head>
 <body>
@@ -414,7 +420,7 @@
   const root = n => Math.round(Math.sqrt(n));
 
   // ===== Which pattern: ?pattern= plays one straight away; otherwise the rotation (teacher ticks, codebook) =====
-  const BUILT = ["squares", "matchsticks", "doubling"];   // the patterns this page can play so far (Bertie's brief: one at a time)
+  const BUILT = ["squares", "matchsticks", "doubling", "lshapes"];   // the patterns this page can play so far (Bertie's brief: one at a time)
   const ASK = new URLSearchParams(location.search).get("pattern");
   const PID = BUILT.includes(ASK) ? ASK : (PN && PN.pickPattern ? PN.pickPattern(BUILT) : BUILT[0]);
   const KNOWN = !!(PN && PN.codebook && PN.codebook()[PID]);
@@ -638,6 +644,48 @@
       hint: (k, tries) => tries < 2 ? `Not quite. ${Math.pow(2, k - 2)} doubled is…?` : `${Math.pow(2, k - 2)} × 2.`,
       failLine: "The door codes were the doubling code: each one is the last one × 2 (1, 2, 4, 8, 16…).",
     },
+    // L-shapes (the brief: odd numbers, "L-shaped layers that nest into a square"). Dragging out a box draws an L in it:
+    // its left column and bottom row, sharing the corner (h + w − 1 boxes). The code shape: both arms the same length.
+    lshapes: {
+      code: "the L code", what: "1, 3, 5, 7…: odd numbers, each L 2 more than the last",
+      term: n => 2 * n - 1, isTerm: v => v >= 1 && v % 2 === 1,
+      max: { L1: 41, L2: 41, L3: 41 }, greenMax: 27, with1: true,
+      pad: { SW: 40, SH: 14 },
+      near: () => T.shuffle(T.range(1, 20).map(k => 2 * k)),
+      handOk: v => v >= 3 && v % 2 === 1 && (v + 1) / 2 <= 14,
+      locks: (h, w) => h === w,
+      measure: (h, w) => h + w - 1,
+      label: (h, w) => `arms ${h} & ${w}`,
+      tip: (h, w) => `L · arms ${h} and ${w} · ${h + w - 1} boxes`,
+      handShape: v => [(v + 1) / 2, (v + 1) / 2],
+      art: () => `<span class="lcol"></span><span class="lrow"></span>`,
+      howTo: "drag out a box: it draws an L (its left side and bottom) with that many boxes",
+      drawAsk: v => `Draw ${v}: drag out an L that uses ${v} boxes.`,
+      wrongSize: (h, w, p, v) => `That L uses ${p} boxes. You need ${v}.`,
+      noLock: (h, w, v, hint) => `An L with arms ${h} and ${w} uses ${v} ✓ but it won't lock. ${hint ? "Try making both arms the same length." : "Every glowing reading can be drawn one special way. Can you find it?"}`,
+      // the pad builds an L through lopsided ones, ending on the equal one
+      shapes: v => { const n = Math.ceil((v + 1) / 2), out = []; for(let h = Math.max(1, n - 3); h <= n; h++){ const w = v + 1 - h; if(w >= h) out.push([h, w]); } return out.length ? out : [[1, v]]; },
+      greyFit: v => { const n = v / 2; return { h: n, w: n, left: 1 }; },
+      greyCap: v => `${v} = an L of ${v - 1} + 1 left over`,
+      okCap: v => `${v} = an L with arms ${(v + 1) / 2} & ${(v + 1) / 2}`,
+      lPts: n => rectPts(n, n).map(p => ({ ...p, c: Math.max(p.x, n - 1 - p.y) === n - 1 ? "g" : "" })),
+      show: (v, o) => showPts(PATTERNS.lshapes.lPts((v + 1) / 2), o),
+      picN: n => showPts(PATTERNS.lshapes.lPts(n), { instant: true }),
+      nIs: "n = which L: 1st, 2nd, 3rd…",
+      rules: [
+        { a: 2, b: -1, words: "start at 1, add 2 each time", ok: true },
+        { a: 2, b: 1, words: "start at 3, add 2 each time" },
+        { a: 2, b: 0, words: "n times 2" },
+        { sq: true, words: "n times itself" },
+        { a: 3, b: -2, words: "start at 1, add 3 each time" },
+      ],
+      tryIt: { goal: 5, ban: "Watch each new L wrap around the last.", done: "✓ 2 × 5 − 1 = <b>9</b>. The 5th L has two arms of 5 sharing a corner, and the Ls together make a 5 × 5 square.", key: "<span class=\"k1\">green</span> = the newest L" },
+      req: { from: 6, to: 12, ask: n => `⚠ L-STRIP n = ${n} · how many plates?`, label: "strip" },
+      floorG: 9,
+      cracked: "Odd numbers: each L is 2 more than the last. The nth L has 2n − 1 boxes: two arms of n sharing a corner.",
+      hint: (k, tries) => tries < 2 ? `Not quite. Each L is 2 more than the last.` : `${2 * k - 3} + 2.`,
+      failLine: "The safe strips were the L code: odd numbers, each L 2 more than the last (1, 3, 5, 7…).",
+    },
   };
   const P = PATTERNS[PID];
   const MAX = (P.max && P.max[L]) || LV.max;
@@ -699,6 +747,21 @@
       return { safeAt, need, zones, greens: need, summary: () => `The safe readings: ${[...new Set(need)].sort((p, q) => p - q).join(", ")}.`,
         draw(){ if(LV.outline) zones.forEach(z => lay("zone", z.x, z.y, z.n, z.n)); } };
     },
+    // L-shapes (the brief: "L-shaped strips of safe plates, each wrapping the last"): on a 9 × 9 floor the 1st, 3rd,
+    // 5th, 7th and 9th L layers (1, 5, 9, 13, 17 plates) are safe, each joined to the next by one plate at alternate ends
+    lshapes(){
+      const path = [[0, 0]], strips = [1];
+      let atTop = true;   // which end of the current L we're at: the top of its column, or the left of its row
+      for(let k = 3; k <= G; k += 2){
+        // the joining plate in layer k − 1, then walk layer k from the near end to the far end
+        if(atTop){ path.push([k - 2, 0]); for(let y = 0; y < k; y++) path.push([k - 1, y]); for(let x = k - 2; x >= 0; x--) path.push([x, k - 1]); }
+        else { path.push([0, k - 2]); for(let x = 0; x < k; x++) path.push([x, k - 1]); for(let y = k - 2; y >= 0; y--) path.push([k - 1, y]); }
+        strips.push(2 * k - 1); atTop = !atTop;
+      }
+      // (the last L passes through the safe corner, so the route finishes there)
+      const safeAt = Array.from({ length: G }, () => Array(G).fill(false)); path.forEach(([x, y]) => { safeAt[y][x] = true; });
+      return { safeAt, need: [], greens: [], path, summary: () => `The safe strips were Ls of ${strips.join(", ")} plates: odd numbers.`, draw(){} };
+    },
     // Doubling: the safe corridor's straight runs double (1, 1, 2, 2, 4, 4), right and down by turns: exactly 8 × 8
     doubling(){
       const first = T.pick(["R", "D"]), path = [[0, 0]];
@@ -747,7 +810,7 @@
   // ===== The readings: the route's numbers and more terms glow; grey decoys are never terms =====
   const COLS = 6, ROWS = 5;
   function readings(){
-    const all = T.range(1, 60).map(P.term).filter(v => v <= MAX);
+    const all = T.range(1, 60).map(P.term).filter(v => v <= Math.min(MAX, P.greenMax || MAX));
     const g = [...new Set(F.greens)];
     T.shuffle(all.filter(v => v > 1)).forEach(v => { if(g.length < 9 && !g.includes(v)) g.push(v); });
     all.filter(P.handOk).slice(0, 4).forEach(v => { if(g.filter(P.handOk).length < 3 && !g.includes(v)) g.push(v); });
@@ -904,7 +967,7 @@
   let onRect = null;
   (function padDrag(){
     let a = null, b = null; const tip = document.createElement("div"); tip.className = "tip"; tip.hidden = true;
-    const at = e => { const t = document.elementFromPoint(e.clientX, e.clientY); return t && t.classList && t.classList.contains("c") && fg.contains(t) ? [+t.dataset.x, +t.dataset.y] : null; };
+    const at = e => { const t = document.elementsFromPoint(e.clientX, e.clientY).find(el => el.classList && el.classList.contains("c") && fg.contains(el)); return t ? [+t.dataset.x, +t.dataset.y] : null; };
     const rect = () => ({ x: Math.min(a[0], b[0]), y: Math.min(a[1], b[1]), w: Math.abs(a[0] - b[0]) + 1, h: Math.abs(a[1] - b[1]) + 1 });
     const paint = () => {
       cells.forEach(c => c.classList.remove("sel", "off")); if(!a){ tip.hidden = true; return; }
@@ -926,6 +989,7 @@
     fg.addEventListener("click", e => { const x = e.target.closest(".arr .x"); if(!x || !fg.classList.contains("pad")) return; e.stopPropagation(); const v = +x.closest(".arr").dataset.v; clearV(v); T.SND("untag"); log(`${v} erased`, "sys"); });
     fg.addEventListener("pointerdown", e => {
       const a = e.target.closest(".arr"); if(!a || e.target.closest(".x") || !fg.classList.contains("pad") || over) return;
+      if(W.target && +a.dataset.v === W.target && !a.classList.contains("sq")) return;   // redrawing the reading you're on
       e.preventDefault(); e.stopPropagation(); fg.setPointerCapture(e.pointerId);
       const v = +a.dataset.v, parts = [...fg.querySelectorAll(`[data-v="${v}"]`)];
       mv = { v, parts, start: cellAt(e), orig: parts.map(p => [+p.dataset.gx, +p.dataset.gy]), d: [0, 0], ok: true }; parts.forEach(p => p.classList.add("moving")); T.SND("tag");
@@ -965,7 +1029,7 @@
     return null;
   }
   function stamp(r, kind, v, locked){
-    const d = lay("arr " + kind + (PID === "matchsticks" ? " ms" : ""), r.x, r.y, r.w, r.h, `${P.art(r.h, r.w)}<em>${v}</em><b>${PID === "matchsticks" ? `${v} · ` : ""}${P.label(r.h, r.w)}</b>${locked && r.w >= 4 ? `<span class="tag">LOCKED</span>` : ""}<button type="button" class="x" title="Erase" aria-label="Erase ${v}">×</button>`);
+    const d = lay("arr " + kind + (PID === "matchsticks" ? " ms" : PID === "lshapes" ? " ls" : ""), r.x, r.y, r.w, r.h, `${P.art(r.h, r.w)}<em>${v}</em><b>${PID === "matchsticks" ? `${v} · ` : ""}${P.label(r.h, r.w)}</b>${locked && r.w >= 4 ? `<span class="tag">LOCKED</span>` : ""}<button type="button" class="x" title="Erase" aria-label="Erase ${v}">×</button>`);
     d.dataset.v = v; return d;
   }
   // The pad builds a reading: its rectangles in turn, long and thin first; a code reading locks gold, a grey one never does
@@ -1161,7 +1225,7 @@
     return { set, get n(){ return cur; }, banner: html => { const b = host.querySelector(".rx-ban"); if(b) b.innerHTML = html; return b; } };
   }
   // The right picture for n (after the crack): n gates with the + 1 stick and each gate's 3 coloured; an n × n array
-  const picN = n => PID === "matchsticks" ? showGates(n, { groups: true }) : PID === "doubling" ? showPts(P.dblPts(n), { instant: true }) : showPts(rectPts(n, n), { lock: true, instant: true, frame: { x: 0, y: 0, w: n, h: n } });
+  const picN = n => P.picN ? P.picN(n) : PID === "matchsticks" ? showGates(n, { groups: true }) : PID === "doubling" ? showPts(P.dblPts(n), { instant: true }) : showPts(rectPts(n, n), { lock: true, instant: true, frame: { x: 0, y: 0, w: n, h: n } });
 
   let hist = null, prompt = null;
   // Bertie: the terminal comes into the middle of the screen, big. The frozen readings and the picture move into it
@@ -1386,7 +1450,7 @@
       if(over) return;
       prompt.innerHTML = `<span class="sys">accepted…</span>${pins(i)}`;
       tl(`  ${r.want} ✓ ACCEPTED`, "ok");
-      await settle(r.want, ms ? `gate ${r.n} bars:` : RQ.label === "door" ? `door code ${r.n}:` : `block ${i + 1}:`);
+      await settle(r.want, ms ? `gate ${r.n} bars:` : RQ.label === "door" ? `door code ${r.n}:` : RQ.label === "strip" ? `strip ${r.n} plates:` : `block ${i + 1}:`);
       r.done(); $("pins") && $("pins").children[i] && $("pins").children[i].classList.add("drop");
       rate = 70;
     }
