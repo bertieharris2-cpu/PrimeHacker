@@ -518,10 +518,12 @@
   const twistAt = point => { const id = twistPlan()[point]; return id ? TWISTS.find(t => t.id === id) : null; };
   // The current mission's menu (null if none, or a hand-made test plan)
   function twistMenu(){ const a = getAgent(); if(!a) return null; twistPlan(); const st = readPlan(); return MENUS.find(m => m.id === st.menu) || null; }
+  // The same, but only reads: null until a stage has made this mission's plan (the Twist Lab never makes one by accident)
+  function peekMenu(){ const a = getAgent(); if(!a) return null; const st = readPlan(); return st.session === a.sessionId ? MENUS.find(m => m.id === st.menu) || null : null; }
   // Testing: force a menu, or a hand-made set of picks
   function setTwistMenu(id){ const a = getAgent(), m = MENUS.find(x => x.id === id); if(!a || !m) return; const st = readPlan(); st.session = a.sessionId; st.menu = m.id; st.picks = { ...m.picks }; writePlan(st); }
   function setTwistPlan(picks){ const a = getAgent(); if(!a) return; const st = readPlan(); st.session = a.sessionId; st.menu = ""; st.picks = picks; writePlan(st); }
-  Object.assign(window.Primenet, { TWISTS, TWIST_POINTS, HEIST_POINTS, MENUS, menuPin, setMenuPin, twistsOff, setTwistOn, twistOn, twistPin, setTwistPin, twistPlan, twistAt, twistMenu, setTwistMenu, setTwistPlan, twistProtos, setTwistProtos });
+  Object.assign(window.Primenet, { TWISTS, TWIST_POINTS, HEIST_POINTS, MENUS, menuPin, setMenuPin, twistsOff, setTwistOn, twistOn, twistPin, setTwistPin, twistPlan, twistAt, twistMenu, peekMenu, setTwistMenu, setTwistPlan, twistProtos, setTwistProtos });
 
   applyPrefs();   // every page opens with the current agent's settings
   // Round 14: shared helpers every page gets without its own script tag: the read-aloud voice

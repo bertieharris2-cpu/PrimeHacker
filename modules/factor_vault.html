@@ -580,6 +580,7 @@ body{ font-size: var(--font-size); }
   <script src="../shared/story.js"></script>
 
   <script src="../shared/primenet.js"></script>
+  <script src="../shared/buildings.js"></script>
   <script src="../shared/mode.js"></script>
   <script src="../shared/badges.js"></script>
   <script src="../shared/testtools.js"></script>
@@ -1323,7 +1324,8 @@ body{ font-size: var(--font-size); }
       if(Number.isInteger(newN) && newN > 1){
         N = newN;
       } else {
-        N = pickRandomFromDifficulty(currentDifficulty);
+        // Round 22 (Bertie): a mission menu has its own building, the same three floors at every level (easiest first)
+        N = (!PRACTICE && window.PNBuildings && PNBuildings.nextN()) || pickRandomFromDifficulty(currentDifficulty);
       }
 
       document.title = `Factor Pair Array Vault · N = ${N}`;
@@ -1668,7 +1670,9 @@ body{ font-size: var(--font-size); }
       PNTest.add("Decode one pair", () => decode(1));
       PNTest.skip("Decode all pairs", () => decode(99));
       PNTest.add("Skip to Blueprint (3 floors at this level)", () => {
-        const pool = VALID_N[currentDifficulty].slice().sort(() => Math.random() - .5).slice(0, 3);
+        const b = window.PNBuildings && PNBuildings.current({ make: true });   // the mission's building, if it has one
+        if(b) PNBuildings.install();
+        const pool = b ? b.floors.slice() : VALID_N[currentDifficulty].slice().sort(() => Math.random() - .5).slice(0, 3);
         localStorage.setItem("blueprintProgress", JSON.stringify(pool));
         pool.forEach(n => PN && PN.log("vault-complete", { n, level: currentDifficulty }));
         location.href = "vault_blueprint_viewer.html";

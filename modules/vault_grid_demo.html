@@ -405,6 +405,7 @@ html.fileIn .wrap > *{ opacity:0; }
 <script src="../shared/story.js"></script>
 
 <script src="../shared/primenet.js"></script>
+<script src="../shared/buildings.js"></script>
 <script src="../shared/mode.js"></script>
 <script src="../shared/badges.js"></script>
 <script src="../shared/testtools.js"></script>
@@ -968,15 +969,19 @@ async function run(seed, wanted){
   labelSvg.innerHTML="";
   clearLabelTracker();
 
-  // generate layout
-  const placements = generatePlacements(currentSeed, wanted);
+  // generate layout. Round 22 (Bertie): a mission menu's building has a fixed plan for each of its floors, drawn as designed
+  const fixed = window.PNBuildings ? PNBuildings.layoutFor(currentN) : null;
+  const placements = fixed && fixed.grid === GRID ? fixed.rooms.map(r => ({ ...r, label: `${r.w}×${r.h}` })) : generatePlacements(currentSeed, wanted);
   
   // Store placements globally for 3D view reuse
   window.lastPlacements = placements;
   // Doors face the widest corridor; one fire exit on the outer wall. Saved so the Blueprint rebuilds this exact floor.
-  placements.forEach(r => { r.door = doorFor(r, GRID); });
-  nameRooms(placements, currentSeed);
-  window.lastExit = exitFor(placements, GRID);
+  if(fixed){ window.lastExit = { ...fixed.exit }; }
+  else {
+    placements.forEach(r => { r.door = doorFor(r, GRID); });
+    nameRooms(placements, currentSeed);
+    window.lastExit = exitFor(placements, GRID);
+  }
   try{
     const all = JSON.parse(localStorage.getItem("blueprintLayouts") || "{}");
     all[currentN] = { grid: GRID, rooms: placements.map(({ x, y, w, h, door, name }) => ({ x, y, w, h, door, name })), exit: window.lastExit };
@@ -999,7 +1004,9 @@ async function run(seed, wanted){
   const jitter = 90;
   const rnd = mulberry32(currentSeed ^ 0xA5A5A5A5);
 
-  const tasks = placements.map((r,i)=>{
+  // (a fixed plan keeps its rooms in order for the blueprint; the lasers still draw them in a shuffled order)
+  const anim = fixed ? placements.map(r => [rnd(), r]).sort((p, q) => p[0] - q[0]).map(p => p[1]) : placements;
+  const tasks = anim.map((r,i)=>{
     const delay = i*base + Math.floor(rnd()*jitter);
     return animateRect(r, delay);
   });
@@ -1529,7 +1536,9 @@ function floorAnalysis(placements){
   // No such window, no highlight. Rooms with a name of their own are picked where possible, so there's no doubt which.
   const own = placements.filter(r => !isStrong(r) && rooms.filter(n => n === roomName(r)).length === 1);
   const pickRoom = () => pickR(own.length ? own : placements);
-  const blind = pickRoom(), duct = pickRoom(), fault = placements[1] || placements[0];
+  // Round 22: on the building's guard recon floor, the CCTV window names the real blind spot (the recon uses it later)
+  const RB = window.PNBuildings ? PNBuildings.reconFor(currentN) : null, blindR = RB ? placements.find(r => r.name === RB.behind) : null;
+  const blind = blindR || pickRoom(), duct = pickRoom(), fault = placements[1] || placements[0];
   const nm = (r, key, up) => { const t = up ? roomName(r) : lower(roomName(r)); return key ? `<span class="yl">${t}</span>` : t; };
   const logRooms = strongRoom ? rooms.filter(n => n !== "STRONGROOM") : rooms;   // no one swipes into the strongroom (below)
   const names = ["J. OKAFOR", "M. PATEL", "S. REID", "L. CHEN", "D. EVANS", "A. NOWAK", "R. SINGH", "K. MORGAN"];
@@ -1538,7 +1547,7 @@ function floorAnalysis(placements){
     { title: "SHIFT ROTA", flag: `SECURITY ${rating}`, w: 300,
       html: `DAY &nbsp;&nbsp;07:00–15:00 · <span class="yl">${guards + 2}</span> guards<br>EVE &nbsp;&nbsp;15:00–${nightStart} · <span class="yl">${guards + 1}</span> guards<br>NIGHT ${nightStart}–07:00 · <span class="yl">${guards}</span> guard${guards === 1 ? "" : "s"}<br><span class="k">Shift change at ${nightStart}: the floor is empty for <span class="${col}">${gapMin} min</span>.</span>` },
     { title: `CCTV · CAM 0${1 + Math.floor(rnd() * 8)}`, flag: "LIVE", w: 280, cctv: true,
-      html: key => `${cctvSvg(camRoom)}<span class="k">Camera pans every 12 s. Blind spot by the ${nm(blind, key)} door.</span>`, room: blind },
+      html: key => `${cctvSvg(camRoom)}<span class="k">Camera pans every 12 s. ${blindR ? `Blind spot behind the ${nm(blind, key)}.` : `Blind spot by the ${nm(blind, key)} door.`}</span>`, room: blind },
     { title: "KEYCARD LOG", flag: "LAST NIGHT", w: 300,
       html: log.map(l => `${l.t} <span class="yl">${l.role}</span> ${l.who}<br><span class="k">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ${l.room}</span>`).join("<br>") + (strongRoom ? `<br><span class="k">No one swiped into the <span class="yl">strongroom</span>.</span>` : "") },
     { title: "RADIO INTERCEPT", flag: "CH 4", w: 300,
@@ -1551,7 +1560,7 @@ function floorAnalysis(placements){
       html: key => `Main duct runs above the ${nm(duct, key)}<br>Grille size: <span class="yl">60 × 45 cm</span><br>Airflow: ${pickR(["low overnight", "off after 22:00", "steady"])}<br><span class="k">Too loud to hear footsteps near it.</span>`, room: duct },
   ];
   // Round 12: more variety: three windows per floor, a different mix each time (CCTV more often than not)
-  const cctvFirst = rnd() < 0.7;
+  const cctvFirst = blindR ? true : rnd() < 0.7;
   const rest = pool.filter(w => !w.cctv).sort(() => rnd() - 0.5);
   const chosen = (cctvFirst ? [pool.find(w => w.cctv), ...rest] : rest).slice(0, 3);
   // The tall keycard log never goes top right: that window must fit between the code rain and the docked terminal
@@ -1672,7 +1681,7 @@ function drawCuboid(ctx, rect, cellSize, gap, heightPx, mode=1){
   ctx.fill();
   
   // DOOR: a dark opening with a faint mint frame on the chosen wall (subtle: yellow is kept for rooms that matter)
-  if(rect.door && heightPx > 2){
+  if(rect.door && heightPx > 2 && rect.door.side !== "s"){   // a south door is on the back wall, out of sight from here
     const step = cellSize + gap, d = rect.door, wLen = Math.min(cellSize * 0.9, step);
     let F0, F1;
     if(d.side === "n"){ F0 = { x: A.x + d.at * step + (step - wLen) / 2, y: A.y }; F1 = { x: F0.x + wLen, y: A.y }; }

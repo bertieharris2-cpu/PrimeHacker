@@ -15,7 +15,8 @@
   // k is clamped at 0: a frame's timestamp can be a little earlier than performance.now() taken just before (a busy frame), and a negative k
   // sent CurvePath.getPointAt a negative u, which returns null and threw inside the frame loop (the tween then never finished)
   function tween(ms, fn, ease = easeInOut){ return new Promise(res => { const t0 = performance.now(), dur = ms / speed(); (function f(now){ const k = Math.max(0, Math.min(1, (now - t0) / dur)); fn(ease(k)); if(k < 1) requestAnimationFrame(f); else res(); })(t0); }); }
-  function layouts(){ try{ return JSON.parse(localStorage.getItem("blueprintLayouts") || "{}") || {}; }catch(e){ return {}; } }
+  // Round 22: a mission menu's building wins over any other plan saved for the same number (see shared/buildings.js)
+  function layouts(){ if(window.PNBuildings) return PNBuildings.layouts(); try{ return JSON.parse(localStorage.getItem("blueprintLayouts") || "{}") || {}; }catch(e){ return {}; } }
   function pickN(n){
     if(n) return n;
     const a = window.Primenet && Primenet.getAgent && Primenet.getAgent();

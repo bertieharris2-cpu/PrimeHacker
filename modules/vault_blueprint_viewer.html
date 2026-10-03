@@ -367,6 +367,7 @@ button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [clas
   <script src="../shared/vendor/three.min.js"></script>
   <script src="../shared/story.js"></script>
   <script src="../shared/primenet.js"></script>
+  <script src="../shared/buildings.js"></script>
   <script src="../shared/mode.js"></script>
   <script src="../shared/badges.js"></script>
   <script src="../shared/testtools.js"></script>
@@ -393,7 +394,8 @@ function powerUpPrompt(title){
     // Sample numbers are a teacher preview only. Students always see the floors they built.
     const DEMO_MODE = completed.length < 3 && !!(PN && PN.isTeacher());
     if(DEMO_MODE){
-      completed = [12, 30, 60];  // Demo N values - change these to test different numbers
+      const bld = window.PNBuildings && PNBuildings.current({ make: true });   // Round 22: the mission menu's own building
+      completed = bld ? bld.floors.slice() : [12, 30, 60];  // Demo N values - change these to test different numbers
       console.log('🎯 Blueprint Viewer DEMO MODE - Using hardcoded N values:', completed);
     }
     
@@ -958,7 +960,7 @@ function powerUpPrompt(title){
         watchLabel('Finding the way in'); planAt(0.22);
         const pairsOf = n => getFactorPairs(n).length;
         const fewest = Math.min(...floorGroups.map(f => pairsOf(f.n)));
-        const weak = KEY_AT === 'strongroom' ? floorGroups[1] : KEY_AT === 'deposit' && QUIET ? floorGroups[2]
+        const weak = BLD && BLD.wayIn ? floorGroups[3 - BLD.wayIn] : KEY_AT === 'strongroom' ? floorGroups[1] : KEY_AT === 'deposit' && QUIET ? floorGroups[2]
           : floorGroups.filter(f => pairsOf(f.n) === fewest).sort((a, b) => a.n - b.n)[0];
         weak.lines.forEach(m => m.color.set(0x6ec8ff)); weak.plate.material.color.set(0x6ec8ff);
         ring(weak.yOffset + 0.5, 0x6ec8ff); SND("lockon");
@@ -1056,6 +1058,9 @@ function powerUpPrompt(title){
       // and whether FOX and WREN sneak out with a copy (quiet) or wait at the vault (loud). No menu: the key room, loud.
       const MENU = (PN && PN.twistMenu && PN.twistMenu()) || null;
       const KEY_AT = MENU ? MENU.keyAt : 'keyroom', QUIET = !!(MENU && MENU.quiet);
+      // Round 22: the menu's fixed building (shared/buildings.js), when these are its floors: its way in, key room and route
+      const BLD = (() => { const b = window.PNBuildings && PNBuildings.current(); const key = a => a.slice().sort((x, y) => x - y).join();
+        return b && key(b.floors) === key(floorGroups.map(f => f.n)) ? b : null; })();
       const KEY_LINE = w => KEY_AT === 'strongroom' ? `Tonight the bank's security key is locked in the strongroom on ${w}. It's what lets us log in to their vault. The fire door on ${w} is our way in.`
         : KEY_AT === 'deposit' && QUIET ? `The bank's security key is kept in a deposit box in the basement. It's what lets us log in to their vault. We go in through the fire door on ${w}, then down.`
         : `The bank's security key is in the key room on ${w}. It's what lets us log in to their vault. The fire door on ${w} is our way in.`;
@@ -1090,7 +1095,8 @@ function powerUpPrompt(title){
         // Round 21: the room the security key is in: the key room (furthest from the fire door), the strongroom (floor 2's
         // squarest room, the same one the heist uses), or none on these floors (a deposit box in the basement)
         const squarest = f => f.rooms.find(r => r.a === r.b) || f.rooms.slice().sort((a, b) => a.b / a.a - b.b / b.a)[0] || null;
-        const keyRoom = KEY_AT === 'strongroom' ? squarest(weak) : KEY_AT === 'deposit' && QUIET ? null : far ? far.r : null;
+        const named = BLD && BLD.keyRoom ? weak.rooms.find(r => r.name === BLD.keyRoom) : null;   // a building can name its key room
+        const keyRoom = KEY_AT === 'strongroom' ? squarest(weak) : KEY_AT === 'deposit' && QUIET ? null : named || (far ? far.r : null);
         // The CEO: the top floor's most nearly square room (not the key room)
         const topF = floorGroups[0];
         const ceoRoom = topF.rooms.filter(r => r !== keyRoom).sort((a, b) => b.a / b.b - a.a / a.b)[0] || null;
@@ -1140,7 +1146,13 @@ function powerUpPrompt(title){
         const pts = viaRoof ? [V(F.x, roofY + 26, F.z), V(F.x, roofY + 2, F.z)] : [street, V(F.x, 1.2, F.z)];
         if(viaRoof || weak.yOffset > 0) pts.push(V(F.x, yW, F.z));
         pts.push(V(wallAt.x, yW, wallAt.z));
-        if(keyRoom){
+        const KR = BLD && keyRoom ? PNBuildings.keyRouteFor(weak.n) : null;
+        if(KR && LAYOUTS[weak.n]){
+          // Round 22: the building's own route, from the fire door along the corridors to the key's room
+          const cell = PLATE / LAYOUTS[weak.n].grid;
+          KR.path.forEach(([x, y]) => pts.push(V((x + 0.5) * cell - PLATE / 2, yW, (y + 0.5) * cell - PLATE / 2)));
+          pts.push(V(keyRoom.x, yW, keyRoom.z));
+        } else if(keyRoom){
           // Walk the corridors in straight lines: first across, then along
           if(onX){ pts.push(V(keyRoom.x, yW, wallAt.z)); } else { pts.push(V(wallAt.x, yW, keyRoom.z)); }
           pts.push(V(keyRoom.x, yW, keyRoom.z));
@@ -1185,16 +1197,21 @@ function powerUpPrompt(title){
         for(let i = 1; i < pts.length; i++){
           const p0 = pts[i - 1], p1 = pts[i], dx = p1.x - p0.x, dz = p1.z - p0.z, dy = p1.y - p0.y, flat = Math.hypot(dx, dz);
           if(flat < 0.5 && Math.abs(dy) < 0.5) continue;
+          if(Math.abs(dy) <= 2 && flat < 3) continue;   // a step through a doorway: no line of its own
           let text;
           if(Math.abs(dy) > 2 && flat < 2){ text = dy > 0 ? `Climb the fire stairs to <b>${floorName(p1.y)}</b>` : `Down the fire stairs to <b>${floorName(p1.y)}</b>`; prevH = null; }
           else {
             const h = { x: dx / flat, z: dz / flat }, m = Math.max(1, Math.round(flat * MPU)), dir = compass(dx, dz);
             let turn = '';
             if(prevH){ const cr = prevH.x * h.z - prevH.z * h.x; if(Math.abs(cr) > 0.5) turn = cr > 0 ? 'Turn right, then go ' : 'Turn left, then go '; }
+            // straight on in the same direction: one longer leg, not two
+            const last = legs[legs.length - 1];
+            if(!turn && last && last.dir === dir && last.m != null && i > 1){ last.m += m; last.text = last.text.replace(/<b>(\w+) \d+ m<\/b>/, `<b>$1 ${last.m} m</b>`); prevH = h; continue; }
             text = i === 1 && !viaRoof ? `From the street, go <b>${dir} ${m} m</b> to the fire stairs`
               : `${turn || 'Go '}<b>${dir} ${m} m</b>` + (Math.abs(p1.x - wallAt.x) < 0.5 && Math.abs(p1.z - wallAt.z) < 0.5 ? ' to the fire door' : '');
             if(turn) text = text.replace(/^Turn (right|left), then go /, (_, d) => `Turn ${d}, then go `);
             prevH = h;
+            legs.push({ text, i, dir, m }); continue;
           }
           legs.push({ text, i });
         }
@@ -1252,7 +1269,7 @@ function powerUpPrompt(title){
         window.bpDirEl = dirEl;   // the recon takes it away
         if(!hasRecon){ dirEl.classList.remove('on'); setTimeout(() => dirEl.remove(), 600); }
         // Round 15: the route drawn here becomes the heist path in chapter 5
-        heistData = { pts, agent, halo, tag, keyRoom, weak, wallAt, onX, sx, sz, S, yW, perFloor, door: V(wallAt.x, yW, wallAt.z) };
+        heistData = { pts, agent, halo, tag, keyRoom, weak, wallAt, onX, sx, sz, S, yW, perFloor, door: V(wallAt.x, yW, wallAt.z), route: !!(KR && LAYOUTS[weak.n]) };
         spinning = true;
       }
 
@@ -1279,7 +1296,7 @@ function powerUpPrompt(title){
           if(heistOn) return;
           if(drag){ moved = Math.max(moved, Math.abs(e.clientX - drag.x)); rotationY = drag.rot + (e.clientX - drag.x) * 0.01; mainGroup.rotation.y = rotationY; tip.style.display = 'none'; return; }
           const o = hit(e);
-          if(o){ const w = o.userData.win; tip.style.display = 'block'; tip.style.left = (e.clientX + 14) + 'px'; tip.style.top = (e.clientY + 10) + 'px'; tip.textContent = `${roomName(w.a, w.b)} · ${w.a} × ${w.b} · ${w.a * w.b} lights`; el.style.cursor = 'pointer'; }
+          if(o){ const w = o.userData.win; tip.style.display = 'block'; tip.style.left = (e.clientX + 14) + 'px'; tip.style.top = (e.clientY + 10) + 'px'; tip.textContent = `${o.userData.name || roomName(w.a, w.b)} · ${w.a} × ${w.b} · ${w.a * w.b} lights`; el.style.cursor = 'pointer'; }
           else { tip.style.display = 'none'; el.style.cursor = 'grab'; }
         });
         el.addEventListener('pointerleave', () => { tip.style.display = 'none'; });
@@ -1511,7 +1528,7 @@ function powerUpPrompt(title){
             let E, out;
             if(r.door && r.cell){
               const at = len => -len / 2 + (r.door.at + 0.5) * r.cell;
-              if(r.door.side === 'n'){ E = V3(r.x + at(r.w), yF, r.z - hd); out = V3(0, 0, -1); }
+              if(r.door.side === 'n' || r.door.side === 's'){ const sd = r.door.side === 'n' ? -1 : 1; E = V3(r.x + at(r.w), yF, r.z + sd * hd); out = V3(0, 0, sd); }
               else { const sd = r.door.side === 'w' ? -1 : 1; E = V3(r.x + sd * hw, yF, r.z + at(r.d)); out = V3(sd, 0, 0); }
             } else {
               const dx = here.x - r.x, dz = here.z - r.z;
@@ -1684,7 +1701,9 @@ function powerUpPrompt(title){
 
         // 4. The strongroom on the vault floor (floor 2)
         const sMesh = f2.boxes[pickS.i], sPt = V3(sRoom.x, y2, sRoom.z);
-        const toStrong = D.weak === f2 ? [here, sPt] : [here, lift(D.yW), lift(y2), sPt];
+        // Round 22: on a building with a route to the strongroom (the key is in there), walk the corridors
+        const routeToS = keyS && D.weak === f2 && D.route && inside.length > 2 && inside[inside.length - 1].distanceTo(sPt) < 0.01;
+        const toStrong = routeToS ? [here, ...exitPts, ...inside.slice(1)] : D.weak === f2 ? [here, sPt] : [here, lift(D.yW), lift(y2), sPt];
         const hasS = hasTw('strongroom'), toS = !QUIET || KEY_AT === 'strongroom';
         if(toS){ await move('Moving to the strongroom', KEY_AT === 'strongroom' ? 'Heading for the strongroom. The security key is in there.' : 'Heading for the strongroom.', toStrong, !hasS); here = sPt.clone(); }
         if(hasS && toS){
@@ -1721,7 +1740,8 @@ function powerUpPrompt(title){
           if(window.PNHandler) PNHandler.radio("keyCopied");
           await wait(3400);
           wk.end(); hideLabel(); push(1);
-          const out = [here, ...(Math.abs(here.y - D.yW) < 1 ? [] : [lift(here.y), lift(D.yW)]), D.door, ...toDoor.slice().reverse()];
+          const back = D.route && here.distanceTo(keyPt) < 0.01 ? inside.slice(0, -1).reverse() : null;   // back along the building's route
+          const out = back ? [here, ...back, ...toDoor.slice().reverse()] : [here, ...(Math.abs(here.y - D.yW) < 1 ? [] : [lift(here.y), lift(D.yW)]), D.door, ...toDoor.slice().reverse()];
           await move('Sneaking out', 'Copy made, original back in place. Sneaking out.', out, true);
           moveEnd();
           const wo = shortWatch('Out unseen', 4);
@@ -1984,13 +2004,14 @@ function powerUpPrompt(title){
     }
 
     // The exact floor plans from the Vault Grid, scaled onto one plate size (bigger N means smaller cells)
-    const LAYOUTS = (() => { try{ return JSON.parse(localStorage.getItem('blueprintLayouts') || '{}'); }catch(e){ return {}; } })();
+    // Round 22: a mission menu's building wins over any other plan saved for the same number (shared/buildings.js)
+    const LAYOUTS = window.PNBuildings ? PNBuildings.layouts() : (() => { try{ return JSON.parse(localStorage.getItem('blueprintLayouts') || '{}'); }catch(e){ return {}; } })();
     const PLATE = 130;
     function roomsFor(n, scale){
       const L = LAYOUTS[n];
       if(!L) return layoutFor(n, scale);   // teacher preview with sample numbers
       const cell = PLATE / L.grid;
-      return L.rooms.map(r => ({ a: Math.min(r.w, r.h), b: Math.max(r.w, r.h), rows: r.h, cols: r.w, cell, door: r.door,
+      return L.rooms.map(r => ({ a: Math.min(r.w, r.h), b: Math.max(r.w, r.h), rows: r.h, cols: r.w, cell, door: r.door, name: r.name, gx: r.x, gy: r.y, gw: r.w, gh: r.h,
         w: r.w * cell - cell * 0.25, d: r.h * cell - cell * 0.25, x: (r.x + r.w / 2) * cell - PLATE / 2, z: (r.y + r.h / 2) * cell - PLATE / 2 }));
     }
 
@@ -2042,12 +2063,12 @@ function powerUpPrompt(title){
         const lineMat = new THREE.LineBasicMaterial({ color: strong ? 0xffc94d : 0x00ffcc });
         mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(geom), lineMat));
         lines.push(lineMat);
-        mesh.userData.win = windowPanel(mesh, r, boxHeight);
+        mesh.userData.win = windowPanel(mesh, r, boxHeight); mesh.userData.name = r.name || '';
         // Door: an amber opening on the same wall as in the Vault Grid
         if(r.door && r.cell){
           const dm = new THREE.Mesh(new THREE.PlaneGeometry(r.cell * 0.75, 11), new THREE.MeshBasicMaterial({ color: 0xffbe5a, side: THREE.DoubleSide, transparent: true, opacity: 0.9 }));
           const along = len => -len / 2 + (r.door.at + 0.5) * r.cell;
-          if(r.door.side === "n"){ dm.position.set(along(r.w), -2.5, -r.d / 2 - 0.25); }
+          if(r.door.side === "n" || r.door.side === "s"){ dm.position.set(along(r.w), -2.5, (r.door.side === "n" ? -1 : 1) * (r.d / 2 + 0.25)); }
           else { dm.rotation.y = Math.PI / 2; dm.position.set((r.door.side === "w" ? -1 : 1) * (r.w / 2 + 0.25), -2.5, along(r.d)); }
           mesh.add(dm);
         }
