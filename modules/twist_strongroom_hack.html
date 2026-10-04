@@ -385,6 +385,11 @@
   .fg .arr.ls .lcol{ left:0; top:0; bottom:0; width:calc(var(--cw) - 2px); } .fg .arr.ls .lrow{ left:0; right:0; bottom:0; height:calc(var(--cw) - 2px); }
   .fg .arr.ls.sq .lcol, .fg .arr.ls.sq .lrow{ background:rgba(255,215,106,.4); border-color:#ffd76a; box-shadow:0 0 10px rgba(255,215,106,.4); }
   .fg.pad .arr.ls em{ left:0; right:auto; width:calc(var(--cw) - 2px); }
+  .fg .arr.cs{ background:none !important; border-color:transparent !important; box-shadow:none !important; }
+  .fg .arr.cs .ccol, .fg .arr.cs .crow{ position:absolute; background:rgba(110,200,255,.35); border:2px solid #6ec8ff; box-sizing:border-box; }
+  .fg .arr.cs .ccol{ top:0; bottom:0; width:calc(var(--cw) - 2px); } .fg .arr.cs .crow{ left:0; right:0; height:calc(var(--cw) - 2px); }
+  .fg .arr.cs.sq .ccol, .fg .arr.cs.sq .crow{ background:rgba(255,215,106,.4); border-color:#ffd76a; box-shadow:0 0 10px rgba(255,215,106,.4); }
+  .fg.pad .arr.cs{ pointer-events:none; } .fg.pad .arr.cs .ccol, .fg.pad .arr.cs .crow, .fg.pad .arr.cs .x{ pointer-events:auto; cursor:grab; }
   .fg.pad .arr.ls{ pointer-events:none; } .fg.pad .arr.ls .lcol, .fg.pad .arr.ls .lrow, .fg.pad .arr.ls .x{ pointer-events:auto; cursor:grab; }
 </style>
 </head>
@@ -420,7 +425,7 @@
   const root = n => Math.round(Math.sqrt(n));
 
   // ===== Which pattern: ?pattern= plays one straight away; otherwise the rotation (teacher ticks, codebook) =====
-  const BUILT = ["squares", "matchsticks", "doubling", "lshapes"];   // the patterns this page can play so far (Bertie's brief: one at a time)
+  const BUILT = ["squares", "matchsticks", "doubling", "lshapes", "crosses"];   // the patterns this page can play so far (Bertie's brief: one at a time)
   const ASK = new URLSearchParams(location.search).get("pattern");
   const PID = BUILT.includes(ASK) ? ASK : (PN && PN.pickPattern ? PN.pickPattern(BUILT) : BUILT[0]);
   const KNOWN = !!(PN && PN.codebook && PN.codebook()[PID]);
@@ -686,6 +691,53 @@
       hint: (k, tries) => tries < 2 ? `Not quite. Each L is 2 more than the last.` : `${2 * k - 3} + 2.`,
       failLine: "The safe strips were the L code: odd numbers, each L 2 more than the last (1, 3, 5, 7…).",
     },
+    // Crosses (the brief: 1, 5, 9, 13, 17; "a plus sign whose four arms grow by one tile each step"). Dragging out a box
+    // draws a plus in it: its middle column and middle row, sharing the middle (h + w − 1 boxes). The code shape: a cross
+    // with four equal arms (as tall as it is wide, with a true middle).
+    crosses: {
+      code: "the cross code", what: "1, 5, 9, 13…: each new cross adds 4 tiles, one on each arm",
+      term: n => 4 * n - 3, isTerm: v => v >= 1 && v % 4 === 1,
+      max: { L1: 30, L2: 30, L3: 30 }, greenMax: 25, with1: true,
+      pad: { SW: 40, SH: 14 },
+      // near misses: odd numbers off the code (3, 7, 11…) first, then evens
+      near: () => [...T.shuffle(T.range(1, 8).map(k => 4 * k - 1)).slice(0, 6), ...T.shuffle(T.range(1, 15).map(k => 2 * k)).slice(0, 4)],
+      handOk: v => v >= 5 && v % 4 === 1 && (v + 1) / 2 <= 14,
+      locks: (h, w) => h === w && h % 2 === 1,
+      measure: (h, w) => h + w - 1,
+      label: (h, w) => `${h} tall, ${w} wide`,
+      tip: (h, w) => `cross · ${h} tall, ${w} wide · ${h + w - 1} tiles`,
+      handShape: v => [(v + 1) / 2, (v + 1) / 2],
+      art: (h, w) => `<span class="ccol" style="left:calc(var(--cw) * ${Math.floor(w / 2)})"></span><span class="crow" style="top:calc(var(--cw) * ${Math.floor(h / 2)})"></span>`,
+      howTo: "drag out a box: it draws a cross (its middle column and middle row) with that many tiles",
+      drawAsk: v => `Draw ${v}: drag out a cross that uses ${v} tiles.`,
+      wrongSize: (h, w, p, v) => `That cross uses ${p} tiles. You need ${v}.`,
+      noLock: (h, w, v, hint) => `A cross ${h} tall and ${w} wide uses ${v} ✓ but it won't lock. ${hint ? "Try a cross as tall as it is wide." : "Every glowing reading can be drawn one special way. Can you find it?"}`,
+      // the pad builds a cross through lopsided ones, ending on the even one
+      shapes: v => { const n = Math.ceil((v + 1) / 2), out = []; for(let h = Math.max(1, n - 3); h <= n; h++){ const w = v + 1 - h; if(w >= h) out.push([h, w]); } return out.length ? out : [[1, v]]; },
+      greyFit: v => { const n = Math.floor((v + 3) / 4), s = 2 * n - 1; return { h: s, w: s, left: v - (4 * n - 3) }; },
+      greyCap: v => { const n = Math.floor((v + 3) / 4); return `${v} = a cross of ${4 * n - 3} + ${v - (4 * n - 3)} left over`; },
+      okCap: v => `${v} = a cross with arms of ${(v + 3) / 4}`,
+      // the nth cross: arms of n from the middle; the 4 tips (the newest tiles) green
+      crossPts: n => { const c = n - 1, out = [{ x: c, y: c, c: n === 1 ? "g" : "" }];
+        for(let d = 1; d < n; d++) [[c, c - d], [c + d, c], [c, c + d], [c - d, c]].forEach(([x, y]) => out.push({ x, y, c: d === n - 1 ? "g" : "" }));
+        return out; },
+      show: (v, o) => showPts(PATTERNS.crosses.crossPts((v + 3) / 4), o),
+      picN: n => showPts(PATTERNS.crosses.crossPts(n), { instant: true }),
+      nIs: "n = which cross: 1st, 2nd, 3rd…",
+      rules: [
+        { a: 4, b: -3, words: "start at 1, add 4 each time", ok: true },
+        { a: 2, b: -1, words: "start at 1, add 2 each time" },
+        { a: 4, b: 0, words: "n times 4" },
+        { sq: true, words: "n times itself" },
+        { a: 3, b: -2, words: "start at 1, add 3 each time" },
+      ],
+      tryIt: { goal: 5, ban: "Watch the 4 new tiles each time, one on each arm.", done: "✓ 4 × 5 − 3 = <b>17</b>. Four arms of 5 all share the middle tile, so it's counted 4 times: take 3 away.", key: "<span class=\"k1\">green</span> = the 4 new tiles" },
+      req: { from: 6, to: 12, ask: n => `⚠ CROSS n = ${n} · how many plates?`, label: "cross" },
+      floorG: 11,
+      cracked: "Each new cross adds 4 tiles, one on each arm. The nth cross is 4n − 3 (four arms of n share the middle tile, so take 3 away).",
+      hint: (k, tries) => tries < 2 ? `Not quite. Each cross is 4 more than the last.` : `${4 * k - 7} + 4.`,
+      failLine: "The safe plates were the cross code: each cross 4 more than the last (1, 5, 9, 13…).",
+    },
   };
   const P = PATTERNS[PID];
   const MAX = (P.max && P.max[L]) || LV.max;
@@ -762,6 +814,16 @@
       const safeAt = Array.from({ length: G }, () => Array(G).fill(false)); path.forEach(([x, y]) => { safeAt[y][x] = true; });
       return { safeAt, need: [], greens: [], path, summary: () => `The safe strips were Ls of ${strips.join(", ")} plates: odd numbers.`, draw(){} };
     },
+    // Crosses (the brief: "safe plates spread out from the middle of the floor as a growing cross"): the plus through the
+    // middle plate of an 11 × 11 floor. The DOOR is at its top tip, the SAFE at its right tip; the scan grows it from the middle.
+    crosses(){
+      const c = (G - 1) / 2, path = [];
+      for(let y = 0; y <= c; y++) path.push([c, y]);
+      for(let x = c + 1; x < G; x++) path.push([x, c]);
+      const safeAt = Array.from({ length: G }, (_, y) => Array.from({ length: G }, (_, x) => x === c || y === c));
+      return { safeAt, need: [], greens: [], path, door: [c, 0], safe: [G - 1, c], doorAt: "the top of the cross", scan: "rings",
+        summary: () => `The safe plates grew out from the middle as a cross: the ${ord(c + 1)} cross, 4 × ${c + 1} − 3 = ${4 * (c + 1) - 3} plates.`, draw(){} };
+    },
     // Doubling: the safe corridor's straight runs double (1, 1, 2, 2, 4, 4), right and down by turns: exactly 8 × 8
     doubling(){
       const first = T.pick(["R", "D"]), path = [[0, 0]];
@@ -805,7 +867,7 @@
     },
   };
   const F = FLOORS[PID]();
-  W.need = F.need.slice(); W.zones = F.zones && F.zones.map(z => ({ ...z }));
+  W.door = F.door || [0, 0]; W.safe = F.safe || [G - 1, G - 1]; W.need = F.need.slice(); W.zones = F.zones && F.zones.map(z => ({ ...z }));
 
   // ===== The readings: the route's numbers and more terms glow; grey decoys are never terms =====
   const COLS = 6, ROWS = 5;
@@ -1029,7 +1091,7 @@
     return null;
   }
   function stamp(r, kind, v, locked){
-    const d = lay("arr " + kind + (PID === "matchsticks" ? " ms" : PID === "lshapes" ? " ls" : ""), r.x, r.y, r.w, r.h, `${P.art(r.h, r.w)}<em>${v}</em><b>${PID === "matchsticks" ? `${v} · ` : ""}${P.label(r.h, r.w)}</b>${locked && r.w >= 4 ? `<span class="tag">LOCKED</span>` : ""}<button type="button" class="x" title="Erase" aria-label="Erase ${v}">×</button>`);
+    const d = lay("arr " + kind + (PID === "matchsticks" ? " ms" : PID === "lshapes" ? " ls" : PID === "crosses" ? " cs" : ""), r.x, r.y, r.w, r.h, `${P.art(r.h, r.w)}<em>${v}</em><b>${PID === "matchsticks" ? `${v} · ` : ""}${P.label(r.h, r.w)}</b>${locked && r.w >= 4 ? `<span class="tag">LOCKED</span>` : ""}<button type="button" class="x" title="Erase" aria-label="Erase ${v}">×</button>`);
     d.dataset.v = v; return d;
   }
   // The pad builds a reading: its rectangles in turn, long and thin first; a code reading locks gold, a grey one never does
@@ -1521,6 +1583,10 @@
     document.querySelector(".sr").classList.remove("wide");
     $("stageLab").textContent = "Step 4 of 4 · lay the route for FOX and WREN";
     buildGrid(G, G, "floor"); view("grid"); $("floorHd").textContent = "STRONGROOM FLOOR · PRESSURE PLATES"; $("floorLab").textContent = "SCANNING…";
+    // a floor can put its DOOR and SAFE elsewhere (crosses: the tips of the cross); the label sits above or below its plate
+    [[".door", F.door], [".safebox", F.safe]].forEach(([q, at]) => { const e = fg.querySelector(q); if(!e || !at) return; const [x, y] = at;
+      Object.assign(e.style, x === G - 1 ? { left: "auto", right: "-2px" } : { left: `calc(${x} * (var(--cs) + 2px))`, right: "auto" },
+        y === 0 ? { top: "-24px", bottom: "auto" } : { top: `calc(${y + 1} * (var(--cs) + 2px) + 4px)`, bottom: "auto" }); });
     cells.forEach(c => c.classList.add("dark"));
     comms();
     await wait(400); say2("FOX", "We're at the plates. Where are we with it? What do we do?");
@@ -1529,13 +1595,22 @@
     await wait(500); say2("WREN", "Copy. Waiting on your route. Don't keep us standing here.");
     // the scan: a sweep line runs down the floor; plates light as it passes
     T.SND("scanline"); $("floorLab").textContent = "SCANNING…";
-    const sweep = lay("sweep", 0, 0, G, 1);
-    for(let y = 0; y < G && !over; y++){
-      sweep.dataset.gy = y; place(sweep);
-      for(let x = 0; x < G; x++){ const c = cell(x, y); c.classList.remove("dark"); c.classList.add(F.safeAt[y][x] ? "safe" : "live"); }
-      T.SND("tick"); await wait(140);
+    if(F.scan === "rings"){
+      // crosses: the scan grows out from the middle, ring by ring, so the cross grows 4 plates at a time
+      const m = (G - 1) / 2;
+      for(let d = 0; d <= m && !over; d++){
+        for(let y = 0; y < G; y++) for(let x = 0; x < G; x++) if(Math.max(Math.abs(x - m), Math.abs(y - m)) === d){ const c = cell(x, y); c.classList.remove("dark"); c.classList.add(F.safeAt[y][x] ? "safe" : "live"); }
+        T.SND("tick"); await wait(260);
+      }
+    } else {
+      const sweep = lay("sweep", 0, 0, G, 1);
+      for(let y = 0; y < G && !over; y++){
+        sweep.dataset.gy = y; place(sweep);
+        for(let x = 0; x < G; x++){ const c = cell(x, y); c.classList.remove("dark"); c.classList.add(F.safeAt[y][x] ? "safe" : "live"); }
+        T.SND("tick"); await wait(140);
+      }
+      sweep.remove();
     }
-    sweep.remove();
     if(F.zones && LV.outline) F.zones.forEach(z => lay("zone", z.x, z.y, z.n, z.n));
     if(F.bars) F.draw(), fg.querySelectorAll("svg.bars line").forEach(l => { l.classList.remove("hide"); l.classList.add("off"); });
     $("floorLab").textContent = "SAFE PLATES MAPPED";
@@ -1550,7 +1625,8 @@
   // Press on the door plate, drag through neighbouring plates; backing up rubs out; a live plate stops the line
   function drawRoute(){
     return new Promise(res => {
-      const route = [[0, 0]], svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      const start = F.door || [0, 0], end = F.safe || [G - 1, G - 1];
+      const route = [start.slice()], svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
       svg.setAttribute("class", "route"); svg.dataset.gx = 0; svg.dataset.gy = 0; svg.dataset.gw = G; svg.dataset.gh = G; svg.setAttribute("viewBox", `0 0 ${G} ${G}`); svg.setAttribute("preserveAspectRatio", "none");
       fg.appendChild(svg); place(svg);
       const paint = () => { svg.innerHTML = `<polyline points="${route.map(([x, y]) => `${x + .5},${y + .5}`).join(" ")}"/>` + route.map(([x, y]) => `<circle cx="${x + .5}" cy="${y + .5}" r=".12"/>`).join(""); W.route = route.slice(); };
@@ -1569,11 +1645,11 @@
           say("That plate's live. Press on the end of your line and carry on along the green plates.", "bad"); return;
         }
         route.push(c); paint(); T.SND("plot");
-        if(c[0] === G - 1 && c[1] === G - 1 && !done){ done = true; down = false; T.SND("lockon"); setTimeout(() => res(route.slice()), 300 / sp()); }
+        if(c[0] === end[0] && c[1] === end[1] && !done){ done = true; down = false; T.SND("lockon"); setTimeout(() => res(route.slice()), 300 / sp()); }
       };
       fg.addEventListener("pointerdown", e => { if(done || over || stage !== "route") return; const c = at(e); if(!c) return;
         const [lx, ly] = route[route.length - 1];
-        if(c[0] !== lx || c[1] !== ly){ say(route.length === 1 ? "Start on the DOOR plate (top left)." : "Carry on from the end of your line.", "warn"); return; }
+        if(c[0] !== lx || c[1] !== ly){ say(route.length === 1 ? `Start on the DOOR plate (${F.doorAt || "top left"}).` : "Carry on from the end of your line.", "warn"); return; }
         e.preventDefault(); fg.setPointerCapture(e.pointerId); down = true; });
       fg.addEventListener("pointermove", e => { if(!down) return; const c = at(e); if(c) step(c); });
       const up = () => { down = false; };
@@ -1584,7 +1660,7 @@
 
   // ===== 6. Debrief: the plates pulse door → safe, FOX and WREN cross, the code goes in the codebook =====
   function crossPath(){
-    const safeAt = F.safeAt, start = [0, 0], end = [G - 1, G - 1], key = (x, y) => x + "," + y, prev = new Map([[key(...start), null]]), q = [start];
+    const safeAt = F.safeAt, start = F.door || [0, 0], end = F.safe || [G - 1, G - 1], key = (x, y) => x + "," + y, prev = new Map([[key(...start), null]]), q = [start];
     while(q.length){ const [x, y] = q.shift(); if(x === end[0] && y === end[1]) break;
       for(const [dx, dy] of [[-1, 0], [0, 1], [1, 0], [0, -1]]){ const nx = x + dx, ny = y + dy, k = key(nx, ny); if(nx >= 0 && ny >= 0 && nx < G && ny < G && safeAt[ny][nx] && !prev.has(k)){ prev.set(k, [x, y]); q.push([nx, ny]); } } }
     const out = []; for(let c = end; c; c = prev.get(key(...c))) out.unshift(c); return out;
@@ -1601,7 +1677,7 @@
     const dot = cls => { const d = document.createElement("div"); d.className = "agent " + cls; fg.appendChild(d); return d; };
     const fox = dot("fox"), wren = dot("wren");
     const put = (d, [x, y], k) => { const s = CS * k; Object.assign(d.style, { width: s + "px", height: s + "px", left: (px(x) + (CS - s) / 2) + "px", top: (px(y) + (CS - s) / 2) + "px" }); };
-    put(fox, [0, 0], .5); put(wren, [0, 0], .4); fox.style.top = (parseFloat(fox.style.top) - CS) + "px"; wren.style.top = (parseFloat(wren.style.top) - CS) + "px";
+    put(fox, F.door || [0, 0], .5); put(wren, F.door || [0, 0], .4); fox.style.top = (parseFloat(fox.style.top) - CS) + "px"; wren.style.top = (parseFloat(wren.style.top) - CS) + "px";
     await wait(400);
     const stepMs = Math.max(140, Math.min(320, 5200 / path.length));
     for(let i = 0; i <= path.length + 1; i++){

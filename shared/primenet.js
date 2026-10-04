@@ -530,7 +530,7 @@
     { id:"matchsticks", name:"Matchsticks",    code:"the matchstick code", order:"early", terms:"4, 7, 10, 13, 16", ready:true },
     { id:"doubling",    name:"Doubling",       code:"the doubling code",   order:"early", terms:"1, 2, 4, 8, 16", ready:true },
     { id:"lshapes",     name:"L-shapes (odd numbers)", code:"the L code",  order:"early", terms:"1, 3, 5, 7, 9", ready:true },
-    { id:"crosses",     name:"Crosses",        code:"the cross code",      order:"early", terms:"1, 5, 9, 13, 17" },
+    { id:"crosses",     name:"Crosses",        code:"the cross code",      order:"early", terms:"1, 5, 9, 13, 17", ready:true },
   ];
   function patternsOff(){ const d = readTw(); return Array.isArray(d.patternsOff) ? d.patternsOff : []; }
   function setPatternOn(id, on){ const d = readTw(), off = new Set(patternsOff()); if(on) off.delete(id); else off.add(id); d.patternsOff = [...off]; writeTw(d); }
