@@ -421,6 +421,8 @@
   .rx-grid input.ans{ width:3.2em; font:600 28px "IBM Plex Mono", monospace; text-align:center; color:#ffd76a; background:#08181e; border:2px solid #ffd76a; border-radius:4px; padding:0 2px; box-shadow:0 0 12px rgba(255,215,106,.35); }
   .rx-grid input.ans:focus{ outline:none; } .rx-grid input.ans.glitch{ animation:rdGl .36s steps(2) 1; }
   .cipher.dec .cpic{ overflow:hidden; } .cipher.dec .cpic .picw{ min-height:0 !important; }
+  .flood .stream b.g{ display:inline-block; } .flood .stream b.g.ping{ animation:rdPing 1s ease-out 1; }
+  .rx-grid b.hid{ color:#5d7880 !important; }
   .rx-grid b.got{ display:inline-block; color:#ffd76a; } .rx-grid b.got.ping{ animation:rdPing 1s ease-out 1; }
 </style>
 </head>
@@ -970,8 +972,8 @@
     let cm = 0;
     const comm = (who, text) => { T.SND("radio"); tally.insertAdjacentHTML("beforeend", `<div class="cl"><b>${who}</b><span>${text}</span></div>`); };
     T.SND("drone", 13);
-    let held = false;
-    const dur = 15000; let el = 0, last = performance.now(), since = 999, b = 0, n = 0;
+    let held = false;   // Bertie: a longer flood (30 s), to see the numbers and to hold SPACE for effect
+    const dur = 30000; let el = 0, last = performance.now(), since = 999, b = 0, n = 0;
     await new Promise(res => {
       const frame = now => {
         const dt = (now - last) * sp() * (held ? 4 : 1); last = now; el += dt; since += dt;   // Bertie: hold SPACE to speed it up
@@ -979,7 +981,7 @@
         ov.querySelector(".bar i").style.width = p * 100 + "%"; ov.querySelector(".pct").textContent = Math.floor(p * 100) + "%";
         while(b < beats.length && p >= beats[b][0]){ push(beats[b][1], beats[b][2]); b++; }
         while(cm < comms.length && p >= comms[cm][0]){ comm(comms[cm][1], comms[cm][2]); cm++; }
-        if(since > (p >= 1 ? 1100 : 650) && p > .04){
+        if(since > (p >= 1 ? 1100 : 800) && p > .04){
           // a whole line of readings across the box; a few of the code's readings glow in it (sometimes none)
           since = 0; n++;
           if(Math.random() < .08){ push(`[NET] ${hex(8)} :: ${T.pick(["sync()", "checksum_ok()", "bounce_proxy()", "mask_route()"])}`, "noise"); }
@@ -987,10 +989,12 @@
             const k = cols(), g = T.pick([2, 2, 3, 3, 4]), at = new Set(T.shuffle(T.range(0, k - 1)).slice(0, g)), cells = [];
             for(let c = 0; c < k; c++){
               if(at.has(c)){ const v = greens.slice().sort((x, y) => (seen[x] || 0) - (seen[y] || 0) || Math.random() - .5)[Math.floor(Math.random() * Math.min(3, greens.length))];
-                seen[v] = (seen[v] || 0) + 1; cells.push(`<b class="g">${String(v).padStart(3)}</b>`); }
+                // Bertie's favourite effect: it arrives as random digits, then scrambles and lands (below)
+                seen[v] = (seen[v] || 0) + 1; cells.push(`${" ".repeat(Math.max(0, 3 - String(v).length))}<b class="g" data-v="${v}">${rndDigits(String(v).length)}</b>`); }
               else { const v = greyPool.length ? greyPool.shift() : T.pick(noiseAny); F0.noise.push(v); cells.push(String(v).padStart(3)); }
             }
             push(`<span class="noise">plates_${"ABCDEFGH"[n % 8]} ::</span> ${cells.join("  ")}`, "row");
+            [...stream.lastElementChild.querySelectorAll("b.g")].forEach((e, i) => setTimeout(() => scramble(e, "ping"), i * 80 / sp()));
             T.SND(g ? "tick" : "chatter");
           }
         }
@@ -1327,6 +1331,8 @@
           last.replaceWith(inp); inp.addEventListener("keydown", e => { if(e.key === "Enter"){ e.preventDefault(); if(inp.value.trim()) ask.check(inp); } });
           setTimeout(() => inp.isConnected && inp.focus({ preventScroll: true }), 0); }
       }
+      // Bertie: while a request waits, the other n hide their answers, so the sum has to be done
+      if(ask && cur !== ask.n){ const last = host.querySelector(".rx-grid .rr:last-child b"); if(last){ last.textContent = "?"; last.className = "hid"; } }
       const ban = host.querySelector(".rx-ban"); if(ban && ask) ban.classList.toggle("wait", cur !== ask.n);
       if(onVal) host.querySelector(".rx-note").innerHTML = onVal(rule.gen(cur)) || "";
       if(onN) onN(cur);
