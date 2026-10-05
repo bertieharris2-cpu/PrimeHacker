@@ -1,0 +1,101 @@
+/* PRIMENET cipher kit: the cipher terminal shared by the code-crack twists (see shared/cipher.js).
+   Readable styling (Bertie): slate panel, IBM Plex Mono at normal weight. Load IBM Plex Mono 400/500/600 on the page. */
+.nb{ display:inline-block; min-width:1.4em; padding:0 .3em; text-align:center; color:#10222a; background:#7fd4ff; border-radius:5px; font-weight:600; }
+
+/* The readings strip (frozen readings: glowing = the code, grey = noise) */
+.rain{ position:relative; flex:none; display:grid; grid-template-columns:repeat(var(--cols, 15), minmax(0,1fr)); grid-auto-rows:34px; gap:4px; padding:6px 0; border-bottom:1px solid rgba(143,234,255,.15); }
+.rain.in .rd{ animation:rdIn .5s ease-out backwards; animation-delay:calc(var(--i) * 14ms); }
+@keyframes rdIn{ from{ opacity:0; transform:translateY(-14px); } }
+.rd{ all:unset; box-sizing:border-box; display:flex; align-items:center; justify-content:center; font:500 20px "IBM Plex Mono", var(--font-mono); color:rgba(223,248,255,.3); border:1px solid transparent; position:relative; transition:color .5s, opacity .5s; }
+.rd.g{ color:#8ff5c9; text-shadow:0 0 6px rgba(125,255,196,.45); animation:rdPulse 2.4s ease-in-out infinite; }
+@keyframes rdPulse{ 50%{ text-shadow:0 0 18px rgba(125,255,196,1), 0 0 4px #fff; } }
+.rd.glitch{ animation:rdGl .36s steps(2) 1 !important; } @keyframes rdGl{ 33%{ transform:translateX(-3px); color:#ff8aa0; } 66%{ transform:translateX(3px); filter:hue-rotate(90deg); } }
+.rd.faint{ opacity:.35; }
+.rd.dec{ color:#ffe14d !important; text-shadow:0 0 12px rgba(255,225,77,.8) !important; animation:none !important; }
+.rd.hit{ background:rgba(125,255,196,.22) !important; border-color:#7dffc4 !important; }
+.rd.miss{ outline:2px dashed #ff8aa0; outline-offset:-3px; }
+.rd.leak{ color:#ff8aa0 !important; border-color:#ff4f6d !important; background:rgba(255,79,109,.15) !important; opacity:1; }
+/* the effect: a number scrambles, then lands with a flash */
+.rd.ping{ animation:rdPing 1s ease-out 1 !important; }
+@keyframes rdPing{ 0%{ color:#fff; transform:scale(1.35); text-shadow:0 0 22px #ffd76a, 0 0 6px #fff; } 100%{ transform:scale(1); } }
+
+/* The terminal: centred and big */
+.cipher{ position:fixed; inset:0; z-index:9300; display:flex; align-items:center; justify-content:center; background:rgba(2,8,10,.6); }
+.cipher .cbox{ width:min(1210px, 97vw); height:min(700px, 95vh); flex:none; box-shadow:0 20px 90px rgba(0,0,0,.85), 0 0 40px rgba(125,255,196,.12); padding:14px 18px; box-sizing:border-box; }
+.hterm{ display:flex; flex-direction:column; min-height:0; background:#0f2129; border:1px solid rgba(143,234,255,.28); font:400 17px/1.55 "IBM Plex Mono", var(--font-mono); color:#e4f1f4; }
+.cipher .chd{ display:flex; gap:16px; align-items:center; font:700 13px var(--font-ui); letter-spacing:.18em; color:#8feaff; padding-bottom:8px; }
+.cipher .chd .st{ margin-left:auto; color:#ffe14d; }
+.cipher .cmain{ flex:1; min-height:0; display:grid; grid-template-columns:minmax(0,1fr) 540px; gap:14px; margin-top:8px; }
+.hterm .hist{ min-height:0; overflow:auto; white-space:pre-wrap; scrollbar-width:thin; }
+.hterm .hist .me{ color:#ff9ad6; } .hterm .hist .ok{ color:#8ff5c9; } .hterm .hist .bad{ color:#ff9aa8; } .hterm .hist .gold{ color:#ffd76a; } .hterm .hist .sys{ color:#a9c3c9; }
+.hterm .hist .gob{ color:#8ff5c9; }
+.hterm .hist .req{ color:#10222a; background:#ffd76a; font-weight:600; padding:2px 8px; display:inline-block; margin:4px 0; }
+.hterm .hist .ora{ color:#7fd4ff; font-family:var(--font-ui); font-weight:600; }
+.cside{ display:flex; flex-direction:column; gap:8px; min-height:0; border-left:1px solid rgba(143,234,255,.2); padding-left:14px; }
+.cipher .cpic{ display:none; }
+.hterm .prompt{ flex:none; display:flex; flex-wrap:wrap; align-items:center; gap:6px 8px; border-top:1px dashed rgba(125,255,196,.3); padding-top:8px; margin-top:6px; }
+.hterm .prompt:empty{ display:none; }
+.hterm .prompt .sys{ color:#a9c3c9; font-family:var(--font-ui); font-size:14px; }
+.hterm .prompt .tip2{ font:500 17px/1.4 var(--font-ui); color:#e4f1f4; flex:1; } .hterm .prompt .tip2 b{ color:#ffd76a; }
+.hterm .prompt button.run{ font:600 18px var(--font-ui); letter-spacing:.06em; padding:9px 18px; color:#02140c; background:#8ff5c9; border:1px solid #8ff5c9; cursor:pointer; }
+.hterm .prompt .pins{ display:flex; align-items:flex-end; height:28px; gap:6px; border-bottom:2px solid rgba(143,234,255,.3); padding:0 3px; margin-left:auto; }
+.hterm .prompt .pins .pin{ width:9px; height:22px; background:linear-gradient(#8feaff, #3b7d8c); border-radius:3px 3px 0 0; transform:translateY(-5px); transition:transform .25s; }
+.hterm .prompt .pins .pin.drop{ transform:translateY(5px); background:linear-gradient(#ffe14d, #a8860c); }
+
+/* Cracking: the rules in the left container, the explorer on the right */
+.cipher.crack .cmain{ grid-template-rows:auto minmax(0,1fr); }
+.cipher.crack .cards{ grid-column:1; grid-row:1; } .cipher.crack .hist{ grid-column:1; grid-row:2; font-size:15px; border-top:1px dashed rgba(143,234,255,.25); padding-top:6px; }
+.cipher.crack .cside{ grid-column:2; grid-row:1 / span 2; }
+.cipher .cards:empty{ display:none; }
+.cards .ctl2{ font:700 12px var(--font-ui); letter-spacing:.18em; color:#8feaff; margin-bottom:6px; }
+.cards .rules3{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.cards button.rule{ display:flex; flex-direction:column; align-items:flex-start; gap:2px; text-align:left; font:500 22px "IBM Plex Mono", var(--font-mono); padding:9px 14px; color:#f2fbfd; background:#16303a; border:1px solid rgba(143,234,255,.35); cursor:pointer; }
+.cards button.rule small{ font:500 13px var(--font-ui); color:#a9c3c9; }
+.cards button.rule:hover, .cards button.rule:focus-visible{ border-color:#ffd76a; outline:none; }
+.cards button.rule.on{ background:#2b2a12; border-color:#ffd76a; } .cards button.rule.on b{ color:#ffd76a; }
+.cards button.rule.no{ opacity:.35; text-decoration:line-through; cursor:default; }
+.cards button.run{ font:600 20px var(--font-ui); letter-spacing:.06em; color:#02140c; background:#8ff5c9; border:1px solid #8ff5c9; cursor:pointer; }
+.cards button.run:disabled{ background:transparent; color:rgba(143,245,201,.4); border-color:rgba(143,245,201,.3); cursor:default; }
+
+/* With the picture: the picture on the left, the explorer on the right */
+.cipher.withpic .hist{ display:none; } .cipher.withpic .cpic{ display:flex; grid-column:1; grid-row:1; min-height:0; } .cipher.withpic .cside{ grid-column:2; grid-row:1; }
+.cipher.withpic .cmain{ grid-template-columns:330px minmax(0,1fr); }
+.cipher .cpic{ flex-direction:column; align-items:center; justify-content:center; gap:10px; overflow:hidden; }
+.cipher .cpic .cap{ font:500 18px var(--font-ui); color:#e4f1f4; text-align:center; } .cipher .cpic .cap .gold{ color:#ffd76a; } .cipher .cpic .cap .sys{ color:#a9c3c9; font-size:15px; }
+/* Decrypt: the stream on the left, the calculator and the picture on the right */
+.cipher.dec .cmain{ grid-template-columns:minmax(0,1fr) 470px; grid-template-rows:auto minmax(0,1fr); }
+.cipher.dec .hist{ grid-column:1; grid-row:1 / span 2; } .cipher.dec .cside{ grid-column:2; grid-row:1; } .cipher.dec .cpic{ display:flex; grid-column:2; grid-row:2; min-height:0; border-left:1px solid rgba(143,234,255,.2); padding-left:14px; }
+.cipher.dec .rx-tab, .cipher.dec .rx-eq{ display:none; } .cipher.dec .rx-grid .rr{ font-size:24px; } .cipher.dec .rx{ gap:6px; } .cipher.dec .cpic .cap{ font-size:14px; }
+
+/* The rule explorer */
+.rx{ display:flex; flex-direction:column; gap:10px; font-family:"IBM Plex Mono", var(--font-mono); color:#e4f1f4; }
+.rx-eq{ display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; } .rx-eq small{ font:700 11px var(--font-ui); letter-spacing:.18em; color:#8feaff; } .rx-eq span{ font:500 15px var(--font-ui); color:#a9c3c9; }
+.rx-n{ display:flex; align-items:center; gap:14px; font-size:26px; } .rx-n .nb.big{ font-size:30px; min-width:1.8em; } .rx-n small{ font:500 13px var(--font-ui); color:#b69cff; }
+.rx-step{ display:inline-flex; flex-direction:column; gap:3px; }
+.rx-b{ all:unset; display:flex; align-items:center; justify-content:center; width:44px; height:24px; font:700 15px var(--font-ui); color:#d8c9ff; background:transparent; border:2px solid #b69cff; border-radius:6px; cursor:pointer; }
+.rx-b:hover, .rx-b:focus-visible{ background:#b69cff; color:#1a1030; outline:none; }
+.rx.nostep .rx-step, .rx.nostep .rx-n small{ display:none; }
+.rx-grid{ display:flex; flex-direction:column; gap:6px; }
+.rx-grid .rr{ display:grid; grid-template-columns:1.3em repeat(5, minmax(1.6em, auto)); justify-content:start; align-items:center; column-gap:.35em; font:500 32px/1.25 "IBM Plex Mono", var(--font-mono); color:#e4f1f4; }
+.rx-grid .rr > span{ text-align:center; } .rx-grid .rr > span:first-child{ color:#a9c3c9; }
+.rx-grid .rr.r0{ color:#ffd76a; border-bottom:1px dashed rgba(255,215,106,.35); padding-bottom:6px; }
+.rx-grid .rr .nb{ font-size:30px; min-width:1.3em; padding:0 .2em; } .rx-grid .rr b{ color:#ffd76a; font-weight:600; }
+.rx-grid b.hid{ color:#5d7880 !important; }
+.rx-note{ font:500 17px var(--font-ui); min-height:1.4em; } .rx-note .yes{ color:#ffd76a; } .rx-note .bad{ color:#ff9aa8; } .rx-note .no{ color:#a9c3c9; }
+.rx-tab{ display:flex; flex-direction:column; gap:4px; font-size:24px; } .rx-tab div{ display:grid; grid-template-columns:78px repeat(7, 1fr); } .rx-tab span{ font:600 14px var(--font-ui); color:#a9c3c9; align-self:center; }
+.rx-tab i{ font-style:normal; text-align:center; color:#c9e3ea; padding:1px 0; } .rx-tab i.cur{ color:#10222a; background:#ffd76a; border-radius:4px; }
+.rx-tab i.glow{ color:#8ff5c9; box-shadow:inset 0 -3px 0 #8ff5c9; } .rx-tab i.cur.glow{ color:#10222a; }
+.rx-nudge{ font:500 16px var(--font-ui); color:#a9c3c9; } .rx-nudge b{ color:#8ff5c9; }
+.rx-empty{ font:500 17px/1.6 var(--font-ui); color:#a9c3c9; padding:20px 4px; } .rx-empty b.up{ color:#b69cff; }
+.rx-ban{ font:600 18px/1.4 var(--font-ui); color:#f2fbfd; background:rgba(182,156,255,.14); border-left:4px solid #b69cff; padding:10px 14px; }
+.rx-ban b{ color:#ffd76a; } .rx-ban.done{ background:rgba(143,245,201,.14); border-left-color:#8ff5c9; }
+/* a request on top of the calculator, the answer box in the last line of the working */
+.rx-ban.req{ display:flex; flex-direction:column; gap:4px; background:rgba(255,215,106,.12); border-left-color:#ffd76a; }
+.rx-ban.req .rq{ font:600 19px "IBM Plex Mono", monospace; color:#ffd76a; } .rx-ban.req .rqh{ font:500 15px var(--font-ui); color:#e4f1f4; }
+.rx-ban.req.wait{ animation:reqPulse 1.2s ease-in-out infinite; } @keyframes reqPulse{ 50%{ background:rgba(255,215,106,.26); } }
+.rx-ban.req:not(.wait) .rqh{ color:#8ff5c9; }
+.rx-ban .cd{ display:block; height:6px; border:1px solid rgba(255,215,106,.5); } .rx-ban .cd i{ display:block; height:100%; width:100%; background:#ffd76a; }
+.rx-grid input.ans{ width:3.2em; font:600 28px "IBM Plex Mono", monospace; text-align:center; color:#ffd76a; background:#08181e; border:2px solid #ffd76a; border-radius:4px; padding:0 2px; box-shadow:0 0 12px rgba(255,215,106,.35); }
+.rx-grid input.ans:focus{ outline:none; } .rx-grid input.ans.glitch{ animation:rdGl .36s steps(2) 1; }
+.rx-grid b.got{ display:inline-block; color:#ffd76a; } .rx-grid b.got.ping{ animation:rdPing 1s ease-out 1; }
+html.pn-reduce-motion .rd.g, html.pn-reduce-motion .rx-ban.req.wait{ animation:none; }

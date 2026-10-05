@@ -6,8 +6,9 @@
 <title>PRIMENET · Ceiling Relays (3D)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Inter:wght@400;600;700;800&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Inter:wght@400;600;700;800&family=Courier+Prime:wght@400;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../shared/primenet.css">
+<link rel="stylesheet" href="../shared/cipher.css">
 <style>
   /* Round 12 prototype: the ceiling relays on the student's own floor in 3D. Each cube sends electricity
      through the ceiling to a room. ?mode=A (default) stacks square layers on a pallet; ?mode=B sorts cube crates off a conveyor belt.
@@ -166,13 +167,41 @@
   @media (max-width:980px){ main.tw{ height:auto; } .layout{ grid-template-columns:1fr; } .work > .pn-panel{ min-height:560px; } .stage3d{ flex:0 0 360px; } }
   @media (prefers-reduced-motion: reduce){ .stage3d .scan.go{ animation:none; } .fbIntro.open .plate{ transform:none; } }
   html.pn-reduce-motion .fbIntro.open .plate{ transform:none; }
+  /* Round 24 (Bertie: the strongroom standard). Readable: slate panels, IBM Plex Mono at normal weight. */
+  .pallet, .comms{ background:#0f2129; border-color:rgba(143,234,255,.28); }
+  .need p{ font:500 21px/1.4 var(--font-ui); color:#e4f1f4; } .need p b{ color:#ffd76a; font-weight:600; }
+  .need .rdn{ display:inline-block; font:600 26px "IBM Plex Mono", monospace; color:#8ff5c9; text-shadow:0 0 8px rgba(125,255,196,.5); }
+  .need .rdn.ping{ animation:rdPing 1s ease-out 1; }
+  .count{ font:500 22px/1.4 "IBM Plex Mono", monospace; color:#e4f1f4; } .count b{ color:#ffd76a; font-weight:600; } .count small{ font:500 14px var(--font-ui); color:#a9c3c9; }
+  .count .ok{ color:#8ff5c9; } .count .warn{ color:#ffd76a; }
+  .log{ font-family:"IBM Plex Mono", monospace; } .log span.r{ font-weight:400; } .log b{ font-weight:500; }
+  .rv-eq{ font-family:"IBM Plex Mono", monospace; font-weight:500; }
+  .tools .pn-btn.rule{ margin-top:6px; }
+  /* Comms: FOX and WREN, and the pupil's one reply */
+  .comms{ padding:14px 16px; display:flex; flex-direction:column; gap:10px; }
+  .comms .hd{ font:700 12px var(--font-ui); letter-spacing:.18em; color:#8feaff; }
+  .clog{ flex:none; max-height:70%; overflow:auto; display:flex; flex-direction:column; gap:10px; padding:4px 2px; }
+  .clog .cl{ display:flex; flex-direction:column; gap:3px; padding:10px 12px; border-left:3px solid #6ec8ff; background:rgba(110,200,255,.08); font:500 19px/1.4 var(--font-ui); color:#e4f1f4; max-width:80%; animation:rdIn .35s ease-out; }
+  .clog .cl b{ font:700 12px var(--font-ui); letter-spacing:.18em; color:#6ec8ff; }
+  .clog .cl.me{ align-self:flex-end; border-left:none; border-right:3px solid #8ff5c9; background:rgba(143,245,201,.08); text-align:right; } .clog .cl.me b{ color:#8ff5c9; }
+  .creply{ display:flex; flex-direction:column; gap:8px; } .creply:empty{ display:none; }
+  .creply small{ font:700 12px var(--font-ui); letter-spacing:.18em; color:#8feaff; }
+  .creply button{ font:500 19px var(--font-ui); text-align:left; padding:12px 16px; color:#f2fbfd; background:#16303a; border:1px solid rgba(143,245,201,.5); cursor:pointer; }
+  .creply button:hover, .creply button:focus-visible{ border-color:#ffd76a; outline:none; }
+  .cipher{ transition:background .3s; } .cipher .cbox{ transition:opacity .3s; }
+  .cipher.peek{ background:transparent; pointer-events:none; } .cipher.peek .cbox{ opacity:.06; }
+  /* The cipher's picture: the cube for n */
+  .cipher .cpic svg.rv-cube{ width:min(100%, 280px); height:auto; }
+  .cipher .cpic svg.rv-cube polygon{ stroke:#ffe7a8; stroke-width:1.2; stroke-linejoin:round; } .cipher .cpic svg.rv-cube line{ stroke:#ffe7a8; stroke-width:.8; opacity:.8; }
+  .cipher .cpic .cu{ font-size:1.2em; }
 </style>
 </head>
 <body>
 <main class="tw">
-  <div class="tw-bar"><span class="steps"><span id="st1" class="on">1 · STACK THE RELAYS</span><span id="st2">2 · RELAY CORRIDOR</span></span><span>Relays powered: <b id="count">0</b> of <b id="total">0</b></span></div>
+  <div class="tw-bar"><span class="steps"><span id="st1" class="on">1 · BUILD THE RELAYS</span><span id="st2">2 · CRACK THE CODE</span><span id="st3">3 · POWER THE REST</span></span><span>Relays powered: <b id="count">0</b> of <b id="total">0</b></span></div>
   <div class="layout">
     <div class="work">
+      <section class="pn-panel comms" id="commsP" hidden aria-label="Comms"><div class="hd">COMMS · FOX &amp; WREN</div><div class="clog" id="clog"></div><div class="creply" id="creply"></div></section>
       <section class="pn-panel pallet" id="pallet" hidden aria-label="Build the relay">
         <div class="relay"><svg class="wires" id="wires" viewBox="0 0 230 84" aria-hidden="true"></svg><div class="need"><span class="lab" id="relayLab"></span><p id="needLine"></p></div></div>
         <div class="slot"><div class="tw-msg" id="msg" aria-live="polite"></div></div>
@@ -180,7 +209,7 @@
           <div class="tools">
             <div class="count" id="countLine"></div>
             <div class="answer" id="rootRow" hidden><label for="rootIn">How many wires?</label><span class="row"><input class="pn-input" id="rootIn" inputmode="numeric" maxlength="2"><button class="pn-btn small primary" type="button" id="rootBtn">Check</button></span><button class="pn-btn small" type="button" id="noCube">It can't be a cube</button></div>
-            <div class="col" id="buildRow"><button class="pn-btn small" type="button" id="addBtn" disabled>Add a layer</button><button class="pn-btn small" type="button" id="unstackBtn" disabled>Take one off</button><button class="pn-btn small" type="button" id="clearBtn" disabled>Clear the pallet</button><button class="pn-btn small primary" type="button" id="lockBtn">Power the relay</button></div>
+            <div class="col" id="buildRow"><button class="pn-btn small" type="button" id="addBtn" disabled>Add a layer</button><button class="pn-btn small" type="button" id="unstackBtn" disabled>Take one off</button><button class="pn-btn small" type="button" id="clearBtn" disabled>Clear the pallet</button><button class="pn-btn small primary" type="button" id="lockBtn">Power the relay</button><button class="pn-btn small rule" type="button" id="ruleBtn">Got the rule? ▸</button></div>
           </div>
           <div class="palWrap"><svg class="pal" id="pal" aria-label="The pallet"></svg><div id="trayWrap" hidden><span class="lab">SPARE LAYER · DRAG IT ONTO THE STACK</span><div class="tray" id="tray"></div></div></div>
         </div>
@@ -219,11 +248,12 @@
 <script src="../shared/detect.js"></script>
 <script src="../shared/twist.js"></script>
 <script src="../shared/floor3d.js"></script>
+<script src="../shared/cipher.js"></script>
 <script>
 (() => {
   "use strict";
   const T = window.PNTwist, $ = id => document.getElementById(id);
-  const L = T.peekLevel();
+  const L = "L1";   // Round 24 (Bertie): L1 only for now, as the strongroom
   const MODE = new URLSearchParams(location.search).get("mode") === "B" ? "B" : "A";
   const sp = () => (window.PNTest ? PNTest.speed() : 1);
   const wait = ms => new Promise(r => setTimeout(r, ms / sp()));
@@ -238,11 +268,14 @@
          L2: "Only <b>cube-number</b> crates go into the transformer. Load the cubes, reject the rest, and say which cube each one is.",
          L3: "Only <b>cube-number</b> crates go into the transformer. Load the cubes, reject the rest, and give each one's <b>cube root</b>." },
   };
-  T.init({ id: "cubes3d", stage: "BLUEPRINT", title: "CEILING RELAYS", goal: GOALS[MODE][L], result: "auto",
-    context: "This fuse box runs every light on the floor. Each relay is a cube: <b>n wires in</b> needs <b>n × n × n</b> blocks.",
-    example: "<b>3 wires in: 3 × 3 × 3 = 27 = 3³</b>. A 3 × 3 layer for each of the 3 wires. The small ³ means three of that number multiplied together.",
-    story: `We're at the fuse box for ${T.targets()} target floor. Build each ceiling relay as a cube, then light the path to the fuse. Then their lights are ours.` });
-  $("st1").textContent = MODE === "B" ? "1 · LOAD THE CRATES" : "1 · STACK THE RELAYS";
+  // Round 24 (Bertie: the strongroom standard). Nothing names the pattern until it's cracked: the brief says what the
+  // relays need, not how to build them, and never "cube" in mode A.
+  T.init({ levels: ["L1"], id: "cubes3d", stage: "BLUEPRINT", title: "CEILING RELAYS", goal: MODE === "B" ? GOALS.B.L1 : "Each relay has wires coming in and takes a set number of blocks. Build each relay's blocks on the pallet: only one shape will lock. Then crack the rule that links wires to blocks, and use it to power the rest.", result: "auto",
+    briefStyle: "comms", briefTitle: "COMMS · ORACLE",
+    context: "This fuse box runs every light on the floor. Each relay takes the right number of blocks.",
+    example: MODE === "B" ? "<b>3 wires in: 3 × 3 × 3 = 27 = 3³</b>." : "Drag out a layer of blocks on the pallet, then add layers. Any stack with the right number of blocks is kept, but only one shape locks.",
+    story: `We're at the fuse box for ${T.targets()} target floor. Wire the relays and their lights are ours.` });
+  if(MODE === "B"){ $("st1").textContent = "1 · LOAD THE CRATES"; $("st2").textContent = "2 · RELAY CORRIDOR"; $("st3").remove(); }
 
   // ----- The intro: the fuse box's inner cover swings open onto the relays. Waits for the page to load (in a mission the
   // frame fades in on load), then takes about a second; with reduced motion it just goes. -----
@@ -320,10 +353,13 @@
   // Stage 2: the corridor's cube numbers, in order, one per row (L1 1 to 64, L2 1 to 125, L3 1 to 216)
   const PATH = { L1: [1, 4], L2: [1, 5], L3: [1, 6] }[L];
   const s2 = T.range(PATH[0], PATH[1]).map(k => k ** 3);
-  const RELAYS = [...s1.filter(T.isCube), ...s2];
+  // Round 24, mode A: the three built by hand (or by the pallet), then three requests in the cipher: 1, 5 and 10 wires
+  const REQN = T.shuffle([1, 5, 10]);
+  const RELAYS = MODE === "B" ? [...s1.filter(T.isCube), ...s2] : [...s1, ...REQN.map(n => n ** 3)];
   $("total").textContent = RELAYS.length;
 
-  let found = 0, over = false, camBusy = false, finishing = false;
+  let found = 0, over = false, camBusy = false, finishing = false, cracked = false, cracking = false;
+  const W = window.__pnRelay = { mode: MODE, stage: "comms", locked: [], read: [], req: [] };   // for automated checks
   const alarm = T.detect({ stage: "heist", onTrip: () => end(false) });   // Round 22: quick wrong guesses trip it
   function say(t, cls){ const m = $("msg"); m.textContent = t; m.className = "tw-msg" + (cls ? " " + cls : ""); }
   const slot = id => { const s = $(id).querySelector(".slot"); if(s) s.appendChild($("msg")); };   // the feedback line sits in whichever panel is showing
@@ -336,7 +372,7 @@
     const c = cables[found % cables.length], room = c.room;
     found++; $("count").textContent = found;
     const r = cubeRoot(n), last = found === RELAYS.length;
-    if(!$("log").querySelector(`[data-n="${n}"]`)) $("log").querySelector(".lab").insertAdjacentHTML("afterend", `<span class="r" data-n="${n}"><b>${n} = ${r}³</b> · ${room.name.toLowerCase()}</span>`);   // newest first
+    if(!$("log").querySelector(`[data-n="${n}"]`)) $("log").querySelector(".lab").insertAdjacentHTML("afterend", `<span class="r" data-n="${n}"><b>${n} = ${cracked || MODE === "B" ? `${r}³` : `${r} × ${r} × ${r}`}</b> · ${room.name.toLowerCase()}</span>`);   // newest first (no "³" until it's cracked)
     T.SND("correct", found);
     const cine = !REDUCE && !camBusy && !over;
     if(cine){
@@ -363,17 +399,17 @@
   let M = null;   // the mode: { ask, reset, skip }
   function nextRelay(){
     i1++;
-    if(i1 === s1.length) return setTimeout(() => { if(!over) step2(); }, 1000 / sp());
+    if(cracking) return;
+    if(i1 === s1.length) return setTimeout(() => { if(!over) (MODE === "B" ? step2() : crack()); }, 1000 / sp());
     M.reset(); M.ask();
   }
-  // ===== Mode A: stack the relay. The relay's wires say how big its cube is: n wires in, n × n × n blocks. Drag a square
-  // layer on the pallet, then stack one layer for each wire (each new layer plugs the next wire in) until the count matches.
-  // When it does, the cube locks and the spark runs to the room. =====
+  // ===== Mode A: build the relay (Round 24, Bertie: the strongroom standard). Each relay shows its wires and how many
+  // blocks it takes. Drag out any rectangle of blocks as a layer, then stack layers. Any stack with the right number of
+  // blocks is kept but won't lock; only the one as wide, as deep and as tall as the wires locks gold. Nothing says
+  // "cube" until the rule is cracked. After two by hand, the pallet builds the third. =====
+  const HAND = 2;
   function modeA(){
-    $("pallet").hidden = false;
-    const L3 = L === "L3";
-    if(L3){ $("rootRow").hidden = false; $("buildRow").hidden = true; $("pal").classList.add("l3"); }
-    const G = L3 ? 10 : 6, MAXL = L3 ? 10 : 6, Hh = 420, C30 = 0.866;
+    const G = 6, MAXL = 6, Hh = 420, C30 = 0.866;
     const u = (Hh - 28) / (G + MAXL), W = Math.ceil(G * 2 * C30 * u + 30), cx = W / 2, cy = MAXL * u + 10;   // the view hugs the pallet, so it can be as big as possible
     const P = (x, y, z) => [cx + (x - z) * C30 * u, cy + (x + z) * 0.5 * u - y * u];
     const pts = arr => arr.map(p => P(...p).map(v => v.toFixed(1)).join(",")).join(" ");
@@ -383,11 +419,10 @@
     svg.innerHTML = `<g id="cells">${cellsHTML}</g><g id="stack"></g><text class="plab" id="plab" x="${W / 2}" y="${Hh - 4}" text-anchor="middle"></text>`;
     // The relay and its wires: n coloured wires from the ceiling into the relay's pins. Unlit until a layer plugs each one in.
     const WCOL = ["#ff6b6b", "#4aa3ff", "#7dffc4", "#ffe14d", "#ffb35c", "#c792ff", "#8feaff", "#ff8ad8", "#b8f06a", "#f4f4f4"];
-    function drawWires(n, hidden){
+    function drawWires(n){
       const BX = 160, BY = 8, BH = 70, f = v => v.toFixed(1);
       let g = "";
-      if(hidden) g = `<rect class="hid" x="4" y="14" width="118" height="56"/><text class="q" x="63" y="42">?</text><path class="w" d="M122 42 L${BX} 42" stroke="#8aa0a6" stroke-width="7"/>`;   // L3: the wires are hidden in the ceiling
-      else for(let k = 0; k < n; k++){
+      for(let k = 0; k < n; k++){
         const y0 = 4 + 76 * (k + .5) / n, y1 = BY + 6 + (BH - 12) * (k + .5) / n, sw = Math.max(2.5, Math.min(6, 30 / n));
         g += `<path class="w draw" style="color:${WCOL[k % 10]};animation-delay:${k * 90}ms" stroke="currentColor" stroke-width="${f(sw)}" pathLength="1" d="M0 ${f(y0)} C70 ${f(y0)} 80 ${f(y1)} ${BX - 8} ${f(y1)} L${BX} ${f(y1)}"/><rect class="pin" x="${BX - 5}" y="${f(y1 - 2)}" width="6" height="4"/>`;
       }
@@ -395,65 +430,71 @@
       $("wires").innerHTML = g;
     }
     const litWires = k => $("wires").querySelectorAll(".w").forEach((w, i) => w.classList.toggle("on", i < k));
-    // One square layer of a × a blocks: corner (ox, oz), bottom at height y0. Top, right and left faces, block lines on each.
-    function slabSVG(P2, a, ox, oz, y0, cls){
+    // One layer of a × b blocks (a along x, b along z): corner (ox, oz), bottom at height y0. Top, right and front faces.
+    function slabSVG(P2, a, b, ox, oz, y0, cls){
       const y1 = y0 + 1;
       const pl = (arr, f) => `<polygon points="${arr.map(p => P2(...p).map(v => v.toFixed(1)).join(",")).join(" ")}" fill="${f}"/>`;
       const ln = (p, q) => { const [x1, ya] = P2(...p), [x2, yb] = P2(...q); return `<line x1="${x1.toFixed(1)}" y1="${ya.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${yb.toFixed(1)}"/>`; };
-      let g = pl([[ox, y1, oz], [ox + a, y1, oz], [ox + a, y1, oz + a], [ox, y1, oz + a]], "rgba(255,201,77,.62)")
-        + pl([[ox + a, y0, oz], [ox + a, y1, oz], [ox + a, y1, oz + a], [ox + a, y0, oz + a]], "rgba(255,201,77,.36)")
-        + pl([[ox, y0, oz + a], [ox + a, y0, oz + a], [ox + a, y1, oz + a], [ox, y1, oz + a]], "rgba(255,201,77,.22)");
-      for(let k = 1; k < a; k++) g += ln([ox + k, y1, oz], [ox + k, y1, oz + a]) + ln([ox, y1, oz + k], [ox + a, y1, oz + k]) + ln([ox + a, y0, oz + k], [ox + a, y1, oz + k]) + ln([ox + k, y0, oz + a], [ox + k, y1, oz + a]);
+      let g = pl([[ox, y1, oz], [ox + a, y1, oz], [ox + a, y1, oz + b], [ox, y1, oz + b]], "rgba(255,201,77,.62)")
+        + pl([[ox + a, y0, oz], [ox + a, y1, oz], [ox + a, y1, oz + b], [ox + a, y0, oz + b]], "rgba(255,201,77,.36)")
+        + pl([[ox, y0, oz + b], [ox + a, y0, oz + b], [ox + a, y1, oz + b], [ox, y1, oz + b]], "rgba(255,201,77,.22)");
+      for(let k = 1; k < a; k++) g += ln([ox + k, y1, oz], [ox + k, y1, oz + b]) + ln([ox + k, y0, oz + b], [ox + k, y1, oz + b]);
+      for(let k = 1; k < b; k++) g += ln([ox, y1, oz + k], [ox + a, y1, oz + k]) + ln([ox + a, y0, oz + k], [ox + a, y1, oz + k]);
       return `<g class="slab ${cls || ""}">${g}</g>`;
     }
-    let base = 0, layers = 0, ox = 0, oz = 0, locked = false;
+    let bw = 0, bd = 0, layers = 0, ox = 0, oz = 0, locked = false, tries = 0;
+    const blocks = () => bw * bd * layers, isEven = () => bw === bd && bd === layers;
     function traySVG(scale = 1){
-      const tu = 15 * scale, w = base * 2 * C30 * tu + 10, h = base * tu + tu + 10;
-      const P3 = (x, y, z) => [w / 2 + (x - z) * C30 * tu, tu + 5 + (x + z) * 0.5 * tu - y * tu];
-      return `<svg viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" aria-hidden="true">${slabSVG(P3, base, 0, 0, 0)}</svg>`;
+      const tu = 15 * scale, w = (bw + bd) * C30 * tu + 10, h = (bw + bd) * 0.5 * tu + tu + 10;
+      const P3 = (x, y, z) => [5 + bd * C30 * tu + (x - z) * C30 * tu, tu + 5 + (x + z) * 0.5 * tu - y * tu];
+      return `<svg viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" aria-hidden="true">${slabSVG(P3, bw, bd, 0, 0, 0)}</svg>`;
     }
-    const trayScale = () => Math.min(1, 80 / (base + 1) / 15, 186 / (2 * C30 * base) / 15);   // the spare layer fits its column
+    const trayScale = () => Math.min(1, 80 / (Math.max(bw, bd) + 1) / 15, 186 / (C30 * (bw + bd)) / 15);   // the spare layer fits its column
     function paint(drop){
       const st = $("stack"); let g = "";
-      for(let k = 0; k < layers; k++) g += slabSVG(P, base, ox, oz, k, k === layers - 1 ? "top" : "");
+      for(let k = 0; k < layers; k++) g += slabSVG(P, bw, bd, ox, oz, k, k === layers - 1 ? "top" : "");
       st.innerHTML = g;
       if(drop && layers && !REDUCE){ const top = st.lastElementChild; top.style.transition = "none"; top.style.transform = `translateY(${-u * 1.6}px)`; requestAnimationFrame(() => { top.style.transition = `transform ${240 / sp()}ms ease-out`; top.style.transform = "translateY(0)"; }); }
-      svg.classList.toggle("taken", !!base && !L3);
-      const n = base * base * layers, cube = base === layers;
-      $("countLine").innerHTML = !base ? (L3 ? "No cube yet." : "No layer yet.") : `${base} × ${base} × ${layers} = <b>${n}</b>${cube ? ` = ${cu(base)}` : ` <small>${layers} layer${layers === 1 ? "" : "s"} of ${base * base} · not a cube yet</small>`}`;
-      $("unstackBtn").disabled = layers < 1 || locked; $("clearBtn").disabled = !base || locked; $("addBtn").disabled = !base || layers >= MAXL || locked;
-      $("trayWrap").hidden = !base || L3 || locked; if(base && !L3) $("tray").innerHTML = traySVG(trayScale());
-      $("plab").textContent = base || L3 ? `PALLET · ${G} × ${G}` : "DRAG TO DRAW A SQUARE LAYER";
-      if(!L3 && !locked) litWires(layers);   // each layer plugs in one wire
+      svg.classList.toggle("taken", !!bw);
+      const n = blocks(), w = want();
+      $("countLine").innerHTML = !bw ? "No layer yet." : `${bw} × ${bd} × ${layers} = <b>${n}</b> <small>${layers} layer${layers === 1 ? "" : "s"} of ${bw * bd} · the relay takes ${w}</small>`;
+      $("unstackBtn").disabled = layers < 1 || locked; $("clearBtn").disabled = !bw || locked; $("addBtn").disabled = !bw || layers >= MAXL || locked;
+      $("trayWrap").hidden = !bw || locked; if(bw) $("tray").innerHTML = traySVG(trayScale());
+      $("plab").textContent = bw ? `PALLET · ${G} × ${G}` : "DRAG ACROSS THE PALLET TO LAY OUT A LAYER";
+      if(!locked) litWires(layers);   // each layer plugs in one wire
     }
-    // Too many blocks: the square they chose can't make this relay, so they clear the pallet and choose again
-    function checkOver(){
-      const n = base * base * layers, w = want();
-      if(n <= w) return false;
-      say(`${base} × ${base} × ${layers} = ${n}. That's past ${w}. A ${base} × ${base} layer can't make ${w}: clear the pallet and draw a different square.`, "warn"); T.SND("untag");
-      return true;
+    // After every change: the right count locks if it's the special shape; otherwise it's kept but won't lock
+    function check(){
+      const n = blocks(), w = want();
+      if(n === w && isEven()) return lock();
+      if(n === w){
+        tries++; T.SND("untag");
+        say(`${bw} × ${bd} × ${layers} = ${w} ✓ but the relay won't lock. ${tries >= 2 ? "Try it as wide, as deep and as tall as the wires." : "Every relay can be built one special way. Can you find it?"}`, "warn");
+        return;
+      }
+      if(n > w){ say(`${bw} × ${bd} × ${layers} = ${n}. That's past ${w}. Take a layer off, or clear the pallet and lay out a different layer.`, "warn"); T.SND("untag"); return; }
+      say(`${layers} layer${layers === 1 ? "" : "s"} of ${bw} × ${bd} = ${n} blocks.`);
     }
-    // ----- Drawing a square layer: drag across the grid -----
+    // ----- Laying out a layer: drag across the grid (any rectangle) -----
     let anchor = null, cur = null;
     // The grid cell under the pointer, worked out from the isometric maths (so a hologram or ORACLE box over the pallet can't break a drag)
     const cellAt = e => {
       const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY; const q = pt.matrixTransform(svg.getScreenCTM().inverse());
-      const d = (q.x - cx) / (C30 * u), s = (q.y - cy) / (0.5 * u), x = Math.floor((s + d) / 2), z = Math.floor((s - d) / 2);
+      const d = (q.x - cx) / (C30 * u), s2 = (q.y - cy) / (0.5 * u), x = Math.floor((s2 + d) / 2), z = Math.floor((s2 - d) / 2);
       return x >= 0 && x < G && z >= 0 && z < G ? { r: z, c: x } : null;
     };
     function paintSel(){
       const r0 = Math.min(anchor.r, cur.r), r1 = Math.max(anchor.r, cur.r), c0 = Math.min(anchor.c, cur.c), c1 = Math.max(anchor.c, cur.c), h = r1 - r0 + 1, w = c1 - c0 + 1;
       svg.querySelectorAll(".cell").forEach(i => { const r = +i.dataset.r, c = +i.dataset.c; i.classList.toggle("sel", r >= r0 && r <= r1 && c >= c0 && c <= c1); });
-      svg.classList.toggle("bad", h !== w);
-      $("countLine").innerHTML = `${h} × ${w}${h === w ? ` = <b>${h * h}</b> blocks: a square layer` : ": not square yet"}`;
+      $("countLine").innerHTML = `${w} × ${h} = <b>${w * h}</b> blocks in a layer`;
       return { r0, c0, h, w };
     }
     const clearSel = () => { svg.querySelectorAll(".cell.sel").forEach(i => i.classList.remove("sel")); svg.classList.remove("bad"); };
     svg.addEventListener("pointerdown", e => {
-      if(over || locked) return;
+      if(over || locked || busy) return;
       const top = e.target.closest(".slab.top");
-      if(top && !L3){ e.preventDefault(); svg.setPointerCapture(e.pointerId); startGhost(e, "off"); return; }
-      if(base && !L3){ if(cellAt(e)){ say("Clear the pallet first to draw a new square.", "warn"); T.SND("untag"); } return; }   // a stack is on the pallet: clear it to draw again
+      if(top){ e.preventDefault(); svg.setPointerCapture(e.pointerId); startGhost(e, "off"); return; }
+      if(bw){ if(cellAt(e)){ say("Clear the pallet first to lay out a new layer.", "warn"); T.SND("untag"); } return; }   // a stack is on the pallet: clear it to draw again
       const c = cellAt(e); if(!c) return;
       e.preventDefault(); svg.setPointerCapture(e.pointerId); anchor = cur = c; paintSel(); T.SND("tag");
     });
@@ -465,17 +506,14 @@
       if(ghost){ dropGhost(e); return; }
       if(!anchor) return;
       const { r0, c0, h, w } = paintSel(); anchor = cur = null; clearSel();
-      if(h !== w){ say(`${h} × ${w} isn't square. A cube's layers are squares: the same along each side.`, "warn"); T.SND("untag"); paint(); return; }
-      if(L3){ setRoot(h); return; }
-      base = h; layers = 1; ox = c0; oz = r0; paint(true); T.SND("chirp");
-      if(checkOver()) return;
-      say(`One layer of ${h} × ${h} = ${h * h} blocks. That plugs in wire 1.`);
-      brief("stack", `Now stack: <b>one layer for each wire</b>. Press <b>Add a layer</b> (or drag the spare layer onto the stack) until there are <b>${cubeRoot(want())}</b> layers.`);
+      bw = w; bd = h; layers = 1; ox = c0; oz = r0; paint(true); T.SND("chirp");
+      brief("stack", `Now stack layers: press <b>Add a layer</b> (or drag the spare layer onto the stack). Each layer plugs in a wire. The relay takes <b>${want()}</b> blocks.`);
+      check();
     });
     svg.addEventListener("pointercancel", () => { anchor = cur = null; clearSel(); killGhost(); paint(); });
     // ----- Dragging layers: a ghost slab follows the pointer. From the tray onto the pallet adds a layer;
     // the top layer dragged off the pallet takes one away. -----
-    let ghost = null, ghostKind = null;
+    let ghost = null, ghostKind = null, busy = false;
     const overPallet = e => { const r = svg.getBoundingClientRect(); return e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom; };
     function startGhost(e, kind){
       ghostKind = kind; ghost = document.createElement("div"); ghost.className = "ghost"; ghost.innerHTML = traySVG(1.6); document.body.appendChild(ghost);
@@ -486,25 +524,23 @@
     function dropGhost(e){ const kind = ghostKind, on = overPallet(e); killGhost(); if(kind === "add"){ if(on) addLayer(); else T.SND("untag"); } else if(!on) removeLayer(); else paint(); }
     function killGhost(){ if(ghost) ghost.remove(); ghost = null; ghostKind = null; }
     const tray = $("tray");
-    tray.addEventListener("pointerdown", e => { if(over || locked || !base) return; e.preventDefault(); tray.setPointerCapture(e.pointerId); startGhost(e, "add"); });
+    tray.addEventListener("pointerdown", e => { if(over || locked || !bw || busy) return; e.preventDefault(); tray.setPointerCapture(e.pointerId); startGhost(e, "add"); });
     tray.addEventListener("pointermove", e => { if(ghost) moveGhost(e); });
     tray.addEventListener("pointerup", e => { if(ghost) dropGhost(e); });
     tray.addEventListener("pointercancel", () => { killGhost(); paint(); });
     function addLayer(){
-      if(over || locked || !base) return;
-      if(layers >= MAXL){ say(`The pallet holds ${MAXL} layers. ${base} × ${base} × ${MAXL} = ${base * base * MAXL}, so a ${base} × ${base} layer can't make ${want()}: clear the pallet and draw a different square.`, "warn"); T.SND("untag"); return; }
+      if(over || locked || !bw || busy) return;
+      if(layers >= MAXL){ say(`The pallet holds ${MAXL} layers. Clear the pallet and lay out a different layer.`, "warn"); T.SND("untag"); return; }
       layers++; paint(true); T.SND("pop", layers);
-      const n = base * base * layers;
-      if(n === want() && base === layers) return lock();
-      if(!checkOver()) say(`${layers} layers of ${base * base} = ${n} blocks.`);
+      check();
     }
-    function removeLayer(){ if(over || locked || !base) return; if(layers <= 1) return clearPallet(); layers--; paint(); T.SND("untag"); say(`${layers} layer${layers === 1 ? "" : "s"} of ${base * base} = ${base * base * layers} blocks.`); }
-    function clearPallet(){ base = 0; layers = 0; killGhost(); paint(); T.SND("untag"); say(""); }
+    function removeLayer(){ if(over || locked || !bw || busy) return; if(layers <= 1) return clearPallet(); layers--; paint(); T.SND("untag"); say(`${layers} layer${layers === 1 ? "" : "s"} of ${bw} × ${bd} = ${blocks()} blocks.`); }
+    function clearPallet(){ if(busy) return; bw = bd = 0; layers = 0; killGhost(); paint(); T.SND("untag"); say(""); }
     $("addBtn").addEventListener("click", addLayer);
     $("unstackBtn").addEventListener("click", removeLayer);
     $("clearBtn").addEventListener("click", clearPallet);
-    // ----- The reveal (Bertie, round 15): the finished cube lifts off the pallet to the middle of the bench, turns
-    // once so its three equal sides can be seen, and is named: 3 × 3 × 3 = 27 = 3³. -----
+    // ----- The reveal (Bertie, round 15): the finished stack lifts off the pallet to the middle of the bench, turns
+    // once so its three equal sides can be seen, and is named: 3 × 3 × 3 = 27 (3³ only once the code is cracked). -----
     const RV = 260;
     // The cube of side a, turned by yaw about its middle, in the pallet's isometric style. Yaw 0 matches the pallet view.
     function cubeSVG(a, yaw){
@@ -533,7 +569,7 @@
     async function reveal(a, n){
       const old = $("reveal"); if(old) old.remove();
       const ov = document.createElement("div"); ov.className = "reveal"; ov.id = "reveal";
-      ov.innerHTML = `<svg class="rv-cube" viewBox="0 0 ${RV} ${RV}" aria-hidden="true"></svg><div class="rv-eq"><span>${a} × ${a} × ${a} = <b>${n}</b></span><span class="pw">= ${cu(a)}</span></div>`;
+      ov.innerHTML = `<svg class="rv-cube" viewBox="0 0 ${RV} ${RV}" aria-hidden="true"></svg><div class="rv-eq"><span>${a} × ${a} × ${a} = <b>${n}</b></span></div>`;
       $("bench").appendChild(ov);
       const cube = ov.firstElementChild, draw = yaw => { cube.innerHTML = cubeSVG(a, yaw); };
       draw(0);
@@ -548,69 +584,234 @@
       ov.classList.add("named"); T.SND("blip");
       await wait(700);
     }
-    // The cube is right: every wire lights, it locks, lifts off and is named, then the spark runs the cable to the room
+    // The stack is right: every wire lights, it locks, lifts off and is named, then the spark runs the cable to the room
     async function lock(){
       locked = true; svg.classList.add("locked"); paint(); T.SND("lockon");
-      const w = want(), r = base;
-      if(L3) drawWires(r, false);   // the hidden wires come into view
+      const w = want(), r = bw;
       litWires(r); $("wbox").classList.add("on");
-      $("countLine").innerHTML = `${r} × ${r} × ${r} = <b>${w}</b> = ${cu(r)} · LOCKED`;
+      $("countLine").innerHTML = `${r} × ${r} × ${r} = <b>${w}</b> · <span class="ok">LOCKED</span>`;
+      window.__pnRelay.locked.push(w);
       await wait(500);
       await reveal(r, w);
-      light(w); say(`${r} wires in: ${r} × ${r} × ${r} = ${w} = ${r}³. That room is wired in.`, "ok");
+      light(w); say(`${r} wires in: ${r} × ${r} × ${r} = ${w}. That room is wired in.`, "ok");
       await wait(1100);
       nextRelay();
     }
     $("lockBtn").addEventListener("click", () => {
-      if(over || locked) return;
-      if(!base){ say("No layer yet. Drag across the pallet to draw a square first.", "warn"); T.showHints(); return; }
-      const n = base * base * layers, w = want();
-      if(n === w && base === layers) return lock();
-      if(n === w){ say(`${n} blocks, but ${base} along each side and ${layers} layers isn't a cube. Make them match.`, "warn"); T.SND("untag"); return; }
-      say(`${base} × ${base} × ${layers} = ${n}. The relay needs ${w}.`, "bad"); alarm.hit();
+      if(over || locked || busy) return;
+      if(!bw){ say("No layer yet. Drag across the pallet to lay out a layer first.", "warn"); T.showHints(); return; }
+      const n = blocks(), w = want();
+      if(n === w) return check();
+      say(`${bw} × ${bd} × ${layers} = ${n}. The relay takes ${w}.`, "bad"); alarm.hit({ soft: true });
     });
-    // ----- L3: the cube root. A square dragged on the pallet (or a typed number of wires) previews the whole cube. -----
-    function setRoot(v){
-      if(!(v >= 1 && v <= G)) return;
-      $("rootIn").value = v; base = v; layers = v; ox = oz = Math.floor((G - v) / 2); paint(); T.SND("plot");
+    // The pallet builds one: a layer as wide and deep as the wires, then a layer for each wire
+    async function autoBuild(){
+      const n = want(), r = cubeRoot(n);
+      busy = true; say("Watch: the pallet builds this one for you.");
+      await wait(900); if(over) return;
+      bw = bd = r; layers = 1; ox = oz = Math.floor((G - r) / 2); paint(true); T.SND("chirp"); await wait(600);
+      while(layers < r && !over){ layers++; paint(true); T.SND("pop", layers); await wait(520); }
+      busy = false; if(!over) lock();
     }
-    $("rootIn").addEventListener("input", () => { const v = parseInt($("rootIn").value, 10); if(v >= 1 && v <= G) setRoot(v); });
-    $("rootIn").addEventListener("keydown", e => { if(e.key === "Enter") $("rootBtn").click(); });
-    $("rootBtn").addEventListener("click", () => {
-      if(over || locked) return;
-      const n = want(), v = parseInt($("rootIn").value, 10);
-      if(!Number.isInteger(v)){ say("No number of wires yet.", "warn"); T.showHints(); return; }   // stuck: the hints come back to explain
-      if(v ** 3 === n){ setRoot(v); return lock(); }
-      say(T.isCube(n) ? `${v} wires would need ${v} × ${v} × ${v} = ${v ** 3} blocks, not ${n}.` : `${v} × ${v} × ${v} = ${v ** 3}. In fact ${n} isn't a cube: ${between(n)}.`, "bad"); alarm.hit();
-    });
-    $("noCube").addEventListener("click", () => {
-      if(over || locked) return;
-      const n = want();
-      if(T.isCube(n)){ const r = cubeRoot(n); say(`It can: ${r} × ${r} × ${r} = ${n}. That's ${r} wires.`, "bad"); alarm.hit(); return; }
-      T.SND("correct", i1); say(`Right: ${between(n)}, so no number of wires makes ${n}. It's a dummy relay.`, "ok"); $("log").querySelector(".lab").insertAdjacentHTML("afterend", `<span class="r">${n}: dummy, not a cube</span>`);
-      nextRelay();
-    });
     function ask(){
       const n = want(), r = cubeRoot(n), k = i1 + 1;
-      $("relayLab").textContent = `RELAY ${k} OF ${s1.length} · ` + (L3 ? "WIRES HIDDEN IN THE CEILING" : `${r} WIRES IN`);
-      drawWires(r, L3);
-      $("needLine").innerHTML = L3 ? `Relay ${k} needs <b>${n}</b> blocks. How many wires come in?`
-        : L === "L2" ? `Relay ${k} has <b>${r} wires</b> coming in: it needs ${cu(r)} blocks (${r} cubed).`
-        : `Relay ${k} has <b>${r} wires</b> coming in: it needs <b class="nw">${r} × ${r} × ${r}</b> blocks (${r} cubed).`;
-      if(L3) brief("root", `Relay needs <b>${n}</b> blocks. The number of wires is the blocks along each side: ? × ? × ? = ${n}. Type it and press <b>Check</b>, or drag a square on the pallet to try a size. If no number works, press <b>It can't be a cube</b>.`);
-      else brief("draw", `<b>${r} wires</b> in, so the relay is ${r} × ${r} × ${r}. Drag across the pallet to draw one <b>${r} × ${r} square layer</b>.`);
+      $("relayLab").textContent = `RELAY ${k} OF ${s1.length} · ${r} WIRES IN`;
+      drawWires(r);
+      $("needLine").innerHTML = `Relay ${k} has <b>${r} wires</b> in. It takes <span class="rdn" data-v="${n}">${n}</span> blocks.`;
+      PNCipher.scramble($("needLine").querySelector(".rdn"), "ping");
+      if(i1 >= HAND){ brief("auto", `Relay ${k}: <b>${r} wires</b>, <b>${n}</b> blocks. Watch the pallet build this one, and compare it with yours.`); autoBuild(); }
+      else brief("draw", `Relay ${k}: <b>${r} wires</b> in, and it takes <b>${n}</b> blocks. Drag across the pallet to lay out a layer of blocks, then add layers. Only one shape will lock.`);
     }
-    function reset(){ locked = false; svg.classList.remove("locked"); base = 0; layers = 0; anchor = cur = null; clearSel(); killGhost(); $("rootIn").value = ""; const ov = $("reveal"); if(ov) ov.remove(); paint(); }
+    function reset(){ locked = false; tries = 0; svg.classList.remove("locked"); bw = bd = 0; layers = 0; anchor = cur = null; clearSel(); killGhost(); const ov = $("reveal"); if(ov) ov.remove(); paint(); }
     function skip(){
-      if(locked) return;
+      if(locked || busy) return;
       const n = want(); if(n === undefined) return;
-      if(!T.isCube(n)) return $("noCube").click();
       const r = cubeRoot(n);
-      if(L3){ setRoot(r); $("rootBtn").click(); return; }
-      base = r; layers = r; ox = oz = Math.floor((G - r) / 2); paint(); lock();
+      bw = bd = r; layers = r; ox = oz = Math.floor((G - r) / 2); paint(); lock();
     }
+    $("pallet").hidden = false; slot("pallet");
     paint();
-    return { ask, reset, skip };
+    return { ask, reset, skip, cubeSVG, get busy(){ return busy || locked; } };
+  }
+  // ===== Round 24: crack the relay code. The strongroom's cipher terminal (shared/cipher.js): the relay readings along
+  // the top (the glowing ones are blocks the relays take), rule cards on the left, the rule explorer on the right. Each
+  // value the rule makes at n is fired at the readings: a glowing one scrambles and lands, a grey one glitches.
+  // RUN tests the rule; only n × n × n matches every glowing reading with no noise. Then it's named: cube numbers. =====
+  const RMAX = 130;
+  const READ = (() => {
+    const g = [1, 8, 27, 64, 125], must = [4, 9, 12, 15, 16, 36];   // must: each wrong rule lets one of these in
+    const pool = T.shuffle(T.range(2, RMAX).filter(v => !T.isCube(v) && !must.includes(v)));
+    return T.shuffle([...g, ...must, ...pool.slice(0, 30 - g.length - must.length)]).map(v => ({ v, g: T.isCube(v) }));
+  })();
+  W.read = READ.map(o => o.v);
+  const RULES = T.shuffle([
+    { cube: true, words: "n times n times n", ok: true },
+    { sq: true, words: "n times itself" },
+    { a: 3, b: 0, words: "n times 3" },
+    { a: 4, b: 0, words: "n times 4" },
+    { a: 7, b: -6, words: "start at 1, add 7 each time" },
+  ].map(PNCipher.rule));
+  const NIS = "n = the number of wires";
+  const explorer = (host, rule, o = {}) => PNCipher.explorer(host, rule, { ...o, nIs: NIS });
+  function score(r){
+    const made = new Set(); for(let k = 1; k < 200; k++){ const v = r.gen(k); if(v > RMAX) break; if(v >= 1) made.add(v); }
+    const greens = READ.filter(o => o.g).map(o => o.v), greys = READ.filter(o => !o.g).map(o => o.v);
+    const hits = greens.filter(v => made.has(v)), missed = greens.filter(v => !made.has(v)), noise = greys.filter(v => made.has(v));
+    return { made: [...made], hits, missed, noise, perfect: !missed.length && !noise.length };
+  }
+  let tl = null;
+  const rdEls = () => [...document.querySelectorAll("#cipher .rd")];
+  const cstat = t => { const e = $("cst"); if(e) e.textContent = t; };
+  const cubePic = n => { const sv = $("cpicSvg"); if(sv && M && M.cubeSVG) sv.innerHTML = M.cubeSVG(Math.max(1, n), .5); };
+  function openCipher(){
+    const ov = document.createElement("div"); ov.className = "cipher crack"; ov.id = "cipher";
+    ov.innerHTML = `<div class="cbox hterm"><div class="chd"><span>CIPHER TERMINAL · RELAY BOARD</span><span class="st" id="cst">NO RULE LOADED</span></div>
+      <div class="cread"><div class="rain in" style="--cols:15">${READ.map((o, i) => `<button type="button" tabindex="-1" class="rd${o.g ? " g" : ""}" style="--i:${i}" data-v="${o.v}">${o.v}</button>`).join("")}</div></div>
+      <div class="cmain"><div class="cards" id="cards"></div><div class="hist" id="hist"></div><div class="cpic" id="cpic"><svg class="rv-cube" id="cpicSvg" viewBox="0 0 260 260" aria-hidden="true"></svg><div class="cap" id="ccap"></div></div><div class="cside"><div id="rxh"></div></div></div>
+      <div class="prompt" id="cprompt"></div></div>`;
+    document.body.appendChild(ov);
+    const hist = $("hist");
+    tl = (html, cls = "") => { const d = document.createElement("div"); d.className = cls; d.innerHTML = html; hist.appendChild(d); while(hist.children.length > 60) hist.firstChild.remove(); hist.scrollTop = hist.scrollHeight; return d; };
+    return ov;
+  }
+  async function crack(){
+    if(cracking || over) return; cracking = true; W.stage = "crack";
+    $("st1").className = "done"; $("st2").className = "on";
+    T.SND("powerup");
+    const ov = openCipher(), cards = $("cards");
+    tl(`agent@primenet:~$ relays.read --board FUSEBOX`, "me");
+    tl(`  ${READ.length} readings · ${READ.filter(o => o.g).length} glowing: the blocks the relays take`, "sys");
+    tl(`  load a rule and RUN it against the readings`, "sys");
+    cards.innerHTML = `<div class="ctl2">TRY A RULE</div><div class="rules3">${RULES.map((r, i) => `<button type="button" class="rule" data-k="${i}"><b>${r.eq}</b><small>${r.words}</small></button>`).join("")}<button type="button" class="run" id="run" disabled>RUN ▸</button></div>`;
+    $("rxh").innerHTML = `<div class="rx-empty">Tap a rule on the left.<br>Press <b class="up">▲</b> to change <span class="nb">n</span>, the number of wires, and watch the readings at the top: does it light up the glowing ones?</div>`;
+    T.step(`Which rule turns <b>wires</b> into <b>blocks</b>? Tap a rule on the left and press <b>▲</b>: each number it makes is fired at the readings. A glowing one lights up; a grey one glitches. Then <b>RUN</b> it. You need every glowing one, and no grey ones.`, { name: "Crack the code" });
+    say("Tap a rule to try it, then RUN it.");
+    const run = $("run");
+    let sel = -1, running = false;
+    // the intersection: the value at n is fired at the readings. Glowing: it scrambles and lands. Grey: it glitches.
+    const ping = v => { const e = rdEls().find(o => +o.dataset.v === v);
+      if(!e) return `<span class="no">${v} isn't one of the readings</span>`;
+      if(e.classList.contains("g")){ PNCipher.scramble(e, "ping"); return `<span class="yes">✓ ${v} is a glowing reading</span>`; }
+      PNCipher.glitch(e); return `<span class="bad">✗ ${v} is grey: noise</span>`; };
+    const load = k => { if(running || over) return; const b = cards.querySelector(`[data-k="${k}"]`); if(!b || b.classList.contains("no")) return;
+      sel = k; cards.querySelectorAll(".rule").forEach(x => x.classList.toggle("on", x === b)); run.disabled = false; cstat(`LOADED: ${RULES[k].eq}`); T.SND("tag");
+      explorer($("rxh"), RULES[k], { match: READ.filter(o => o.g).map(o => o.v), onVal: ping }); };
+    await new Promise(res => {
+      const go = async () => {
+        if(running || over || sel < 0) return;
+        running = true; run.disabled = true;
+        const r = RULES[sel], sc = score(r), at = v => rdEls().filter(e => +e.dataset.v === v);
+        rdEls().forEach(e => e.classList.remove("hit", "miss", "leak"));
+        T.SND("typing"); tl(`$ cipher.test --rule "${r.eq}"`, "me"); await wait(450);
+        tl(`  generating: ${sc.made.slice(0, 10).join(" ")}${sc.made.length > 10 ? " …" : ""}`); await wait(600);
+        await Promise.all(sc.hits.map((v, i) => new Promise(rr => setTimeout(() => Promise.all(at(v).map(e => PNCipher.scramble(e))).then(() => { at(v).forEach(e => e.classList.add("hit")); T.SND("tick"); rr(); }), i * 130 / sp()))));
+        tl(`  hits: ${sc.hits.length ? sc.hits.map(v => v + " ✓").join("  ") : "none"}`, "ok"); await wait(500);
+        if(sc.missed.length){ sc.missed.forEach(v => at(v).forEach(e => e.classList.add("miss"))); tl(`  missed: ${sc.missed.join(" ")}`, "bad"); await wait(500); }
+        if(sc.noise.length){ sc.noise.forEach(v => at(v).forEach(e => { e.classList.add("leak"); PNCipher.glitch(e); })); tl(`  noise let in: ${sc.noise.slice(0, 8).join(" ")}${sc.noise.length > 8 ? " …" : ""} ✗`, "bad"); T.SND("glitch"); await wait(500); }
+        const greens = sc.hits.length + sc.missed.length;
+        if(sc.perfect){ tl(`  MATCH ${greens}/${greens} · 0 noise ▸ CIPHER CRACKED`, "gold"); running = false; res(); return; }
+        tl(`  MATCH ${sc.hits.length}/${greens}${sc.noise.length ? ` · ${sc.noise.length} noise` : ""} ▸ REJECTED`, "bad");
+        alarm.hit({ soft: true }); T.SND("denied");
+        const b = cards.querySelector(`[data-k="${sel}"]`); b.classList.add("no"); b.classList.remove("on");
+        sel = -1; cstat("REJECTED · LOAD ANOTHER"); running = false;
+        say(sc.missed.length ? `That rule misses ${sc.missed.slice(0, 3).join(", ")}. Look at the relays you built.` : `That rule lets noise in: ${sc.noise.slice(0, 3).join(", ")} ${sc.noise.length > 1 ? "aren't" : "isn't"} glowing.`, "bad");
+      };
+      cards.querySelectorAll(".rule").forEach(b => b.addEventListener("click", () => load(+b.dataset.k)));
+      run.addEventListener("click", go);
+      if(window.PNTest) PNTest.skip("Run the right rule", () => { load(RULES.findIndex(r => r.ok)); go(); });
+    });
+    if(over) return;
+    cards.innerHTML = ""; ov.classList.remove("crack"); cracked = true; cstat("CRACKED");
+    // the cracked effect: every glowing reading scrambles to gold
+    T.SND("rise");
+    const gs = rdEls().filter(e => e.classList.contains("g"));
+    rdEls().forEach(e => { e.classList.remove("hit", "miss", "leak"); if(!e.classList.contains("g")) e.classList.add("faint"); });
+    await Promise.all(gs.map((e, i) => new Promise(r => setTimeout(() => PNCipher.scramble(e).then(() => { e.classList.add("dec"); r(); }), i * 110 / sp()))));
+    T.SND("thunk");
+    // now it's named: the log and the codebook line use 3³
+    $("log").querySelectorAll(".r[data-n]").forEach(sp2 => { const n = +sp2.dataset.n, r = cubeRoot(n); sp2.querySelector("b").textContent = `${n} = ${r}³`; });
+    tl(`$ cipher.solve ✓ THE RELAY CODE`, "gold"); tl(`  blocks = wires × wires × wires: the cube numbers`, "ok");
+    // One look at the cracked rule with its picture (Bertie: no "just playing" task), then power the rest
+    ov.classList.add("withpic"); cubePic(4);
+    $("ccap").innerHTML = `4 wires: <span class="gold">64</span> blocks<br><span class="sys">4 layers of 4 × 4</span>`;
+    const ex = explorer($("rxh"), RULES.find(r => r.ok), { n: 4, steps: false, banner: `✓ 4 × 4 × 4 = <b>64</b>. As wide, as deep and as tall as the wires. These are the <b>cube numbers</b>: 4 × 4 × 4 is written <span class="cu">4<sup>3</sup></span>, “4 cubed”.` });
+    ex.banner().classList.add("done"); T.SND("lockon");
+    $("cprompt").innerHTML = `<span class="tip2">Cracked: <b>n × n × n</b>. Now use it to power the rest of the relays.</span><button type="button" class="run" id="dgo">POWER THE REST ▸</button>`;
+    T.step(`That's the rule: <b>n × n × n</b>, the cube numbers. Press <b>POWER THE REST</b>.`, { name: "The rule" });
+    say("Cracked. These are the cube numbers.", "ok");
+    $("dgo").focus({ preventScroll: true });
+    await new Promise(res => { $("dgo").addEventListener("click", res); if(window.PNTest) PNTest.skip("Continue", res); });
+    if(!over) power(ov);
+  }
+  // ===== Power the rest: the relay code streams in; three relays cut in with a request each. Set n with ▲▼ and the
+  // last line of the working becomes the answer box (every other n shows ?). Each right answer scrambles in, the
+  // terminal fades so the spark can be seen running to its room, then the stream carries on. =====
+  async function power(ov){
+    W.stage = "power"; $("st2").className = "done"; $("st3").className = "on";
+    $("cprompt").innerHTML = ""; ov.classList.remove("withpic"); ov.classList.add("dec"); $("hist").innerHTML = "";
+    const rule = RULES.find(r => r.ok);
+    const ex = explorer($("rxh"), rule, { n: 1, max: 12, banner: "STREAMING · the requests will appear here", onN: n => { cubePic(Math.min(n, 10)); $("ccap").innerHTML = `n = ${n} wire${n > 1 ? "s" : ""}`; } });
+    T.step("The relay code is streaming in. When a relay cuts in, press <b>▲</b> to set n to its wires, then type the blocks in the box at the bottom of the working and press Enter.", { name: "Power the rest" });
+    let rate = 110, stopped = false;
+    const verbs = ["relay.sync()", "xor.block()", "unmask()", "phase(3)", "checksum_ok()", "load.read()", "breaker.map()"];
+    (async () => { let i = 0; while(!stopped && !over){ tl(`relays.block[${i++}] ${PNCipher.rndDigits(4)}${PNCipher.rndDigits(4)} ${PNCipher.rndDigits(4)} :: ${T.pick(verbs)}`, "gob"); if(i % 4 === 0) T.SND("data"); await wait(rate); } })();
+    tl(`$ relays.power --board FUSEBOX --rule "${rule.eq}"`, "me");
+    const pins = i => `<span class="pins" id="pins">${REQN.map((_, j) => `<span class="pin${j < i ? " drop" : ""}"></span>`).join("")}</span>`;
+    for(let i = 0; i < REQN.length && !over; i++){
+      const n = REQN[i], want = n ** 3, ask = `⚠ RELAY ${"DEF"[i]} · ${n} wire${n > 1 ? "s" : ""} · how many blocks?`, hint = `Not quite. With n = ${n}, work out the last line of the working again.`;
+      cstat(`POWERING · ${i}/${REQN.length}`);
+      $("cprompt").innerHTML = `<span class="sys">streaming…</span>${pins(i)}`;
+      await wait(i ? 2200 : 2800); if(over) return;
+      rate = 420; T.SND("alarm"); tl(ask, "req"); W.req.push(n);
+      $("cprompt").innerHTML = `<span class="sys">request ${i + 1} of ${REQN.length}</span>${pins(i)}`;
+      ex.banner(`<span class="rq">${ask}</span><span class="rqh">Press ▲ ▼ to set <span class="nb">n</span> = ${n}, then type the answer in the box.</span><span class="cd"><i id="cdi"></i></span>`).classList.add("req");
+      say(ask.replace("⚠ ", ""));
+      await new Promise(res => {
+        const T0 = 25000; let left = T0, last = performance.now(), live = true;   // a countdown; at L1 running out only gives a hint
+        const tick = now => { if(!live || over) return; left -= (now - last) * sp(); last = now; const b = $("cdi"); if(b) b.style.width = Math.max(0, left / T0 * 100) + "%";
+          if(left <= 0){ left = T0; tl("  trace rising… request repeated", "bad"); say(hint, "warn"); T.SND("denied"); }
+          requestAnimationFrame(tick); };
+        requestAnimationFrame(tick);
+        const check = async inp => {
+          if(over || !live) return;
+          if(+inp.value.trim() === want){
+            live = false; const got = document.createElement("b"); got.className = "got"; got.textContent = want; got.dataset.v = want; inp.replaceWith(got);
+            await PNCipher.scramble(got, "ping"); T.SND("latch"); res(); return; }
+          alarm.hit(); PNCipher.glitch(inp); inp.select();
+          tl(`  ${inp.value} ✗ REJECTED`, "bad"); say(hint, "bad");
+        };
+        ex.ask({ n, check });
+        if(window.PNTest) PNTest.skip("Answer the request", () => { ex.set(n); const inp = ex.input(); if(inp){ inp.value = want; check(inp); } });
+      });
+      if(over) return;
+      tl(`  ${want} ✓ ACCEPTED · relay ${"DEF"[i]} powered`, "ok");
+      $("cprompt").innerHTML = `<span class="sys">powering…</span>${pins(i + 1)}`;
+      // the terminal fades so the spark can be seen running to its room
+      await wait(500); ov.classList.add("peek"); await light(want); await wait(300); ov.classList.remove("peek");
+      ex.ask(null); ex.banner("STREAMING · the next request will appear here").classList.remove("req");
+      rate = 70;
+    }
+    if(over) return;
+    rate = 30; await wait(900); stopped = true;
+    cstat("ALL RELAYS POWERED"); tl("ALL RELAYS POWERED ✓", "gold"); T.SND("lock");
+    await wait(900);
+    ov.remove(); W.stage = "finale";
+    finale();
+  }
+  // ===== The opening (Round 24): FOX and WREN on comms; the pupil's one reply =====
+  const say2 = (who, text) => { const c = $("clog"); c.insertAdjacentHTML("beforeend", `<div class="cl ${who === "YOU" ? "me" : ""}"><b>${who}</b><span>${text}</span></div>`); c.scrollTop = c.scrollHeight; T.SND(who === "YOU" ? "click" : "radio"); };
+  const reply = opts => new Promise(res => {
+    const r = $("creply"); r.innerHTML = `<small>REPLY</small>` + opts.map((o, i) => `<button type="button" data-i="${i}">${o}</button>`).join("");
+    r.querySelectorAll("button").forEach(b => b.addEventListener("click", () => { r.innerHTML = ""; say2("YOU", opts[+b.dataset.i]); res(+b.dataset.i); }));
+    r.querySelector("button").focus({ preventScroll: true });
+    if(window.PNTest) PNTest.skip("Reply", () => r.querySelector("button").click());
+  });
+  async function commsIntro(){
+    $("commsP").hidden = false;
+    await wait(500); say2("WREN", "Found the fuse box. Over to you.");
+    await wait(1000); say2("FOX", "Every light on this floor runs through these relays. Each one takes a set number of blocks. Get them right and the lights are ours.");
+    await wait(700); await reply(["On it. Opening the relay board."]); if(over) return;
+    await wait(700); $("commsP").hidden = true;
   }
   // ===== Mode B: load the crates. Crates slide along a belt into the transformer bay. Only cube-number crates
   // may be loaded; the rest are rejected. A loaded crate has to be named (which cube it is) before it goes in.
@@ -973,18 +1174,29 @@
   }
   function end(ok){
     if(over) return;
-    over = true;
+    over = true; W.stage = ok ? "done" : "failed";
+    const cv = $("cipher"); if(cv) cv.remove();
     if(!ok && !$("spot").hidden) tiles.forEach((t, i) => { if(t.row >= row && t.n === s2[t.row]) tileEl(i).classList.add("missed"); });
     T.finish({ ok, title: ok ? "RELAYS WIRED" : "RELAY ALARM", effect: ok ? "dark" : "",
-      lines: [`Relays powered: <b>${found}</b> of ${RELAYS.length}`, `Cube numbers: <b>${[...new Set(RELAYS)].sort((a, b) => a - b).map(n => `${n} = ${cubeRoot(n)}³`).join(", ")}</b>`, "A cube number is a number times itself, times itself again: 4³ = 4 × 4 × 4 = 64. So 4 wires in means 64 blocks."] });
+      lines: [`Relays powered: <b>${found}</b> of ${RELAYS.length}`, `Cube numbers: <b>${[...new Set(RELAYS)].sort((a, b) => a - b).map(n => `${n} = ${cubeRoot(n)}³`).join(", ")}</b>`, "The relay code: blocks = wires × wires × wires."] });
     T.say(ok ? "Every relay's wired. Now we can cut their lights." : "Too many wrong relays. The lights stay on.");
   }
-  M = MODE === "B" ? modeB() : modeA();
-  M.ask();
-  if(window.PNTest) PNTest.skip("Solve this step", () => {
+  $("total").textContent = RELAYS.length;
+  const buildSkip = () => { if(window.PNTest) PNTest.skip("Solve this step", () => {
     if(!$("spot").hidden){ while(!over && !finishing && row < s2.length) stepOn(tiles.findIndex(t => t.row === row && t.n === s2[row])); return; }
-    M.skip();
-  });
+    if(!cracking) M.skip();
+  }); };
+  // "Got the rule?" (Bertie: there from the start): straight on to the cipher
+  $("ruleBtn").addEventListener("click", () => { if(over || cracking || !M || M.busy) return; T.SND("click"); crack(); });
+  (async () => {
+    if(MODE === "A"){
+      await new Promise(r => { if(!T.briefOpen()) return r(); const f = () => { if(!T.briefOpen()){ window.removeEventListener("pn-brief", f); r(); } }; window.addEventListener("pn-brief", f); });
+      await commsIntro(); if(over) return;
+    }
+    W.stage = "build";
+    M = MODE === "B" ? modeB() : modeA();
+    M.ask(); buildSkip();
+  })();
 })();
 </script>
 </body>
