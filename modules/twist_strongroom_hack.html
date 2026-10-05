@@ -391,6 +391,37 @@
   .fg .arr.cs.sq .ccol, .fg .arr.cs.sq .crow{ background:rgba(255,215,106,.4); border-color:#ffd76a; box-shadow:0 0 10px rgba(255,215,106,.4); }
   .fg.pad .arr.cs{ pointer-events:none; } .fg.pad .arr.cs .ccol, .fg.pad .arr.cs .crow, .fg.pad .arr.cs .x{ pointer-events:auto; cursor:grab; }
   .fg.pad .arr.ls{ pointer-events:none; } .fg.pad .arr.ls .lcol, .fg.pad .arr.ls .lrow, .fg.pad .arr.ls .x{ pointer-events:auto; cursor:grab; }
+  /* Round 23k: the rules in the left container; the readings react to n; the answer box in the working */
+  .cipher.crack .cmain{ grid-template-columns:minmax(0,1fr) 560px; grid-template-rows:auto minmax(0,1fr); }
+  .cipher.crack .cards{ grid-column:1; grid-row:1; } .cipher.crack .hist{ grid-column:1; grid-row:2; font-size:15px; border-top:1px dashed rgba(143,234,255,.25); padding-top:6px; }
+  .cipher.crack .cside{ grid-column:2; grid-row:1 / span 2; }
+  .cipher .cards:empty{ display:none; }
+  .cards .ctl2{ font:700 12px var(--font-ui); letter-spacing:.18em; color:#8feaff; margin-bottom:6px; }
+  .cards .rules3{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .cards button.rule{ display:flex; flex-direction:column; align-items:flex-start; gap:2px; text-align:left; font:500 22px "IBM Plex Mono", var(--font-mono); padding:9px 14px; color:#f2fbfd; background:#16303a; border:1px solid rgba(143,234,255,.35); cursor:pointer; }
+  .cards button.rule small{ font:500 13px var(--font-ui); color:#a9c3c9; }
+  .cards button.rule:hover, .cards button.rule:focus-visible{ border-color:#ffd76a; outline:none; }
+  .cards button.rule.on{ background:#2b2a12; border-color:#ffd76a; } .cards button.rule.on b{ color:#ffd76a; }
+  .cards button.rule.no{ opacity:.35; text-decoration:line-through; cursor:default; }
+  .cards button.run{ font:600 20px var(--font-ui); letter-spacing:.06em; color:#02140c; background:#8ff5c9; border:1px solid #8ff5c9; cursor:pointer; }
+  .cards button.run:disabled{ background:transparent; color:rgba(143,245,201,.4); border-color:rgba(143,245,201,.3); cursor:default; }
+  .rx-empty b.up{ color:#b69cff; }
+  .rx.nostep .rx-step, .rx.nostep .rx-n small{ display:none; }
+  .rx-note{ font:500 17px var(--font-ui); min-height:1.4em; } .rx-note .yes{ color:#ffd76a; } .rx-note .bad{ color:#ff9aa8; } .rx-note .no{ color:#a9c3c9; }
+  .rx-tab{ font-size:24px; gap:4px; } .rx-tab div{ grid-template-columns:78px repeat(7, 1fr); } .rx-tab span{ font-size:14px; } .rx-tab i{ padding:1px 0; }
+  /* the effect: a glowing reading the rule makes scrambles, then lands with a flash */
+  .rd.ping{ animation:rdPing 1s ease-out 1 !important; }
+  @keyframes rdPing{ 0%{ color:#fff; transform:scale(1.35); text-shadow:0 0 22px #ffd76a, 0 0 6px #fff; } 100%{ transform:scale(1); } }
+  /* decrypt: the request on top of the calculator, the answer box in the last line of the working */
+  .rx-ban.req{ display:flex; flex-direction:column; gap:4px; background:rgba(255,215,106,.12); border-left-color:#ffd76a; }
+  .rx-ban.req .rq{ font:600 19px "IBM Plex Mono", monospace; color:#ffd76a; } .rx-ban.req .rqh{ font:500 15px var(--font-ui); color:#e4f1f4; }
+  .rx-ban.req.wait{ animation:reqPulse 1.2s ease-in-out infinite; } @keyframes reqPulse{ 50%{ background:rgba(255,215,106,.26); } }
+  .rx-ban.req:not(.wait) .rqh{ color:#8ff5c9; }
+  .rx-ban .cd{ display:block; height:6px; border:1px solid rgba(255,215,106,.5); } .rx-ban .cd i{ display:block; height:100%; width:100%; background:#ffd76a; }
+  .rx-grid input.ans{ width:3.2em; font:600 28px "IBM Plex Mono", monospace; text-align:center; color:#ffd76a; background:#08181e; border:2px solid #ffd76a; border-radius:4px; padding:0 2px; box-shadow:0 0 12px rgba(255,215,106,.35); }
+  .rx-grid input.ans:focus{ outline:none; } .rx-grid input.ans.glitch{ animation:rdGl .36s steps(2) 1; }
+  .cipher.dec .cpic{ overflow:hidden; } .cipher.dec .cpic .picw{ min-height:0 !important; }
+  .rx-grid b.got{ display:inline-block; color:#ffd76a; } .rx-grid b.got.ping{ animation:rdPing 1s ease-out 1; }
 </style>
 </head>
 <body>
@@ -1261,14 +1292,28 @@
   //   $ cipher.inject                    any key types gobbledegook until the floor opens =====
   // ===== The rule explorer (Bertie: a learning tool). The term equation on top, n in a box you change with + and −,
   // the working with n put in underneath, and a little table of what the rule makes. =====
+  // Bertie's favourite: a number scrambles through random digits, then settles (cls: a flash once it lands)
+  const rndDigits = k => String(Math.floor(Math.random() * Math.pow(10, k))).padStart(k, "0");
+  function scramble(e, cls){
+    return new Promise(r => {
+      const node = [...e.childNodes].find(x => x.nodeType === 3), v = String(e.dataset.v != null ? e.dataset.v : e.textContent).trim();
+      const land = () => { if(node) node.nodeValue = v; delete e.dataset.busy; if(cls){ e.classList.remove(cls); void e.offsetWidth; e.classList.add(cls); } r(); };
+      if(e.dataset.busy || !node || RM()){ if(!e.dataset.busy) land(); else r(); return; }
+      e.dataset.busy = 1; let k = 0;
+      const t = setInterval(() => { if(k++ < 10) node.nodeValue = rndDigits(v.length); else { clearInterval(t); land(); } }, 50 / sp());
+    });
+  }
+  const glitchEl = e => { e.classList.remove("glitch"); void e.offsetWidth; e.classList.add("glitch"); };
   let rxKey = null;
   // banner: a guidance line on top; match: values to mark in the table (the glowing readings), with a nudge line
-  function explorer(host, rule, { n = 1, onN = null, max = 12, banner = "", match = null } = {}){
-    host.innerHTML = `<div class="rx">${banner ? `<div class="rx-ban">${banner}</div>` : ""}
+  // onVal: called with the value at each n (returns a note line: the readings react to it); steps: false hides ▲▼;
+  // ask({ n, check }): at that n the last line of the working becomes a box to type the answer in (decrypt)
+  function explorer(host, rule, { n = 1, onN = null, max = 12, banner = "", match = null, onVal = null, steps = true } = {}){
+    host.innerHTML = `<div class="rx${steps ? "" : " nostep"}">${banner ? `<div class="rx-ban">${banner}</div>` : ""}
       <div class="rx-eq"><small>RULE</small><span>${rule.words} · ${rule.dbl ? "n = the position" : P.nIs}</span></div>
       <div class="rx-n"><span>n =</span><span class="nb big"></span><span class="rx-step"><button type="button" class="rx-b" data-d="1" aria-label="n up 1">▲</button><button type="button" class="rx-b" data-d="-1" aria-label="n down 1">▼</button></span><small>▲ ▼ change n</small></div>
-      <div class="rx-grid"></div><div class="rx-tab"></div>${match ? `<div class="rx-nudge">Do these numbers match the <b>glowing readings</b>?</div>` : ""}</div>`;
-    let cur = n;
+      <div class="rx-grid"></div>${onVal ? `<div class="rx-note"></div>` : ""}<div class="rx-tab"></div>${match ? `<div class="rx-nudge">Do these numbers match the <b>glowing readings</b>?</div>` : ""}</div>`;
+    let cur = n, ask = null;
     const set = v => {
       cur = Math.max(1, Math.min(max, v));
       host.querySelector(".nb.big").textContent = cur;
@@ -1276,6 +1321,14 @@
       host.querySelector(".rx-grid").innerHTML = rule.rows(cur).map((row, ri) => `<div class="rr${ri === 0 ? " r0" : ""}">${row.map(c => typeof c === "object" && c !== null ? `<span style="grid-column:span ${c.span}">${c.t}</span>` : `<span>${c}</span>`).join("")}</div>`).join("");
       const from = Math.max(1, Math.min(cur - 3, max - 6)), ks = T.range(from, Math.min(max, from + 6));
       host.querySelector(".rx-tab").innerHTML = `<div><span>n</span>${ks.map(k => `<i class="${k === cur ? "cur" : ""}">${k}</i>`).join("")}</div><div><span>makes</span>${ks.map(k => `<i class="${k === cur ? "cur" : ""}${match && match.includes(rule.gen(k)) ? " glow" : ""}">${rule.gen(k)}</i>`).join("")}</div>`;
+      if(ask && cur === ask.n){
+        const last = host.querySelector(".rx-grid .rr:last-child b");
+        if(last){ const inp = document.createElement("input"); inp.className = "ans"; inp.inputMode = "numeric"; inp.maxLength = 5; inp.setAttribute("aria-label", "Type the answer");
+          last.replaceWith(inp); inp.addEventListener("keydown", e => { if(e.key === "Enter"){ e.preventDefault(); if(inp.value.trim()) ask.check(inp); } });
+          setTimeout(() => inp.isConnected && inp.focus({ preventScroll: true }), 0); }
+      }
+      const ban = host.querySelector(".rx-ban"); if(ban && ask) ban.classList.toggle("wait", cur !== ask.n);
+      if(onVal) host.querySelector(".rx-note").innerHTML = onVal(rule.gen(cur)) || "";
       if(onN) onN(cur);
     };
     host.querySelectorAll(".rx-b").forEach(b => b.addEventListener("click", () => { set(cur + +b.dataset.d); T.SND("tick"); }));
@@ -1284,7 +1337,7 @@
       const d = ["ArrowRight", "ArrowUp", "+", "="].includes(e.key) ? 1 : ["ArrowLeft", "ArrowDown", "-"].includes(e.key) ? -1 : 0; if(d){ e.preventDefault(); set(cur + d); T.SND("tick"); } };
     document.addEventListener("keydown", rxKey);
     set(cur);
-    return { set, get n(){ return cur; }, banner: html => { const b = host.querySelector(".rx-ban"); if(b) b.innerHTML = html; return b; } };
+    return { set, get n(){ return cur; }, ask(a){ ask = a; set(cur); }, input: () => host.querySelector("input.ans"), banner: html => { const b = host.querySelector(".rx-ban"); if(b && html != null) b.innerHTML = html; return b; } };
   }
   // The right picture for n (after the crack): n gates with the + 1 stick and each gate's 3 coloured; an n × n array
   const picN = n => P.picN ? P.picN(n) : PID === "matchsticks" ? showGates(n, { groups: true }) : PID === "doubling" ? showPts(P.dblPts(n), { instant: true }) : showPts(rectPts(n, n), { lock: true, instant: true, frame: { x: 0, y: 0, w: n, h: n } });
@@ -1296,7 +1349,7 @@
     if($("cipher")) return;
     const ov = document.createElement("div"); ov.className = "cipher"; ov.id = "cipher";
     ov.innerHTML = `<div class="cbox hterm"><div class="chd"><span>CIPHER TERMINAL</span><span id="loaded"></span><button type="button" class="pn-btn small" id="peek">SHOW MY DRAWINGS</button></div>
-      <div class="cread" id="cread"></div><div class="cmain"><div class="hist" id="hist"></div><div class="cpic" id="cpic"></div><div class="cside"><div class="rxh" id="rxh"></div></div></div><div class="prompt" id="prompt"></div></div>`;
+      <div class="cread" id="cread"></div><div class="cmain"><div class="cards" id="cards"></div><div class="hist" id="hist"></div><div class="cpic" id="cpic"></div><div class="cside"><div class="rxh" id="rxh"></div></div></div><div class="prompt" id="prompt"></div></div>`;
     document.body.appendChild(ov);
     $("cread").appendChild(rain); $("cpic").appendChild($("picw")); $("picw").hidden = true;
     $("peek").addEventListener("click", () => { const on = ov.classList.toggle("peek"); $("peek").textContent = on ? "BACK TO THE TERMINAL" : "SHOW MY DRAWINGS"; T.SND("click"); });
@@ -1319,16 +1372,23 @@
     const R = T.shuffle(P.rules);
     tl(`agent@primenet:~$ cipher.connect --zone STRONGROOM`, "me"); tl(`  connected · ${READ.length} readings frozen · ${READ.filter(o => o.g).length} glowing`, "sys");
     tl(`  load a rule and RUN it against the readings`, "sys");
-    prompt.innerHTML = `<span class="ps">$ cipher.test --rule</span><span class="sys">tap a rule to try it with different n, then RUN it</span><div class="rules3">${R.map((r, i) => `<button type="button" class="rule" data-k="${i}"><b>${r.eq}</b><small>${r.words}</small></button>`).join("")}<button type="button" class="run" id="run" disabled>RUN ▸</button></div>`;
-    $("rxh").innerHTML = `<div class="rx-empty">Tap a rule below to see what it makes.<br>Change <span class="nb">n</span> with + and −.</div>`;
+    // Bertie: the rules in the left container, so it's clear you can just try them; the explorer on the right
+    const ov = $("cipher"), cards = $("cards"); ov.classList.add("crack"); prompt.innerHTML = "";
+    cards.innerHTML = `<div class="ctl2">TRY A RULE</div><div class="rules3">${R.map((r, i) => `<button type="button" class="rule" data-k="${i}"><b>${r.eq}</b><small>${r.words}</small></button>`).join("")}<button type="button" class="run" id="run" disabled>RUN ▸</button></div>`;
+    $("rxh").innerHTML = `<div class="rx-empty">Tap a rule on the left.<br>Press <b class="up">▲</b> to change <span class="nb">n</span> and watch the readings at the top: does it light up the glowing ones?</div>`;
     status("NO RULE LOADED");
-    T.step(`Which rule makes the glowing readings? Tap a rule: try it with n = 1, 2, 3… using <b>+</b> to see what it makes. Then <b>RUN</b> it: the terminal tests it against every reading. You need every glowing one, and no grey ones.${quick ? " (You've cracked this code before.)" : ""}`, { name: "Crack the code" });
+    T.step(`Which rule makes the glowing readings? Tap a rule on the left and press <b>▲</b>: each number it makes is fired at the readings. A glowing one lights up; a grey one glitches. Then <b>RUN</b> it against every reading. You need every glowing one, and no grey ones.${quick ? " (You've cracked this code before.)" : ""}`, { name: "Crack the code" });
     say("Tap a rule to try it, then RUN it.");
     const run = $("run");
     let sel = -1, running = false;
-    const load = k => { if(running || over) return; const b = prompt.querySelector(`[data-k="${k}"]`); if(!b || b.classList.contains("no")) return;
-      sel = k; prompt.querySelectorAll(".rule").forEach(x => x.classList.toggle("on", x === b)); run.disabled = false; status(`LOADED: ${R[k].code}`); T.SND("tag");
-      explorer($("rxh"), R[k], { match: READ.filter(o => o.g).map(o => o.v) }); };
+    // the intersection: the value at n is fired at the readings. Glowing: it scrambles and lands. Grey: it glitches.
+    const ping = v => { const e = rdEls().find(o => +o.dataset.v === v);
+      if(!e) return `<span class="no">${v} isn't one of the readings</span>`;
+      if(e.classList.contains("g")){ scramble(e, "ping"); return `<span class="yes">✓ ${v} is a glowing reading</span>`; }
+      glitchEl(e); return `<span class="bad">✗ ${v} is grey: noise</span>`; };
+    const load = k => { if(running || over) return; const b = cards.querySelector(`[data-k="${k}"]`); if(!b || b.classList.contains("no")) return;
+      sel = k; cards.querySelectorAll(".rule").forEach(x => x.classList.toggle("on", x === b)); run.disabled = false; status(`LOADED: ${R[k].code}`); T.SND("tag");
+      explorer($("rxh"), R[k], { match: READ.filter(o => o.g).map(o => o.v), onVal: ping }); };
     await new Promise(res => {
       const go = async () => {
         if(running || over || sel < 0) return;
@@ -1339,7 +1399,8 @@
         tl(`$ cipher.test --rule "${r.code}"`, "me"); await wait(450);
         tl(`  generating: ${sc.made.slice(0, 10).join(" ")}${sc.made.length > 10 ? " …" : ""}`); await wait(600);
         const at = v => rdEls().filter(e => +e.dataset.v === v);
-        sc.hits.forEach(v => at(v).forEach(e => e.classList.add("hit"))); T.SND("tick");
+        // the hits scramble and land one after another
+        await Promise.all(sc.hits.map((v, i) => new Promise(r => setTimeout(() => Promise.all(at(v).map(e => scramble(e))).then(() => { at(v).forEach(e => e.classList.add("hit")); T.SND("tick"); r(); }), i * 130 / sp()))));
         tl(`  hits: ${sc.hits.length ? sc.hits.map(v => v + " ✓").join("  ") : "none"}`, "ok"); await wait(500);
         if(sc.missed.length){ sc.missed.forEach(v => at(v).forEach(e => e.classList.add("miss"))); tl(`  missed: ${sc.missed.join(" ")}`, "bad"); await wait(500); }
         if(sc.noise.length){ sc.noise.forEach(v => at(v).forEach(e => { e.classList.add("leak", "glitch"); })); tl(`  noise let in: ${sc.noise.slice(0, 8).join(" ")}${sc.noise.length > 8 ? " …" : ""} ✗`, "bad"); T.SND("glitch"); await wait(500); }
@@ -1347,18 +1408,18 @@
         if(sc.perfect){ tl(`  MATCH ${greens}/${greens} · 0 noise ▸ CIPHER CRACKED`, "gold"); running = false; res(); return; }
         tl(`  MATCH ${sc.hits.length}/${greens}${sc.noise.length ? ` · ${sc.noise.length} noise` : ""} ▸ REJECTED`, "bad");
         alarm.hit({ soft: true }); T.SND("denied");
-        const b = prompt.querySelector(`[data-k="${sel}"]`); b.classList.add("no"); b.classList.remove("on");
+        const b = cards.querySelector(`[data-k="${sel}"]`); b.classList.add("no"); b.classList.remove("on");
         sel = -1; status("REJECTED · LOAD ANOTHER"); running = false;
         say(sc.missed.length ? `That rule misses ${sc.missed.slice(0, 3).join(", ")}. Look at your drawings again.` : `That rule lets noise in: ${sc.noise.slice(0, 3).join(", ")} ${sc.noise.length > 1 ? "aren't" : "isn't"} glowing.`, "bad");
       };
-      prompt.querySelectorAll(".rule").forEach(b => b.addEventListener("click", () => load(+b.dataset.k)));
+      cards.querySelectorAll(".rule").forEach(b => b.addEventListener("click", () => load(+b.dataset.k)));
       run.addEventListener("click", go);
       const key = e => { if(stage !== "name" || e.ctrlKey || e.metaKey || e.altKey || e.target.tagName === "INPUT") return; if(e.key === "Enter" && sel >= 0 && e.target !== run){ e.preventDefault(); go(); } };
       document.addEventListener("keydown", key);
       if(window.PNTest) PNTest.skip("Run the right rule", () => { load(R.findIndex(r => r.ok)); go(); });
     });
     if(over) return;
-    prompt.innerHTML = ""; status("CRACKED");
+    prompt.innerHTML = ""; status("CRACKED"); cards.innerHTML = ""; ov.classList.remove("crack");
     await wait(500);
     rdEls().forEach(e => e.classList.remove("hit", "miss", "leak"));
     await decrypt();
@@ -1377,12 +1438,8 @@
     gr.forEach(e => e.classList.add("faint"));
     if(!RM()){
       await Promise.all(gs.map((e, i) => new Promise(r => {
-        const v = e.dataset.v, tk = e.querySelector(".tk"); let n = 0;
-        setTimeout(() => { const t = setInterval(() => {
-          e.firstChild.nodeValue = n++ < 10 ? String(Math.floor(Math.random() * Math.pow(10, v.length))).padStart(v.length, "0") : v;
-          if(n > 10){ clearInterval(t); e.classList.add("dec"); r(); }
-        }, 55 / sp()); }, i * 110 / sp());
-        if(tk) tk.remove();
+        const tk = e.querySelector(".tk"); if(tk) tk.remove();
+        setTimeout(() => scramble(e).then(() => { e.classList.add("dec"); r(); }), i * 110 / sp());
       })));
     } else gs.forEach(e => e.classList.add("dec"));
     T.SND("thunk");
@@ -1391,23 +1448,20 @@
   }
   // Bertie: once they have the rule, show it working on the picture (3 × 4 + 1 = 13), then let them try other numbers
   async function demo(){
-    // Bertie: the rule, as something to play with: + changes n, the sum and the picture change with it
-    const rule = P.rules.find(r => r.ok);
+    // Bertie: the try-it felt like "just playing". Now one look at the cracked rule with its picture, then decrypt
+    // (where n and the picture do the work)
+    const rule = P.rules.find(r => r.ok), ms = PID === "matchsticks", TI = P.tryIt || {}, goal = TI.goal || 4;
     showPic();
     tl(`$ cipher.explain --rule "${rule.eq}"`, "me"); tl(`  ${rule.words}: ${P.nIs}`, "sys");
-    status("THE RULE");
-    // Bertie: make it clear what to do. A short task with a finish: press ▲ until n = 4, then CONTINUE appears
-    const ms = PID === "matchsticks", TI = P.tryIt || {}, goal = TI.goal || 4;
+    status("CRACKED");
     const key = TI.key || (ms ? "<span class=\"k1\">blue</span> = the + 1 stick · each colour = one gate's 3 sticks" : "n rows of n dots");
-    let reached = false, ex;
-    ex = explorer($("rxh"), rule, { n: 1, banner: `TRY IT · Press <b>▲</b> until n = ${goal}. ${TI.ban || (ms ? "Watch what each new gate adds." : "Watch the square grow.")}`,
-      onN: n => { picN(n); cap(`n = ${n}: <span class="gold">${rule.gen(n)}</span><br><span class="sys">${key}</span>`);
-        if(n === goal && !reached){ reached = true; T.SND("lockon");
-          const b = ex && ex.banner(TI.done || (ms ? `✓ 3 × 4 + 1 = <b>13</b>. Every gate adds 3 sticks, plus the 1 at the start.` : `✓ 4 × 4 = <b>16</b>. n rows of n.`)); if(b) b.classList.add("done");
-          $("dgo").hidden = false; $("dgo").focus({ preventScroll: true }); say("That's the rule working. CONTINUE when you're ready.", "ok"); } } });
-    prompt.innerHTML = `<span class="tip2">Press <b>▲</b> to make <span class="nb">n</span> bigger. Watch the picture and the working.</span><button type="button" class="run" id="dgo" hidden>CONTINUE ▸</button>`;
-    T.step(`Press <b>▲</b> until n = ${goal}, and watch the picture and the sum change. Then <b>CONTINUE</b>.`, { name: "The rule" });
-    say(`Press ▲ until n = ${goal}.`);
+    const ex = explorer($("rxh"), rule, { n: goal, steps: false, banner: TI.done || (ms ? `✓ 3 × 4 + 1 = <b>13</b>. Every gate adds 3 sticks, plus the 1 at the start.` : `✓ 4 × 4 = <b>16</b>. n rows of n.`),
+      onN: n => { picN(n); cap(`n = ${n}: <span class="gold">${rule.gen(n)}</span><br><span class="sys">${key}</span>`); } });
+    ex.banner().classList.add("done"); T.SND("lockon");
+    prompt.innerHTML = `<span class="tip2">Cracked: <b>${rule.eq}</b>. Now use it to decrypt the floor code.</span><button type="button" class="run" id="dgo">DECRYPT ▸</button>`;
+    T.step(`That's the rule, with its picture. Press <b>DECRYPT</b> to use it on the floor code.`, { name: "The rule" });
+    say("Cracked. DECRYPT when you're ready.", "ok");
+    $("dgo").focus({ preventScroll: true });
     await new Promise(res => { $("dgo").addEventListener("click", res); if(window.PNTest) PNTest.skip("Continue", res); });
     prompt.innerHTML = "";
   }
@@ -1470,18 +1524,21 @@
     if(!prompt) terminal();
     const ov = $("cipher"), ms = PID === "matchsticks", rule = P.rules.find(r => r.ok);
     ov.classList.remove("withpic"); ov.classList.add("dec");
-    $("picw").hidden = !ms; cap(ms ? `<span class="sys">the corridor: gates light as you decrypt them</span>` : ""); if(ms) miniCorridor(0, F.cps[0]);
+    $("picw").hidden = false; cap(ms ? `<span class="sys">the corridor: gates light as you decrypt them</span>` : ""); if(ms) miniCorridor(0, F.cps[0]);
     hist.innerHTML = "";
-    explorer($("rxh"), rule, { n: 1, max: ms ? F.path.length : 12, banner: "CALCULATOR · ▲ ▼ to set n" });
-    T.step(ms ? "The floor code is streaming in. When a request cuts in, work out the laser bars for that gate (the calculator on the right helps), type it and press Enter." : "The floor code is streaming in. When a request cuts in, work out the value for that n (the calculator on the right helps), type it and press Enter.", { name: "Decrypt" });
+    // Bertie: set n and type the answer in the same place. The request lands on top of the calculator; at its n the
+    // last line of the working becomes the answer box. The picture beside it follows n.
+    const ex = explorer($("rxh"), rule, { n: 1, max: ms ? F.path.length : 12, banner: "STREAMING · the requests will appear here",
+      onN: n => { if(!ms){ picN(n); cap(`n = ${n}`); } } });
+    T.step(ms ? "The floor code is streaming in. When a request cuts in, press <b>▲</b> to set n to that gate, then type the laser bars in the box at the bottom of the working and press Enter." : "The floor code is streaming in. When a request cuts in, press <b>▲</b> to set n, then type the answer in the box at the bottom of the working and press Enter.", { name: "Decrypt" });
     // the stream
     let rate = 110, stopped = false;
     const verbs = ["shift(n)", "xor.block()", "unmask()", "sync()", "rotate(3)", "checksum_ok()", "seed.read()", "plate.map()"];
     (async () => { let i = 0; while(!stopped && !over){ tl(`${ms ? "lasers" : "floor"}.block[${i++}] ${hex(8)} ${hex(4)} ${hex(4)} :: ${T.pick(verbs)}`, "gob"); if(i % 4 === 0) T.SND("data"); await wait(rate); } })();
     tl(`$ cipher.decrypt --floor STRONGROOM --rule "${rule.eq}"`, "me");
     const RQ = P.req || {}, ns = T.shuffle(T.range(RQ.from || 5, RQ.to || 9)).slice(0, 3);
-    const reqs = ms ? F.cps.map((g, i) => ({ n: g, want: F.need[i], ask: `⚠ GATE ${g} · laser bars?`, hint: `Use the calculator: set n to ${g}.`, done: () => miniCorridor(g, F.cps[i + 1] || 0) }))
-      : ns.map(n => ({ n, want: rule.gen(n), ask: RQ.ask ? RQ.ask(n) : `⚠ CHECKSUM REQUEST · n = ${n} · value?`, hint: `Use the calculator: set n to ${n}.`, done: () => {} }));
+    const reqs = ms ? F.cps.map((g, i) => ({ n: g, want: F.need[i], ask: `⚠ GATE ${g} · laser bars?`, hint: `Not quite. With n = ${g}, work out the last line of the working again.`, done: () => miniCorridor(g, F.cps[i + 1] || 0) }))
+      : ns.map(n => ({ n, want: rule.gen(n), ask: RQ.ask ? RQ.ask(n) : `⚠ CHECKSUM REQUEST · n = ${n} · value?`, hint: `Not quite. With n = ${n}, work out the last line of the working again.`, done: () => {} }));
     const pins = i => `<span class="pins" id="pins">${reqs.map((_, j) => `<span class="pin${j < i ? " drop" : ""}"></span>`).join("")}</span>`;
     for(let i = 0; i < reqs.length && !over; i++){
       const r = reqs[i];
@@ -1490,28 +1547,30 @@
       await wait(i ? 2200 : 2800); if(over) return;
       rate = 420; T.SND("alarm");
       tl(r.ask, "req");
-      prompt.innerHTML = `<span class="req">${r.ask}</span><input id="dv" inputmode="numeric" maxlength="4" aria-label="${r.ask}"><span class="sys">Enter</span><span class="cd"><i id="cdi"></i></span>${pins(i)}`;
+      prompt.innerHTML = `<span class="sys">request ${i + 1} of ${reqs.length}</span>${pins(i)}`;
+      ex.banner(`<span class="rq">${r.ask}</span><span class="rqh">Press ▲ ▼ to set <span class="nb">n</span> = ${r.n}, then type the answer in the box.</span><span class="cd"><i id="cdi"></i></span>`).classList.add("req");
       say(r.ask.replace("⚠ ", ""));
-      const inp = $("dv"); inp.focus({ preventScroll: true });
       await new Promise(res => {
         // a countdown for pressure; at L1 running out only flashes a hint and starts again
-        const T0 = 20000; let left = T0, last = performance.now(), live = true;
+        const T0 = 25000; let left = T0, last = performance.now(), live = true;
         const tick = now => { if(!live || over) return; left -= (now - last) * sp(); last = now; const b = $("cdi"); if(b) b.style.width = Math.max(0, left / T0 * 100) + "%";
           if(left <= 0){ left = T0; tl("  trace rising… request repeated", "bad"); say(r.hint, "warn"); T.SND("denied"); }
           requestAnimationFrame(tick); };
         requestAnimationFrame(tick);
-        const check = () => {
-          if(over || !inp.value.trim()) return;
-          if(+inp.value.trim() === r.want){ live = false; res(); return; }
-          alarm.hit(); inp.classList.remove("glitch"); void inp.offsetWidth; inp.classList.add("glitch"); inp.select();
+        const check = async inp => {
+          if(over || !live) return;
+          if(+inp.value.trim() === r.want){
+            live = false; const got = document.createElement("b"); got.className = "got"; got.textContent = r.want; got.dataset.v = r.want; inp.replaceWith(got);
+            await scramble(got, "ping"); T.SND("latch"); res(); return; }
+          alarm.hit(); glitchEl(inp); inp.select();
           tl(`  ${inp.value} ✗ REJECTED`, "bad"); say(r.hint, "bad");
         };
-        inp.addEventListener("keydown", e => { if(e.key === "Enter"){ e.preventDefault(); check(); } });
-        if(window.PNTest) PNTest.skip("Answer the request", () => { inp.value = r.want; check(); });
+        ex.ask({ n: r.n, check });
+        if(window.PNTest) PNTest.skip("Answer the request", () => { ex.set(r.n); const inp = ex.input(); if(inp){ inp.value = r.want; check(inp); } });
       });
       if(over) return;
       prompt.innerHTML = `<span class="sys">accepted…</span>${pins(i)}`;
-      tl(`  ${r.want} ✓ ACCEPTED`, "ok");
+      tl(`  ${r.want} ✓ ACCEPTED`, "ok"); await wait(700); ex.ask(null); ex.banner("STREAMING · the next request will appear here").classList.remove("req");
       await settle(r.want, ms ? `gate ${r.n} bars:` : RQ.label === "door" ? `door code ${r.n}:` : RQ.label === "strip" ? `strip ${r.n} plates:` : `block ${i + 1}:`);
       r.done(); $("pins") && $("pins").children[i] && $("pins").children[i].classList.add("drop");
       rate = 70;
@@ -1591,7 +1650,7 @@
     comms();
     await wait(400); say2("FOX", "We're at the plates. Where are we with it? What do we do?");
     T.step("FOX is asking for an update. Reply, then the scan maps the floor.", { name: "Comms" });
-    await wait(500); await reply(["Code's cracked. Laying out the route now.", "Hold on. Mapping the safe plates."]); if(over) return;
+    await wait(500); await reply(["Code's cracked. Laying out the route now."]); if(over) return;
     await wait(500); say2("WREN", "Copy. Waiting on your route. Don't keep us standing here.");
     // the scan: a sweep line runs down the floor; plates light as it passes
     T.SND("scanline"); $("floorLab").textContent = "SCANNING…";
