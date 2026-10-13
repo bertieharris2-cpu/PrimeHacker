@@ -1340,7 +1340,7 @@ html.pn-mode-on .fxOverlay, html.pn-mode-on .codeFloodOverlay, html.pn-mode-on .
 .rs-row{ display:flex; align-items:baseline; justify-content:space-between; gap:16px; flex-wrap:wrap; }
 .rs-row small, .rs-award small, .rs-scene small{ font-weight:700; font-size:12px; letter-spacing:.16em; color:#a9c3c9; }
 .rs-big{ font:600 44px "IBM Plex Mono", monospace; color:#ffd76a; }
-.rs-work{ font:500 26px "IBM Plex Mono", monospace; } .rs-work b{ color:#8ff5c9; font-weight:600; }
+.rs-work{ font:500 26px "IBM Plex Mono", monospace; } .rs-work b{ color:#8ff5c9; font-weight:600; } .rs-half{ font:500 17px var(--font-ui); color:#a9c3c9; }
 .rs-big.ping, .rs-work b.ping{ animation:rsPing .9s ease-out 1; } @keyframes rsPing{ 0%{ transform:scale(1.25); text-shadow:0 0 22px #ffd76a; } }
 .rs-split{ display:flex; flex-direction:column; gap:4px; font:500 20px/1.45 var(--font-ui); padding:10px 14px; border-left:4px solid #8ff5c9; background:rgba(143,245,201,.08); } .rs-split b{ font-family:"IBM Plex Mono", monospace; color:#ffd76a; }
 .rs-extras{ display:flex; flex-direction:column; gap:2px; font:500 17px var(--font-ui); color:#a9c3c9; } .rs-extras:empty{ display:none; } .rs-extras b{ font-family:"IBM Plex Mono", monospace; color:#8ff5c9; }
@@ -3031,7 +3031,7 @@ async function resultScreen({ acct, F, extras, walletBefore, walletAfter, codena
   setCinematic(true); if(window.PNMode) PNMode.money();
   // 1-3: recovered, the fee with its working, the split
   body.innerHTML = `<div class="rs-row"><small>RECOVERED</small><b class="rs-big" id="rsRec">£0</b></div>
-    <div class="rs-row"><small>YOUR FINDER'S FEE</small><span class="rs-work">${F.pct}% of ${gbp(F.recovered)} = <b id="rsFee">£0</b></span></div>
+    <div class="rs-row"><small>YOUR FINDER'S FEE</small><span class="rs-work">${F.pct}% of ${gbp(F.recovered)} = ${F.half ? `${gbp(F.full)} <span class="rs-half">· repeat run, half:</span> ` : ""}<b id="rsFee">£0</b></span></div>
     <div class="rs-split" id="rsSplit" hidden><span><b>${gbp(F.fee)}</b> to you.</span><span><b>${gbp(F.returned)}</b> returns to ${t.returnTo || "the people it was taken from"}${S && t.victim ? `, like ${S.victimName(acct.name)}` : ""}.</span></div>
     <div class="rs-extras" id="rsExtras"></div>
     <div class="rs-row rs-wal"><small>YOUR WALLET</small><b id="rsWal">${gbp(walletBefore)}</b></div>`;
@@ -3190,6 +3190,8 @@ async function onLockSolved(){
   // and the offer to replay, which takes the money back).
   const S = window.PNStory;
   const F = S ? S.fee(acct.name) : (() => { const r = Bank.siphonPot(DIFF, Run.locksPerRun), f = Math.round(r * .1); return { recovered: r, rate: .1, pct: 10, fee: f, returned: r - f }; })();
+  // Round 28 (Bertie, shop option D): an extra run in the same mission pays half the fee; the mission's own run pays it all
+  if(!Run.isMissionRun){ F.full = F.fee; F.fee = Math.round(F.full / 2); F.returned = F.recovered - F.fee; F.half = true; }
   const finaleLevel = S && Run.isMissionRun && S.isFinale(acct.name) ? S.target(acct.name).level : null;
   const agent = PN ? PN.getAgent() : null;
   const codename = agent ? agent.codename : "AGENT";

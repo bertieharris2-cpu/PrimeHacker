@@ -390,3 +390,8 @@ Direction: twists should happen in the building itself (the 3D floor, the room, 
 - At the finale the vault opens and the pupil chooses: **Return the funds** (the fee, the level's thank-you scene, a title on the ID card and case file, and a trophy that can't be bought) or **Take it all** (the whole pot to the wallet, a short quiet ending, then "Replay the finale?", which takes the money back out and offers the choice again). Rewards are granted the first time only.
 - **Corrupted blueprint (Bertie: trial and error):** a room now goes anywhere it fits. A dead end isn't blocked: ORACLE nudges, and after three nudges the room (or the most recent rooms) in the way glows. CLEAR FLOOR sends every placed room back to the tray (L1's two starter rooms stay).
 - Shop prices: unchanged; a proposal for the new earnings is in `docs/SHOP_PROPOSAL.md` for Bertie to approve.
+
+## Round 28: the shop (Bertie chose A, B and D)
+- Atlas Prime's hidden sum is now £3,000,000. At the L3 finale, returning the funds pays a £600,000 fee, and taking it all pays £3,000,000.
+- The middle tier is cheaper: the £250,000 items are now £150,000, and the £100,000 items are now £75,000. The £1,000,000 items stay.
+- Extra runs in the same mission pay half the fee, shown in the working ("10% of £240,000 = £24,000 · repeat run, half: £12,000"). The mission's own run and the finale pay in full.

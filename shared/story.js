@@ -79,7 +79,7 @@
     "Atlas Prime": { level:"L3", mission:4, verb:"expose", finale:true, boss:"Director Sable",
       hook:"Atlas Prime owns Helix, Nexus and Kronos, and hid the money all three of them took. The trail ends on its top floor.",
       cover:"as the catering team for the board dinner", prize:"the chain of ownership that ties the three companies together", returnTo:"the affected communities",
-      hiddenSum:8000000, recoveredSoFar:0, victim:"Kofi, Elin and Carlos",
+      hiddenSum:3000000, recoveredSoFar:0, victim:"Kofi, Elin and Carlos",
       thanks:"We never met you, but we know what you did. Thank you.",
       headline:"ATLAS PRIME UNMASKED: THREE COMPANIES, ONE OWNER", clue:"\"AP\" is Atlas Prime, run by Director Sable." },
   };

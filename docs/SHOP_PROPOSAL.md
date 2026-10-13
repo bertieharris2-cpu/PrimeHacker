@@ -1,4 +1,6 @@
-# Shop proposal (Round 27): for Bertie to approve
+# Shop proposal (Round 27)
+
+**Approved: A, B and D (Round 28), and built.** Atlas Prime's hidden sum is now £3,000,000. The £250,000 items are now £150,000 and the £100,000 items are now £75,000. Extra runs in a mission pay half the fee. The £1,000,000 top items are unchanged.
 
 Nothing in the shop has changed yet. This compares what pupils earned before the finder's fee with what they earn now, and suggests changes.
 
