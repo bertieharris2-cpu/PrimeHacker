@@ -5,8 +5,13 @@
   "use strict";
 
   const KEY = "primenet_sound_v1";
-  let settings = { on: true, volume: 0.7 };
+  let settings = { on: true, volume: 0.9 };
   try{ Object.assign(settings, JSON.parse(localStorage.getItem(KEY) || "{}")); }catch(e){}
+  // Round 25 (Bertie: "can we increase the volume?"): the default went from 0.7 to 0.9. Anyone still on the old
+  // default moves up once; a volume someone chose themselves is left alone.
+  if(!settings.v2){ if(settings.volume === 0.7) settings.volume = 0.9; settings.v2 = 1; try{ localStorage.setItem(KEY, JSON.stringify(settings)); }catch(e){} }
+  // A fixed boost after the compressor (+8 dB), with a limiter after it so the big moments never clip
+  const BOOST = 2.5;
 
   let ctx = null, master = null, dry = null, wet = null;
   const last = {};   // throttling for rapid-fire sounds
@@ -22,7 +27,10 @@
     master.gain.value = settings.volume;
     const comp = ctx.createDynamicsCompressor();
     comp.threshold.value = -14; comp.ratio.value = 4;
-    master.connect(comp); comp.connect(ctx.destination);
+    const boost = ctx.createGain(); boost.gain.value = BOOST;
+    const lim = ctx.createDynamicsCompressor();
+    lim.threshold.value = -1; lim.knee.value = 0; lim.ratio.value = 20; lim.attack.value = 0.001; lim.release.value = 0.12;
+    master.connect(comp); comp.connect(boost); boost.connect(lim); lim.connect(ctx.destination);
     // A small generated "room" so chimes ring instead of clicking off
     dry = ctx.createGain(); dry.gain.value = 1; dry.connect(master);
     const verb = ctx.createConvolver();
