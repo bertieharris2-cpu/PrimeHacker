@@ -80,6 +80,10 @@
   /* ID card: badges and the frame bought in the shop */
   .idcard .badges{ grid-column:1/-1; display:flex; flex-wrap:wrap; gap:4px; align-items:center; min-height:34px; padding-right:84px; }
   .idcard .badges .none{ font-size:12px; color:var(--text-faint); }
+  /* Round 27: the finale's title on the ID card, and trophies (earned, never bought) in the agent file and the shop */
+  .idcard .idtitle{ grid-column:1/-1; font-family:var(--font-ui); font-size:11px; font-weight:700; letter-spacing:.14em; color:#ffd76a; text-transform:uppercase; }
+  .trophies{ display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; } .trophies span{ font-size:12px; padding:2px 8px; border:1px solid rgba(255,215,106,.55); color:#ffd76a; }
+  .shop .item.trophy .ico{ font-size:30px; } .shop .item.trophy.earned{ border-color:rgba(255,215,106,.7); background:rgba(255,215,106,.07); } .shop .item.trophy:not(.earned){ opacity:.55; }
   .idcard.frame-bronze{ border:2px solid #b87333; box-shadow:0 0 16px rgba(184,115,51,.35); }
   .idcard.frame-silver{ border:2px solid #c9d6dc; box-shadow:0 0 16px rgba(201,214,220,.35); }
   .idcard.frame-gold{ border:2px solid #ffc94d; box-shadow:0 0 22px rgba(255,201,77,.45); }
@@ -283,6 +287,7 @@
         <div class="prog" title="Progress to the next rank"><i id="idProg"></i></div>
         <div class="nextr" id="idNext">Breach one vault to become a Field Agent.</div>
         <div class="badges" id="idBadges"></div>
+        <div class="trophies" id="idTrophies" hidden></div>
       </div>
     </section>
 
@@ -293,6 +298,7 @@
         <div class="nm empty" id="idName">NO CODENAME</div>
         <div class="row2"><span>Rank <b id="idRank">Rookie</b></span><span>Vaults <b id="idVaults">0</b></span></div>
         <div class="row2"><span>Clearance <b id="idClear">·</b></span><span id="idCall" hidden>Callsign <b class="cs" id="idCallName"></b></span></div>
+        <div class="idtitle" id="idTitle" hidden></div>
         <span class="stamp">VERIFIED</span>
       </div>
       <label class="pn-label" for="codename">Agent codename</label>
@@ -747,6 +753,10 @@
     const call = loot ? P.shopItem(loot.equip.call) : null;
     $("#idCall").hidden = !(call && call.color);
     if(call && call.color){ $("#idCallName").innerHTML = `<i aria-hidden="true">${call.icon}</i> ${call.name}`; $("#idCallName").style.setProperty("--c", call.color); }
+    // Round 27: the title and trophies the finales give (returning the funds)
+    const tl = loot ? loot.title : ""; $("#idTitle").hidden = !tl; $("#idTitle").textContent = tl;
+    const tr = loot ? loot.trophies.map(P.trophy).filter(Boolean) : []; $("#idTrophies").hidden = !tr.length;
+    $("#idTrophies").innerHTML = tr.map(t => `<span title="${t.desc}">${t.icon} ${t.name}</span>`).join("");
     $("#idNextRank").textContent = !name ? "·" : r.next || "Top rank";
     $("#idWallet").textContent = name ? gbp(P.walletOf(name)) : "£0";
     $("#idNext").textContent = !name ? "Type a codename to load an agent file." : r.next ? `${r.toNext} more vault${r.toNext === 1 ? "" : "s"} to become ${/^[AEIOU]/.test(r.next) ? "an" : "a"} ${r.next}.` : "Top rank. A legend in the network.";
@@ -838,7 +848,7 @@
   }
   function renderShop(){
     const name = shopName();
-    $("#shopWho").textContent = name ? `Agent ${name}'s safehouse. Money comes from vaults you crack in Prime Hack; higher levels pay far more. Each category equips one item.` : "Type your codename first to open your safehouse.";
+    $("#shopWho").textContent = name ? `Agent ${name}'s safehouse. Money comes from your finder's fee on every mission (10%, 15% or 20% of what you recover). Each category equips one item.` : "Type your codename first to open your safehouse.";
     shopWallet.textContent = name ? gbp(P.walletOf(name)) : "£0";
     const loot = name ? P.lootFor(name) : { owned: [], equip: {} };
     const cats = $("#shopCats"); cats.innerHTML = "";
@@ -849,6 +859,12 @@
       cat.items.forEach(it => box.querySelector(".items").appendChild(shopCard(key, it, loot, name)));
       cats.appendChild(box);
     });
+    // Trophies: earned by returning the funds at each level's finale. They can't be bought.
+    const tbox = document.createElement("section"); tbox.className = "cat"; tbox.setAttribute("aria-labelledby", "cat-trophy");
+    tbox.innerHTML = `<div class="cat-h"><span class="cat-t" id="cat-trophy">Trophies</span><span class="cat-b">Earned at each level's finale by returning the funds. They can't be bought.</span></div><div class="items">${P.TROPHIES.map(t => {
+      const got = (loot.trophies || []).includes(t.id);
+      return `<div class="item trophy${got ? " earned" : ""}"><div class="ico" aria-hidden="true">${t.icon}</div><div class="nm">${t.name}</div><div class="ds">${t.desc}</div><div class="pr">${got ? "Earned" : `The ${t.level} finale`}</div>${got ? '<span class="tag own">EARNED</span>' : ""}</div>`; }).join("")}</div>`;
+    cats.appendChild(tbox);
   }
   function openShop(){
     shopSay(""); renderShop(); shopOverlay.hidden = false; shopOverlay.scrollTop = 0;

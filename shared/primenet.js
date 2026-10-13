@@ -18,13 +18,14 @@
     floors: "blueprintProgress",            // numbers finished in Factor Vault this mission
     textSize: "primenet_textsize_v1",       // older text-size-only settings, read once and folded into `learner`
     learner: "primenet_learner_v1",
+    finale: "primenet_finale_v1",           // { CODENAME: { L1: { choice, taken, rewarded } } }, the finale choice per level
     loot: "primenet_loot_v1",               // { CODENAME: { owned:[ids], equip:{ term, door, frame, holo, gadget, call } } }, bought in the safehouse shop         // { CODENAME: { text, font, motion } }, each learner's settings on this computer
   };
 
   const LEVELS = {
-    L1: { id:"L1", rank:"Recruit",    factors:"numbers up to 24",  primes:"primes up to 19", reward:"£1,000–£9,000 a lock" },
-    L2: { id:"L2", rank:"Operative",  factors:"numbers up to 64",  primes:"primes up to 29", reward:"£10,000–£90,000 a lock" },
-    L3: { id:"L3", rank:"Specialist", factors:"numbers up to 100", primes:"primes up to 41", reward:"£100,000–£900,000 a lock" },
+    L1: { id:"L1", rank:"Recruit",    factors:"numbers up to 24",  primes:"primes up to 19", reward:"Finder's fee: 10% of what you recover" },
+    L2: { id:"L2", rank:"Operative",  factors:"numbers up to 64",  primes:"primes up to 29", reward:"Finder's fee: 15% of what you recover" },
+    L3: { id:"L3", rank:"Specialist", factors:"numbers up to 100", primes:"primes up to 41", reward:"Finder's fee: 20% of what you recover" },
   };
   const LEVEL_ORDER = ["L1","L2","L3"];
 
@@ -252,7 +253,7 @@
   function lootFor(codename){
     const name = cleanName(codename || (getAgent() || {}).codename || "");
     const saved = read(KEYS.loot, {})[name] || {};
-    return { owned: saved.owned || [], equip: { ...DEFAULT_EQUIP, ...(saved.equip || {}) } };
+    return { owned: saved.owned || [], equip: { ...DEFAULT_EQUIP, ...(saved.equip || {}) }, trophies: saved.trophies || [], title: saved.title || "" };
   }
   function saveLoot(codename, loot){ const map = read(KEYS.loot, {}); map[cleanName(codename)] = loot; write(KEYS.loot, map); }
   // The item this codename has equipped in a category (the current agent when no codename is given)
@@ -293,6 +294,45 @@
     if(h && h.rgb){ root.style.setProperty("--hb-rgb", h.rgb); root.style.setProperty("--hb-hi", h.hi); }
     root.classList.toggle("pn-lens", !!perk("lens"));
     return lootFor(codename);
+  }
+
+  /* Round 27: the finale. Trophies can't be bought: each is earned by returning the funds at a level's finale. They
+     live beside the shop's items in the loot record, with the title the finale gives. */
+  const TROPHIES = [
+    { id: "trophy-frontpage", level: "L1", name: "Framed front page",  icon: "📰", desc: "HAVEN PARK SAVED, framed for the safehouse wall." },
+    { id: "trophy-nameplate", level: "L2", name: "PRIMENET nameplate", icon: "🔰", desc: "A brass nameplate for your desk." },
+    { id: "trophy-caseclosed", level: "L3", name: "Case Closed trophy", icon: "🏆", desc: "Glass, for the shelf. Atlas Prime, unmasked." },
+  ];
+  const trophy = id => TROPHIES.find(t => t.id === id) || null;
+  function grantTrophy(codename, id){
+    if(!cleanName(codename || "") || !trophy(id)) return false;
+    const loot = lootFor(codename); if(loot.trophies.includes(id)) return false;
+    loot.trophies.push(id); saveLoot(codename, loot); return true;
+  }
+  function setTitle(codename, title){ if(!cleanName(codename || "")) return false; const loot = lootFor(codename); loot.title = title || ""; saveLoot(codename, loot); return true; }
+  // The missions this codename has finished in a level: the target each mission was for, when its first run breached
+  // the vault (extra runs in the same mission don't count). Distinct target names.
+  function missionsDone(codename, level){
+    const name = cleanName(codename || (getAgent() || {}).codename || "");
+    const done = new Set();
+    getRecords().filter(s => s.codename === name && s.level === level).forEach(s => {
+      const c = s.events.find(e => e.stage === "complete" && e.detail);
+      if(c && (c.detail.target === s.target || !s.target)) done.add(c.detail.target);
+    });
+    return [...done];
+  }
+  // The level's finale is open once `gate` of its other missions are done (the teacher can always open it, to test)
+  function finaleProgress(level, codename){
+    const S = window.PNStory, fin = S && S.finaleOf(level), gate = S ? S.FINALE.gate : 3;
+    const done = missionsDone(codename, level).filter(t => t !== fin).length;
+    return { target: fin, done: Math.min(done, gate), gate, open: done >= gate || isTeacher() };
+  }
+  // The finale choice for this codename at a level: { choice: "return" | "take", taken, rewarded }
+  function finaleState(level, codename){ const n = cleanName(codename || (getAgent() || {}).codename || ""); return (read(KEYS.finale, {})[n] || {})[level] || {}; }
+  function setFinaleState(level, patch, codename){
+    const n = cleanName(codename || (getAgent() || {}).codename || ""); if(!n) return {};
+    const all = read(KEYS.finale, {}), me = all[n] || (all[n] = {});
+    me[level] = { ...(me[level] || {}), ...patch }; write(KEYS.finale, all); return me[level];
   }
 
   // Add to this mission's agent data, e.g. the scan's signal strength and decoder charges
@@ -446,6 +486,7 @@
     prefsFor, setPrefs, applyPrefs, reducedMotion,
     mission, agentNumber, TARGETS, updateAgent, setMissionTarget,
     SHOP, shopItem, shopCat, shopSwatch, lootFor, buyItem, equipItem, walletOf, shortBy, equipped, perk, applyLoot,
+    TROPHIES, trophy, grantTrophy, setTitle, missionsDone, finaleProgress, finaleState, setFinaleState,
   };
   // ---------- Twists the teacher allows in the bank rotation (feedback: leave out what hasn't been taught) ----------
   const TWIST_KEY = "primenet_twists_v1";

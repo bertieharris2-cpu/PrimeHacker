@@ -121,8 +121,10 @@ const Bank = (() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   }
 
+  // Round 27: extra runs never land on a level's finale target (the finale is chosen on the map, once unlocked)
   function getRandomAccountForTier(tier) {
-    const candidates = state.accounts.filter(a => a.tier === tier);
+    const S = window.PNStory;
+    const candidates = state.accounts.filter(a => a.tier === tier && !(S && S.isFinale && S.isFinale(a.name)));
     return candidates.length > 0 
       ? candidates[Math.floor(Math.random() * candidates.length)] 
       : null;
@@ -199,6 +201,25 @@ const Bank = (() => {
     return taken;
   }
 
+  // Round 27: the hidden money is recovered in full and goes back to the victims, so it never enters the wallet.
+  // The account just goes down. The pupil's finder's fee is added with addRunBonus.
+  function recover(amount) {
+    const account = getCurrentAccount();
+    const amt = Math.max(0, Math.floor(amount));
+    if (account) account.balance = Math.max(0, account.balance - amt);
+    state.ledger.push({ ts: Date.now(), type: 'recover', module: 'prime_hack', note: 'returned to the victims', amount: amt, accountId: account ? account.id : null });
+    save();
+    return amt;
+  }
+  // Replaying a finale after taking it all: that money comes back out of the wallet (never below zero)
+  function takeBack(amount, note) {
+    const amt = Math.max(0, Math.min(Math.floor(amount), state.walletBalance));
+    state.walletBalance -= amt;
+    state.ledger.push({ ts: Date.now(), type: 'takeback', module: 'prime_hack', note: note || '', amount: amt });
+    save();
+    return amt;
+  }
+
   // Extra money for this run, e.g. the Blueprint quiz's intel bonus
   function addRunBonus(amount, note) {
     amount = Math.max(0, Math.floor(amount));
@@ -262,6 +283,8 @@ const Bank = (() => {
     withdrawForLock,
     siphonPot,
     siphon,
+    recover,
+    takeBack,
     bankRun,
     addRunBonus,
     getState,

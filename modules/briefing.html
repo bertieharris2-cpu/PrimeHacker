@@ -69,6 +69,11 @@
   .map .pin.lock .nm{ font-size:11px; }
   .map .pin .lk{ margin-left:5px; color:#f2c14e; }
   .map .pin .hit{ margin-left:5px; color:#7dffc4; }
+  /* Round 27: the level's finale. Locked (a padlock and x of 3 done) until the other missions are done; then gold. */
+  .map .pin.finlock{ --c:242,193,78; opacity:.75; cursor:not-allowed; }
+  .map .pin .fn{ margin-left:5px; color:#ffd76a; font-weight:700; letter-spacing:.08em; }
+  .map .pin.fin.open{ --c:255,215,106; } .map .pin.fin.open .ic{ box-shadow:0 0 18px rgba(255,215,106,.85); }
+  .tcard .boss{ margin-top:6px; color:#ffd76a; }
   .map .pin.sel .hit{ color:#041012; }
   #stepMap .head, #stepMap .tcard{ transition:opacity .4s ease; }
   #stepMap.locking .head, #stepMap.locking .tcard{ opacity:0; pointer-events:none; }
@@ -229,14 +234,19 @@
       const card = $("#tcard");
       let chosen = null;
       map = PNTownLock.map($("#map"), { onPin(name, b){
-        const lvl = LVL[name] || TOWN.targets[name].level, open = lvl === agent.level, hits = timesHit(name);
-        b.classList.add(open ? "open" : "lock");
-        b.querySelector(".nm").innerHTML = `${name}${open ? "" : `<span class="lk">${lvl}</span>`}${hits ? `<span class="hit">✓${hits > 1 ? " ×" + hits : ""}</span>` : ""}`;
-        if(!open) b.setAttribute("aria-label", `${name}: needs clearance ${lvl}`);
+        const lvl = LVL[name] || TOWN.targets[name].level, inLevel = lvl === agent.level, hits = timesHit(name);
+        // Round 27: the fourth target in each level is its finale, locked until the other missions are done
+        const fin = PNStory.isFinale(name), fp = fin ? PN.finaleProgress(lvl, m.codename) : null, finLocked = inLevel && fin && !fp.open, open = inLevel && !finLocked;
+        b.classList.add(open ? "open" : finLocked ? "finlock" : "lock"); if(fin) b.classList.add("fin");
+        b.querySelector(".nm").innerHTML = `${name}${!inLevel ? `<span class="lk">${lvl}</span>` : finLocked ? `<span class="lk">🔒 ${fp.done}/${fp.gate}</span>` : fin ? `<span class="fn">FINALE</span>` : ""}${hits ? `<span class="hit">✓${hits > 1 ? " ×" + hits : ""}</span>` : ""}`;
+        if(!inLevel) b.setAttribute("aria-label", `${name}: needs clearance ${lvl}`);
+        else if(finLocked) b.setAttribute("aria-label", `${name}: the finale, locked. ${fp.done} of ${fp.gate} missions done`);
         b.addEventListener("click", () => {
-          if(!open){ SND("denied"); card.innerHTML = `<div class="meta"><b>${name}</b> is in the ${DISTRICT[lvl]}. It needs clearance ${lvl}. Pick a higher level on the title screen to take it on.</div>`; return; }
+          if(!inLevel){ SND("denied"); card.innerHTML = `<div class="meta"><b>${name}</b> is in the ${DISTRICT[lvl]}. It needs clearance ${lvl}. Pick a higher level on the title screen to take it on.</div>`; return; }
+          if(finLocked){ SND("denied"); const left = PNStory.levelTargets(lvl).filter(n => n !== name && !PN.missionsDone(m.codename, lvl).includes(n));
+            card.innerHTML = `<div class="meta"><b>${name}</b> is this level's <b>finale</b>. It unlocks when ${fp.gate} missions here are done: ${fp.done} of ${fp.gate} so far. Still to do: ${left.join(", ")}.</div>`; return; }
           Object.values(map.pins).forEach(p => p.classList.remove("sel")); b.classList.add("sel"); chosen = name; SND("tag");
-          card.innerHTML = `<div><div class="nm">${name}</div><div class="hook">${PNStory.target(name).hook}</div><div class="meta">${DISTRICT[lvl]} · security <b>${SECURITY[lvl]}</b>${hits ? ` · you've done this one <b>${hits}</b> time${hits > 1 ? "s" : ""}` : ""}</div></div>
+          card.innerHTML = `<div><div class="nm">${name}${fin ? " · FINALE" : ""}</div><div class="hook">${PNStory.target(name).hook}</div>${fin ? `<div class="boss">The trail from your missions leads here. The boss: <b>${PNStory.target(name).boss}</b>.</div>` : ""}<div class="meta">${DISTRICT[lvl]} · security <b>${SECURITY[lvl]}</b>${hits ? ` · you've done this one <b>${hits}</b> time${hits > 1 ? "s" : ""}` : ""}</div></div>
             <button class="pn-btn primary pn-go" type="button" id="lockTarget">Lock target</button>`;
           $("#lockTarget").addEventListener("click", () => { if(!chosen) return; PN.setMissionTarget(chosen); SND("lock"); const c = chosen; chosen = null; resolve(c); });
           $("#lockTarget").focus();

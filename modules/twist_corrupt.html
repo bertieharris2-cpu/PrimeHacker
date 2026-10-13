@@ -52,6 +52,10 @@
   .slots{ position:relative; flex:1; min-height:0; overflow-x:hidden; overflow-y:auto; }
   .tray .how{ font-family:var(--font-ui); font-size:13px; letter-spacing:.1em; color:var(--text-muted); line-height:1.5; }
   .tray .how b{ color:#ffe68a; }
+  /* Round 27 (Bertie: trial and error): CLEAR FLOOR, and the room that's in the way glows after a few dead ends */
+  #clearFloor{ margin-left:auto; padding:3px 10px; font-size:12px; letter-spacing:.12em; }
+  .pc.hint i{ animation:pcHint 1.1s ease-in-out infinite; } @keyframes pcHint{ 50%{ background:rgba(255,215,106,.75); border-color:#ffe68a; } }
+  html.pn-reduce-motion .pc.hint i{ animation:none; background:rgba(255,215,106,.75); }
   .cb-foot{ flex:none; min-height:48px; display:flex; align-items:flex-start; padding-right:170px; }   /* bottom right stays clear for the FULL SCREEN button */
   .stage3d{ position:relative; grid-column:1 / -1; height:100%; padding:0; overflow:hidden; background:radial-gradient(ellipse at 50% 45%, rgba(20,60,70,.4), rgba(2,8,10,.95)); }
   .stage3d .rep{ position:absolute; left:0; right:0; bottom:18px; text-align:center; font-family:var(--font-ui); font-weight:700; letter-spacing:.3em; font-size:26px; color:#3dffa8; text-shadow:0 0 18px rgba(61,255,168,.7); opacity:0; transition:opacity .6s; }
@@ -63,7 +67,7 @@
 <main class="tw">
   <div class="cb-main">
     <section class="pn-panel fbox" id="fbox"><div class="lab"><span>FLOOR PLAN · CORRUPTED</span><span>ROOMS PLACED <b id="placed">0</b> OF <b id="total">0</b></span><span id="gridLab"></span></div><div class="fwrap" id="fwrap"><div class="fg" id="fg"></div></div></section>
-    <section class="pn-panel tray" id="tray"><span class="lab"><span>ROOMS TO PLACE</span><span id="left"></span></span><div class="how">Drag a room onto the floor. <b>Tap</b> it to turn it. <b>⇋</b> flips an L-shaped room.</div><div class="slots" id="slots"></div></section>
+    <section class="pn-panel tray" id="tray"><span class="lab"><span>ROOMS TO PLACE</span><span id="left"></span><button type="button" class="pn-btn small" id="clearFloor" disabled>CLEAR FLOOR</button></span><div class="how">Drag a room onto the floor. <b>Tap</b> it to turn it. <b>⇋</b> flips an L-shaped room.</div><div class="slots" id="slots"></div></section>
     <section class="pn-panel stage3d" id="stage" hidden><div class="rep" id="rep">BLUEPRINT REPAIRED</div></section>
   </div>
   <div class="cb-foot"><div class="tw-msg" id="msg" aria-live="polite"></div></div>
@@ -188,9 +192,10 @@
   const occAt = (x, y, skip) => blocked[y][x] || pieces.some(p => p !== skip && p.onBoard && p.cells.some(([i, j]) => p.x + i === x && p.y + j === y));
   const valid = (p, x, y) => p.cells.every(([i, j]) => x + i >= 0 && y + j >= 0 && x + i < W && y + j < H && !occAt(x + i, y + j, p));
 
-  // Bertie: the puzzle must never become impossible. Before a room is put down (or turned in place), check the rooms
-  // still in the tray can fill every free square that would be left. A search fills the first empty square each time;
-  // if it runs too long it gives the pupil the benefit of the doubt.
+  // Can the rooms still in the tray fill every free square that would be left? A search fills the first empty square each
+  // time; if it runs too long it gives the pupil the benefit of the doubt. Round 27 (Bertie: "I want it to be trial and
+  // error, with rooms allowed anywhere they fit"): this no longer refuses a drop. It only notices a dead end afterwards,
+  // so ORACLE can nudge, and after a few nudges it finds the room that's in the way.
   const orients = s => { const out = [], seen = new Set(); let t = { bw: s.bw, bh: s.bh, parts: s.parts };
     for(let f = 0; f < 2; f++){ for(let r = 0; r < 4; r++){ const cs = cellsOf(t).sort((a, b) => a[1] - b[1] || a[0] - b[0]), k = cs.map(c => c.join(",")).join(";");
         if(!seen.has(k)){ seen.add(k); out.push(cs.map(([i, j]) => [i - cs[0][0], j - cs[0][1]])); } t = rot(t); } t = flip(t); }
@@ -230,7 +235,24 @@
     };
     return go();
   }
-  const STUCK = "If that room goes there, the space left can't be filled by the rooms you have. Try another spot or turn it.";
+  const STUCK = "Something won't fit in the space that's left. Pick up a room and try it somewhere else.";
+  // After a placement: is it a dead end? Nudge (never block). From the third dead end on, glow the room that's in the way.
+  let nudges = 0;
+  function checkStuck(){
+    pieces.forEach(q => q.el.classList.remove("hint"));
+    if(over || pieces.every(q => q.onBoard)) return false;
+    if(solvable(null)) return false;
+    nudges++; say(STUCK, "warn");
+    if(nudges >= 3){
+      // one room that's in the way, if there is one; otherwise the most recent rooms, back until the rest can be finished
+      const placed = pieces.filter(q => q.onBoard && !q.fixed).sort((m, n) => (n.at || 0) - (m.at || 0));
+      let glow = placed.filter(q => { q.onBoard = false; const ok = solvable(null); q.onBoard = true; return ok; }).slice(0, 1);
+      if(!glow.length){ const off = []; for(const q of placed){ q.onBoard = false; off.push(q); if(solvable(null)) break; } off.forEach(q => { q.onBoard = true; }); glow = off; }
+      glow.forEach(q => q.el.classList.add("hint"));
+      if(glow.length) say(glow.length > 1 ? `Those ${glow.length} glowing rooms are in the way. Pick them up and try them somewhere else.` : "That glowing room is in the way. Pick it up and try it somewhere else.", "warn");
+    }
+    return true;
+  }
 
   // Tray: the rooms, scrambled and turned round (L-shaped rooms flipped over too at L3)
   T.shuffle(P.rooms).forEach((r, idx) => {
@@ -288,7 +310,7 @@
     $("left").textContent = rest.length ? `${rest.length} LEFT` : "";
   }
   function toTray(p){ p.onBoard = false; slots.appendChild(p.el); p.el.style.position = ""; p.el.style.left = p.home.left + "px"; p.el.style.top = p.home.top + "px"; }
-  function toBoard(p, x, y){ p.onBoard = true; p.x = x; p.y = y; fg.appendChild(p.el); p.el.style.position = ""; paint(p, C); p.el.style.left = x * C + "px"; p.el.style.top = y * C + "px"; }
+  function toBoard(p, x, y){ p.onBoard = true; p.x = x; p.y = y; p.at = performance.now(); fg.appendChild(p.el); p.el.style.position = ""; paint(p, C); p.el.style.left = x * C + "px"; p.el.style.top = y * C + "px"; }
   function say(t, cls){ const m = $("msg"); m.textContent = t; m.className = "tw-msg" + (cls ? " " + cls : ""); }
   let over = false, turns = 0, misfits = 0;
   // Round 22 (Bertie): this one is trial and error, so a room that doesn't fit costs nothing. Only rapid-fire dropping
@@ -299,8 +321,7 @@
     if(over) return;
     const old = shapeOf(p); setShape(p, s); turns++;
     if(p.onBoard && !valid(p, p.x, p.y)){ setShape(p, old); say(`No room to ${what} it there. Move it first.`, "warn"); T.SND("untag"); return; }
-    if(p.onBoard && !solvable(p, p.x, p.y, s)){ setShape(p, old); say(STUCK, "warn"); T.SND("untag"); return; }
-    T.SND("tag"); if(p.onBoard) paint(p, C); else layoutTray();
+    T.SND("tag"); if(p.onBoard){ paint(p, C); checkStuck(); } else layoutTray();
   }
   const turn = p => reshape(p, rot(shapeOf(p)), "turn");
   const flipP = p => reshape(p, flip(shapeOf(p)), "flip");
@@ -331,15 +352,16 @@
       if(!s.moved){ turn(p); return; }
       p.el.classList.remove("drag", "bad");
       const [gx, gy] = gridPos(e, s);
-      if(inside(e) && valid(p, gx, gy) && !solvable(p, gx, gy)){ p.onBoard = false; misfits++; det.hit({ soft: true }); T.SND("untag"); say(STUCK, "warn"); }
-      else if(inside(e) && valid(p, gx, gy)){ toBoard(p, gx, gy); T.SND("clamp"); say(`${label(p, 99)} room placed.`, "ok"); }
+      if(inside(e) && valid(p, gx, gy)){ toBoard(p, gx, gy); T.SND("clamp"); say(`${label(p, 99)} room placed.`, "ok"); if(window.PNCorrupt) PNCorrupt.placed++; }
       else if(inside(e)){ p.onBoard = false; misfits++; det.hit({ soft: true }); T.SND("untag"); say("That's over a corridor, a blacked-out square, the lift, the stairs or another room. Try another spot, or turn it.", "warn"); fg.classList.remove("glitch"); void fg.offsetWidth; fg.classList.add("glitch"); }
       else { p.onBoard = false; }
-      layoutTray(); update();
+      layoutTray(); update(); if(!over) checkStuck();
     };
   }
   const inside = e => { const g = fg.getBoundingClientRect(); return e.clientX >= g.left && e.clientX <= g.right && e.clientY >= g.top && e.clientY <= g.bottom; };
-  function update(){ const n = pieces.filter(p => p.onBoard).length; $("placed").textContent = n; if(n === pieces.length && !over) done(); }
+  function update(){ const n = pieces.filter(p => p.onBoard).length; $("placed").textContent = n; $("clearFloor").disabled = !pieces.some(p => p.onBoard && !p.fixed) || over; if(n === pieces.length && !over) done(); }
+  // CLEAR FLOOR: every room the pupil put down goes back to the tray (the L1 starter rooms stay)
+  $("clearFloor").addEventListener("click", () => { if(over) return; pieces.forEach(p => { if(p.onBoard && !p.fixed){ p.onBoard = false; p.el.classList.remove("hint"); } }); T.SND("untag"); say("Floor cleared. Start again."); layoutTray(); update(); });
 
   // Solved: the floor rises in 3D (rooms coming up one by one with beeps, lasers sweeping), then rejoins the building
   async function done(){
@@ -364,12 +386,12 @@
     setTimeout(() => T.finish({ ok: true, title: "BLUEPRINT REPAIRED", lines: [], effect: "repaired" }), 2000 / (window.PNTest ? PNTest.speed() : 1));
   }
   // Round 22: L1 starts with two rooms already in place (where they go in the known solution)
-  if(L === "L1") T.shuffle(pieces).slice(0, 2).forEach(p => { const sl = p.sol; setShape(p, { bw: sl.bw, bh: sl.bh, parts: sl.parts }); toBoard(p, sl.x, sl.y); });
+  if(L === "L1") T.shuffle(pieces).slice(0, 2).forEach(p => { const sl = p.sol; setShape(p, { bw: sl.bw, bh: sl.bh, parts: sl.parts }); toBoard(p, sl.x, sl.y); p.fixed = true; });
   fit(); update();
   let rz = 0; window.addEventListener("resize", () => { cancelAnimationFrame(rz); rz = requestAnimationFrame(() => { if(!over) fit(); }); });
   // Quiet: goes to HINTS (?), which only opens when the pupil asks
   T.step(`Drag all <b>${pieces.length} rooms</b> onto the floor. <b>Tap</b> a room to turn it round. <b>⇋</b> flips an L-shaped room over.`, { quiet: true, name: "Rebuild the floor" });
-  window.PNCorrupt = { P, pieces, W, H, cellsOf, solvable };   // read-only, for automated checks
+  window.PNCorrupt = { P, pieces, W, H, cellsOf, solvable, placed: 0, get nudges(){ return nudges; } };   // read-only, for automated checks
   if(window.PNTest) PNTest.skip("Fit every room", () => {
     pieces.forEach(p => { p.onBoard = false; }); pieces.forEach(p => { const s = p.sol; setShape(p, { bw: s.bw, bh: s.bh, parts: s.parts }); toBoard(p, s.x, s.y); });   // every room to its place in the known solution
     layoutTray(); update();

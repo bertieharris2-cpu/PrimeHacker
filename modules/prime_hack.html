@@ -3,7 +3,7 @@
 <head>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Inter:wght@400;600;700;800&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Inter:wght@400;600;700;800&family=Courier+Prime:wght@400;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../shared/primenet.css">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1332,6 +1332,46 @@ html.pn-mode-on .fxOverlay, html.pn-mode-on .codeFloodOverlay, html.pn-mode-on .
 .pnBtn.primary{ border-color:rgba(var(--accent-rgb),.8); color:var(--accent); box-shadow:0 0 18px rgba(var(--accent-rgb),.2); }
 @media (max-width:640px){ .money{ grid-template-columns:1fr; } .vdoor{ width:230px; height:230px; } .bc-eq{ font-size:32px; } }
 
+
+/* ===== Round 27: the result, the finale choice and the quiet ending. Readable: slate, IBM Plex Mono. ===== */
+.result, .finaleChoice{ width:min(860px,100%); max-height:92vh; overflow:auto; background:#0f2129; border:1px solid rgba(143,234,255,.3); box-shadow:0 20px 90px rgba(0,0,0,.85); padding:22px 28px; display:flex; flex-direction:column; gap:16px; color:#e4f1f4; font-family:var(--font-ui); position:relative; }
+.rs-head{ display:flex; justify-content:space-between; gap:12px; font-weight:700; font-size:13px; letter-spacing:.18em; color:#8feaff; border-bottom:1px solid rgba(143,234,255,.2); padding-bottom:10px; }
+.rs-body{ display:flex; flex-direction:column; gap:14px; }
+.rs-row{ display:flex; align-items:baseline; justify-content:space-between; gap:16px; flex-wrap:wrap; }
+.rs-row small, .rs-award small, .rs-scene small{ font-weight:700; font-size:12px; letter-spacing:.16em; color:#a9c3c9; }
+.rs-big{ font:600 44px "IBM Plex Mono", monospace; color:#ffd76a; }
+.rs-work{ font:500 26px "IBM Plex Mono", monospace; } .rs-work b{ color:#8ff5c9; font-weight:600; }
+.rs-big.ping, .rs-work b.ping{ animation:rsPing .9s ease-out 1; } @keyframes rsPing{ 0%{ transform:scale(1.25); text-shadow:0 0 22px #ffd76a; } }
+.rs-split{ display:flex; flex-direction:column; gap:4px; font:500 20px/1.45 var(--font-ui); padding:10px 14px; border-left:4px solid #8ff5c9; background:rgba(143,245,201,.08); } .rs-split b{ font-family:"IBM Plex Mono", monospace; color:#ffd76a; }
+.rs-extras{ display:flex; flex-direction:column; gap:2px; font:500 17px var(--font-ui); color:#a9c3c9; } .rs-extras:empty{ display:none; } .rs-extras b{ font-family:"IBM Plex Mono", monospace; color:#8ff5c9; }
+.rs-wal b{ font:600 28px "IBM Plex Mono", monospace; color:#8ff5c9; }
+.rs-stamp{ position:relative; align-self:center; margin:4px 0 0; }
+.rs-go{ align-self:flex-start; }   /* left: ORACLE's box sits bottom right */
+.rs-wal{ align-items:center; } .rs-wal small{ flex:1; } .rs-door{ margin:0; } .rs-door .vdoor.mini{ width:52px; height:52px; } .rs-door .vdoor.mini .hub{ font-size:0; }
+.rs-comms{ display:flex; flex-direction:column; gap:3px; padding:10px 14px; border-left:3px solid #6ec8ff; background:rgba(110,200,255,.08); font:500 19px/1.4 var(--font-ui); } .rs-comms b{ font-size:12px; letter-spacing:.18em; color:#6ec8ff; }
+.rs-paper{ background:#f3eedf; color:#1d1a14; padding:18px 22px; box-shadow:0 10px 30px rgba(0,0,0,.5); transform:rotate(-1deg); animation:paperIn .6s cubic-bezier(.2,.9,.3,1.2); }
+@keyframes paperIn{ from{ transform:rotate(-14deg) scale(.4); opacity:0; } }
+.rs-mast{ font:800 14px var(--font-ui); letter-spacing:.3em; border-bottom:3px double #1d1a14; padding-bottom:6px; text-align:center; }
+.rs-hl{ font:900 clamp(24px,3.2vw,36px)/1.15 Georgia, "Times New Roman", serif; margin:12px 0 6px; text-transform:uppercase; }
+.rs-by{ font:italic 14px Georgia, serif; color:#5b5444; }
+.rs-thanks{ margin:0; font:500 20px/1.5 var(--font-ui); padding:12px 16px; border-left:4px solid #ffd76a; background:rgba(255,215,106,.08); } .rs-thanks cite{ display:block; margin-top:6px; font-style:normal; font-size:15px; color:#a9c3c9; }
+.rs-scene p{ margin:6px 0; font:500 20px/1.5 var(--font-ui); } .rs-people{ display:flex; flex-wrap:wrap; gap:8px; } .rs-people span{ padding:4px 12px; border:1px solid rgba(255,215,106,.5); color:#ffd76a; font-weight:600; }
+.rs-award{ display:flex; flex-direction:column; gap:3px; padding:12px 16px; border:1px solid rgba(255,215,106,.55); background:rgba(255,215,106,.08); animation:paperIn .5s ease-out; }
+.rs-award b{ font:600 22px var(--font-ui); color:#ffd76a; } .rs-award b i{ font-style:normal; margin-right:6px; } .rs-award span{ color:#a9c3c9; }
+.fc-oracle{ margin:0; font:500 21px/1.5 var(--font-ui); } .fc-oracle b{ display:block; font-size:12px; letter-spacing:.18em; color:#8ff5c9; }
+.fc-radio{ display:flex; gap:12px; } .fc-radio span{ padding:6px 12px; border-left:3px solid #6ec8ff; background:rgba(110,200,255,.08); color:#a9c3c9; } .fc-radio b{ color:#6ec8ff; letter-spacing:.16em; font-size:12px; margin-right:8px; }
+.fc-opts{ display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+.fc-btn{ all:unset; box-sizing:border-box; cursor:pointer; display:flex; flex-direction:column; gap:6px; padding:18px 20px; border:2px solid; font:500 17px/1.4 var(--font-ui); color:#e4f1f4; }
+.fc-btn b{ font:700 22px var(--font-ui); letter-spacing:.1em; } .fc-btn em{ font-style:normal; font-family:"IBM Plex Mono", monospace; color:#ffd76a; }
+.fc-btn.ret{ border-color:#8ff5c9; background:rgba(143,245,201,.08); } .fc-btn.ret b{ color:#8ff5c9; }
+.fc-btn.take{ border-color:#ffd76a; background:rgba(255,215,106,.06); } .fc-btn.take b{ color:#ffd76a; }
+.fc-btn:hover, .fc-btn:focus-visible{ box-shadow:0 0 0 3px rgba(255,255,255,.25); }
+.hollow{ border-color:rgba(169,195,201,.25); } .hollowOverlay{ background:rgba(2,6,8,.9) !important; }
+.hl-acts{ display:flex; gap:10px; flex-wrap:wrap; } .hl-note{ color:#a9c3c9; font-size:14px; }
+.cf-title{ display:block; font-size:12px; letter-spacing:.08em; color:#ffd76a; margin-top:2px; }
+.cf-clues{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:4px; } .cf-clues li{ display:flex; gap:10px; padding:4px 8px; border-left:3px solid var(--line); color:var(--text-faint); font-size:15px; }
+.cf-clues li.got{ border-left-color:#ffd76a; color:var(--text-primary); } .cf-clues li b{ min-width:180px; } .cf-clues li.fin b{ color:#ffd76a; }
+@media (max-width:700px){ .fc-opts{ grid-template-columns:1fr; } .rs-stamp{ position:static; } }
 /* ===== PRIMENET shared style (docs/STYLE.md). Keep this block last. ===== */
 html, body{ background: var(--bg-primary) !important; }
 body{ color: var(--text-primary); }
@@ -1502,6 +1542,7 @@ button, h1, h2, h3, th, label, .pill, .hudPill, .hudBtn, [class*="title"], [clas
 <!-- Mission data (agent, level, record), then the banking system, which keeps a wallet per codename -->
 <script src="../shared/story.js"></script>
 <script src="../shared/primenet.js"></script>
+<script src="../shared/cipher.js"></script>
 <script src="../shared/mode.js"></script>
 <script src="../shared/badges.js"></script>
 <script src="../shared/testtools.js"></script>
@@ -1809,8 +1850,9 @@ function newRunSameDifficulty(){
   Run.p=lock.p; Run.q=lock.q; Run.n=lock.n;
   Run.solved=false;
   // The first run hits the bank named in the briefing; later runs pick a new one
+  Run.isMissionRun = false;   // Round 27: only the mission's own run (the target chosen on the map) can be a finale
   if(PRACTICE){ /* practice: leave the agent's bank choice alone */ }
-  else if(!Run.missionBankUsed && PN && PN.getAgent() && PN.getAgent().target){ Run.missionBankUsed = true; Bank.selectAccountByName(DIFF, PN.mission().target); }
+  else if(!Run.missionBankUsed && PN && PN.getAgent() && PN.getAgent().target){ Run.missionBankUsed = true; Run.isMissionRun = true; Bank.selectAccountByName(DIFF, PN.mission().target); }
   else Bank.selectAccountForRun(DIFF);
   updateRunUI();
   Run.runNo = (Run.runNo || 0) + 1;
@@ -2399,24 +2441,19 @@ async function lockTransition(prev){
 // ===================== SIPHON (round 9) =====================
 // Nothing leaves the account while the locks are being cracked. Once the hack is through, the line is open
 // until security cuts it: the faster the four locks were cracked, the longer it stays open and the more is taken.
-function siphonShare(cracked){
-  const secs = cracked.map(c => (c.ms || 0) / 1000).filter(x => x > 0);
-  const avg = secs.length ? secs.reduce((a, b) => a + b, 0) / secs.length : 40;
-  return Math.max(0.4, Math.min(1, 1 - (avg - 20) / 100));   // 20s a lock or faster takes the lot; 80s or slower takes 40%
-}
 const fmtTime = s => { s = Math.max(0, Math.round(s)); const m = Math.floor(s / 60); return m ? `${m} min ${s % 60}s` : `${s}s`; };
-async function siphonScreen({ acct, pot, frac, secs, blackout }){
+async function siphonScreen({ acct, pot, frac = 1, secs, blackout, take = false }){
   const VERB = window.PNStory ? PNStory.verb(acct.name) : { word:"SIPHON", doing:"Siphoning the hidden money", done:"TRANSFER COMPLETE", line:"" };   // siphon, expose or retrieve (shared/story.js)
   const agent = PN && PN.getAgent() ? PN.getAgent().codename : "AGENT";
   const o = overlay("siphonOverlay");
   o.innerHTML = `<div class="siphon" role="dialog" aria-label="${VERB.word}">
     <div class="sp-code" aria-hidden="true"></div>
     <div class="sp-main">
-      <div class="sp-head"><span>${VERB.word} // LIVE</span><span class="sp-route">${acct.name.toUpperCase()} → PRIMENET RECOVERY</span></div>
+      <div class="sp-head"><span>${take ? "TRANSFER" : VERB.word} // LIVE</span><span class="sp-route">${acct.name.toUpperCase()} → ${take ? "YOUR WALLET" : "PRIMENET RECOVERY"}</span></div>
       <div><div class="sp-lab"><span>LINE OPEN<small>until security cuts it</small></span><b class="sp-t">00.0s</b></div><div class="sp-bar red"><i></i></div></div>
       <div><div class="sp-lab"><span>RECOVERED</span><b class="sp-m">£0</b></div><div class="sp-bar green"><i></i></div>
         <div class="sp-sub"><span>of <b>${gbp(pot)}</b> hidden</span><span class="sp-rate"></span></div></div>
-      <div class="sp-msg" aria-live="polite">${VERB.line}</div>
+      <div class="sp-msg" aria-live="polite">${take ? "Every penny is going to your wallet." : VERB.line}</div>
     </div></div>`;
   const code = o.querySelector(".sp-code"), red = o.querySelector(".sp-bar.red i"), green = o.querySelector(".sp-bar.green i");
   const tEl = o.querySelector(".sp-t"), mEl = o.querySelector(".sp-m"), rate = o.querySelector(".sp-rate"), msg = o.querySelector(".sp-msg"), box = o.querySelector(".siphon");
@@ -2443,18 +2480,20 @@ async function siphonScreen({ acct, pot, frac, secs, blackout }){
     if(whole <= 3 && whole < lastBeep && pr < 1){ lastBeep = whole; SFX("beep"); }
   });
   clearInterval(codeTimer);
-  const taken = Bank.siphon(pot * Math.min(1, frac));
+  // Round 27 (Bertie): the hidden money is always recovered in full. It goes back to the victims (or, if the pupil
+  // takes it all at a finale, to the wallet later); the pupil's fee is paid on the result screen.
+  Bank.recover(pot); const taken = Math.round(pot * Math.min(1, frac));
   mEl.textContent = gbp(taken); green.style.width = (Math.min(1, frac) * 100) + "%"; red.style.width = "0%"; tEl.textContent = "00.0s";
   const pace = `You cracked the four locks in ${fmtTime(secs)}${blackout ? " and knocked out their monitoring" : ""}.`;
   if(frac >= 1){
     box.classList.add("done"); SFX("cash"); SFX("success");
-    msg.innerHTML = `<span class="big">${VERB.done}</span>${pace} Fast enough to recover all of it: ${gbp(taken)}.`;
+    msg.innerHTML = take ? `<span class="big">TRANSFER COMPLETE</span>${gbp(taken)} is on its way to your wallet.` : `<span class="big">${VERB.done}</span>${pace} All of it recovered: ${gbp(taken)}.`;
   } else {
     box.classList.add("cut"); SFX("denied"); SFX("alarm");
     msg.innerHTML = `<span class="big">LINE CUT</span>${pace} Security cut the line at <b>${Math.round(frac * 100)}%</b>: ${gbp(taken)} got through. The rest is frozen for the authorities. Crack the locks faster and the line stays open longer.`;
   }
   const nextJob = QUIET ? "Now cover our tracks." : "Now get FOX and WREN out.";
-  if(window.PNHandler) PNHandler.say(frac >= 1 ? `Every penny's through. ${nextJob}` : `They've cut the line. What got through is safe. ${nextJob}`);
+  if(window.PNHandler) PNHandler.say(take ? nextJob : frac >= 1 ? `Every penny's through. ${nextJob}` : `They've cut the line. What got through is safe. ${nextJob}`);
   await animate(3200, pr => w.progress((open + pr * 3200) / (open + 3200)));
   setCinematic(false);
   w.end();
@@ -2910,57 +2949,21 @@ async function vaultDoor(cracked){
   return o;
 }
 
-// Inside the vault: the bank drains, the wallet fills, then the rank stamp
-async function drainAndStamp(o, { acct, banked, walletBefore, walletAfter, codename, before, after }){
-  const stage = o.querySelector(".doorStage");
-  // The vault door bought in the safehouse shop: the full door sequence is out of the heist, so the equipped
-  // skin shows here as the door you just came through (its hub spins as the money lands)
-  const skin = PN ? PN.shopItem(PN.lootFor().equip.door) : null;
-  stage.innerHTML = `<div class="doorTitle">SAFE HOUSE // FUNDS BANKED</div>
-    ${skin ? `<div class="doorWrap mini" title="Vault door: ${skin.name}"><div class="vdoor mini skin-${skin.id.replace("door-", "")}"><div class="hub">VAULT</div></div><small class="doorSkin">${skin.name.toUpperCase()} DOOR</small></div>` : ""}
-    <div class="vaultReveal">
-      <div class="money"><div><small>THIS RUN</small><b class="run" style="color:var(--warning)"></b></div><div class="take"><small>YOUR WALLET</small><b class="wal"></b></div></div>
-      <div class="money"><div class="drain"><small>${acct.name.toUpperCase()} · LEFT</small><b class="bal"></b></div><div><small>AGENT</small><b style="font-size:18px">${codename}</b></div></div>
-    </div>
-    <div class="stamp">ACCESS GRANTED<small></small></div>`;
-  const bal = stage.querySelector(".bal"), wal = stage.querySelector(".wal"), run = stage.querySelector(".run");
-  const w = Mode.watch("The money: banking it in your wallet");
-  setCinematic(true);
-  let ticks = 0;
-  await animate(2600, pr => {
-    w.progress(pr * 2600 / 4300);
-    const e = ease(pr);
-    bal.textContent = gbp(acct.balance);
-    wal.textContent = gbp(walletBefore + banked * e);
-    run.textContent = gbp(banked * e);
-    if(++ticks % 2 === 0 && pr < 1) SFX("fill", Math.floor(pr * 40));
-  });
-  wal.textContent = gbp(walletAfter);
-  SFX("cash");
-  const miniDoor = stage.querySelector(".vdoor.mini"); if(miniDoor) miniDoor.classList.add("spin");
-  await animate(400, () => {});
-  const stamp = stage.querySelector(".stamp");
-  const promoted = before && after && after.rank !== before.rank;
-  stamp.querySelector("small").textContent = promoted ? `${codename} · PROMOTED TO ${after.rank.toUpperCase()}`
-    : `${codename} · ${after ? after.rank.toUpperCase() : "AGENT"}${after && after.next ? ` · ${after.toNext} MORE TO ${after.next.toUpperCase()}` : ""}`;
-  stamp.classList.add("on"); SFX("success");
-  if(promoted) setTimeout(() => SFX("lock"), 700);
-  await animate(1300, pr => w.progress((3000 + pr * 1300) / 4300));
-  setCinematic(false);
-  w.end();
-  if(window.PNMode) PNMode.refresh();   // the wallet on the stage strip shows the new total
-  const btn = document.createElement("button"); btn.type = "button"; btn.className = "pnBtn primary fxBtn pn-go"; btn.textContent = "Open case file";
-  stage.appendChild(btn); btn.focus();
-  Mode.turn("Press Open case file to see how you did");
-  await waitForKeyOrClick(btn, ["Enter", " "]);
-  SFX("click");
-  o.remove();
+// Round 27: the clues toward the level's boss, one per mission done, and the finale's reveal once it's reached
+function caseClues(levelId, target, codename){
+  const S = window.PNStory; if(!S || !PN) return "";
+  const lvl = (S.TARGETS[target] && S.TARGETS[target].level) || levelId, all = S.levelTargets(lvl), fin = S.finaleOf(lvl), done = new Set(PN.missionsDone(codename, lvl));
+  if(target) done.add(target);
+  const rows = all.map(n => { const t = S.TARGETS[n], got = done.has(n), isFin = n === fin;
+    return `<li class="${got ? "got" : ""}${isFin ? " fin" : ""}"><b>${isFin ? "FINALE · " : ""}${n}</b><span>${got ? t.clue : isFin ? `Locked until ${S.FINALE.gate} missions are done.` : "Not done yet."}</span></li>`; }).join("");
+  const n = all.filter(x => x !== fin && done.has(x)).length;
+  return `<div class="cf-sec"><small>CLUES TOWARD THE BOSS · ${Math.min(n, S.FINALE.gate)} OF ${S.FINALE.gate}</small><ul class="cf-clues">${rows}</ul></div>`;
 }
 
 // The case file: a record of the mission for the student (and the teacher looking over their shoulder)
 const OP_A = ["SILENT","GLASS","IRON","HOLLOW","NEON","MIDNIGHT","COBALT","PAPER","STATIC","VELVET"];
 const OP_B = ["HERON","PRISM","LEDGER","HARBOUR","CIPHER","LANTERN","ORBIT","FALCON","VAULT","ECHO"];
-function caseFile({ codename, levelId, cracked, wrong, banked, walletAfter, after, startedAt, tierMove, frac }){
+function caseFile({ codename, levelId, cracked, wrong, banked, walletAfter, after, startedAt, tierMove, target, took }){
   return new Promise(resolve => {
     const session = PN ? PN.currentSession() : null;
     const floors = session ? session.events.filter(e => e.stage === "vault-complete" && e.detail).map(e => e.detail.n) : [];
@@ -2974,7 +2977,7 @@ function caseFile({ codename, levelId, cracked, wrong, banked, walletAfter, afte
       <div class="cf-head"><div><h2>CASE FILE</h2><div class="op">OPERATION ${(PN && PN.getAgent() && PN.getAgent().operation && !Run.opUsed) ? (Run.opUsed = true, PN.mission().operation) : `${pick(OP_A)} ${pick(OP_B)}`} · ${new Date().toLocaleDateString("en-GB", {day:"numeric", month:"long", year:"numeric"})}</div></div><div class="cf-classified">CLASSIFIED</div></div>
       <div class="cf-grid">
         <div><small>AGENT</small><b>${codename}</b></div>
-        <div><small>RANK</small><b>${after ? after.rank : "Agent"}</b></div>
+        <div><small>RANK</small><b>${after ? after.rank : "Agent"}</b>${PN && PN.lootFor(codename).title ? `<span class="cf-title">${PN.lootFor(codename).title}</span>` : ""}</div>
         <div><small>CLEARANCE</small><b>${levelId} ${L.rank}</b></div>
         <div><small>MISSION TIME</small><b>${mins} min</b></div>
       </div>
@@ -2986,12 +2989,13 @@ function caseFile({ codename, levelId, cracked, wrong, banked, walletAfter, afte
       <div class="cf-grid">
         <div><small>FIRST-TRY LOCKS</small><b>${firstTry} / ${cracked.length}</b></div>
         <div><small>WRONG ANSWERS</small><b>${wrong}</b></div>
-        <div><small>TAKEN THIS RUN</small><b>${gbp(banked)}</b></div>
+        <div><small>${took ? "TOOK" : "YOUR FEE + EXTRAS"}</small><b>${gbp(banked)}</b></div>
         <div><small>WALLET</small><b>${gbp(walletAfter)}</b></div>
       </div>
       ${PN && PN.codebook && Object.keys(PN.codebook()).length ? `<div class="cf-sec"><small>CODEBOOK · STRONGROOM CODES CRACKED</small><div class="cf-chips">${PN.PATTERNS.filter(p => PN.codebook()[p.id]).map(p => `<span>${p.code[0].toUpperCase() + p.code.slice(1)} · ${p.terms}…${PN.codebook()[p.id].times > 1 ? ` · ×${PN.codebook()[p.id].times}` : ""}</span>`).join("")}</div></div>` : ""}
       ${window.PNBadges && PNBadges.thisMission().length ? `<div class="cf-sec"><small>BADGES THIS MISSION</small><div class="cf-badges">${PNBadges.thisMission().map(id => `<span class="bn">${PNBadges.hex(id, true)}${PNBadges.byId(id).name}</span>`).join("")}</div></div>` : ""}
-      ${tierMove ? `<div class="cf-sec"><small>LOCK DIFFICULTY</small><span>Lock difficulty ${tierMove.from + 1} of ${TIER_MAX + 1} this run (${Math.round(tierMove.avg)}s a lock on average). ${tierMove.move > 0 ? `Next run: <b>up to ${tierMove.to + 1}</b>.` : tierMove.move < 0 ? `Next run: <b>down to ${tierMove.to + 1}</b>.` : "Next run: <b>the same</b>."} Siphoned <b>${Math.round((frac || 0) * 100)}%</b> of the funds in reach.</span></div>` : ""}
+      ${tierMove ? `<div class="cf-sec"><small>LOCK DIFFICULTY</small><span>Lock difficulty ${tierMove.from + 1} of ${TIER_MAX + 1} this run (${Math.round(tierMove.avg)}s a lock on average). ${tierMove.move > 0 ? `Next run: <b>up to ${tierMove.to + 1}</b>.` : tierMove.move < 0 ? `Next run: <b>down to ${tierMove.to + 1}</b>.` : "Next run: <b>the same</b>."}</span></div>` : ""}
+      ${caseClues(levelId, target, codename)}
       ${after && after.next ? `<div class="cf-sec"><small>NEXT RANK</small><span>${after.toNext} more vault${after.toNext === 1 ? "" : "s"} to become <b>${after.next}</b>.</span></div>` : ""}
       <div class="cf-actions"><a class="pnBtn" href="../index.html" style="text-decoration:none">Return to base</a><button type="button" class="pnBtn primary pn-go" id="cfAgain">Start a new run</button></div>
     </div>`;
@@ -2999,6 +3003,116 @@ function caseFile({ codename, levelId, cracked, wrong, banked, walletAfter, afte
     Mode.turn("Your case file. Then press Start a new run");
     const again = o.querySelector("#cfAgain"); again.focus();
     again.addEventListener("click", () => { SFX("click"); o.remove(); resolve(); });
+  });
+}
+
+// ===================== THE RESULT (Round 27, the story brief section 7) =====================
+// Recovered → the finder's fee with its working → the split → extras → the wallet; then the agents out, the headline,
+// the thank-you; then the case file. Numbers roll and land (Bertie's favourite effect).
+async function rollMoney(el, value, ms = 700){
+  if(!el) return;
+  if(window.PNMode && PNMode.reducedMotion && PNMode.reducedMotion()){ el.textContent = gbp(value); return; }
+  const t0 = performance.now(), top = Math.max(10, value * 1.6);
+  await new Promise(r => { (function f(now){ const k = (now - t0) / (ms / (window.PNTest ? PNTest.speed() : 1));
+    if(k >= 1){ el.textContent = gbp(value); el.classList.remove("ping"); void el.offsetWidth; el.classList.add("ping"); r(); return; }
+    el.textContent = gbp(Math.floor(Math.random() * top)); requestAnimationFrame(f); })(t0); });
+  SFX("latch");
+}
+const rsNext = (stage, label) => new Promise(res => {
+  const b = document.createElement("button"); b.type = "button"; b.className = "pnBtn primary pn-go rs-go"; b.textContent = label;
+  stage.appendChild(b); b.focus({ preventScroll: true });
+  waitForKeyOrClick(b, ["Enter", " "]).then(() => { SFX("click"); b.remove(); res(); });
+});
+async function resultScreen({ acct, F, extras, walletBefore, walletAfter, codename, before, after, finaleLevel }){
+  const S = window.PNStory, t = S ? S.target(acct.name) : {}, o = overlay("rsOverlay");
+  o.innerHTML = `<div class="result" role="dialog" aria-label="The result"><div class="rs-head"><span>THE RESULT</span><span>${acct.name.toUpperCase()}</span></div><div class="rs-body"></div></div>`;
+  const body = o.querySelector(".rs-body"), box = o.querySelector(".result");
+  const w = Mode.watch("The result: the money goes home");
+  setCinematic(true); if(window.PNMode) PNMode.money();
+  // 1-3: recovered, the fee with its working, the split
+  body.innerHTML = `<div class="rs-row"><small>RECOVERED</small><b class="rs-big" id="rsRec">£0</b></div>
+    <div class="rs-row"><small>YOUR FINDER'S FEE</small><span class="rs-work">${F.pct}% of ${gbp(F.recovered)} = <b id="rsFee">£0</b></span></div>
+    <div class="rs-split" id="rsSplit" hidden><span><b>${gbp(F.fee)}</b> to you.</span><span><b>${gbp(F.returned)}</b> returns to ${t.returnTo || "the people it was taken from"}${S && t.victim ? `, like ${S.victimName(acct.name)}` : ""}.</span></div>
+    <div class="rs-extras" id="rsExtras"></div>
+    <div class="rs-row rs-wal"><small>YOUR WALLET</small><b id="rsWal">${gbp(walletBefore)}</b></div>`;
+  await sleep(300); await rollMoney(body.querySelector("#rsRec"), F.recovered, 900);
+  await sleep(500); await rollMoney(body.querySelector("#rsFee"), F.fee, 800);
+  await sleep(400); body.querySelector("#rsSplit").hidden = false; SFX("chirp");
+  for(const x of extras){ await sleep(450); body.querySelector("#rsExtras").insertAdjacentHTML("beforeend", `<span>+ ${x.label} <b>${gbp(x.amount)}</b></span>`); SFX("blip"); }
+  await sleep(500);
+  const wal = body.querySelector("#rsWal");
+  await animate(1200, pr => { wal.textContent = gbp(walletBefore + (walletAfter - walletBefore) * ease(pr)); });
+  wal.textContent = gbp(walletAfter); SFX("cash");
+  const promoted = before && after && after.rank !== before.rank;
+  body.insertAdjacentHTML("beforeend", `<div class="stamp rs-stamp">${promoted ? "PROMOTED" : "MISSION COMPLETE"}<small>${codename} · ${after ? after.rank.toUpperCase() : "AGENT"}</small></div>`);
+  // The vault door bought in the safehouse shop shows here, its hub spinning as the money lands
+  const skin = PN ? PN.shopItem(PN.lootFor().equip.door) : null;
+  if(skin) body.querySelector(".rs-wal").insertAdjacentHTML("beforeend", `<div class="doorWrap mini rs-door" title="Vault door: ${skin.name}"><div class="vdoor mini spin skin-${skin.id.replace("door-", "")}"><div class="hub">VAULT</div></div></div>`);
+  requestAnimationFrame(() => body.querySelector(".rs-stamp").classList.add("on")); SFX("success");
+  setCinematic(false); w.end();
+  if(window.PNMode) PNMode.refresh();
+  Mode.turn("Press Next to see what happens next");
+  await rsNext(box, "Next");
+  // 4-6: the agents get out safe, the headline, the thank-you
+  const safe = S ? S.radio("safe") : { who: "WREN", text: "We're out!" };
+  body.innerHTML = `<div class="rs-comms"><b>${safe.who}</b><span>${safe.text}</span></div>
+    <div class="rs-paper"><div class="rs-mast">THE EVENING POST</div><div class="rs-hl">${t.headline || `${acct.name.toUpperCase()} FOUND OUT`}</div><div class="rs-by">From our newsroom · tonight</div></div>
+    ${t.thanks ? `<blockquote class="rs-thanks">“${t.thanks}”<cite>${t.victim || ""}</cite></blockquote>` : ""}`;
+  SFX("radio"); setTimeout(() => SFX("whoosh"), 400);
+  // The finale (returned the funds): the level's thank-you scene, the title and the trophy
+  if(finaleLevel){
+    Mode.turn("Press Next");
+    await rsNext(box, "Next");
+    const fin = S.FINALE[finaleLevel], st = PN.finaleState(finaleLevel), tr = PN.trophy(fin.trophy), first = !st.rewarded;
+    if(first){ PN.grantTrophy(codename, fin.trophy); PN.setTitle(codename, fin.title); PN.setFinaleState(finaleLevel, { rewarded: true }); }
+    body.innerHTML = `<div class="rs-scene"><small>THE FINALE · ${finaleLevel}</small><p>${fin.scene}</p><div class="rs-people">${fin.people.map(n => `<span>${n}</span>`).join("")}</div></div>
+      <div class="rs-award"><small>TITLE ${first ? "EARNED" : "HELD"}</small><b>${fin.title}</b></div>
+      <div class="rs-award"><small>TROPHY ${first ? "UNLOCKED" : "ON YOUR SHELF"}</small><b><i aria-hidden="true">${tr ? tr.icon : "★"}</i> ${tr ? tr.name : ""}</b><span>${tr ? tr.desc : ""}${first ? " It can't be bought: you earned it." : ""}</span></div>
+      <p class="fc-oracle"><b>ORACLE</b>${S.fill(S.FINALE_LINES.returned)}</p>`;
+    SFX("success"); setTimeout(() => SFX("lock"), 600);
+    if(window.PNHandler && PNHandler.hide) PNHandler.hide();
+  }
+  Mode.turn("Press Open case file");
+  await rsNext(box, "Open case file");
+  o.remove();
+}
+// The finale: the vault is open, and the pupil decides. Resolves "return" or "take".
+function finaleChoice(acct, F){
+  return new Promise(res => {
+    const S = window.PNStory, t = S.target(acct.name), o = overlay("fcOverlay");
+    o.innerHTML = `<div class="finaleChoice" role="dialog" aria-label="Your call">
+      <div class="rs-head"><span>THE VAULT'S OPEN · FINALE</span><span>${acct.name.toUpperCase()}</span></div>
+      <p class="fc-oracle"><b>ORACLE</b>${S.fill(S.FINALE_LINES.choice)}</p>
+      <div class="fc-radio"><span><b>FOX</b>…</span><span><b>WREN</b>…</span></div>
+      <div class="fc-opts">
+        <button type="button" class="fc-btn ret" id="fcReturn"><b>RETURN THE FUNDS</b><span>The evidence goes out and <em>${gbp(F.returned)}</em> goes back to ${t.returnTo}.</span><span>Your finder's fee: <em>${gbp(F.fee)}</em></span></button>
+        <button type="button" class="fc-btn take" id="fcTake"><b>TAKE IT ALL</b><span><em>${gbp(F.recovered)}</em> into your wallet.</span><span>The evidence stays in the vault.</span></button>
+      </div></div>`;
+    SFX("radio"); Mode.turn("This one's your call");
+    if(window.PNHandler && PNHandler.hide) PNHandler.hide();   // ORACLE speaks in the panel here
+    const pickIt = c => { SFX("click"); o.remove(); if(PN) PN.log("finale", { choice: c, target: acct.name }); res(c); };
+    o.querySelector("#fcReturn").addEventListener("click", () => pickIt("return"));
+    o.querySelector("#fcTake").addEventListener("click", () => pickIt("take"));
+    o.querySelector("#fcReturn").focus({ preventScroll: true });
+  });
+}
+// Took it all: a short, quiet ending (nothing violent, no lecture), then the offer to replay. Resolves "replay" or "on".
+function hollowEnding(acct, amount, walletAfter){
+  return new Promise(res => {
+    const S = window.PNStory, o = overlay("rsOverlay hollowOverlay");
+    o.innerHTML = `<div class="result hollow" role="dialog" aria-label="The result">
+      <div class="rs-head"><span>THE RESULT</span><span>${acct.name.toUpperCase()}</span></div>
+      <div class="rs-body"><div class="rs-row"><small>TO YOUR WALLET</small><b class="rs-big">${gbp(amount)}</b></div>
+        <div class="rs-row rs-wal"><small>YOUR WALLET</small><b>${gbp(walletAfter)}</b></div>
+        <div class="fc-radio quiet"><span><b>FOX</b>…</span><span><b>WREN</b>…</span></div>
+        <p class="fc-oracle"><b>ORACLE</b>${S.fill(S.FINALE_LINES.took)}</p>
+        <div class="hl-acts"><button type="button" class="pnBtn primary" id="hlReplay">Replay the finale?</button><button type="button" class="pnBtn" id="hlOn">Carry on</button></div>
+        <small class="hl-note">Replaying takes the ${gbp(amount)} back out of your wallet, and the choice is yours again.</small></div></div>`;
+    if(window.PNHandler && PNHandler.hide) PNHandler.hide();
+    Mode.turn("Replay the finale, or carry on");
+    o.querySelector("#hlReplay").focus({ preventScroll: true });
+    o.querySelector("#hlReplay").addEventListener("click", () => { SFX("click"); o.remove(); res("replay"); });
+    o.querySelector("#hlOn").addEventListener("click", () => { SFX("click"); o.remove(); res("on"); });
   });
 }
 
@@ -3062,62 +3176,90 @@ async function onLockSolved(){
   }
 
   const acct = Bank.getCurrentAccount() || { name:"TARGET", balance:0 };
-  // Feedback round 9: the server blackout only turns up now and then (about one run in three). The vault door is
-  // gone from the bank heist (saved for the museum). Knocking the monitoring servers out keeps the line open longer.
+  // Feedback round 9: the server blackout only turns up now and then (about one run in three).
   const blackout = Run.forceFinale ? Run.forceFinale === "blackout" : (!PN || PN.twistOn("blackout")) && Math.random() < 0.34;
   Run.forceFinale = null;
-  let frac = siphonShare(Run.cracked);
   if(blackout){
-    if(window.PNHandler) PNHandler.say("Their monitoring servers can see the transfer. Kill the prime ones and the line stays open longer.");
+    if(window.PNHandler) PNHandler.say("Their monitoring servers can see the transfer. Knock out the prime ones before they trace it.");
     const bo = await serverBlackout(Run.cracked);
     bo.remove();
-    frac = Math.min(1, frac + 0.15);
   }
-  const pot = Bank.siphonPot(DIFF, Run.locksPerRun);
-  await siphonScreen({ acct, pot, frac, secs: hackSecs, blackout });
-  const acctSnapshot = { name: acct.name, balance: acct.balance };
-  if(QUIET) await coverTracks(); else await getOut();
-  // The getaway: three quick calls on the numbers' properties to lose the police. 3 out of 3 adds 5%. (None when nobody knows we were there.)
-  const escape = (!QUIET && (!PN || PN.twistOn("getaway"))) ? await getaway() : { score: 0 };   // teachers can switch the getaway off
-  setHackTier(tierMove.to);
-
+  // Round 27 (the story brief): the hidden money is recovered in full and goes back to the victims. The pupil earns a
+  // finder's fee (10%, 15%, 20%), plus the intel and clean-getaway bonuses. At a level's finale (its mission run only)
+  // the pupil chooses: return the funds (the fee, the title, the trophy) or take it all (the lot, then a quiet ending
+  // and the offer to replay, which takes the money back).
+  const S = window.PNStory;
+  const F = S ? S.fee(acct.name) : (() => { const r = Bank.siphonPot(DIFF, Run.locksPerRun), f = Math.round(r * .1); return { recovered: r, rate: .1, pct: 10, fee: f, returned: r - f }; })();
+  const finaleLevel = S && Run.isMissionRun && S.isFinale(acct.name) ? S.target(acct.name).level : null;
   const agent = PN ? PN.getAgent() : null;
   const codename = agent ? agent.codename : "AGENT";
-  const before = PN ? PN.agentRank(codename) : null;
-  const walletBefore = Bank.getWalletBalance();
-  // Intel bonus from the Blueprint quiz: +10% on the first heist of the mission
-  const intel = PN && PN.getAgent() ? PN.getAgent().intelBonus : 0;
-  if(intel){
-    const extra = Bank.addRunBonus(Bank.getRunEarnings() * intel / 100, "blueprint intel");
-    PN.updateAgent({ intelBonus: 0 });
-    if(extra) addLine(`INTEL BONUS +${Bank.formatGBP(extra)} (blueprint quiz)`, "ok");
+  const acctSnapshot = { name: acct.name, balance: acct.balance };
+  let firstPass = true, escape = { score: 0 };
+  setHackTier(tierMove.to);
+  for(;;){
+    const choice = finaleLevel ? await finaleChoice(acct, F) : "return";
+    const take = choice === "take";
+    await siphonScreen({ acct, pot: F.recovered, secs: hackSecs, blackout, take });
+    if(firstPass){
+      if(QUIET) await coverTracks(); else await getOut();
+      // The getaway: three quick calls on the numbers' properties to lose the police. 3 out of 3 adds 5%. (None when nobody knows we were there.)
+      escape = (!QUIET && (!PN || PN.twistOn("getaway"))) ? await getaway() : { score: 0 };   // teachers can switch the getaway off
+    }
+    const before = PN ? PN.agentRank(codename) : null;
+    const walletBefore = Bank.getWalletBalance();
+    const extras = [];
+    Bank.addRunBonus(take ? F.recovered : F.fee, take ? "took it all" : "finder's fee");
+    const intel = agent ? (PN.getAgent().intelBonus || 0) : 0;
+    if(intel && !take){
+      const extra = Bank.addRunBonus(F.fee * intel / 100, "blueprint intel");
+      if(extra){ extras.push({ label: "intel bonus (blueprint quiz)", amount: extra }); addLine(`INTEL BONUS +${Bank.formatGBP(extra)} (blueprint quiz)`, "ok"); }
+    }
+    if(intel && PN) PN.updateAgent({ intelBonus: 0 });
+    if(escape.score === 3 && !take){
+      const extra = Bank.addRunBonus(F.fee * 0.05, "clean getaway");
+      if(extra){ extras.push({ label: "clean getaway", amount: extra }); addLine(`CLEAN GETAWAY +${Bank.formatGBP(extra)}`, "ok"); }
+    }
+    const banked = Bank.bankRun(DIFF);
+    if(window.PNMode) PNMode.refresh();
+    // The record: logged once, with the final choice (a finale taken and then replayed logs the replay's choice)
+    const logComplete = () => { if(PN) PN.log("complete", { level: DIFF, banked, fee: take ? 0 : F.fee, recovered: F.recovered, locks: Run.cracked, wrong: Run.wrongTotal || 0, finale: blackout ? "blackout" : "none", getaway: escape.score, target: acctSnapshot.name, hackTier: tierMove.from + 1, nextTier: tierMove.to + 1, choice: finaleLevel ? choice : undefined }); };
+    if(!take) logComplete();
+    // Badges for this run
+    if(firstPass && window.PNBadges){
+      PNBadges.award("first-breach");
+      if(Run.cracked.length && Run.cracked.every(c => c.tries === 0)) PNBadges.award("prime-sniper");
+      if((Rig.peak || 0) <= 50) PNBadges.award("ghost");
+      if(escape.score === 3) PNBadges.award("wheelman");
+      if(blackout) PNBadges.award("lights-out");
+      const sess = PN && PN.currentSession();
+      if(sess && Date.now() - new Date(sess.startedAt).getTime() < 15 * 60000) PNBadges.award("speed-demon");
+      if(Bank.getWalletBalance() >= 1000000) PNBadges.award("high-roller");
+    }
+    firstPass = false;
+    let after = PN ? PN.agentRank(codename) : null;
+    updateRunUI();
+    if(take){
+      PN.setFinaleState(finaleLevel, { choice: "take", taken: banked });
+      const next = await hollowEnding(acct, banked, Bank.getWalletBalance());
+      if(next === "replay"){
+        const back = Bank.takeBack(PN.finaleState(finaleLevel).taken || banked, "finale replay");
+        PN.setFinaleState(finaleLevel, { choice: null, taken: 0 });
+        addLine(`FINALE REPLAY // ${Bank.formatGBP(back)} BACK OUT OF YOUR WALLET`, "warn");
+        if(window.PNMode) PNMode.refresh();
+        continue;
+      }
+      logComplete(); after = PN ? PN.agentRank(codename) : null;
+      addLine("VAULT BREACH COMPLETE // SESSION SAVED", "ok");
+      await caseFile({ codename, levelId: DIFF, cracked: Run.cracked.slice(), wrong: Run.wrongTotal || 0, banked, walletAfter: Bank.getWalletBalance(), after, startedAt: Run.startedAt, tierMove, target: acct.name, took: true });
+      break;
+    }
+    if(finaleLevel) PN.setFinaleState(finaleLevel, { choice: "return", taken: 0 });
+    if(window.PNHandler){ if(QUIET) PNHandler.say(`Clean job, {agent}. They'll never know we were there, and ${acctSnapshot.name} has been found out.`); else PNHandler.say(`FOX and WREN are out safe, and ${acctSnapshot.name} has been found out. Outstanding work, {agent}.`, { delay: 1200 }); }
+    await resultScreen({ acct: acctSnapshot, F, extras, walletBefore, walletAfter: Bank.getWalletBalance(), codename, before, after, finaleLevel });
+    addLine("VAULT BREACH COMPLETE // SESSION SAVED", "ok");
+    await caseFile({ codename, levelId: DIFF, cracked: Run.cracked.slice(), wrong: Run.wrongTotal || 0, banked, walletAfter: Bank.getWalletBalance(), after, startedAt: Run.startedAt, tierMove, target: acct.name });
+    break;
   }
-  if(escape.score === 3){
-    const extra = Bank.addRunBonus(Bank.getRunEarnings() * 0.05, "clean getaway");
-    if(extra) addLine(`CLEAN GETAWAY +${Bank.formatGBP(extra)}`, "ok");
-  }
-  const banked = Bank.bankRun(DIFF);
-  if(window.PNMode) PNMode.refresh();
-  if(PN) PN.log("complete", { level: DIFF, banked, locks: Run.cracked, wrong: Run.wrongTotal || 0, finale: blackout ? "blackout" : "none", getaway: escape.score, target: acctSnapshot.name, hackTier: tierMove.from + 1, nextTier: tierMove.to + 1, siphoned: Math.round(frac * 100) });
-  // Badges for this run
-  if(window.PNBadges){
-    PNBadges.award("first-breach");
-    if(Run.cracked.length && Run.cracked.every(c => c.tries === 0)) PNBadges.award("prime-sniper");
-    if((Rig.peak || 0) <= 50) PNBadges.award("ghost");
-    if(escape.score === 3) PNBadges.award("wheelman");
-    if(blackout) PNBadges.award("lights-out");
-    const sess = PN && PN.currentSession();
-    if(sess && Date.now() - new Date(sess.startedAt).getTime() < 15 * 60000) PNBadges.award("speed-demon");
-    if(Bank.getWalletBalance() >= 1000000) PNBadges.award("high-roller");
-  }
-  const after = PN ? PN.agentRank(codename) : null;
-  updateRunUI();
-
-  const home = overlay(); home.innerHTML = `<div class="doorStage"></div>`;
-  await drainAndStamp(home, { acct: acctSnapshot, banked, walletBefore, walletAfter: Bank.getWalletBalance(), codename, before, after });
-  addLine("VAULT BREACH COMPLETE // SESSION SAVED", "ok");
-  if(window.PNHandler){ if(QUIET) PNHandler.say(`Clean job, {agent}. They'll never know we were there, and ${acctSnapshot.name} has been found out.`); else { PNHandler.radio("safe"); PNHandler.say(`FOX and WREN are out safe, and ${acctSnapshot.name} has been found out. Outstanding work, {agent}.`, { delay: 4200 }); } }
-  await caseFile({ codename, levelId: DIFF, cracked: Run.cracked.slice(), wrong: Run.wrongTotal || 0, banked, walletAfter: Bank.getWalletBalance(), after, startedAt: Run.startedAt, tierMove, frac });
 
   // A new run at the same clearance; the locks follow the agent's tier
   newRunSameDifficulty();

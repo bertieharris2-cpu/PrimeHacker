@@ -183,5 +183,7 @@
     radio(bank, opts = {}){ if(!window.PNStory) return; const r = PNStory.radio(bank); this.say(r.text, { ...opts, who: r.who }); return r; },
     fill,
     reopen,
+    // Clear the box now (a screen that shows ORACLE's words itself); the chip still reads the last message again
+    hide(){ queue = []; const b = typeof wrap !== "undefined" && wrap ? wrap.querySelector(".pnh-box") : null; if(b) b.classList.remove("on", "talking"); },
   };
 })();

@@ -382,3 +382,11 @@ Direction: twists should happen in the building itself (the 3D floor, the room, 
 - Confirmed as built: the Vault Grid testing controls and the Blueprint demo numbers are teacher-only.
 - Shop prices and wallet amounts: no changes until Bertie approves a proposal.
 - Next: the finale build (the choice, both endings, the rewards, the fee result screen, the finale lock).
+
+## Round 27: the result screen, the finale, and the corrupted blueprint
+- **Parked: talk with Bertie about the nth-term decryption** (the code crack's L3 "nth term" step, and decrypt requests for large n) before it's built any further.
+- Every mission ends with **the result**: recovered (the target's hidden sum, always in full), the finder's fee with its working (10% of £240,000 = £24,000), the split (fee to the pupil, the rest back to the victims), extras (intel bonus, clean getaway, as a share of the fee), the wallet, then FOX or WREN out safe, the headline as a front page, the victim's thank-you, and the case file with the clues toward the level's boss.
+- The fourth target in each level is its **finale** (Haven Council, Pinnacle Corp, Atlas Prime), locked on the map (padlock, "x of 3") until 3 of the level's missions are done. A mission counts when its own run (the target chosen on the map) breaches the vault. The teacher key opens it for testing. Extra runs in a mission never land on a finale target.
+- At the finale the vault opens and the pupil chooses: **Return the funds** (the fee, the level's thank-you scene, a title on the ID card and case file, and a trophy that can't be bought) or **Take it all** (the whole pot to the wallet, a short quiet ending, then "Replay the finale?", which takes the money back out and offers the choice again). Rewards are granted the first time only.
+- **Corrupted blueprint (Bertie: trial and error):** a room now goes anywhere it fits. A dead end isn't blocked: ORACLE nudges, and after three nudges the room (or the most recent rooms) in the way glows. CLEAR FLOOR sends every placed room back to the tray (L1's two starter rooms stay).
+- Shop prices: unchanged; a proposal for the new earnings is in `docs/SHOP_PROPOSAL.md` for Bertie to approve.

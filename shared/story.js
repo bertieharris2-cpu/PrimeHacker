@@ -1,7 +1,8 @@
 /* PRIMENET story: every target's story and the lines ORACLE, FOX and WREN say, in one place.
    Change a name, a line or a sum here and the whole game follows. {codename} (or {agent}) becomes the pupil's codename.
-   PARKED (not used yet): hiddenSum, recoveredSoFar, victim, thanks, headline and clue are for the result screen,
-   FEE_RATE is for the finder's fee, and finale/boss are for the finale after Level 3. */
+   Round 27: hiddenSum, victim, thanks, headline and clue feed the result screen (Prime Hack), FEE_RATE the finder's
+   fee, and the fourth target in each level is that level's finale (finale/boss, and FINALE below). recoveredSoFar is
+   still parked (returning to a target is parked). */
 (function(){
   "use strict";
 
@@ -25,7 +26,7 @@
       hiddenSum:420000, recoveredSoFar:0, victim:"Walter, 81",
       thanks:"I can pay the heating bill this winter. I'd like to shake your hand.",
       headline:"SENTINEL PENSIONERS GET THEIR SAVINGS BACK", clue:"A visitor pass with a diary note: \"Meet M. at the council offices, Thursday.\"" },
-    "Haven Council": { level:"L1", mission:4, verb:"retrieve",
+    "Haven Council": { level:"L1", mission:4, verb:"retrieve", finale:true, boss:"Councillor Marlowe",
       hook:"Someone inside Haven Council is selling the town park to builders in secret, and taking a cut of the money.",
       cover:"as fire-safety inspectors", prize:"the signed contract selling the park", returnTo:"the park fund",
       hiddenSum:500000, recoveredSoFar:0, victim:"Bea, who runs the Saturday park club",
@@ -50,7 +51,7 @@
       hiddenSum:600000, recoveredSoFar:0, victim:"Mr and Mrs Baker, who run a corner shop",
       thanks:"New locks and every penny back. We sleep easier.",
       headline:"IRONCLAD ALARMS CUSTOMERS REFUNDED, ALL CODES DESTROYED", clue:"A guest list for \"The Pinnacle Club\" with the mountain symbol." },
-    "Pinnacle Corp": { level:"L2", mission:4, verb:"expose",
+    "Pinnacle Corp": { level:"L2", mission:4, verb:"expose", finale:true, boss:"Ms Ashcroft",
       hook:"Pinnacle Corp rigged the town lottery so its own staff kept winning.",
       cover:"as lottery-machine technicians", prize:"the rigged draw software", returnTo:"local groups",
       hiddenSum:720000, recoveredSoFar:0, victim:"Joy, who raised money for the youth centre",
@@ -135,7 +136,25 @@
     safe:        [["WREN","We're out! Van's moving."], ["FOX","Clean exit. Good work, {codename}."]],
   };
 
-  const FEE_RATE = { L1:0.10, L2:0.15, L3:0.20 };   // PARKED: the finder's fee
+  // The finder's fee: a set share of the hidden money recovered (Bertie: 10%, 15%, 20%). The rest returns to the victims.
+  const FEE_RATE = { L1:0.10, L2:0.15, L3:0.20 };
+  // The finale: the fourth target in each level, locked until `gate` missions in that level are done (Bertie: 3).
+  // Returning the funds earns the title, the trophy (it can't be bought) and the thank-you scene; taking it all earns none.
+  const FINALE = {
+    gate: 3,
+    L1: { target:"Haven Council", title:"PRIMENET Field Support", trophy:"trophy-frontpage",
+          scene:"The park gates open for the Saturday club. Bea is there, with Mrs Okafor, Walter and Mr Thompson.", people:["Bea", "Mrs Okafor", "Walter", "Mr Thompson"] },
+    L2: { target:"Pinnacle Corp", title:"PRIMENET Senior Specialist", trophy:"trophy-nameplate",
+          scene:"The youth centre opens its doors. Joy is there, with Hana, Sam and the Bakers.", people:["Joy", "Hana", "Sam", "the Bakers"] },
+    L3: { target:"Atlas Prime", title:"PRIMENET Head of Technical Operations", trophy:"trophy-caseclosed",
+          scene:"Kofi, Elin and Carlos meet for the first time, by the river.", people:["Kofi", "Elin", "Carlos"] },
+  };
+  // The finale's lines (ORACLE, and the quiet ending when the pupil takes it all)
+  const FINALE_LINES = {
+    choice: "The vault's open. The evidence is ready to go. So is the money. This one's your call, {codename}.",
+    took: "The money's yours. The people it belonged to are still waiting.",
+    returned: "The evidence is out and the money is going home. That's what PRIMENET is for, {codename}.",
+  };
 
   const pick = a => a[Math.floor(Math.random() * a.length)];
   // This mission's target story (the current agent's target when no name is given)
@@ -156,5 +175,17 @@
   // A random radio line from a bank: { who, text }
   function radio(bank){ const r = pick(RADIO[bank] || [["FOX","..."]]); return { who: r[0], text: fill(r[1]) }; }
 
-  window.PNStory = { TARGETS, VERBS, LINES, RADIO, FEE_RATE, target, fill, line, verb, radio };
+  // The money for a target: recovered in full (Bertie), the fee at the target's level, and what returns to the victims
+  function fee(name){
+    const t = target(name), rate = FEE_RATE[t.level] || 0.1, recovered = Math.max(0, t.hiddenSum - (t.recoveredSoFar || 0));
+    const f = Math.round(recovered * rate);
+    return { recovered, rate, pct: Math.round(rate * 100), fee: f, returned: recovered - f };
+  }
+  const isFinale = name => !!(TARGETS[name] && TARGETS[name].finale);
+  const finaleOf = level => (FINALE[level] || {}).target || null;
+  const levelTargets = level => Object.keys(TARGETS).filter(n => TARGETS[n].level === level).sort((a, b) => TARGETS[a].mission - TARGETS[b].mission);
+  // The short name of a victim: "Mrs Okafor, a retired teacher…" → "Mrs Okafor"
+  const victimName = name => String(target(name).victim || "").split(/, (?=[a-z0-9])/)[0];
+
+  window.PNStory = { TARGETS, VERBS, LINES, RADIO, FEE_RATE, FINALE, FINALE_LINES, target, fill, line, verb, radio, fee, isFinale, finaleOf, levelTargets, victimName };
 })();
