@@ -77,7 +77,7 @@
     { id: "building", name: "The building",          url: "vault_blueprint_viewer.html" },
     { id: "plan",     name: "The plan",              url: "vault_blueprint_viewer.html", jump: "plan" },
     { id: "recon",    name: "Guard recon",           url: "vault_blueprint_viewer.html", jump: "recon" },
-    { id: "heist",    name: "The heist",             url: "vault_blueprint_viewer.html", jump: "heist" },
+    { id: "heist",    name: "The operation",         url: "vault_blueprint_viewer.html", jump: "heist" },
     { id: "vault",    name: "The vault",             url: "prime_hack.html" },
   ];
   const PAGE_SCENE = { "briefing.html": "brief", "prime_frequency_scan.html": "scan", "target_locked.html": "email", "factor_vault.html": "floors", "vault_grid_demo.html": "floors", "vault_blueprint_viewer.html": "building", "prime_hack.html": "vault" };

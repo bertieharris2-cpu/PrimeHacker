@@ -1373,7 +1373,7 @@ function powerUpPrompt(title){
       function moveWatch(label){ if(moveW) moveW.end(); moveW = window.PNMode ? PNMode.watch(label) : null; }
       function moveEnd(){ if(moveW){ moveW.end(); moveW = null; } }
       async function move(label, line, points, quick){
-        moveWatch(label); say('HEIST // ' + label); if(line && window.PNHandler) PNHandler.say(line);
+        moveWatch(label); say('OPERATION // ' + label); if(line && window.PNHandler) PNHandler.say(line);
         await walk(points, quick ? 14 : 22, k => { if(moveW) moveW.progress(k); });
       }
       // A twist waits for every WATCH to end, so the move's WATCH ends before PNTwistSlot.run; the intro runs its own
@@ -1468,14 +1468,14 @@ function powerUpPrompt(title){
         const lg = document.getElementById('bpLegend'); if(lg) lg.classList.remove('on');
         // Fewer labels on the building in the heist: the crew, the key and the guards stay
         mainGroup.traverse(o => { if(o.isSprite && ['FIRE STAIRS', 'CEO', 'LIFT'].includes(o.userData.text)) o.visible = false; });
-        if(window.PNMode){ PNMode.chapter("heist"); await PNMode.chapterCard(5, "The heist"); }
+        if(window.PNMode){ PNMode.chapter("heist"); await PNMode.chapterCard(5, "The operation"); }
         // Face the building the way the route was planned
         const r0 = ((mainGroup.rotation.y % (Math.PI * 2)) + Math.PI * 3) % (Math.PI * 2) - Math.PI;
         await tween(reduced() ? 1 : 700, e => { mainGroup.rotation.y = rotationY = r0 * (1 - e); });
         mainGroup.rotation.y = rotationY = 0;
         mainGroup.add(trail); trailN = 0; placeCrew(D.pts[0]);
         D.agent.visible = true; D.halo.visible = true; fadeIn([D.tag]);   // the crew only appear once the heist starts
-        say(`${PN ? PN.mission().target.toUpperCase() : 'TARGET'} // HEIST IN PROGRESS`);
+        say(`${PN ? PN.mission().target.toUpperCase() : 'TARGET'} // OPERATION IN PROGRESS`);
 
         // GO GO GO
         const w0 = shortWatch('GO GO GO', 2);

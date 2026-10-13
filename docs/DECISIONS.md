@@ -372,3 +372,13 @@ Direction: twists should happen in the building itself (the 3D floor, the room, 
 - Process: built with one agent per page in parallel, two reviewers and a fixer; every page tested at L1–L3 with real input, in mission mode and with reduced motion; full missions pass. Agents' shared requests still open: an ORACLE dock option (`handler.js`), a brief delay/suppress option for pages with an intro, a `--pn-laser` colour variable, a `cash` sound without the thunk.
 - Live in every mission (no prototype switch): the deposit-box room (finales alternate), the strongroom (squares in order by default), the ceiling relays (stack the relay) and the corrupted blueprint. Sieve, patrols and the key room door still sit behind the Twist Lab switch until Bertie picks.
 - The brief sits on the left with a "Pop up for every new step" tick box (`primenet_brief_auto`); unticked, it stays folded and the BRIEF tab flashes on a new step.
+
+## Round 26: Bertie's answers to the open questions
+- Chapter 5 is now **"The operation"** (it was "The heist"), to fit PRIMENET doing good. Renamed on the chapter card, the chapter strip, the twist eyebrows, the blueprint's status line, the teacher jump list and the twist point names. Internal ids stay `heist`.
+- The finale unlocks after **3 missions** in a level (the brief's A2, now confirmed).
+- Finder's fees stay at **10% / 15% / 20%** for L1 / L2 / L3.
+- ORACLE stays **gender-neutral**.
+- **Replay the finale** after "Take it all" takes that money back out of the wallet; the return-the-funds rewards are granted the first time.
+- Confirmed as built: the Vault Grid testing controls and the Blueprint demo numbers are teacher-only.
+- Shop prices and wallet amounts: no changes until Bertie approves a proposal.
+- Next: the finale build (the choice, both endings, the rewards, the fee result screen, the finale lock).

@@ -454,7 +454,7 @@
   // the others are built into their stage and only use the tick box.
   // Round 15 (Bertie): twists happen where the story puts them. The building can come in corrupted; the rest happen
   // during the heist itself (the way in, the fuse box, Plan B in the basement, the strongroom) or at the vault door.
-  const TWIST_POINTS = { assembled:"The building (as it assembles)", entry:"Heist: the way in", power:"Heist: the fuse box", keyroom:"Heist: the key room door", planb:"Heist: the deposit boxes, in the basement", strongroom:"Heist: the strongroom", hack:"The vault (before lock 3)", finale:"Finale", warmup:"Warm-up (main menu, not in missions)" };
+  const TWIST_POINTS = { assembled:"The building (as it assembles)", entry:"Operation: the way in", power:"Operation: the fuse box", keyroom:"Operation: the key room door", planb:"Operation: the deposit boxes, in the basement", strongroom:"Operation: the strongroom", hack:"The vault (before lock 3)", finale:"Finale", warmup:"Warm-up (main menu, not in missions)" };
   const HEIST_POINTS = ["entry", "power", "keyroom", "planb", "strongroom"];
   const TWISTS = [
     { id:"corrupt",    point:"assembled",  name:"Corrupted blueprint",    maths:"Factor pairs as arrays", page:"twist_corrupt.html" },

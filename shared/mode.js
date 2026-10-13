@@ -138,7 +138,7 @@
   // ---------- Chapter strip (round 15: the mission as chapters of a heist film) ----------
   const CHAPTERS = [
     { key: "intercept", name: "INTERCEPT" }, { key: "decrypt", name: "DECRYPT" }, { key: "building", name: "BUILDING" },
-    { key: "plan", name: "PLAN" }, { key: "heist", name: "HEIST" }, { key: "vault", name: "VAULT" }, { key: "money", name: "£" },
+    { key: "plan", name: "PLAN" }, { key: "heist", name: "OPERATION" }, { key: "vault", name: "VAULT" }, { key: "money", name: "£" },
   ];
   let moneyShown = false, forced = null;
   function where(){
