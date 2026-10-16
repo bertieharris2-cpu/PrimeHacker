@@ -3149,7 +3149,7 @@ async function onLockSolved(){
   // Practice: no finale, no money, no record. A plain card instead.
   if(PRACTICE){ Sound.ok(); await lockCard(Run.index, last.p, last.q); practiceEnd(); return; }
 
-  // Final lock: alarm, breach chatter, buffer charge, code flood, (sometimes) blackout, siphon, get out, getaway, case file
+  // Final lock: alarm, breach chatter, buffer charge, code flood, (teacher only) blackout, siphon, get out, getaway, case file
   const hackSecs = Run.cracked.reduce((a, c) => a + (c.ms || 0), 0) / 1000;
   const tierMove = nextTier(Run.cracked, Run.wrongTotal || 0);
   Sound.ok();
@@ -3176,8 +3176,9 @@ async function onLockSolved(){
   }
 
   const acct = Bank.getCurrentAccount() || { name:"TARGET", balance:0 };
-  // Feedback round 9: the server blackout only turns up now and then (about one run in three).
-  const blackout = Run.forceFinale ? Run.forceFinale === "blackout" : (!PN || PN.twistOn("blackout")) && Math.random() < 0.34;
+  // Round 29 (Bertie): the server blackout no longer turns up at random. It plays only when a teacher asks for it
+  // (?finale=blackout from the Twist Lab, or the TEST button "Next finale: server blackout").
+  const blackout = Run.forceFinale === "blackout";
   Run.forceFinale = null;
   if(blackout){
     if(window.PNHandler) PNHandler.say("Their monitoring servers can see the transfer. Knock out the prime ones before they trace it.");

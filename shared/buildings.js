@@ -67,8 +67,9 @@
       keyRoute: { n: 36, path: [[27, 36], [34, 36], [34, 11], [31, 11]] },
     },
 
-    // 2. Lights out: in through floor 2's fire door when both guards are behind the server room, straight into the server
-    // room for the fuse box, then (in the dark) the key room and its bolted door, then the vault on the same floor.
+    // 2. Lights out: in through floor 2's fire door, straight into the server room for the fuse box, then (in the dark)
+    // the key room and its bolted door, then the vault on the same floor. Round 29: no patrols twist in this menu now,
+    // so its guard routes below are kept but unused.
     lightsout: {
       floors: [40, 30, 24], wayIn: 2, keyRoom: "KEY ROOM", serverRoom: "SERVER ROOM",
       layouts: {
@@ -151,8 +152,9 @@
       },
     },
 
-    // 4. The quiet way in: deposit box. In through the ground floor's fire door when both guards are behind the mail room,
-    // up the corridor to the lift and down to the basement; copy the key, put it back, out the same way.
+    // 4. The quiet way in: deposit box. In through the ground floor's fire door, up the corridor to the lift and down to
+    // the basement; copy the key, put it back, out the same way. Round 29: no patrols twist in this menu now, so its
+    // guard routes below (both guards behind the mail room) are kept but unused.
     quietbox: {
       floors: [42, 30, 16], wayIn: 1,
       layouts: {

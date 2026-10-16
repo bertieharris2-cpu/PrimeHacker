@@ -504,7 +504,6 @@
     { id:"walls",      point:"planb",      name:"Deposit boxes", maths:"Factor pairs and HCF", page:"twist_walls3d.html" },
     { id:"strongroom", point:"strongroom", name:"Strongroom code crack",   maths:"Patterns (squares and more)", page:"twist_strongroom_hack.html" },   // Round 23: crack the floor code (a rotating pattern)
     { id:"factortree", point:"keyroom",    name:"Key room door",          maths:"Prime factorisation", page:"twist_door2.html" },
-    { id:"blackout",   point:"finale",     name:"Server blackout",        maths:"Primes" },
     { id:"getaway",    point:"finale",     name:"Getaway chase",          maths:"Primes, squares, cubes" },
     { id:"sieve",      point:"warmup",     name:"Motion-sensor sieve",    maths:"Primes and multiples", warmup:"twist_sieve2.html" },
   ];
@@ -524,14 +523,15 @@
   const twistProtos = () => !!readTw().protos;
   function setTwistProtos(on){ const d = readTw(); d.protos = !!on; writeTw(d); }
   const playable = t => t.point !== "warmup" && !!(t.page || (t.proto && twistProtos()));
-  // Round 19 (Bertie): set menus. Each mission plays one menu: three twists that tell one story. Where the bank's
-  // security key is, and how the mission ends, follow the menu. Quiet menus: FOX and WREN copy the key, put it back and
-  // sneak out unseen; the vault is hacked from base. Loud menus: the crew wait at the vault, then get out fast.
+  // Round 19 (Bertie): set menus. Each mission plays one menu: two twists that tell one story (Round 29, Bertie after
+  // playing with a pupil: three was slightly too much before the finale). Where the bank's security key is, and how the
+  // mission ends, follow the menu. Quiet menus: FOX and WREN copy the key, put it back and sneak out unseen; the vault is
+  // hacked from base. Loud menus: the crew wait at the vault, then get out fast.
   const MENUS = [
-    { id:"quiet",      name:"The quiet way in",               quiet:true,  keyAt:"strongroom", picks:{ assembled:"corrupt", entry:"patrols", strongroom:"strongroom" } },
-    { id:"lightsout",  name:"Lights out",                     quiet:false, keyAt:"keyroom",    picks:{ entry:"patrols", power:"cubes", keyroom:"factortree" } },
-    { id:"planb",      name:"Plan B",                         quiet:false, keyAt:"deposit",    picks:{ power:"cubes", planb:"walls", strongroom:"strongroom" } },
-    { id:"quietbox",   name:"The quiet way in: deposit box",  quiet:true,  keyAt:"deposit",    picks:{ assembled:"corrupt", entry:"patrols", planb:"walls" } },
+    { id:"quiet",      name:"The quiet way in",               quiet:true,  keyAt:"strongroom", picks:{ entry:"patrols", strongroom:"strongroom" } },
+    { id:"lightsout",  name:"Lights out",                     quiet:false, keyAt:"keyroom",    picks:{ power:"cubes", keyroom:"factortree" } },
+    { id:"planb",      name:"Plan B",                         quiet:false, keyAt:"deposit",    picks:{ power:"cubes", planb:"walls" } },
+    { id:"quietbox",   name:"The quiet way in: deposit box",  quiet:true,  keyAt:"deposit",    picks:{ assembled:"corrupt", planb:"walls" } },
   ];
   // The mission's twist plan: made once per session (one menu), then every stage asks it "is there a twist here?".
   // It avoids the menu this agent had last mission. A teacher pin keeps to menus with that twist; twists switched off

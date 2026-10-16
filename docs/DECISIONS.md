@@ -395,3 +395,18 @@ Direction: twists should happen in the building itself (the 3D floor, the room, 
 - Atlas Prime's hidden sum is now £3,000,000. At the L3 finale, returning the funds pays a £600,000 fee, and taking it all pays £3,000,000.
 - The middle tier is cheaper: the £250,000 items are now £150,000, and the £100,000 items are now £75,000. The £1,000,000 items stay.
 - Extra runs in the same mission pay half the fee, shown in the working ("10% of £240,000 = £24,000 · repeat run, half: £12,000"). The mission's own run and the finale pay in full.
+
+## Round 29: two twists per mission (Bertie, after playing with a pupil)
+- "Slightly too much before the finale": every mission menu now plays **two twists**, not three. Each menu keeps its building, its key and its ending.
+
+| Menu | Twist 1 | Twist 2 | The story |
+|---|---|---|---|
+| The quiet way in (quiet) | Guard patrols (LCM) | Strongroom code crack (patterns) | Time the guards, slip in, crack the floor code, copy the key, out unseen. |
+| Lights out (loud) | Ceiling relays (cubes) | Key room door (prime factorisation) | Kill the power, then break into the key room in the dark. |
+| Plan B (loud) | Ceiling relays (cubes) | Deposit boxes (factor pairs and HCF) | Kill the power; the key isn't where intel said, so open the deposit boxes. |
+| The quiet way in: deposit box (quiet) | Corrupted blueprint (arrays) | Deposit boxes (factor pairs and HCF) | Rebuild the damaged plan, then find the key box. |
+
+- Every twist still appears in at least one menu.
+- With no patrols twist, FOX and WREN walk straight to the fire door (no recon, no stopwatch). A loud menu with no strongroom twist still walks to the strongroom, because that's where the vault is.
+- The guard recon data for the lights out and quiet deposit-box buildings is kept in `shared/buildings.js` but no longer used.
+- **The server blackout no longer turns up at random** in the vault. It plays only when a teacher asks for it: the Twist Lab link (`?finale=blackout`) or the TEST button "Next finale: server blackout". Its tick box has left the teacher settings.

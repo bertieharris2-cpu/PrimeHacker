@@ -41,7 +41,7 @@
     <div>
       <div class="eb">PRIMENET · MISSION TWISTS</div>
       <h1>TWIST LAB</h1>
-      <p class="lede">Every rotating task from the mission, playable on its own. Pick a level to jump straight in. These pages don't change a mission. Each mission plays three of them, each at its own place in the story.</p>
+      <p class="lede">Every rotating task from the mission, playable on its own. Pick a level to jump straight in. These pages don't change a mission. Each mission plays two of them, each at its own place in the story.</p>
     </div>
     <a class="pn-btn small" href="../index.html" style="text-decoration:none">← Title screen</a>
   </header>
@@ -76,7 +76,7 @@
       { id: "factortree", t: "Factor-tree lock", d: "The key-room door on the weak floor. Split the number with one click per prime until every branch is prime; the door slides open. L3 writes the key with powers (2² × 3 × 5).", m: "pfact", mn: "Prime factorisation", page: "twist_factortree.html", isNew: 1 },
     ] },
     { name: "Finale", when: "How it ends", items: [
-      { id: "blackout", t: "Server blackout", d: "Lights out: shut down the prime servers by torchlight. Opens Prime Hack with the blackout set as this run's finale; SKIP (teacher mode) cracks the locks fast.", m: "primes", mn: "Primes", link: `<a href="prime_hack.html?finale=blackout">Open Prime Hack</a><small>title-screen level</small>` },
+      { id: "blackout", t: "Server blackout", other: true, d: "Not in missions any more (Round 29): it plays only from here or the TEST button. Lights out: shut down the prime servers by torchlight. Opens Prime Hack with the blackout set as this run's finale; SKIP (teacher mode) cracks the locks fast.", m: "primes", mn: "Primes", link: `<a href="prime_hack.html?finale=blackout">Open Prime Hack</a><small>title-screen level</small>` },
       { id: "getaway", t: "Getaway chase", d: "The tracking-map getaway. Opens Prime Hack with the getaway as this run's finale.", m: "pfact", mn: "Story", link: `<a href="prime_hack.html?finale=getaway">Open Prime Hack</a><small>title-screen level</small>` },
     ] },
     { name: "Saved for other heists", when: "Not in the mission rotation", items: [
